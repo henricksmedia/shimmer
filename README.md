@@ -13,8 +13,10 @@ AI music generators like Suno.  Offline, local, deterministic.
 - **Per-model presets.** `generic`, `suno_v3`, `suno_v3.5`, `suno_v4`,
   `suno_v4.5`, `suno_v5`, `suno_v5_pro`, `suno_v5.5`.
 - **Auto-detect.** Analyses your file and picks the best preset.
-- **FastAPI + native HTML UI.** Three native `<audio>` elements with
-  exclusive playback: start one, the others pause.  No Gradio.
+- **FastAPI + native HTML UI.** Three native `<audio>` elements share a
+  single playhead for instant A/B/C comparison: click any card to hear
+  it at the current time; the others pause and stay seeked in sync.
+  No Gradio.
 - **Batch tab.** Point at a folder and walk the whole thing.
 - **Settings persistence.** Last-used preset / sliders restore on launch.
 
