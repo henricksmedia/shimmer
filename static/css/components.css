@@ -1,0 +1,273 @@
+/* components.css — reusable visual components.
+   Dropzone, sliders, buttons, inputs, audio cards, metrics box, logs. */
+
+/* ── Buttons ───────────────────────────────────────────────────────── */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-s);
+    font-family: var(--font-ui);
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    text-decoration: none;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-primary {
+    background: var(--purple);
+    color: #fff;
+}
+.btn-primary:hover:not(:disabled) { background: var(--purple-hover); }
+
+.btn-secondary {
+    background: var(--bg-3);
+    color: var(--fg-0);
+    border-color: var(--line);
+}
+.btn-secondary:hover:not(:disabled) {
+    background: var(--bg-4);
+    border-color: var(--purple);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--fg-1);
+    border-color: var(--line);
+}
+.btn-ghost:hover:not(:disabled) {
+    color: var(--fg-0);
+    border-color: var(--purple);
+    background: var(--purple-soft);
+}
+
+/* ── Labels, rows, selects, text inputs ───────────────────────────── */
+
+.label {
+    display: block;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--fg-2);
+    font-weight: 600;
+    margin: var(--gap-2) 0 var(--gap-1);
+}
+
+.row { display: flex; gap: var(--gap-2); align-items: center; }
+.row > .select { flex: 1; }
+
+.select, .input {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    color: var(--fg-0);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 120ms ease;
+}
+.select:focus, .input:focus { border-color: var(--purple); }
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: var(--gap-2);
+    font-size: 13px;
+    color: var(--fg-1);
+    cursor: pointer;
+    user-select: none;
+}
+.checkbox-row input { accent-color: var(--purple); }
+
+.control-block { display: flex; flex-direction: column; gap: var(--gap-1); }
+
+.preset-desc {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--fg-2);
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    padding: 8px 12px;
+    margin-top: var(--gap-2);
+    min-height: 40px;
+    white-space: pre-line;
+}
+
+/* ── Dropzone ──────────────────────────────────────────────────────── */
+
+.dropzone {
+    position: relative;
+    border: 2px dashed var(--line-2);
+    border-radius: var(--radius);
+    background: var(--bg-1);
+    padding: var(--gap-5);
+    text-align: center;
+    transition: border-color 150ms ease, background 150ms ease;
+    cursor: pointer;
+}
+.dropzone.drag-over {
+    border-color: var(--purple);
+    background: var(--purple-soft);
+}
+.dropzone-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+.dropzone-primary {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--fg-0);
+}
+.dropzone-secondary {
+    font-size: 11.5px;
+    font-family: var(--font-mono);
+    color: var(--fg-2);
+    letter-spacing: 0.5px;
+}
+.selected-file {
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--gold);
+    word-break: break-all;
+}
+
+/* ── Slider rows ───────────────────────────────────────────────────── */
+
+.slider-group {
+    margin-top: var(--gap-3);
+    padding-top: var(--gap-3);
+    border-top: 1px solid var(--line);
+}
+.slider-group-title {
+    font-size: 11.5px;
+    color: var(--fg-2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+    margin-bottom: var(--gap-2);
+}
+
+.slider-row {
+    display: grid;
+    grid-template-columns: 120px 1fr 60px;
+    gap: var(--gap-3);
+    align-items: center;
+    padding: 4px 0;
+}
+.slider-row .slider-label { font-size: 13px; color: var(--fg-1); }
+.slider-row .slider-value {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--gold);
+}
+.slider-row input[type=range] {
+    width: 100%;
+    appearance: none;
+    height: 4px;
+    background: var(--bg-3);
+    border-radius: 2px;
+    outline: none;
+}
+.slider-row input[type=range]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px; height: 14px;
+    background: var(--purple);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--bg-0);
+    box-shadow: 0 0 6px rgba(108, 92, 231, 0.4);
+}
+.slider-row input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    background: var(--purple);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--bg-0);
+}
+
+/* ── Results cards & audio ────────────────────────────────────────── */
+
+.results-card {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--gap-3);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.results-card.active {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 1px var(--purple-soft) inset;
+}
+.results-card.active .audio-label { color: var(--purple); }
+.audio-label {
+    font-size: 11.5px;
+    color: var(--fg-2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.audio-label .hint {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--fg-3);
+    text-transform: none;
+    letter-spacing: 0.3px;
+    margin-left: 4px;
+}
+.results-card audio { width: 100%; display: block; }
+
+.metrics-box {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg-1);
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    padding: 10px 12px;
+    white-space: pre-wrap;
+    min-height: 60px;
+}
+
+/* ── Batch log ─────────────────────────────────────────────────────── */
+
+.batch-btn { margin: var(--gap-4) 0; }
+
+.batch-log {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg-1);
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    padding: 12px;
+    min-height: 240px;
+    max-height: 480px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    margin: 0;
+}
+.batch-log .ok   { color: var(--success); }
+.batch-log .err  { color: var(--danger); }
+.batch-log .head { color: var(--gold); font-weight: 600; }
+
+.intro {
+    color: var(--fg-2);
+    font-size: 13px;
+    margin: 0 0 var(--gap-4);
+}

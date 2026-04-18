@@ -1,0 +1,145 @@
+/* layout.css — page structure only.  Header, tabs, grids, spacing. */
+
+body {
+    padding-top: var(--header-h);
+    padding-bottom: var(--process-bar-h);
+    padding-right: var(--guide-width);
+}
+
+.app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: var(--guide-width);
+    height: var(--header-h);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-0);
+    border-bottom: 1px solid var(--line);
+    z-index: 900;
+}
+
+.app-header h1 {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--fg-0);
+    letter-spacing: -0.5px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.app-header .brand-by {
+    font-weight: 300;
+    font-size: 16px;
+    color: var(--fg-2);
+}
+
+.app-header .brand-treq {
+    font-family: var(--font-brand);
+    color: var(--gold);
+    font-size: 20px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 20px rgba(212, 165, 90, 0.2);
+}
+
+.app-header .subtitle {
+    font-size: 12.5px;
+    color: var(--fg-2);
+    letter-spacing: 0.3px;
+    font-weight: 300;
+    margin-top: 4px;
+}
+
+.tabs {
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    right: var(--guide-width);
+    display: flex;
+    background: var(--bg-0);
+    border-bottom: 1px solid var(--line);
+    padding: 6px var(--gap-5) 0;
+    z-index: 850;
+}
+
+.tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--fg-2);
+    padding: 10px 18px;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    transition: color 120ms ease, background 120ms ease;
+}
+.tab:hover { color: var(--fg-1); background: var(--purple-soft); }
+.tab.active {
+    color: var(--fg-0);
+    background: var(--bg-3);
+    border-bottom-color: var(--purple);
+}
+
+.page {
+    padding: calc(var(--header-h) + var(--gap-5)) var(--gap-5) var(--gap-5);
+    /* Offset down from the fixed tab bar — the body top padding handles the
+       header, this adds the tabs row. */
+    padding-top: calc(42px + var(--gap-5));
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap-5);
+}
+
+.column { display: flex; flex-direction: column; gap: var(--gap-3); }
+
+.process-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: var(--guide-width);
+    height: var(--process-bar-h);
+    background: var(--bg-0);
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: var(--gap-3);
+    padding: 0 var(--gap-5);
+    z-index: 800;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.process-bar progress {
+    flex: 1;
+    height: 6px;
+    appearance: none;
+    background: var(--bg-3);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.process-bar progress::-webkit-progress-bar { background: var(--bg-3); }
+.process-bar progress::-webkit-progress-value {
+    background: var(--purple);
+    transition: width 120ms linear;
+}
+.process-bar progress::-moz-progress-bar { background: var(--purple); }
+
+.process-btn { min-width: 140px; }
+
+@media (max-width: 1100px) {
+    body { padding-right: 0; }
+    .app-header, .tabs, .process-bar { right: 0; }
+    #guide { display: none; }
+    .two-column { grid-template-columns: 1fr; }
+}

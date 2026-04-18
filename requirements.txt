@@ -1,0 +1,8 @@
+numpy
+scipy
+soundfile
+matplotlib
+fastapi
+uvicorn[standard]
+python-multipart
+pydub

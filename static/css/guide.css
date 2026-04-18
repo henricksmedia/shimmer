@@ -1,0 +1,115 @@
+/* guide.css — the fixed right-hand sidebar.
+   Scoped to #guide so none of these rules leak into the main page. */
+
+#guide {
+    position: fixed;
+    top: 0; right: 0;
+    width: var(--guide-width);
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--bg-1);
+    border-left: 1px solid var(--line);
+    padding: var(--gap-5) var(--gap-4);
+    font-size: 12.5px;
+    color: var(--fg-1);
+    line-height: 1.65;
+    font-family: var(--font-ui);
+    z-index: 1000;
+}
+
+#guide::-webkit-scrollbar { width: 4px; }
+#guide::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+
+#guide .sidebar-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--fg-0);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+    border-bottom: 2px solid var(--purple);
+}
+
+#guide h3 {
+    color: var(--fg-0);
+    font-size: 13px;
+    font-weight: 600;
+    margin: 18px 0 5px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+}
+#guide h3:first-of-type { margin-top: 0; }
+#guide p { margin: 0 0 12px; }
+
+#guide .step {
+    display: inline-block;
+    width: 18px; height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--purple);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 6px;
+}
+
+#guide .tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 4px;
+    background: var(--purple-soft);
+    color: #b8aef0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    margin: 1px 2px;
+}
+
+#guide .param {
+    color: var(--purple);
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+#guide .tip {
+    background: rgba(240, 165, 0, 0.08);
+    border-left: 3px solid var(--amber);
+    padding: 6px 10px;
+    margin: 10px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 11px;
+    color: var(--fg-1);
+}
+
+/* Plain-language explanation sitting under the technical line.
+   Visually subordinate: smaller, slightly indented, softer colour. */
+#guide .plain {
+    display: block;
+    margin: 3px 0 10px 12px;
+    padding-left: 8px;
+    border-left: 2px solid var(--line-2);
+    font-size: 11.5px;
+    color: var(--fg-2);
+    font-style: italic;
+    line-height: 1.55;
+}
+
+#guide .plain b { color: var(--fg-1); font-style: normal; }
+
+#guide .intro-note {
+    background: rgba(108, 92, 231, 0.08);
+    border-left: 3px solid var(--purple);
+    padding: 8px 10px;
+    margin: 0 0 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    color: var(--fg-1);
+    line-height: 1.55;
+}
+
+#guide .divider {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 16px 0;
+}

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shimmer by The Treq</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Climate+Crisis&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/css/tokens.css">
+<link rel="stylesheet" href="/static/css/layout.css">
+<link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/guide.css">
+<link rel="stylesheet" href="/static/css/help.css">
+</head>
+<body>
+
+<header class="app-header">
+    <h1>Shimmer
+        <span class="brand-by">by</span>
+        <span class="brand-treq">The Treq</span>
+    </h1>
+    <div class="subtitle">Remove AI shimmer artifacts from audio</div>
+</header>
+
+<nav class="tabs" role="tablist">
+    <button class="tab active" role="tab" data-tab="single" aria-selected="true">Single File</button>
+    <button class="tab" role="tab" data-tab="batch" aria-selected="false">Batch</button>
+</nav>
+
+<main class="page">
+
+    <!-- ───────────── Single-File tab ───────────── -->
+    <section id="tab-single" class="tab-panel active" role="tabpanel">
+        <div class="two-column">
+
+            <div class="column controls-column">
+
+                <div class="dropzone" id="dropzone">
+                    <input type="file" id="file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" hidden>
+                    <div class="dropzone-inner">
+                        <div class="dropzone-primary">Drop audio here</div>
+                        <div class="dropzone-secondary">WAV · MP3 · FLAC · OGG · M4A</div>
+                        <button type="button" class="btn btn-ghost" id="pick-file-btn">Or choose file…</button>
+                        <div class="selected-file" id="selected-file" hidden></div>
+                    </div>
+                </div>
+
+                <div class="control-block">
+                    <div class="label-row">
+                        <label class="label" for="preset-select">Preset</label>
+                        <button type="button" class="help-icon" data-help-tab="presets" title="How do I pick a preset?" aria-label="Help: how do I pick a preset?">?</button>
+                    </div>
+                    <div class="row">
+                        <select id="preset-select" class="select"></select>
+                        <button type="button" class="btn btn-ghost" id="auto-detect-btn" title="Analyse the file and pick a preset">Auto&nbsp;Detect</button>
+                    </div>
+                    <div id="preset-desc" class="preset-desc"></div>
+                </div>
+
+                <div class="control-block">
+                    <label class="label">Output format</label>
+                    <select id="output-format" class="select">
+                        <option value="wav" selected>WAV (24-bit PCM)</option>
+                        <option value="flac">FLAC</option>
+                        <option value="mp3">MP3 (320 kbps)</option>
+                        <option value="ogg">OGG Vorbis</option>
+                        <option value="m4a">M4A (AAC)</option>
+                    </select>
+                </div>
+
+                <div id="sliders-host"></div>
+
+                <label class="checkbox-row">
+                    <input type="checkbox" id="preserve-vol" checked>
+                    <span>Match output peak to input</span>
+                </label>
+
+            </div>
+
+            <div class="column results-column">
+
+                <div class="results-card">
+                    <div class="audio-label">Original</div>
+                    <audio id="audio-original" controls preload="none"></audio>
+                </div>
+
+                <div class="results-card">
+                    <div class="audio-label">Processed</div>
+                    <audio id="audio-processed" controls preload="none"></audio>
+                </div>
+
+                <div class="results-card">
+                    <div class="audio-label">Removed <span class="hint">(5× boost)</span></div>
+                    <audio id="audio-diff" controls preload="none"></audio>
+                </div>
+
+                <div class="metrics-box" id="metrics-box"></div>
+
+                <a id="download-link" class="btn btn-secondary" hidden download>Download Processed</a>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ───────────── Batch tab ───────────── -->
+    <section id="tab-batch" class="tab-panel" role="tabpanel">
+        <p class="intro">
+            Process every audio file in a folder.  Output format inherits from the selector.
+            Leave the output folder blank to auto-create <code>&lt;input&gt;_deshimmered</code>.
+        </p>
+
+        <div class="two-column">
+            <div class="column">
+                <label class="label">Input folder</label>
+                <input type="text" id="batch-input" class="input" placeholder="D:\MusicVault\Originals">
+
+                <label class="label">Output folder (optional)</label>
+                <input type="text" id="batch-output" class="input" placeholder="(auto)">
+            </div>
+            <div class="column">
+                <label class="label">Preset</label>
+                <select id="batch-preset" class="select"></select>
+
+                <label class="label">Output format</label>
+                <select id="batch-format" class="select">
+                    <option value="wav" selected>WAV</option>
+                    <option value="flac">FLAC</option>
+                    <option value="mp3">MP3</option>
+                </select>
+
+                <label class="checkbox-row">
+                    <input type="checkbox" id="batch-preserve-vol" checked>
+                    <span>Preserve original volume</span>
+                </label>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-primary batch-btn" id="batch-btn">Process All</button>
+
+        <pre class="batch-log" id="batch-log"></pre>
+    </section>
+
+</main>
+
+<!-- Sticky bottom Process button for the single-file tab -->
+<div class="process-bar" id="process-bar">
+    <progress id="progress" value="0" max="1" hidden></progress>
+    <button type="button" class="btn btn-primary process-btn" id="process-btn" disabled>Process</button>
+</div>
+
+<!-- Sidebar guide -->
+<aside id="guide">
+    <div class="sidebar-title">Quick Start</div>
+
+    <div class="intro-note">
+        <b>What is shimmer?</b> A thin, fizzy, metallic noise that AI
+        music tools add to the high end. Shimmer finds that noise and
+        turns it down, leaving your music alone.
+    </div>
+
+    <h3>How to use it</h3>
+    <ol class="workflow-list">
+        <li><span class="step">1</span> Drop or pick an audio file.</li>
+        <li><span class="step">2</span> Pick a preset, or click <b>Auto Detect</b>.</li>
+        <li><span class="step">3</span> Click <b>Process</b>.</li>
+        <li><span class="step">4</span> Compare <b>Original</b> and <b>Processed</b>.</li>
+        <li><span class="step">5</span> Play <b>Removed</b> to hear what was taken out.</li>
+    </ol>
+
+    <div class="tip">
+        Play the <b>Removed</b> track. It should sound like fizz or
+        hiss. If you hear music in it, you cut too hard &mdash; raise
+        <b>Threshold</b> or lower <b>Slope</b>.
+    </div>
+
+    <button type="button" class="btn btn-secondary help-open-btn" data-help-tab="presets">
+        Open full help
+    </button>
+
+    <p class="rail-hint">
+        Tip: click the <span class="help-icon-inline">?</span> next to
+        any control for help on that one knob.
+    </p>
+</aside>
+
+<!-- ───────────── Help modal ───────────── -->
+<div id="help-modal" class="help-modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+    <div class="help-modal" role="document">
+        <header class="help-modal-header">
+            <h2 id="help-modal-title">Shimmer help</h2>
+            <button type="button" class="help-close" id="help-close" aria-label="Close help">&times;</button>
+        </header>
+
+        <nav class="help-tabs" role="tablist">
+            <button type="button" class="help-tab active" role="tab" data-tab="presets" aria-selected="true">Pick a preset</button>
+            <button type="button" class="help-tab" role="tab" data-tab="controls" aria-selected="false">Controls</button>
+            <button type="button" class="help-tab" role="tab" data-tab="trouble" aria-selected="false">Troubleshoot</button>
+            <button type="button" class="help-tab" role="tab" data-tab="setup" aria-selected="false">Setup</button>
+        </nav>
+
+        <div class="help-body">
+            <section class="help-panel active" data-panel="presets" role="tabpanel">
+                <h3>Which preset should I use?</h3>
+                <p class="help-lede">
+                    Answer a couple of questions and we'll pick one for you.
+                    Or click <b>Auto Detect</b> on the main panel to let
+                    Shimmer listen to your file and decide.
+                </p>
+                <div id="preset-quiz"></div>
+            </section>
+
+            <section class="help-panel" data-panel="controls" role="tabpanel">
+                <h3>What each control does</h3>
+                <p class="help-lede">
+                    The preset already sets these for you. Tweak only if
+                    something sounds off. Each card tells you when to turn
+                    a knob up or down.
+                </p>
+                <div id="controls-help-list"></div>
+            </section>
+
+            <section class="help-panel" data-panel="trouble" role="tabpanel">
+                <h3>Common problems</h3>
+                <p class="help-lede">
+                    Quick fixes for the things that go wrong most often.
+                </p>
+
+                <div class="help-card">
+                    <h4>The result sounds dull or lifeless</h4>
+                    <p>You cut too hard. Raise <b>Threshold</b>, lower
+                    <b>Slope</b>, or drop <b>Mix</b> to about 70&ndash;80%.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Bass or kick feels thin</h4>
+                    <p>Turn <b>Denoise</b> and <b>De-resonator</b> down.
+                    Shimmer never lives in the bass, so these don't need
+                    to be high.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Still too much fizz</h4>
+                    <p>Raise <b>De-harsh</b>, lower <b>Threshold</b> a
+                    little, or switch to a stronger preset like
+                    <b>suno_v5</b> or <b>suno_v5.5</b>.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Weird warble or pumping sound</h4>
+                    <p>Lower <b>Denoise</b>. When it's too strong it adds
+                    its own artifacts.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>The Removed track has music in it</h4>
+                    <p>Shimmer is grabbing real music. Raise <b>Threshold</b>
+                    or lower <b>Slope</b> until <b>Removed</b> sounds
+                    like just hiss or fizz.</p>
+                </div>
+            </section>
+
+            <section class="help-panel" data-panel="setup" role="tabpanel">
+                <h3>Setup for MP3 and M4A files</h3>
+                <p class="help-lede">
+                    WAV, FLAC, and OGG files work out of the box. MP3 and
+                    M4A need a free helper called <b>ffmpeg</b>.
+                </p>
+
+                <div class="help-card">
+                    <h4>Install ffmpeg on Windows</h4>
+                    <p>Open a terminal and run:</p>
+                    <pre class="help-code">winget install ffmpeg</pre>
+                    <p>Then restart Shimmer.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Other systems</h4>
+                    <p>
+                        Download from
+                        <a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener">ffmpeg.org</a>
+                        and add it to your <code>PATH</code>.
+                    </p>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="/static/js/main.js"></script>
+</body>
+</html>
