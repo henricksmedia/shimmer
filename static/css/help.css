@@ -250,6 +250,36 @@ body.help-open { overflow: hidden; }
     padding-bottom: 4px;
     border-bottom: 1px solid var(--line);
 }
+.help-group-intro {
+    margin: 0 0 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--fg-1);
+}
+.help-section-head {
+    margin: 24px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--fg-2);
+}
+.help-section-head:first-of-type {
+    margin-top: 8px;
+}
+.help-group-intro-lead {
+    margin: 0 0 8px;
+}
+.help-group-intro-list {
+    margin: 0;
+    padding-left: 18px;
+    list-style: disc;
+}
+.help-group-intro-list li {
+    margin: 3px 0;
+}
 
 .help-card {
     background: var(--bg-1);

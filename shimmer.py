@@ -8,6 +8,8 @@ This module owns argparse and user-facing output. No DSP math lives here.
 
 from __future__ import annotations
 
+import _winfix  # noqa: F401  # must precede scipy/numpy import on Windows
+
 import argparse
 import json
 import sys
@@ -26,16 +28,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "Remove AI shimmer artifacts from audio files.\n\n"
             "Targets narrowband flickering high-frequency artifacts (5.1-7.2 kHz default)\n"
             "produced by diffusion models, VAE/neural vocoders, and phase reconstruction errors.\n"
-            "Includes Suno version-specific presets."
+            "Ships with artifact-shape presets (cymbal_chatter, broadband_fizz, etc.)."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "examples:\n"
             "  shimmer input.wav output.wav\n"
-            "  shimmer input.wav output.wav --preset suno_v4\n"
-            "  shimmer input.wav output.wav --preset suno_v5_pro --debug\n"
+            "  shimmer input.wav output.wav --preset cymbal_chatter\n"
+            "  shimmer input.wav output.wav --preset air_brittle --debug\n"
             "  shimmer input.wav output.wav --start-hz 4500 --end-hz 8000 --slope 0.8\n"
             "  shimmer --list-presets\n"
+            "  # legacy version-named aliases (suno_v3 .. suno_v5.5) still work\n"
         ),
     )
 

@@ -45,6 +45,7 @@
     --guide-width: 285px;
     --header-h: 72px;
     --process-bar-h: 56px;
+    --preview-bar-h: 48px;
 }
 
 * { box-sizing: border-box; }

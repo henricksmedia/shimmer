@@ -151,10 +151,24 @@ def measure(x: np.ndarray) -> Dict[str, float]:
 # ---------------------------------------------------------------------------
 
 def preserve_volume(y: np.ndarray, input_peak: float,
-                    max_scale: float = 2.0) -> np.ndarray:
-    """Scale output so its peak matches the input peak.
+                    input_rms: Optional[float] = None,
+                    max_scale: float = 4.0,
+                    peak_ceiling: float = 0.999) -> np.ndarray:
+    """Scale output to preserve perceived loudness.
 
-    Clamps the scale factor to avoid amplifying noise.
+    If `input_rms` is provided, scales the output so its broadband RMS
+    matches the input RMS (loudness-match), then clamps the scale so the
+    output peak never exceeds `peak_ceiling`. This is the right knob
+    when stages remove substantial energy from a band the original peak
+    didn't live in (e.g. shimmer in 5-12 kHz while peaks are set by a
+    kick / vocal): peak-match alone leaves the file sounding quieter
+    because total RMS dropped but the peak didn't.
+
+    If `input_rms` is None, falls back to the legacy peak-match
+    behaviour for backwards compatibility.
+
+    `max_scale` is a safety clamp on how much amplification is allowed
+    (4x = +12 dB) to prevent runaway boosts on near-silent outputs.
     """
     y = np.asarray(y, dtype=np.float32)
     if input_peak < 1e-6:
@@ -162,6 +176,20 @@ def preserve_volume(y: np.ndarray, input_peak: float,
     output_peak = float(np.max(np.abs(y)))
     if output_peak < 1e-6:
         return y
+
+    if input_rms is not None and input_rms > 1e-6:
+        output_rms = float(np.sqrt(np.mean(y ** 2)))
+        if output_rms < 1e-6:
+            return y
+        scale = float(input_rms / output_rms)
+        # Don't let the boost push the peak above the ceiling — preserve
+        # loudness up to the point where it would clip, then back off.
+        peak_limit = peak_ceiling / output_peak
+        if scale > peak_limit:
+            scale = peak_limit
+        scale = float(np.clip(scale, 1.0 / max_scale, max_scale))
+        return (y * scale).astype(np.float32)
+
     scale = float(np.clip(input_peak / output_peak, 1.0 / max_scale, max_scale))
     return (y * scale).astype(np.float32)
 
@@ -200,7 +228,8 @@ def process_file(
     y2 = as_2d(y)
 
     if do_preserve_volume:
-        y2 = preserve_volume(y2, meas_in["peak_linear"])
+        y2 = preserve_volume(
+            y2, meas_in["peak_linear"], input_rms=meas_in["rms_linear"])
     y2 = clip_protect(y2)
 
     save_audio(output_path, y2, sr, subtype=subtype, mp3_bitrate=mp3_bitrate)

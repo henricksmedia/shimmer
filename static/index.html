@@ -53,10 +53,20 @@
                         <button type="button" class="help-icon" data-help-tab="presets" title="How do I pick a preset?" aria-label="Help: how do I pick a preset?">?</button>
                     </div>
                     <div class="row">
-                        <select id="preset-select" class="select"></select>
+                        <select id="preset-select" class="select" title="Preset"></select>
                         <button type="button" class="btn btn-ghost" id="auto-detect-btn" title="Analyse the file and pick a preset">Auto&nbsp;Detect</button>
                     </div>
                     <div id="preset-desc" class="preset-desc"></div>
+                    <div id="auto-detect-results" class="auto-detect-results" hidden></div>
+                    <div class="preset-strength-row">
+                        <label class="preset-strength-label" for="preset-strength">
+                            Preset strength
+                            <span id="preset-strength-value" class="preset-strength-value">100%</span>
+                        </label>
+                        <input id="preset-strength" type="range"
+                               min="0" max="2" step="0.05" value="1"
+                               title="Scale the preset's amount-style settings (denoise, deharsh, ceilings, flicker tamer, iterations) up or down. 100% = preset as-is. 200% = doubled (clamped).">
+                    </div>
                 </div>
 
                 <div class="control-block">
@@ -72,14 +82,22 @@
 
                 <div id="sliders-host"></div>
 
-                <label class="checkbox-row">
-                    <input type="checkbox" id="preserve-vol" checked>
-                    <span>Match output peak to input</span>
-                </label>
-
             </div>
 
             <div class="column results-column">
+
+                <div class="loudness-card">
+                    <label class="loudness-row">
+                        <input type="checkbox" id="preserve-vol" checked>
+                        <div class="loudness-text">
+                            <div class="loudness-title">Make Processed play at the same loudness as Original</div>
+                            <div class="loudness-help">
+                                <b>On:</b> Processed sounds as loud as Original, so you can A/B them fairly.
+                                <b>Off:</b> Processed plays at its raw cleaned level (usually a little quieter).
+                            </div>
+                        </div>
+                    </label>
+                </div>
 
                 <div class="results-card">
                     <div class="audio-label">Original</div>
@@ -96,7 +114,7 @@
                     <audio id="audio-diff" controls preload="none"></audio>
                 </div>
 
-                <div class="metrics-box" id="metrics-box"></div>
+                <div class="metrics-box" id="metrics-box" hidden></div>
 
                 <a id="download-link" class="btn btn-secondary" hidden download>Download Processed</a>
 
@@ -114,25 +132,72 @@
         <div class="two-column">
             <div class="column">
                 <label class="label">Input folder</label>
-                <input type="text" id="batch-input" class="input" placeholder="D:\MusicVault\Originals">
+                <div class="browse-row">
+                    <input type="text" id="batch-input" class="input" placeholder="D:\MusicVault\Originals">
+                    <button type="button" class="btn btn-ghost browse-btn" id="browse-input-btn"
+                            title="Open folder picker">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M1.5 3a.5.5 0 0 1 .5-.5h4.172a.5.5 0 0 1 .354.146L7.854 4H14a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                        </svg>
+                        Browse…
+                    </button>
+                </div>
 
                 <label class="label">Output folder (optional)</label>
-                <input type="text" id="batch-output" class="input" placeholder="(auto)">
+                <div class="browse-row">
+                    <input type="text" id="batch-output" class="input" placeholder="(auto)">
+                    <button type="button" class="btn btn-ghost browse-btn" id="browse-output-btn"
+                            title="Open folder picker">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <path d="M1.5 3a.5.5 0 0 1 .5-.5h4.172a.5.5 0 0 1 .354.146L7.854 4H14a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                        </svg>
+                        Browse…
+                    </button>
+                </div>
             </div>
             <div class="column">
-                <label class="label">Preset</label>
-                <select id="batch-preset" class="select"></select>
+                <label class="label">Preset mode</label>
+                <div class="batch-mode-toggle">
+                    <label class="batch-mode-option">
+                        <input type="radio" name="batch-mode" value="fixed" checked>
+                        <span class="batch-mode-label">Same preset for all</span>
+                    </label>
+                    <label class="batch-mode-option">
+                        <input type="radio" name="batch-mode" value="auto">
+                        <span class="batch-mode-label">
+                            <span class="batch-mode-icon">🔍</span>
+                            Auto-detect each file
+                        </span>
+                    </label>
+                </div>
+
+                <div id="batch-preset-group">
+                    <label class="label">Preset</label>
+                    <select id="batch-preset" class="select"></select>
+                </div>
+
+                <div class="preset-strength-row batch-strength-row">
+                    <label class="preset-strength-label" for="batch-strength">
+                        Preset strength
+                        <span id="batch-strength-value" class="preset-strength-value">100%</span>
+                    </label>
+                    <input id="batch-strength" type="range"
+                           min="0" max="2" step="0.05" value="1"
+                           title="Scale the preset's amount-style settings up or down. 100% = preset as-is.">
+                </div>
 
                 <label class="label">Output format</label>
                 <select id="batch-format" class="select">
-                    <option value="wav" selected>WAV</option>
+                    <option value="wav" selected>WAV (24-bit PCM)</option>
                     <option value="flac">FLAC</option>
-                    <option value="mp3">MP3</option>
+                    <option value="mp3">MP3 (320 kbps)</option>
+                    <option value="ogg">OGG Vorbis</option>
+                    <option value="m4a">M4A (AAC)</option>
                 </select>
 
                 <label class="checkbox-row">
                     <input type="checkbox" id="batch-preserve-vol" checked>
-                    <span>Preserve original volume</span>
+                    <span>Make output play at the same loudness as the source</span>
                 </label>
             </div>
         </div>
@@ -143,6 +208,29 @@
     </section>
 
 </main>
+
+<!-- Sticky live-preview bar (sits just above the Process bar) -->
+<div class="preview-bar" id="preview-bar">
+    <label class="preview-toggle-row" title="Loop a 10-second window and hear slider edits instantly.">
+        <input type="checkbox" id="preview-toggle">
+        <span class="preview-toggle-label"><b>Live preview</b></span>
+    </label>
+    <div class="preview-controls" id="preview-controls" hidden>
+        <label class="preview-mini-label" for="preview-window">Window</label>
+        <select id="preview-window" class="select preview-select"
+                title="Length of the looped preview window">
+            <option value="5">5 s</option>
+            <option value="10" selected>10 s</option>
+            <option value="15">15 s</option>
+            <option value="20">20 s</option>
+        </select>
+        <button type="button" class="btn btn-ghost preview-here-btn" id="preview-here-btn"
+            title="Anchor the loop window at the current Original playhead">
+            Set from playhead
+        </button>
+        <div class="preview-status" id="preview-status">Drop a file to start.</div>
+    </div>
+</div>
 
 <!-- Sticky bottom Process button for the single-file tab -->
 <div class="process-bar" id="process-bar">
@@ -222,42 +310,218 @@
             </section>
 
             <section class="help-panel" data-panel="trouble" role="tabpanel">
-                <h3>Common problems</h3>
+                <h3>Troubleshooting</h3>
                 <p class="help-lede">
-                    Quick fixes for the things that go wrong most often.
+                    Each card is a symptom you can hear. It tells you the
+                    root cause, which preset fits best, and which sliders
+                    to nudge if the preset alone doesn't get you all the
+                    way there. Always A/B against the <b>Original</b> and
+                    listen to the <b>Removed</b> track &mdash; if Removed
+                    has actual music in it, you're cutting too hard.
                 </p>
+
+                <h4 class="help-section-head">I still hear shimmer / hiss after running a preset</h4>
+
+                <div class="help-card">
+                    <h4>"shhhhh" sound that rides with vocals AND cymbals (most common Suno complaint)</h4>
+                    <p><b>Root cause:</b> two artifacts at once &mdash;
+                    shimmer baked into vocal harmonics (2&ndash;8 kHz)
+                    PLUS the AM-modulated diffusion residual in the
+                    brilliance band (5&ndash;12 kHz). Single-target
+                    presets clean half and miss the other half.</p>
+                    <p><b>Try:</b> <b>Vocal Glaze + Top End</b>. If
+                    still present, raise <b>Preset Strength</b> toward
+                    150&ndash;200%, then push the <b>De-harsh</b> slider
+                    higher (0.85+). If brilliance still sizzles, also
+                    nudge <b>Air cut</b> to about &minus;3 dB.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Shimmer sits ON the vocal itself, not after it</h4>
+                    <p><b>Root cause:</b> the AI rendered the vocal
+                    overtones (formants F2&ndash;F5, 2&ndash;8 kHz) too
+                    bright. The shimmer IS the vocal harmonics, so
+                    broadband denoise and peak-based shimmer
+                    suppression cannot separate it.</p>
+                    <p><b>Try:</b> <b>Vocal Glaze</b> (or <b>Vocal
+                    Glaze + Top End</b> if there's also brilliance
+                    sizzle). It uses DeHarsh anchored to the clean
+                    vocal fundamental (300&ndash;1500 Hz) as a vocal-
+                    aware shimmer compressor &mdash; the only preset
+                    that does this.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Shimmer follows the music and vanishes in silence</h4>
+                    <p><b>Root cause:</b> signal-correlated shimmer
+                    that rises and falls with the content envelope. Not
+                    constant (denoise misses it because there are no
+                    "quiet" frames where it's audible), not periodic
+                    (flicker tools miss it).</p>
+                    <p><b>Try:</b> <b>Echo Sheen</b>. It's the only
+                    preset that engages the downward expander to push
+                    down 3&ndash;10 kHz energy whenever the music drops
+                    below threshold &mdash; catching the shimmer tail
+                    that lingers at the edges of musical events.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Smooth airy wash in the upper-mids</h4>
+                    <p><b>Root cause:</b> a noise-like haze in the
+                    3&ndash;8 kHz presence band that appears with the
+                    music and vanishes in silence. Default denoise
+                    misses it because its noise-floor estimator
+                    averages over quiet frames where the wash isn't
+                    present.</p>
+                    <p><b>Try:</b> <b>Presence Haze</b>. It uses a
+                    short minimum-statistics window so the floor
+                    estimate tracks the content-gated wash.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Washy, metallic, ringy "shhhhh"</h4>
+                    <p><b>Root cause:</b> resonant-but-broadband
+                    artifacts in 4&ndash;10 kHz that have a faint
+                    cymbal-like quality. DeResonator alone misses it
+                    because its per-frame density gate fails on dense
+                    brilliance frames.</p>
+                    <p><b>Try:</b> <b>Phantom Cymbal</b> &mdash;
+                    DeResonator and DeHarsh with lowered thresholds
+                    and a high density floor so they fire on dense
+                    frames.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Harsh, gritty texture across the upper-mids</h4>
+                    <p><b>Root cause:</b> distortion-like grit
+                    spanning 4&ndash;12 kHz, often from
+                    over-aggressive AI upsampling. Sounds painful
+                    rather than washy.</p>
+                    <p><b>Try:</b> <b>Harsh Veil</b>. Aggressive
+                    DeHarsh with a very low threshold plus
+                    responsive denoise.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Tried a preset, raised strength to 200%, still bothered</h4>
+                    <p><b>Root cause:</b> either the wrong preset for
+                    the artifact shape, OR a multi-artifact track that
+                    needs a kitchen-sink approach.</p>
+                    <p><b>Try (in order):</b></p>
+                    <ol>
+                        <li>Re-take the <b>Pick a preset</b> quiz with
+                        fresh ears &mdash; the symptom may match a
+                        different preset.</li>
+                        <li>Run <b>Auto Detect</b>; if it suggests
+                        something different, try that.</li>
+                        <li>Last resort: <b>Deep Scrub</b>. It runs
+                        every stage at maximum across 3&ndash;18 kHz
+                        with 2 iterations. Expect some loss of top-end
+                        air as a tradeoff.</li>
+                    </ol>
+                </div>
+
+                <h4 class="help-section-head">I cut too much / something sounds wrong</h4>
 
                 <div class="help-card">
                     <h4>The result sounds dull or lifeless</h4>
-                    <p>You cut too hard. Raise <b>Threshold</b>, lower
-                    <b>Slope</b>, or drop <b>Mix</b> to about 70&ndash;80%.</p>
+                    <p><b>Root cause:</b> over-cutting in the brilliance
+                    band, or the End Hz extends too far up.</p>
+                    <p><b>Fix:</b> raise <b>Threshold</b>, lower
+                    <b>Slope</b>, drop <b>Mix</b> to 70&ndash;80%, OR
+                    drop <b>End Hz</b> a couple thousand Hz.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Vocals sound lispy or consonants weakened</h4>
+                    <p><b>Root cause:</b> De-harsh is too aggressive
+                    and is eating the consonant transients ("s", "t",
+                    "ch") along with the artifact.</p>
+                    <p><b>Fix:</b> lower <b>De-harsh</b>, raise
+                    <b>dh_thr_db</b> (in overrides) by 1&ndash;2 dB,
+                    or shorten <b>dh_release_ms</b>.</p>
                 </div>
 
                 <div class="help-card">
                     <h4>Bass or kick feels thin</h4>
-                    <p>Turn <b>Denoise</b> and <b>De-resonator</b> down.
-                    Shimmer never lives in the bass, so these don't need
-                    to be high.</p>
+                    <p><b>Root cause:</b> <b>Start Hz</b> is reaching
+                    too far down into the mids, or
+                    <b>Denoise</b>/<b>De-resonator</b> are too high
+                    and bleeding into the low band.</p>
+                    <p><b>Fix:</b> raise <b>Start Hz</b> (shimmer
+                    never lives in the bass), then turn down
+                    <b>Denoise</b> and <b>De-resonator</b>.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>Still too much fizz</h4>
-                    <p>Raise <b>De-harsh</b>, lower <b>Threshold</b> a
-                    little, or switch to a stronger preset like
-                    <b>suno_v5</b> or <b>suno_v5.5</b>.</p>
+                    <h4>Cymbals or top-end air dulled</h4>
+                    <p><b>Root cause:</b> <b>End Hz</b> is reaching
+                    too high, or <b>Air cut</b> is too aggressive.</p>
+                    <p><b>Fix:</b> lower <b>End Hz</b> a little, and
+                    move <b>Air cut</b> back toward 0 dB.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>Weird warble or pumping sound</h4>
-                    <p>Lower <b>Denoise</b>. When it's too strong it adds
-                    its own artifacts.</p>
+                    <h4>Weird warble, pumping, or "underwater" sound</h4>
+                    <p><b>Root cause:</b> denoise too aggressive or
+                    too fast &mdash; it's adding its own artifacts.</p>
+                    <p><b>Fix:</b> lower <b>Denoise</b>, or in
+                    overrides lengthen <b>dn_minwin_ms</b> and
+                    <b>dn_release_ms</b> for smoother tracking.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>The Removed track has music in it</h4>
-                    <p>Shimmer is grabbing real music. Raise <b>Threshold</b>
-                    or lower <b>Slope</b> until <b>Removed</b> sounds
-                    like just hiss or fizz.</p>
+                    <h4>The Removed track has actual music in it</h4>
+                    <p><b>Root cause:</b> detection threshold is too
+                    loose and the tool is grabbing real signal as if
+                    it were artifact.</p>
+                    <p><b>Fix:</b> raise <b>Threshold</b> or lower
+                    <b>Slope</b> until the Removed track sounds like
+                    just hiss / fizz / shimmer with no melodic
+                    content audible.</p>
+                </div>
+
+                <h4 class="help-section-head">Workflow questions</h4>
+
+                <div class="help-card">
+                    <h4>I want more cleanup than 200% Preset Strength</h4>
+                    <p>Preset Strength caps at 200% to keep things
+                    safe. To go further, switch to per-slider
+                    overrides:</p>
+                    <ol>
+                        <li>Push the primary tools higher (e.g.
+                        <b>De-harsh</b> to 0.95, <b>Denoise</b> to
+                        0.7).</li>
+                        <li>Add a second iteration via
+                        <b>iterations</b> in overrides.</li>
+                        <li>Stack a second preset by exporting the
+                        cleaned file and processing it again.</li>
+                    </ol>
+                </div>
+
+                <div class="help-card">
+                    <h4>How do I know which preset to start with?</h4>
+                    <p>Two paths:</p>
+                    <ol>
+                        <li>Click <b>Auto Detect</b> on the main
+                        panel &mdash; Shimmer scores all 16 presets
+                        against your file and picks the highest.</li>
+                        <li>Use the <b>Pick a preset</b> tab to walk
+                        through a short decision tree based on what
+                        you actually hear.</li>
+                    </ol>
+                </div>
+
+                <div class="help-card">
+                    <h4>Two artifacts at once (e.g. vocal glaze + top sizzle)</h4>
+                    <p>Use the combo presets:</p>
+                    <ul>
+                        <li><b>Vocal Glaze + Top End</b> &mdash;
+                        vocal-anchored shimmer + Suno hash in the
+                        brilliance band (most common combo).</li>
+                        <li><b>Deep Scrub</b> &mdash; everything-on
+                        for 3+ overlapping artifacts.</li>
+                    </ul>
                 </div>
             </section>
 

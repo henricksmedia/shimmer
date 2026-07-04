@@ -2,7 +2,7 @@
 
 body {
     padding-top: var(--header-h);
-    padding-bottom: var(--process-bar-h);
+    padding-bottom: calc(var(--process-bar-h) + var(--preview-bar-h));
     padding-right: var(--guide-width);
 }
 
@@ -139,7 +139,7 @@ body {
 
 @media (max-width: 1100px) {
     body { padding-right: 0; }
-    .app-header, .tabs, .process-bar { right: 0; }
+    .app-header, .tabs, .process-bar, .preview-bar { right: 0; }
     #guide { display: none; }
     .two-column { grid-template-columns: 1fr; }
 }

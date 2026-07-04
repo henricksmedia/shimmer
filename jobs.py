@@ -34,6 +34,12 @@ class Job:
     processed_path: str = ""
     diff_path: str = ""
     output_ext: str = ".wav"
+    # Friendly stems used for the download Content-Disposition filenames so
+    # successive downloads don't all collide on `processed.wav` in the user's
+    # Downloads folder (which made it easy to listen to a stale file from a
+    # previous run and conclude the engine "did nothing").
+    source_stem: str = "audio"
+    preset_name: str = "generic"
     created_at: float = field(default_factory=time.time)
     status: str = "queued"  # queued | running | done | error
     error: str = ""

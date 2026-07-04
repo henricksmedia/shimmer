@@ -7,6 +7,8 @@ Just math: conversions, windowing helpers, filter design, spectral utilities.
 
 from __future__ import annotations
 
+import _winfix  # noqa: F401  # must precede scipy import on Windows
+
 import math
 from typing import Tuple
 

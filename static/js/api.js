@@ -46,6 +46,46 @@ export function resultUrl(jobId, kind) {
     return `/api/result/${jobId}?kind=${encodeURIComponent(kind)}`;
 }
 
+// ─── Live preview ────────────────────────────────────────────────────
+// One-time upload returns a session_id; subsequent /api/preview calls
+// re-render small WAV slices in-place as the user moves sliders.
+
+export async function uploadFile(file) {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/upload', {method: 'POST', body: form});
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Upload failed (${res.status})`);
+    }
+    return res.json();  // { session_id, sample_rate, channels, duration_s, name }
+}
+
+export async function dropSession(sessionId) {
+    if (!sessionId) return;
+    try {
+        await fetch(`/api/upload/${sessionId}`, {method: 'DELETE'});
+    } catch (_) { /* best-effort */ }
+}
+
+export async function renderPreview(payload, {signal} = {}) {
+    const res = await fetch('/api/preview', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+        signal,
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Preview failed (${res.status})`);
+    }
+    return res.json();  // { render_id, duration_s, sample_rate, render_ms, start_s, end_s }
+}
+
+export function previewUrl(sessionId, renderId, kind) {
+    return `/api/preview/${sessionId}/${renderId}?kind=${encodeURIComponent(kind)}`;
+}
+
 export async function suggestPreset(file) {
     const form = new FormData();
     form.append('file', file);
@@ -55,6 +95,20 @@ export async function suggestPreset(file) {
         throw new Error(text || 'Auto-detect failed');
     }
     return res.json();
+}
+
+export async function browseFolder({initialDir, title} = {}) {
+    const res = await fetch('/api/browse-folder', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            initial_dir: initialDir || '',
+            title: title || 'Select folder',
+        }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.path || null;
 }
 
 // ─── Server-Sent Events helper ────────────────────────────────────────

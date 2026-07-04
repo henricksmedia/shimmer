@@ -31,3 +31,7 @@ Desktop.ini
 
 # Logs / runtime junk
 *.log
+
+# Local diagnostics and test audio (not for the public repo)
+testing/
+diag_*.py

@@ -29,16 +29,33 @@ def _settings_path() -> str:
 
 
 def load_settings() -> Dict[str, Any]:
-    """Return the last-saved settings, or {} if none exist."""
+    """Return the last-saved settings, or {} if none exist.
+
+    Silently migrates legacy version-named preset keys (e.g. "suno_v5_pro")
+    to the new artifact-shape keys (e.g. "air_brittle") so users with
+    older settings.json files do not see a stale value selected.
+    """
     path = _settings_path()
     if not os.path.isfile(path):
         return {}
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return data if isinstance(data, dict) else {}
+        if not isinstance(data, dict):
+            return {}
     except (OSError, json.JSONDecodeError):
         return {}
+
+    # Local import: avoid a hard dependency at module load time and prevent
+    # any circular-import surprises during server startup.
+    try:
+        from presets import PRESET_ALIASES
+    except ImportError:
+        return data
+    preset = data.get("preset")
+    if isinstance(preset, str) and preset in PRESET_ALIASES:
+        data["preset"] = PRESET_ALIASES[preset]
+    return data
 
 
 def save_settings(data: Dict[str, Any]) -> None:

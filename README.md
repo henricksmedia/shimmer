@@ -33,6 +33,13 @@ pip install -r requirements.txt
 python -m uvicorn server:app --host 127.0.0.1 --port 7860
 ```
 
+## Publishing to GitHub
+
+Double-click `PushToGitHub.bat` to commit and push to
+<https://github.com/henricksmedia/shimmer>.  It shows your working-tree
+status, prompts for a commit message (leave blank to push existing commits
+only), then runs `git push`.
+
 ## Command-line usage
 
 ```bash
@@ -70,6 +77,7 @@ server.py           FastAPI backend
 jobs.py             Job store for async processing
 settings_store.py   Persistence of UI settings
 shimmer.py          CLI entry point
+PushToGitHub.bat    Commit and push to GitHub
 static/             Frontend: HTML, split CSS, ES-module JS
 ```
 

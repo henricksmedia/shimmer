@@ -23,6 +23,8 @@ No changes to the frame loop.
 
 from __future__ import annotations
 
+import _winfix  # noqa: F401  # must precede scipy import on Windows
+
 import math
 from typing import Optional, Callable, List, Dict, Any
 
@@ -132,6 +134,7 @@ class DenoiseStage(Stage):
         self.block_ctr = 0
         self.gain_sm: Optional[np.ndarray] = (
             np.ones(self.idx.size, dtype=np.float32) if self.idx.size else None)
+        self.steady_state = bool(p.steady_state_mode)
 
     def apply(self, spec, ctx):
         if self.idx.size == 0:
@@ -170,7 +173,8 @@ class DenoiseStage(Stage):
         g_dn = uniform_filter1d(
             gsm, size=self.freq_smooth, mode="nearest").astype(np.float32)
 
-        depth = self.strength * (0.5 + 0.5 * ctx["w_noise"]) * ctx["w_nontrans"]
+        nt = 1.0 if self.steady_state else ctx["w_nontrans"]
+        depth = self.strength * (0.5 + 0.5 * ctx["w_noise"]) * nt
         g_eff = 1.0 - (depth * self.taper) * (1.0 - g_dn)
         spec[self.idx, :] *= g_eff[:, None]
         return spec
@@ -209,6 +213,8 @@ class DeResonatorStage(Stage):
 
         self.persist = (
             np.zeros(self.idx.size, dtype=np.float32) if self.idx.size else None)
+        self.steady_state = bool(p.steady_state_mode)
+        self.density_floor = float(np.clip(p.deq_density_floor, 0.0, 1.0))
 
     def apply(self, spec, ctx):
         if self.idx.size == 0:
@@ -227,6 +233,8 @@ class DeResonatorStage(Stage):
         w_narrow = 1.0 - float(np.clip(
             (density - self.density_lo) / max(1e-6, self.density_hi - self.density_lo),
             0.0, 1.0))
+        if self.density_floor > 0.0 and self.density_floor > w_narrow:
+            w_narrow = self.density_floor
 
         self.persist[:] = (
             self.a_persist * self.persist + (1.0 - self.a_persist) * over)
@@ -236,7 +244,8 @@ class DeResonatorStage(Stage):
             self.slope * over * gate, self.max_att_db).astype(np.float32)
         gain = (10.0 ** (-att_db / 20.0)).astype(np.float32)
 
-        depth = self.strength * ctx["w_nontrans"] * w_narrow
+        nt = 1.0 if self.steady_state else ctx["w_nontrans"]
+        depth = self.strength * nt * w_narrow
         g_eff = 1.0 - (depth * self.taper) * (1.0 - gain)
         if self.freq_smooth > 1:
             g_eff = uniform_filter1d(
@@ -275,6 +284,8 @@ class ShimmerStage(Stage):
         self.density_hi = float(p.density_hi)
         self.flat_start = float(p.flat_start)
         self.flat_end = float(p.flat_end)
+        self.steady_state = bool(p.steady_state_mode)
+        self.density_floor = float(np.clip(p.density_floor, 0.0, 1.0))
 
     def apply(self, spec, ctx):
         eps = ctx["eps"]
@@ -295,8 +306,11 @@ class ShimmerStage(Stage):
         w_narrow = 1.0 - float(np.clip(
             (density - self.density_lo) / max(1e-6, self.density_hi - self.density_lo),
             0.0, 1.0))
+        if self.density_floor > 0.0 and self.density_floor > w_narrow:
+            w_narrow = self.density_floor
 
-        depth = w_noise_sh * ctx["w_nontrans"] * w_narrow
+        nt = 1.0 if self.steady_state else ctx["w_nontrans"]
+        depth = w_noise_sh * nt * w_narrow
         att_db = np.zeros_like(over, dtype=np.float32)
         att_db[mask] = (self.slope * over[mask]).astype(np.float32)
         gain = (10.0 ** (-att_db / 20.0)).astype(np.float32)
@@ -336,6 +350,7 @@ class DeHarshStage(Stage):
         self.a_att = frame_coeff(hop, sr, p.dh_attack_ms)
         self.a_rel = frame_coeff(hop, sr, p.dh_release_ms)
         self.g_sm = 1.0
+        self.steady_state = bool(p.steady_state_mode)
 
     def apply(self, spec, ctx):
         if self.idx.size == 0 or self.ref_idx.size == 0:
@@ -358,9 +373,221 @@ class DeHarshStage(Stage):
         else:
             self.g_sm = self.a_rel * self.g_sm + (1.0 - self.a_rel) * g_inst
 
-        depth = self.strength * ctx["w_nontrans"]
+        nt = 1.0 if self.steady_state else ctx["w_nontrans"]
+        depth = self.strength * nt
         g_eff = 1.0 - (depth * self.taper) * (1.0 - float(self.g_sm))
         spec[self.idx, :] *= g_eff[:, None]
+        return spec
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Stage: Flicker tamer (NEW) — sub-band AM compressor for Suno hash
+# ═══════════════════════════════════════════════════════════════════════════
+
+class FlickerTamerStage(Stage):
+    """Sub-band amplitude-modulation compressor.
+
+    The "metallic flickering hiss" Suno residual is amplitude-modulated
+    narrowband noise in 5-8 kHz. Every other stage acts on instantaneous
+    magnitude/spectrum; this stage explicitly compresses the AM envelope
+    inside the band, which is the perceptually defining feature of the
+    artifact ("flicker / shimmer").
+
+    Operation per frame:
+      1. Split [ft_start_hz, ft_end_hz] into `ft_n_bands` contiguous
+         sub-bands with cosine tapers between them.
+      2. For each sub-band, compute current band power E(t).
+      3. Maintain per-sub-band fast EMA (~ft_attack_ms) and slow EMA
+         (~ft_release_ms) of E.
+      4. The "flicker amount" is the dB ratio E_fast / E_slow. When it
+         exceeds `ft_thr_db`, attenuate the sub-band by
+         `ft_slope * (excess - thr)` dB, capped at `ft_max_att_db`.
+      5. Smooth the resulting per-bin gain across sub-band boundaries
+         via the precomputed taper weights so the per-frame spec gets
+         a smooth gain curve rather than discrete steps.
+
+    Crucially does NOT multiply depth by `w_nontrans` -- the flicker IS
+    the modulation, gating it off transients defeats the stage.
+    """
+    name = "flicker_tame"
+
+    def enabled(self, p: Params) -> bool:
+        return float(p.flicker_tame) > 1e-6
+
+    def init(self, p, sr, hop, freqs, nyq):
+        self.strength = float(np.clip(p.flicker_tame, 0.0, 1.0))
+        start = float(max(0.0, p.ft_start_hz))
+        end = float(min(nyq, p.ft_end_hz))
+        if end <= start:
+            self.bands: List[np.ndarray] = []
+            self.weights: List[np.ndarray] = []
+            self.global_idx = np.array([], dtype=np.int64)
+            self.bin_band: np.ndarray = np.array([], dtype=np.int64)
+            return
+
+        n_bands = int(max(1, p.ft_n_bands))
+        edges = np.linspace(start, end, n_bands + 1, dtype=np.float64)
+
+        self.bands: List[np.ndarray] = []
+        self.weights: List[np.ndarray] = []
+        for i in range(n_bands):
+            lo, hi = float(edges[i]), float(edges[i + 1])
+            sub_idx = freq_bin_indices(freqs, lo, hi)
+            if sub_idx.size == 0:
+                self.bands.append(sub_idx)
+                self.weights.append(np.zeros(0, dtype=np.float32))
+                continue
+            taper = edge_taper(freqs, sub_idx, lo, hi, float(p.ft_edge_hz))
+            self.bands.append(sub_idx)
+            self.weights.append(taper.astype(np.float32))
+
+        # Pre-build a flat "global" index spanning the full ft band so we
+        # can apply per-bin gain in one shot per frame.  bin_band[k]
+        # holds the sub-band index for the k-th bin in global_idx.
+        flat_idx_list = []
+        flat_band_list = []
+        flat_weight_list = []
+        for bi, (sub_idx, w) in enumerate(zip(self.bands, self.weights)):
+            if sub_idx.size == 0:
+                continue
+            flat_idx_list.append(sub_idx)
+            flat_band_list.append(np.full(sub_idx.size, bi, dtype=np.int64))
+            flat_weight_list.append(w)
+        if flat_idx_list:
+            self.global_idx = np.concatenate(flat_idx_list)
+            self.bin_band = np.concatenate(flat_band_list)
+            self.bin_weight = np.concatenate(flat_weight_list)
+        else:
+            self.global_idx = np.array([], dtype=np.int64)
+            self.bin_band = np.array([], dtype=np.int64)
+            self.bin_weight = np.array([], dtype=np.float32)
+
+        self.thr_db = float(p.ft_thr_db)
+        self.slope = float(p.ft_slope)
+        self.max_att_db = float(p.ft_max_att_db)
+        self.a_fast = frame_coeff(hop, sr, p.ft_attack_ms)
+        self.a_slow = frame_coeff(hop, sr, p.ft_release_ms)
+
+        self.E_fast = np.zeros(n_bands, dtype=np.float64)
+        self.E_slow = np.zeros(n_bands, dtype=np.float64)
+        self.first_frame = True
+
+    def apply(self, spec, ctx):
+        if self.global_idx.size == 0:
+            return spec
+        eps = ctx["eps"]
+        psd = ctx["psd"]
+
+        # Per-sub-band energy.
+        n_bands = len(self.bands)
+        E = np.empty(n_bands, dtype=np.float64)
+        for bi, sub_idx in enumerate(self.bands):
+            if sub_idx.size == 0:
+                E[bi] = eps
+            else:
+                E[bi] = float(np.mean(psd[sub_idx])) + eps
+
+        if self.first_frame:
+            self.E_fast[:] = E
+            self.E_slow[:] = E
+            self.first_frame = False
+        else:
+            self.E_fast = self.a_fast * self.E_fast + (1.0 - self.a_fast) * E
+            self.E_slow = self.a_slow * self.E_slow + (1.0 - self.a_slow) * E
+
+        # Per-sub-band excess in dB.  Positive means E_fast > E_slow ->
+        # AM "spike" -> compress.
+        ratio_db = 10.0 * np.log10(
+            np.maximum(self.E_fast, eps) / np.maximum(self.E_slow, eps))
+        excess_db = np.maximum(0.0, ratio_db - self.thr_db)
+        att_db_band = np.minimum(self.slope * excess_db, self.max_att_db)
+        att_db_band *= self.strength
+
+        # Map per-band attenuation to per-bin attenuation, weighted by
+        # the inter-band taper so adjacent sub-bands smoothly blend.
+        per_bin_att_db = att_db_band[self.bin_band] * self.bin_weight
+        gain = (10.0 ** (-per_bin_att_db / 20.0)).astype(np.float32)
+        spec[self.global_idx, :] *= gain[:, None]
+        return spec
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Stage: Narrow-tone killer (NEW) — steady-state Suno "whistle" notcher
+# ═══════════════════════════════════════════════════════════════════════════
+
+class NarrowToneStage(Stage):
+    """Long-term per-bin tone notcher.
+
+    Tracks a long-time-constant EMA of per-bin log magnitude across the
+    band [tk_start_hz, tk_end_hz]. Compares each bin's EMA to a wide
+    local-frequency median (the spectral envelope). Bins that sit
+    persistently more than `tk_thr_db` above the envelope get notched
+    by `tk_slope * (excess - thr)` dB, capped at `tk_max_att_db`.
+
+    Unlike DeResonatorStage, this stage uses **no** per-frame density
+    or transient gating — those gates were the reason DeResonator could
+    not catch fixed Suno whistle tones (e.g. 16 kHz / 17.8 kHz) inside
+    busy brilliance bands. Tones are defined here by their LONG-TERM
+    excess, which is intrinsically robust to instantaneous spectral
+    content.
+
+    Warmup: depth ramps from 0 to 1 over `tk_warmup_ms` so the EMA has
+    time to populate from the first frame's magnitude (which is used
+    as initialization) before applying notches.
+    """
+    name = "tone_kill"
+
+    def enabled(self, p: Params) -> bool:
+        return float(p.tone_kill) > 1e-6
+
+    def init(self, p, sr, hop, freqs, nyq):
+        self.strength = float(np.clip(p.tone_kill, 0.0, 1.0))
+        self.idx = freq_bin_indices(freqs, p.tk_start_hz, min(nyq, p.tk_end_hz))
+        fm = int(max(3, p.tk_freq_med_bins))
+        if fm % 2 == 0:
+            fm += 1
+        self.freq_med = fm
+        self.thr_db = float(p.tk_thr_db)
+        self.slope = float(p.tk_slope)
+        self.max_att_db = float(p.tk_max_att_db)
+        self.freq_smooth = int(max(1, p.tk_freq_smooth_bins))
+        self.a_long = frame_coeff(hop, sr, p.tk_long_ms)
+        self.warmup_frames = max(1, int((float(p.tk_warmup_ms) / 1000.0)
+                                        * sr / hop))
+        self.frame_i = 0
+        self.long_log: Optional[np.ndarray] = None  # populated on first frame
+
+    def apply(self, spec, ctx):
+        if self.idx.size == 0:
+            return spec
+        eps = ctx["eps"]
+        mag = np.mean(np.abs(spec), axis=1).astype(np.float32) + eps
+        log_mag = np.log(mag)
+
+        if self.long_log is None:
+            self.long_log = log_mag.copy()
+        else:
+            self.long_log = (self.a_long * self.long_log
+                             + (1.0 - self.a_long) * log_mag)
+
+        env_log = median_filter(self.long_log, size=self.freq_med, mode="nearest")
+        excess_db = (self.long_log - env_log) * (20.0 / np.log(10.0))
+
+        ex = np.maximum(0.0, excess_db[self.idx] - self.thr_db)
+        notch_db = np.minimum(self.slope * ex, self.max_att_db).astype(np.float32)
+
+        warmup_w = float(min(1.0, self.frame_i / max(1, self.warmup_frames)))
+        depth = self.strength * warmup_w
+        eff_db = depth * notch_db
+
+        if self.freq_smooth > 1:
+            eff_db = uniform_filter1d(
+                eff_db, size=self.freq_smooth, mode="nearest").astype(np.float32)
+
+        gain = (10.0 ** (-eff_db / 20.0)).astype(np.float32)
+        spec[self.idx, :] *= gain[:, None]
+
+        self.frame_i += 1
         return spec
 
 
@@ -405,6 +632,7 @@ class DeCheckerStage(Stage):
         self.persist_score = 0.0
         self.persist_lag = 0
         self.med_size = 7  # narrow median for peak exposure
+        self.steady_state = bool(p.steady_state_mode)
 
     def apply(self, spec, ctx):
         n = self.idx.size
@@ -466,7 +694,7 @@ class DeCheckerStage(Stage):
 
         att_db = np.minimum(self.strength * match * gate, self.max_att_db)
         gain = (10.0 ** (-att_db / 20.0)).astype(np.float32)
-        depth = ctx["w_nontrans"]
+        depth = 1.0 if self.steady_state else ctx["w_nontrans"]
         g_eff = 1.0 - depth * (1.0 - gain)
         spec[self.idx, :] *= g_eff[:, None]
         return spec
@@ -525,7 +753,9 @@ STAGE_REGISTRY: List[type] = [
     DeResonatorStage,
     ShimmerStage,
     DeHarshStage,
+    FlickerTamerStage,  # AM compressor in 5-8 kHz (Suno hash flicker)
     DeCheckerStage,
+    NarrowToneStage,    # after broadband suppression, before resynth
     NoiseResynthStage,
 ]
 
@@ -574,8 +804,15 @@ def _compute_transient_gate(band_db, p, prev_band_db):
 # Post-STFT time-domain filters
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _post_filters(y: np.ndarray, sr: int, p: Params) -> np.ndarray:
-    """Apply sub-sonic HP, high-shelf, and presence shelf after STFT."""
+def apply_post_filters(y: np.ndarray, sr: int, p: Params) -> np.ndarray:
+    """Apply sub-sonic HP, high-shelf, and presence shelf after STFT.
+
+    Public so callers (e.g. the diff/Removed renderer in server.py) can
+    pre-filter the dry reference signal with the same chain before
+    subtracting. Otherwise even a tiny shelf/HP cut creates audible
+    bass / shelf imprint in the diff that has nothing to do with what
+    the STFT stages removed.
+    """
     if p.subsonic_hz > 0:
         y = apply_highpass(y, sr, p.subsonic_hz)
     if abs(p.high_shelf_db) > 0.1 and p.high_shelf_hz > 0:
@@ -585,25 +822,185 @@ def _post_filters(y: np.ndarray, sr: int, p: Params) -> np.ndarray:
     return y
 
 
+# Back-compat alias (older internal callers used the underscore name).
+_post_filters = apply_post_filters
+
+
 # ═══════════════════════════════════════════════════════════════════════════
-# Main entry point
+# Pre-analyze pass (Tier C: full-file two-pass detection)
 # ═══════════════════════════════════════════════════════════════════════════
 
-def process(x: np.ndarray, sr: int, p: Params,
-            progress_callback: Optional[Callable[[float], None]] = None
-            ) -> np.ndarray:
-    """Run the full shimmer-removal pipeline on audio samples.
+def _build_premask(x: np.ndarray, sr: int, p: Params,
+                   freqs_main: np.ndarray) -> Optional[np.ndarray]:
+    """Walk the file once at low cost, return a per-bin attenuation gain
+    aligned with the main-pass `freqs_main` grid.
 
-    Args:
-        x: Audio, shape (samples,) or (samples, channels), float32.
-        sr: Sample rate in Hz.
-        p: Processing parameters.
-        progress_callback: Optional callable(fraction: 0..1) for progress.
+    Score per bin (in `pa_start_hz` .. `pa_end_hz`):
+        excess_db = (long_term_log_mag - local_envelope) * 20/ln10
+        am_depth  = std(mag) / mean(mag)             (over time)
+        score     = max(0, excess_db - pa_thr_db) * (1 + pa_am_weight*am_depth)
+        att_db    = min(score, pa_max_att_db)
 
-    Returns:
-        Processed audio, same shape as input.
+    Returns None if the analysis cannot run (file too short, band empty).
+    The mask is multiplicative gain in linear units (<=1.0).
     """
-    x = as_2d(np.asarray(x, dtype=np.float32))
+    if not p.pre_analyze:
+        return None
+
+    pa_n_fft = max(64, int(p.pa_n_fft))
+    pa_hop = max(1, int(p.pa_hop))
+
+    if x.shape[0] < pa_n_fft:
+        return None
+
+    max_n = int(max(0.0, p.pa_max_seconds) * sr)
+    x_pa = x if (max_n <= 0 or x.shape[0] <= max_n) else x[:max_n, :]
+    x_mono = np.mean(x_pa, axis=1) if x_pa.ndim > 1 else x_pa
+
+    pa_win = np.hanning(pa_n_fft).astype(np.float32)
+    pa_freqs = np.fft.rfftfreq(pa_n_fft, d=1.0 / sr)
+
+    band_idx = freq_bin_indices(pa_freqs, p.pa_start_hz, p.pa_end_hz)
+    if band_idx.size < 8:
+        return None
+
+    n_samples = int(x_mono.shape[0])
+    sum_log = np.zeros(pa_freqs.size, dtype=np.float64)
+    sum_lin = np.zeros(pa_freqs.size, dtype=np.float64)
+    sum_lin_sq = np.zeros(pa_freqs.size, dtype=np.float64)
+    cnt = 0
+
+    for s in range(0, n_samples - pa_n_fft + 1, pa_hop):
+        chunk = x_mono[s:s + pa_n_fft] * pa_win
+        spec = np.fft.rfft(chunk, n=pa_n_fft)
+        mag = np.abs(spec).astype(np.float64) + 1e-12
+        sum_log += np.log(mag)
+        sum_lin += mag
+        sum_lin_sq += mag * mag
+        cnt += 1
+
+    if cnt < 4:
+        return None
+
+    mean_log = sum_log / cnt
+    mean_lin = sum_lin / cnt
+    var_lin = np.maximum(0.0, sum_lin_sq / cnt - mean_lin * mean_lin)
+    am_depth = np.sqrt(var_lin) / np.maximum(mean_lin, 1e-12)
+
+    fm = max(3, int(p.pa_freq_med_bins))
+    if fm % 2 == 0:
+        fm += 1
+    env_log = median_filter(mean_log, size=fm, mode="nearest")
+    excess_db = (mean_log - env_log) * (20.0 / np.log(10.0))
+
+    score = np.zeros_like(excess_db)
+    score[band_idx] = (
+        np.maximum(0.0, excess_db[band_idx] - float(p.pa_thr_db))
+        * (1.0 + float(p.pa_am_weight) * am_depth[band_idx])
+    )
+    att_db_pa = np.minimum(score, float(p.pa_max_att_db))
+
+    # Resample mask onto the main-pass freqs grid via linear interp.
+    mask_db_main = np.interp(freqs_main, pa_freqs, att_db_pa,
+                             left=0.0, right=0.0)
+    mask_gain = (10.0 ** (-mask_db_main / 20.0)).astype(np.float32)
+    return mask_gain
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Diagnostic readout (Tier C: 5-8 kHz energy + AM depth + top peaks)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _compute_diagnostic(x: np.ndarray, sr: int) -> Dict[str, Any]:
+    """Return {band_5_8k_rms_db, band_5_8k_am_depth, top_peaks: [...]}.
+
+    Computed at n_fft=4096, hop=2048, on up to 60 s of audio (mono mix).
+    `top_peaks` is the strongest 5 narrow peaks above local envelope in
+    4-14 kHz, each `{hz, excess_db}`.
+    """
+    empty = {
+        "band_5_8k_rms_db": None,
+        "band_5_8k_am_depth": None,
+        "top_peaks": [],
+    }
+    x_mono = np.mean(x, axis=1) if x.ndim > 1 else x
+    n_fft = 4096
+    hop = 2048
+    if x_mono.shape[0] < n_fft:
+        return empty
+
+    max_n = int(60.0 * sr)
+    if x_mono.shape[0] > max_n:
+        x_mono = x_mono[:max_n]
+
+    win = np.hanning(n_fft).astype(np.float32)
+    freqs = np.fft.rfftfreq(n_fft, d=1.0 / sr)
+    band_idx = freq_bin_indices(freqs, 5000.0, 8000.0)
+    peak_band_idx = freq_bin_indices(freqs, 4000.0, 14000.0)
+    if band_idx.size == 0:
+        return empty
+
+    n_samples = int(x_mono.shape[0])
+    sum_log = np.zeros(freqs.size, dtype=np.float64)
+    band_envelope = []
+    cnt = 0
+
+    for s in range(0, n_samples - n_fft + 1, hop):
+        chunk = x_mono[s:s + n_fft] * win
+        spec = np.fft.rfft(chunk, n=n_fft)
+        mag = np.abs(spec).astype(np.float64) + 1e-12
+        sum_log += np.log(mag)
+        band_envelope.append(float(np.mean(mag[band_idx] ** 2)))
+        cnt += 1
+
+    if cnt < 4:
+        return empty
+
+    env = np.array(band_envelope, dtype=np.float64)
+    band_rms = float(np.sqrt(np.mean(env)))
+    band_rms_db = 20.0 * math.log10(max(band_rms, 1e-12))
+    am_depth = float(np.std(env) / max(np.mean(env), 1e-12))
+
+    mean_log = sum_log / cnt
+    fm = 51
+    env_log = median_filter(mean_log, size=fm, mode="nearest")
+    excess_db = (mean_log - env_log) * (20.0 / np.log(10.0))
+
+    if peak_band_idx.size:
+        excess_in_band = excess_db[peak_band_idx]
+        freqs_in_band = freqs[peak_band_idx]
+        order = np.argsort(-excess_in_band)
+        top_peaks = []
+        for i in order:
+            if excess_in_band[i] <= 1.0 or len(top_peaks) >= 5:
+                break
+            top_peaks.append({
+                "hz": float(freqs_in_band[i]),
+                "excess_db": float(excess_in_band[i]),
+            })
+    else:
+        top_peaks = []
+
+    return {
+        "band_5_8k_rms_db": band_rms_db,
+        "band_5_8k_am_depth": am_depth,
+        "top_peaks": top_peaks,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Inner STFT pass (one iteration of the chain)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _run_stft_pass(x: np.ndarray, sr: int, p: Params,
+                   premask: Optional[np.ndarray],
+                   frame_cb: Optional[Callable[[float], None]]) -> np.ndarray:
+    """One full STFT analysis -> stages -> overlap-add resynthesis pass.
+
+    Returns audio of shape (samples, channels) trimmed to the original
+    input length (i.e. padding is removed).
+    """
+    x = as_2d(x)
     n_fft, hop = int(p.n_fft), int(p.hop)
     if hop <= 0 or n_fft <= 0 or hop > n_fft:
         raise ValueError("Invalid n_fft/hop")
@@ -615,9 +1012,7 @@ def process(x: np.ndarray, sr: int, p: Params,
     nyq = float(freqs[-1])
     eps = 1e-12
 
-    # Noise-gate band (uses denoise band if configured, else full band)
     dn_idx = freq_bin_indices(freqs, p.dn_start_hz, p.dn_end_hz)
-
     stages = _build_stages(p, sr, hop, freqs, nyq)
 
     rng = np.random.default_rng(int(p.seed))
@@ -628,13 +1023,17 @@ def process(x: np.ndarray, sr: int, p: Params,
     prev_band_db: Optional[float] = None
 
     for frame_i, s in enumerate(range(0, n_samples, hop)):
-        if progress_callback and frame_i % 50 == 0:
-            progress_callback(frame_i / total_frames)
+        if frame_cb and frame_i % 50 == 0:
+            frame_cb(frame_i / total_frames)
 
         frame = np.zeros((n_fft, n_ch), dtype=np.float32)
         chunk = x0[s:s + n_fft, :]
         frame[:chunk.shape[0], :] = chunk
         spec = np.fft.rfft(frame * win[:, None], n=n_fft, axis=0)
+
+        if premask is not None:
+            spec *= premask[:, None]
+
         psd = np.mean(np.abs(spec) ** 2, axis=1).astype(np.float32) + eps
 
         w_noise, band_db = _compute_noise_gate(spec, psd, dn_idx, p, eps)
@@ -662,12 +1061,64 @@ def process(x: np.ndarray, sr: int, p: Params,
 
     if p.pad:
         y = y[n_fft:-n_fft, :]
-        x_ref = x
-    else:
-        x_ref = x0[:y.shape[0], :]
 
+    return y
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Main entry point
+# ═══════════════════════════════════════════════════════════════════════════
+
+def process(x: np.ndarray, sr: int, p: Params,
+            progress_callback: Optional[Callable[[float], None]] = None,
+            diagnostic_out: Optional[Dict[str, Any]] = None
+            ) -> np.ndarray:
+    """Run the full shimmer-removal pipeline on audio samples.
+
+    Args:
+        x: Audio, shape (samples,) or (samples, channels), float32.
+        sr: Sample rate in Hz.
+        p: Processing parameters.
+        progress_callback: Optional callable(fraction: 0..1) for progress.
+        diagnostic_out: Optional dict that, if provided, will be populated
+            with `{"before": {...}, "after": {...}}` diagnostic readouts
+            (5-8 kHz energy + AM depth + top narrow peaks).  Set
+            `p.diagnostic = True` to force collection without passing
+            this dict explicitly.
+
+    Returns:
+        Processed audio, same shape as input.
+    """
+    x_in = as_2d(np.asarray(x, dtype=np.float32))
+
+    n_iter = int(p.iterations)
+    if n_iter < 1:
+        n_iter = 1
+    if n_iter > 3:
+        n_iter = 3
+
+    want_diag = bool(p.diagnostic) or (diagnostic_out is not None)
+    diag_before = _compute_diagnostic(x_in, sr) if want_diag else None
+
+    # Pre-analyze: build a per-bin mask once, applied every frame of every
+    # iteration as a pre-filter on the spec before any stage runs.
+    n_fft = int(p.n_fft)
+    freqs_main = np.fft.rfftfreq(n_fft, d=1.0 / sr)
+    premask = _build_premask(x_in, sr, p, freqs_main)
+
+    audio = x_in
+    iter_frac = 1.0 / float(n_iter)
+    for it in range(n_iter):
+        def _cb(frac: float, _it: int = it) -> None:
+            if progress_callback:
+                progress_callback((float(_it) + frac) * iter_frac)
+        audio = _run_stft_pass(audio, sr, p, premask, _cb)
+
+    n = min(x_in.shape[0], audio.shape[0])
+    audio = audio[:n, :]
+    x_ref = x_in[:n, :]
     mix_val = float(np.clip(p.mix, 0.0, 1.0))
-    y = mix_val * y + (1.0 - mix_val) * x_ref
+    y = mix_val * audio + (1.0 - mix_val) * x_ref
 
     y = _post_filters(y, sr, p)
 
@@ -679,5 +1130,10 @@ def process(x: np.ndarray, sr: int, p: Params,
 
     if progress_callback:
         progress_callback(1.0)
+
+    if want_diag and diagnostic_out is not None:
+        diag_after = _compute_diagnostic(y, sr)
+        diagnostic_out["before"] = diag_before
+        diagnostic_out["after"] = diag_after
 
     return y.squeeze()

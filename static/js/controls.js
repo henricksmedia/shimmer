@@ -2,14 +2,55 @@
 // Adding a knob = one entry in CONTROL_SPEC.  The rest (DOM rendering,
 // value reading, preset application, help cards) is derived automatically.
 
+// Plain-English intros for each slider group. Rendered at the top of
+// every group in BOTH the slider panel (so users have context while
+// adjusting) AND the help panel (so the reference doc uses the same
+// copy). Each entry is `{lead, bullets}` — a one-line opener plus
+// scannable directional cues per slider.
+export const GROUP_INTROS = {
+    'Band': {
+        lead: 'These two sliders set the pitch range the tool will touch. ' +
+              'Anything below Start Hz or above End Hz is left completely alone.',
+        bullets: [
+            'Start Hz LEFT — reach further down into the mids (more of the sound gets touched).',
+            'Start Hz RIGHT — protect the mids (the tool stays up high).',
+            'End Hz RIGHT — reach further up into the treble (catches more top-end fizz).',
+            'End Hz LEFT — protect the top end (cymbals and air stay untouched).',
+        ],
+    },
+    'Detection': {
+        lead: 'These decide what counts as shimmer and how hard to cut it ' +
+              'once it is found.',
+        bullets: [
+            'Threshold LEFT — catch quieter, more subtle shimmer (riskier; may grab real music).',
+            'Threshold RIGHT — only catch the loudest, most obvious shimmer (safer).',
+            'Slope LEFT — gentler cut on flagged sounds.',
+            'Slope RIGHT — deeper cut on flagged sounds.',
+        ],
+    },
+    'Processing': {
+        lead: 'These are the actual cleanup tools — each one targets a ' +
+              'different kind of artifact. Turn on only the ones that ' +
+              'match what you hear; leaving the rest in their OFF position ' +
+              'costs you nothing.',
+        bullets: [
+            'Denoise, De-resonator, De-harsh, De-checker, Mix — LEFT (0%) is OFF, RIGHT is more of that effect.',
+            'Air cut is INVERTED — OFF at the RIGHT edge (0 dB), more cut as you move LEFT toward -12 dB.',
+        ],
+    },
+};
+
 export const CONTROL_SPEC = [
     {
         key: 'start_hz', label: 'Start Hz',
         min: 500, max: 12000, step: 50, group: 'Band',
         help: {
-            short: 'Lowest pitch the tool will look at for shimmer.',
-            when_up: 'Low and mid sounds are getting touched (bass, vocal warmth, snare body).',
-            when_down: 'You can still hear shimmer below the current setting.',
+            short: 'The lowest pitch the tool will touch. Anything below ' +
+                   'this stays exactly as it is.',
+            when_up: 'Bass, vocal warmth, or snare body sound thinned out — ' +
+                     'the tool is reaching down too far.',
+            when_down: 'You still hear shimmer or fizz below where the tool ' +
+                       'is currently looking.',
             typical: '3000 - 6000 Hz',
         },
     },
@@ -17,9 +58,12 @@ export const CONTROL_SPEC = [
         key: 'end_hz', label: 'End Hz',
         min: 1000, max: 20000, step: 50, group: 'Band',
         help: {
-            short: 'Highest pitch the tool will look at for shimmer.',
-            when_up: 'High sparkle or fizz is being missed.',
-            when_down: 'Cymbals or top-end sparkle is being dulled.',
+            short: 'The highest pitch the tool will touch. Anything above ' +
+                   'this stays exactly as it is.',
+            when_up: 'You still hear sparkle or fizz at the very top end ' +
+                     'that the tool is missing.',
+            when_down: 'Cymbals or top-end air sound dulled — the tool is ' +
+                       'reaching up too far.',
             typical: '8000 - 14000 Hz',
         },
     },
@@ -28,9 +72,12 @@ export const CONTROL_SPEC = [
         key: 'thr_db', label: 'Threshold',
         min: 2.0, max: 20.0, step: 0.25, group: 'Detection', unit: ' dB',
         help: {
-            short: 'How loud a sound must be before Shimmer treats it as fizz.',
-            when_up: 'Removed track has music in it (you are cutting too much).',
-            when_down: 'Fizz is still getting through.',
+            short: 'How much louder than its neighbors a sound has to be ' +
+                   'before the tool flags it as shimmer.',
+            when_up: 'The Removed track has actual music in it — the tool ' +
+                     'is grabbing things that should stay.',
+            when_down: 'Shimmer is still leaking through — the tool is ' +
+                       'being too cautious.',
             typical: '5 - 9 dB',
         },
     },
@@ -38,9 +85,10 @@ export const CONTROL_SPEC = [
         key: 'slope', label: 'Slope',
         min: 0.1, max: 1.5, step: 0.05, group: 'Detection',
         help: {
-            short: 'How hard to push down a sound once it is flagged as fizz.',
-            when_up: 'Fizz is found but not reduced enough.',
-            when_down: 'Result sounds dull or hollow.',
+            short: 'How hard to push a sound down once it has been flagged ' +
+                   'as shimmer.',
+            when_up: 'Shimmer is being found but not cut deep enough.',
+            when_down: 'The result sounds dull, hollow, or scooped-out.',
             typical: '0.5 - 0.8',
         },
     },
@@ -49,9 +97,12 @@ export const CONTROL_SPEC = [
         key: 'denoise', label: 'Denoise',
         min: 0.0, max: 1.0, step: 0.02, group: 'Processing', isPct: true,
         help: {
-            short: 'Removes steady background hiss between notes.',
-            when_up: 'You hear a constant hiss or noise floor.',
-            when_down: 'Music sounds squeezed, warble, or low-mids feel thin.',
+            short: 'Removes steady background hiss — the kind that sits ' +
+                   'underneath the music like tape noise.',
+            when_up: 'You hear a constant hiss or noise floor that does ' +
+                     'not go away.',
+            when_down: 'The music sounds squeezed, watery, or the high ' +
+                       'frequencies feel thin.',
             typical: '20% - 50%',
         },
     },
@@ -59,9 +110,12 @@ export const CONTROL_SPEC = [
         key: 'deres', label: 'De-resonator',
         min: 0.0, max: 1.0, step: 0.02, group: 'Processing', isPct: true,
         help: {
-            short: 'Removes a single tone that keeps ringing forever.',
-            when_up: 'One pitch keeps droning on top of your music.',
-            when_down: 'Sustained notes (vocals, leads) sound notched out.',
+            short: 'Removes single ringing pitches that drone on and never ' +
+                   'fade away.',
+            when_up: 'One specific pitch keeps ringing on top of the music ' +
+                     'like a stuck note.',
+            when_down: 'Sustained vocals or lead instruments sound notched ' +
+                       'out or hollow.',
             typical: '0% - 50%',
         },
     },
@@ -69,9 +123,11 @@ export const CONTROL_SPEC = [
         key: 'deharsh', label: 'De-harsh',
         min: 0.0, max: 1.0, step: 0.02, group: 'Processing', isPct: true,
         help: {
-            short: 'Softens harsh "ssss" and metallic upper-mid bite.',
-            when_up: 'Vocals or cymbals sound sharp or piercing.',
-            when_down: 'Result sounds lispy or lost its edge.',
+            short: 'Softens harsh "ssss" sounds and the metallic bite that ' +
+                   'AI models add to vocals.',
+            when_up: 'Vocals or cymbals sound sharp, piercing, or painful.',
+            when_down: 'Vocals lose their consonants ("s" and "t" sound ' +
+                       'lispy) or feel dulled.',
             typical: '0% - 60%',
         },
     },
@@ -79,9 +135,12 @@ export const CONTROL_SPEC = [
         key: 'decheck', label: 'De-checker',
         min: 0.0, max: 1.0, step: 0.02, group: 'Processing', isPct: true,
         help: {
-            short: 'Removes the regular "comb" pattern that some AI models leave.',
-            when_up: 'You hear a faint repeating ringing or grid texture.',
-            when_down: 'Cymbals or hi-hats lose their natural shimmer.',
+            short: 'Removes the faint repeating "comb" or grid pattern ' +
+                   'some AI models leave behind.',
+            when_up: 'You hear a faint repeating ring or metallic grid ' +
+                     'texture in the high end.',
+            when_down: 'Cymbals or hi-hats lose their natural shimmer and ' +
+                       'sparkle.',
             typical: '0% - 50%',
         },
     },
@@ -89,9 +148,11 @@ export const CONTROL_SPEC = [
         key: 'high_shelf_db', label: 'Air cut',
         min: -12.0, max: 0.0, step: 0.5, group: 'Processing', unit: ' dB',
         help: {
-            short: 'Gently turns down the very top end (digital "sheen").',
-            when_up: 'Top end sounds dull. (Move slider toward 0.)',
-            when_down: 'Top end sounds glassy, brittle, or too bright.',
+            short: 'Gently turns down the very top end as a final polish, ' +
+                   'softening any leftover digital "sheen".',
+            when_up: 'The top end sounds dull or muffled — move the slider ' +
+                     'back toward 0.',
+            when_down: 'The top end sounds glassy, brittle, or too bright.',
             typical: '-2 to -6 dB',
         },
     },
@@ -99,9 +160,12 @@ export const CONTROL_SPEC = [
         key: 'mix', label: 'Mix',
         min: 0.0, max: 1.0, step: 0.02, group: 'Processing', isPct: true,
         help: {
-            short: 'How much of the cleaned sound to blend with the original.',
-            when_up: 'You want more cleaning.',
-            when_down: 'Cleaning is too strong; you want some original back.',
+            short: 'How much of the cleaned sound you hear. At 0% you ' +
+                   'hear the original untouched (shimmer and all); at ' +
+                   '100% you hear only the cleaned version.',
+            when_up: 'You want more of the cleaning to come through.',
+            when_down: 'The cleaning is too aggressive and you want to ' +
+                       'blend some of the original back in.',
             typical: '80% - 100%',
         },
     },
@@ -138,6 +202,29 @@ export function renderControls(host, onChange, onHelpClick) {
         title.className = 'slider-group-title';
         title.textContent = group;
         box.appendChild(title);
+
+        const intro = GROUP_INTROS[group];
+        if (intro) {
+            const introWrap = document.createElement('div');
+            introWrap.className = 'slider-group-intro';
+            if (intro.lead) {
+                const lead = document.createElement('p');
+                lead.className = 'slider-group-intro-lead';
+                lead.textContent = intro.lead;
+                introWrap.appendChild(lead);
+            }
+            if (intro.bullets && intro.bullets.length) {
+                const ul = document.createElement('ul');
+                ul.className = 'slider-group-intro-list';
+                for (const b of intro.bullets) {
+                    const li = document.createElement('li');
+                    li.textContent = b;
+                    ul.appendChild(li);
+                }
+                introWrap.appendChild(ul);
+            }
+            box.appendChild(introWrap);
+        }
 
         for (const spec of specs) {
             const row = document.createElement('div');
