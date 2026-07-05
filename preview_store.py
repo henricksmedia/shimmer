@@ -21,7 +21,7 @@ import tempfile
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 import numpy as np
 
@@ -45,8 +45,8 @@ class PreviewSession:
     original_name: str           # original filename for downloads
     created_at: float = field(default_factory=time.time)
     last_used: float = field(default_factory=time.time)
-    # Latest preview render id; previous renders get GC'd on each new call.
-    current_render_id: str = ""
+    # Full-file analysis for mastering preview parity (LUFS/spectrum).
+    track_analysis: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def duration_s(self) -> float:

@@ -33,12 +33,12 @@ import asyncio
 import glob
 import json
 import os
+import struct
 import tempfile
 import time
-import uuid as _uuid
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import numpy as np
 
@@ -47,18 +47,21 @@ from fastapi import (
     BackgroundTasks,
 )
 from fastapi.responses import (
-    FileResponse, JSONResponse, StreamingResponse, HTMLResponse,
+    FileResponse, JSONResponse, StreamingResponse, HTMLResponse, Response,
 )
 from fastapi.staticfiles import StaticFiles
 
 from audio_io import (
     load_audio, save_audio, measure, preserve_volume, clip_protect,
-    process_file,
+    process_file, encode_wav_bytes,
 )
 from engine import process, apply_post_filters
 from dsp import as_2d
 from jobs import JOB_STORE, Job
-from params import Params, apply_preset_strength
+from params import Params, apply_preset_strength, MasterParams
+from mastering import (
+    master, master_params_from_json, analyze_track, measure_loudness,
+)
 from presets import (
     PRESETS, PRESET_NAMES, VISIBLE_PRESETS,
     get_preset, describe_preset, label_for, is_visible,
@@ -70,8 +73,18 @@ from settings_store import load_settings, save_settings
 HERE = Path(__file__).resolve().parent
 STATIC_DIR = HERE / "static"
 
+class _NoCacheStaticFiles(StaticFiles):
+    """Static files that always revalidate so UI updates take effect
+    immediately after a server upgrade (files are tiny; cost is nil)."""
+
+    async def get_response(self, path: str, scope):  # type: ignore[override]
+        resp = await super().get_response(path, scope)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
+
 app = FastAPI(title="Shimmer by The Treq")
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.mount("/static", _NoCacheStaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -97,6 +110,15 @@ def _safe_filename_stem(s: str) -> str:
             out.append("_")
     cleaned = "".join(out).strip("._-")
     return cleaned[:64]
+
+
+def _finite_or_none(v: Any) -> Optional[float]:
+    """JSON-safe float: -inf/nan (pyloudnorm on silence) become None."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if np.isfinite(f) else None
 
 
 def _params_from_json(data: Dict[str, Any]) -> Params:
@@ -155,8 +177,14 @@ def _threadsafe_progress_pusher(job: Job, loop: asyncio.AbstractEventLoop):
     return _cb
 
 
+def _master_params_from_request(data: Dict[str, Any]) -> MasterParams:
+    return master_params_from_json(data.get("mastering") or {})
+
+
 def _run_job_sync(job: Job, upload_path: str, params: Params,
-                  preserve_vol: bool, progress_cb) -> None:
+                  preserve_vol: bool, progress_cb,
+                  master_params: Optional[MasterParams] = None,
+                  mastering_analysis: Optional[Dict[str, Any]] = None) -> None:
     """CPU-bound worker: runs in a thread executor."""
     x, sr = load_audio(upload_path)
     meas_in = measure(x)
@@ -165,24 +193,52 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
                 progress_callback=progress_cb,
                 diagnostic_out=diagnostic_out)
     y2 = as_2d(y)
-    if preserve_vol:
+
+    n = min(x.shape[0], y2.shape[0])
+    x_ref = apply_post_filters(x[:n, :].astype(np.float32), sr, params)
+    diff = (x_ref - y2[:n, :]).astype("float32") * 5.0
+
+    mastering_report: Dict[str, Any] = {"enabled": False}
+    use_mastering = master_params is not None and master_params.enabled
+
+    if use_mastering:
+        if mastering_analysis is None:
+            mastering_analysis = analyze_track(y2, sr)
+        y2, mastering_report = master(
+            y2, sr, master_params, analysis=mastering_analysis)
+    elif preserve_vol:
         y2 = preserve_volume(
             y2, meas_in["peak_linear"], input_rms=meas_in["rms_linear"])
-    y2 = clip_protect(y2)
+        y2 = clip_protect(y2)
+
     meas_out = measure(y2)
+    diff = clip_protect(diff)
+
+    # Input/output LUFS so the client can loudness-match A/B in every
+    # state, not just when mastering ran (the report covers that case).
+    loudness: Dict[str, Any] = {}
+    if use_mastering:
+        before = mastering_report.get("before") or {}
+        after = mastering_report.get("after") or {}
+        loudness = {
+            "input_lufs_i": _finite_or_none(before.get("lufs_i")),
+            "output_lufs_i": _finite_or_none(after.get("lufs_i")),
+        }
+    else:
+        try:
+            loudness = {
+                "input_lufs_i": _finite_or_none(
+                    measure_loudness(x, sr).get("lufs_i")),
+                "output_lufs_i": _finite_or_none(
+                    measure_loudness(y2, sr).get("lufs_i")),
+            }
+        except Exception:  # noqa: BLE001
+            loudness = {}
 
     processed_path = os.path.join(
         job.workdir, f"processed{job.output_ext}")
     diff_path = os.path.join(job.workdir, f"removed{job.output_ext}")
     save_audio(processed_path, y2, sr)
-    n = min(x.shape[0], y2.shape[0])
-    # Pre-filter the dry reference with the same post-FX chain (subsonic
-    # HP, high-shelf, presence) that `process()` ran on the wet signal.
-    # Otherwise a tiny shelf/HP cut leaves an audible bass / shelf imprint
-    # in the diff that has nothing to do with what the STFT stages removed.
-    x_ref = apply_post_filters(x[:n, :].astype(np.float32), sr, params)
-    diff = (x_ref - y2[:n, :]).astype("float32") * 5.0
-    diff = clip_protect(diff)
     save_audio(diff_path, diff, sr)
 
     job.processed_path = processed_path
@@ -194,11 +250,15 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         "input": meas_in,
         "output": meas_out,
         "diagnostic": diagnostic_out,
+        "mastering": mastering_report,
+        "loudness": loudness,
     }
 
 
 async def _run_job_async(job: Job, upload_path: str, params: Params,
-                         preserve_vol: bool) -> None:
+                         preserve_vol: bool,
+                         master_params: Optional[MasterParams] = None,
+                         mastering_analysis: Optional[Dict[str, Any]] = None) -> None:
     """Schedule the worker on the default executor; push done sentinel."""
     loop = asyncio.get_running_loop()
     cb = _threadsafe_progress_pusher(job, loop)
@@ -206,7 +266,8 @@ async def _run_job_async(job: Job, upload_path: str, params: Params,
     try:
         await loop.run_in_executor(
             None, _run_job_sync,
-            job, upload_path, params, preserve_vol, cb)
+            job, upload_path, params, preserve_vol, cb,
+            master_params, mastering_analysis)
         job.progress = 1.0
         job.status = "done"
         await job.queue.put({"fraction": 1.0, "done": True})
@@ -322,6 +383,9 @@ async def api_process(
     except KeyError as e:
         raise HTTPException(400, f"Unknown preset: {e}")
 
+    mp = _master_params_from_request(params_data)
+    mastering_analysis = params_data.get("mastering_analysis")
+
     output_ext = "." + output_format.lstrip(".").lower()
     if output_ext not in {".wav", ".flac", ".mp3", ".ogg", ".m4a"}:
         raise HTTPException(400, f"Unsupported output format: {output_format}")
@@ -340,7 +404,8 @@ async def api_process(
             f.write(chunk)
 
     # Fire-and-forget worker task; progress flows via job.queue → SSE.
-    asyncio.create_task(_run_job_async(job, job.original_path, p, preserve_volume))
+    asyncio.create_task(_run_job_async(
+        job, job.original_path, p, preserve_volume, mp, mastering_analysis))
     JOB_STORE.sweep()
     return JSONResponse({"job_id": job.id})
 
@@ -434,7 +499,8 @@ async def api_result(job_id: str, kind: str = "processed") -> FileResponse:
 
 @app.post("/api/suggest")
 async def api_suggest(file: UploadFile = File(...)) -> JSONResponse:
-    from probe import suggest_preset  # local import: heavier scipy path
+    """Artifact preset suggestion + loudness/spectrum analysis."""
+    from probe import suggest_preset
 
     import tempfile
     with tempfile.NamedTemporaryFile(
@@ -449,12 +515,21 @@ async def api_suggest(file: UploadFile = File(...)) -> JSONResponse:
     try:
         loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(None, suggest_preset, tmp_path)
+        x, sr = await loop.run_in_executor(None, load_audio, tmp_path)
+        analysis = await loop.run_in_executor(None, analyze_track, x, sr)
+        result["analysis"] = analysis
     finally:
         try:
             os.unlink(tmp_path)
         except OSError:
             pass
     return JSONResponse(result)
+
+
+@app.post("/api/analyze")
+async def api_analyze(file: UploadFile = File(...)) -> JSONResponse:
+    """Combined artifact detect + mastering analysis (alias of suggest)."""
+    return await api_suggest(file)
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -469,6 +544,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     preserve_vol = bool(payload.get("preserve_volume", True))
     output_format = (payload.get("output_format") or "wav").lstrip(".").lower()
     auto_detect = bool(payload.get("auto_detect", False))
+    mp = master_params_from_json(payload.get("mastering") or {})
 
     # Preset strength: parse and clamp to [0, 2].
     raw_strength = payload.get("preset_strength")
@@ -521,7 +597,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
             try:
                 r = await loop.run_in_executor(
                     None, _batch_one, src, dst, preset, preserve_vol,
-                    auto_detect, preset_strength)
+                    auto_detect, preset_strength, mp)
                 yield _sse_event({
                     "type": "file_done", "index": i, "name": name,
                     "duration_s": r["duration_s"],
@@ -542,7 +618,8 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
 
 
 def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
-               auto_detect: bool = False, preset_strength: float = 1.0):
+               auto_detect: bool = False, preset_strength: float = 1.0,
+               master_params: Optional[MasterParams] = None):
     detected_info: Dict[str, Any] = {}
 
     if auto_detect:
@@ -568,6 +645,7 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
     result = process_file(
         input_path=src, output_path=dst,
         params=params, do_preserve_volume=preserve_vol,
+        master_params=master_params,
     )
     result.update(detected_info)
     return result
@@ -619,11 +697,15 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
         x = x[:, None]
     x = clamp_samples_for_preview(x, sr)
 
+    loop2 = asyncio.get_running_loop()
+    track_analysis = await loop2.run_in_executor(None, analyze_track, x, sr)
+
     sess = PREVIEW_STORE.create(
         samples=x, sr=sr,
         original_path=orig_path,
         original_name=orig_name,
     )
+    sess.track_analysis = track_analysis
     PREVIEW_STORE.sweep()
     return JSONResponse({
         "session_id": sess.id,
@@ -631,19 +713,33 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
         "channels": sess.channels,
         "duration_s": sess.duration_s,
         "name": orig_name,
+        "analysis": track_analysis,
     })
 
 
-_PREVIEW_KINDS = ("processed", "diff")
+def _slice_loudness_db(arr: np.ndarray, sr: int) -> float:
+    """Integrated LUFS of a preview slice; RMS-dB fallback for windows
+    too short for BS.1770 gating."""
+    try:
+        v = measure_loudness(arr, sr).get("lufs_i")
+        if v is not None and np.isfinite(float(v)):
+            return float(v)
+    except Exception:  # noqa: BLE001
+        pass
+    rms = float(np.sqrt(np.mean(np.asarray(arr, dtype=np.float64) ** 2)))
+    return float(20.0 * np.log10(rms + 1e-9))
 
 
 def _render_preview_sync(sess, start_s: float, end_s: float, p: Params,
-                         preserve_vol: bool) -> Dict[str, Any]:
+                         preserve_vol: bool,
+                         master_params: Optional[MasterParams] = None) -> Dict[str, Any]:
     """Render processed + diff slices for the requested window.
 
     The Original player keeps the full file in the browser (so the user
     can scrub through the whole track), so the server only needs to ship
-    the two slices that change as the user moves sliders.
+    the two slices that change as the user moves sliders. Slices are
+    encoded to in-memory WAVs and returned in the response body — no
+    per-render files, no render ids, no GC.
 
     We pad the window with PREROLL/POSTROLL on both sides, run process()
     with pad=False and fade_ms=0, then trim back to the audible window so
@@ -684,51 +780,50 @@ def _render_preview_sync(sess, start_s: float, end_s: float, p: Params,
     # making the RMS comparison wrong (preview ends up scaled DOWN
     # because input_rms < proc_audible_rms).
     audible_in_meas = measure(orig_audible)
-    if preserve_vol:
+    use_mastering = master_params is not None and master_params.enabled
+
+    if use_mastering:
+        analysis = dict(sess.track_analysis or {})
+        proc_audible, _report = master(
+            proc_audible, sr, master_params, analysis=analysis)
+    elif preserve_vol:
         proc_audible = preserve_volume(
             proc_audible, audible_in_meas["peak_linear"],
             input_rms=audible_in_meas["rms_linear"])
-    proc_audible = clip_protect(proc_audible)
+        proc_audible = clip_protect(proc_audible)
+    else:
+        proc_audible = clip_protect(proc_audible)
 
     n_match = min(orig_audible.shape[0], proc_audible.shape[0])
     # Apply the same post-FX chain to the dry reference so the diff
     # only shows what the STFT stages actually removed (otherwise the
     # subsonic HP / shelves leave audible bass + tilt in the diff).
+    # Shipped UNBOOSTED — the client applies an audition boost via a
+    # gain node (capped against the slice's own peak to avoid clipping).
     orig_ref = apply_post_filters(
         orig_audible[:n_match, :].astype(np.float32), sr, p)
-    diff = (orig_ref - proc_audible[:n_match, :]).astype(np.float32) * 5.0
+    diff = (orig_ref - proc_audible[:n_match, :]).astype(np.float32)
     diff = clip_protect(diff)
 
-    render_id = _uuid.uuid4().hex[:12]
-    paths: Dict[str, str] = {}
-    for kind, arr in (("processed", proc_audible), ("diff", diff)):
-        path = os.path.join(sess.workdir, f"prev_{render_id}_{kind}.wav")
-        save_audio(path, arr, sr, subtype="PCM_16")
-        paths[kind] = path
-
-    # GC the previous render's WAVs to keep workdirs from growing.
-    if sess.current_render_id:
-        for kind in _PREVIEW_KINDS:
-            old = os.path.join(
-                sess.workdir,
-                f"prev_{sess.current_render_id}_{kind}.wav")
-            try:
-                os.unlink(old)
-            except OSError:
-                pass
-    sess.current_render_id = render_id
-
     return {
-        "render_id": render_id,
         "duration_s": float(audible_len / sr),
         "sample_rate": sr,
-        "paths": paths,
+        "lufs_original": _slice_loudness_db(orig_audible, sr),
+        "lufs_processed": _slice_loudness_db(proc_audible, sr),
+        "wav_processed": encode_wav_bytes(proc_audible, sr),
+        "wav_removed": encode_wav_bytes(diff, sr),
     }
 
 
 @app.post("/api/preview")
-async def api_preview(payload: Dict[str, Any]) -> JSONResponse:
-    """Render a small looped slice for live A/B previewing."""
+async def api_preview(payload: Dict[str, Any]) -> Response:
+    """Render a small looped slice for live A/B previewing.
+
+    Returns a single binary payload so one round trip carries everything:
+        [u32 json_len][json meta][u32 wav_len][processed wav][removed wav]
+    Meta includes per-slice loudness so the client can loudness-match A/B
+    during preview.
+    """
     sid = payload.get("session_id") or ""
     sess = PREVIEW_STORE.get(sid)
     if sess is None:
@@ -741,6 +836,7 @@ async def api_preview(payload: Dict[str, Any]) -> JSONResponse:
         raise HTTPException(400, f"Invalid start_s/end_s: {e}")
 
     preserve_vol = bool(payload.get("preserve_volume", True))
+    mp = master_params_from_json(payload.get("mastering") or {})
 
     try:
         p = _params_from_json({
@@ -755,35 +851,27 @@ async def api_preview(payload: Dict[str, Any]) -> JSONResponse:
     t0 = time.time()
     try:
         result = await loop.run_in_executor(
-            None, _render_preview_sync, sess, start_s, end_s, p, preserve_vol)
+            None, _render_preview_sync, sess, start_s, end_s, p, preserve_vol, mp)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, f"Preview render failed: {e}")
     elapsed_ms = int((time.time() - t0) * 1000)
 
-    return JSONResponse({
-        "render_id": result["render_id"],
+    meta = json.dumps({
         "duration_s": result["duration_s"],
         "sample_rate": result["sample_rate"],
         "render_ms": elapsed_ms,
         "start_s": start_s,
         "end_s": end_s,
-    })
-
-
-@app.get("/api/preview/{session_id}/{render_id}")
-async def api_preview_result(
-    session_id: str, render_id: str, kind: str = "processed",
-) -> FileResponse:
-    sess = PREVIEW_STORE.get(session_id)
-    if sess is None:
-        raise HTTPException(404, "Unknown session_id")
-    if kind not in _PREVIEW_KINDS:
-        raise HTTPException(400, f"Unknown kind: {kind}")
-    path = os.path.join(sess.workdir, f"prev_{render_id}_{kind}.wav")
-    if not os.path.isfile(path):
-        raise HTTPException(404, "Preview render not found (may be stale)")
-    return FileResponse(path, media_type="audio/wav",
-                        filename=f"preview_{kind}.wav")
+        "lufs_original": result["lufs_original"],
+        "lufs_processed": result["lufs_processed"],
+    }).encode("utf-8")
+    wav_processed = result["wav_processed"]
+    body = b"".join([
+        struct.pack("<I", len(meta)), meta,
+        struct.pack("<I", len(wav_processed)), wav_processed,
+        result["wav_removed"],
+    ])
+    return Response(content=body, media_type="application/octet-stream")
 
 
 @app.delete("/api/upload/{session_id}")

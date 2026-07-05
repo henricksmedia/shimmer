@@ -1,70 +1,106 @@
-/* layout.css — page structure only.  Header, tabs, grids, spacing. */
+/* layout.css — page structure only.  Viewport-locked shell, header bar,
+   grids, spacing.  The app fits 1920x1080 with zero page scroll; below
+   1100px it degrades to a normal scrolling single-column page. */
+
+html, body { height: 100%; }
 
 body {
-    padding-top: var(--header-h);
-    padding-bottom: calc(var(--process-bar-h) + var(--preview-bar-h));
-    padding-right: var(--guide-width);
-}
-
-.app-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: var(--guide-width);
-    height: var(--header-h);
+    height: 100dvh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
+}
+
+/* ── Header bar: brand + tabs + subtitle + help ─────────────────────── */
+
+.app-header {
+    flex: 0 0 auto;
+    height: var(--header-h);
+    display: flex;
     align-items: center;
-    justify-content: center;
+    gap: var(--gap-6);
+    padding: 0 var(--gap-4);
     background: var(--bg-0);
     border-bottom: 1px solid var(--line);
-    z-index: 900;
 }
 
 .app-header h1 {
     margin: 0;
     font-family: var(--font-ui);
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 600;
     color: var(--fg-0);
-    letter-spacing: -0.5px;
+    letter-spacing: -0.4px;
     display: inline-flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+/* Slow diagonal light sweep across the wordmark. */
+.brand-shimmer {
+    background: linear-gradient(115deg,
+        var(--fg-0) 0%, var(--fg-0) 42%,
+        #ffffff 50%,
+        var(--fg-0) 58%, var(--fg-0) 100%);
+    background-size: 250% 100%;
+    background-position: 120% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: brand-glint 7s ease-in-out infinite;
+}
+@keyframes brand-glint {
+    0%, 55%    { background-position: 120% 0; }
+    85%, 100%  { background-position: -30% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .brand-shimmer { animation: none; }
 }
 
 .app-header .brand-by {
     font-weight: 300;
-    font-size: 16px;
+    font-size: 13px;
     color: var(--fg-2);
 }
 
 .app-header .brand-treq {
     font-family: var(--font-brand);
     color: var(--gold);
-    font-size: 20px;
+    font-size: 15px;
     letter-spacing: 0.5px;
-    text-shadow: 0 0 20px rgba(212, 165, 90, 0.2);
+    text-shadow: 0 0 20px rgba(212, 165, 90, 0.25);
 }
 
-.app-header .subtitle {
-    font-size: 12.5px;
+.header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--gap-4);
+}
+
+.header-right .subtitle {
+    font-size: 12px;
     color: var(--fg-2);
     letter-spacing: 0.3px;
     font-weight: 300;
-    margin-top: 4px;
+    white-space: nowrap;
 }
 
+.header-help-btn {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+}
+
+/* Tabs live inside the header bar. */
 .tabs {
-    position: fixed;
-    top: var(--header-h);
-    left: 0;
-    right: var(--guide-width);
     display: flex;
-    background: var(--bg-0);
-    border-bottom: 1px solid var(--line);
-    padding: 6px var(--gap-5) 0;
-    z-index: 850;
+    gap: 2px;
+    align-self: stretch;
+    align-items: stretch;
 }
 
 .tab {
@@ -72,11 +108,10 @@ body {
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--fg-2);
-    padding: 10px 18px;
+    padding: 0 16px;
     font: inherit;
     font-weight: 500;
     cursor: pointer;
-    border-radius: 6px 6px 0 0;
     transition: color 120ms ease, background 120ms ease;
 }
 .tab:hover { color: var(--fg-1); background: var(--purple-soft); }
@@ -86,60 +121,117 @@ body {
     border-bottom-color: var(--purple);
 }
 
+/* ── Main area: fills the rest of the viewport ──────────────────────── */
+
 .page {
-    padding: calc(var(--header-h) + var(--gap-5)) var(--gap-5) var(--gap-5);
-    /* Offset down from the fixed tab bar — the body top padding handles the
-       header, this adds the tabs row. */
-    padding-top: calc(42px + var(--gap-5));
+    flex: 1;
+    min-height: 0;
+    padding: var(--gap-4);
 }
 
 .tab-panel { display: none; }
-.tab-panel.active { display: block; }
+.tab-panel.active {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
 
 .two-column {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--gap-5);
+    grid-template-columns: minmax(340px, 420px) 1fr;
+    gap: var(--gap-4);
+    align-items: stretch;
+    min-height: 0;
 }
 
-.column { display: flex; flex-direction: column; gap: var(--gap-3); }
+#tab-single .two-column { flex: 1; }
+#tab-batch  .two-column { flex: 0 0 auto; }
 
-.process-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: var(--guide-width);
-    height: var(--process-bar-h);
-    background: var(--bg-0);
-    border-top: 1px solid var(--line);
+/* Failsafe: on short viewports the batch form may not fit. */
+#tab-batch.active { overflow-y: auto; }
+
+.column {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: var(--gap-3);
-    padding: 0 var(--gap-5);
-    z-index: 800;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5);
+    min-height: 0;
 }
 
-.process-bar progress {
-    flex: 1;
+/* Failsafe scroll only — the rail is designed to fit at 1080p. */
+.controls-column {
+    overflow-y: auto;
+    padding-right: 2px;
+}
+.controls-column::-webkit-scrollbar { width: 6px; }
+.controls-column::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 3px;
+}
+
+/* Pinned to the bottom of the controls rail, always visible. */
+.process-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-2);
+    padding-top: var(--gap-2);
+    border-top: 1px solid var(--line);
+    margin-top: auto;
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-0);
+}
+
+.process-section progress {
+    width: 100%;
     height: 6px;
     appearance: none;
     background: var(--bg-3);
+    border: none;
     border-radius: 3px;
     overflow: hidden;
 }
-.process-bar progress::-webkit-progress-bar { background: var(--bg-3); }
-.process-bar progress::-webkit-progress-value {
+.process-section progress::-webkit-progress-bar { background: var(--bg-3); }
+.process-section progress::-webkit-progress-value {
     background: var(--purple);
     transition: width 120ms linear;
 }
-.process-bar progress::-moz-progress-bar { background: var(--purple); }
+.process-section progress::-moz-progress-bar { background: var(--purple); }
 
-.process-btn { min-width: 140px; }
+.process-btn {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+}
+
+/* ── Small screens: normal scrolling single column ─────────────────── */
 
 @media (max-width: 1100px) {
-    body { padding-right: 0; }
-    .app-header, .tabs, .process-bar, .preview-bar { right: 0; }
-    #guide { display: none; }
+    body {
+        height: auto;
+        overflow: auto;
+        display: block;
+    }
+    .app-header {
+        height: auto;
+        min-height: var(--header-h);
+        flex-wrap: wrap;
+        padding: 8px var(--gap-4);
+        row-gap: 4px;
+    }
+    .page { height: auto; }
+    .tab-panel.active {
+        display: block;
+        height: auto;
+    }
     .two-column { grid-template-columns: 1fr; }
+    /* Player first on small screens so results stay visible. */
+    #tab-single .results-column { order: -1; }
+    .controls-column { overflow: visible; }
+    .player-canvas { flex: none; height: 240px; }
+    .batch-log { flex: none; max-height: 480px; }
+}
+
+@media (max-width: 900px) {
+    .header-right .subtitle { display: none; }
 }

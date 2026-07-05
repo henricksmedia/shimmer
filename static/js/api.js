@@ -69,6 +69,8 @@ export async function dropSession(sessionId) {
 }
 
 export async function renderPreview(payload, {signal} = {}) {
+    // Single binary response carrying everything one render needs:
+    //   [u32 json_len][json meta][u32 wav_len][processed wav][removed wav]
     const res = await fetch('/api/preview', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -79,11 +81,19 @@ export async function renderPreview(payload, {signal} = {}) {
         const text = await res.text();
         throw new Error(text || `Preview failed (${res.status})`);
     }
-    return res.json();  // { render_id, duration_s, sample_rate, render_ms, start_s, end_s }
-}
-
-export function previewUrl(sessionId, renderId, kind) {
-    return `/api/preview/${sessionId}/${renderId}?kind=${encodeURIComponent(kind)}`;
+    const buf = await res.arrayBuffer();
+    const view = new DataView(buf);
+    const jsonLen = view.getUint32(0, true);
+    const meta = JSON.parse(
+        new TextDecoder().decode(new Uint8Array(buf, 4, jsonLen)));
+    let off = 4 + jsonLen;
+    const wavLen = view.getUint32(off, true);
+    off += 4;
+    const processed = buf.slice(off, off + wavLen);
+    const removed = buf.slice(off + wavLen);
+    // meta: { duration_s, sample_rate, render_ms, start_s, end_s,
+    //         lufs_original, lufs_processed }
+    return {meta, processed, removed};
 }
 
 export async function suggestPreset(file) {

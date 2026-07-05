@@ -4,6 +4,10 @@ A desktop tool for removing *shimmer* — the high-frequency metallic fizz,
 narrow-band birdies, and periodic "checkerboard" artifacts produced by
 AI music generators like Suno.  Offline, local, deterministic.
 
+## Documentation
+
+See [FEATURES.md](FEATURES.md) for a complete technical feature reference.
+
 ## Highlights
 
 - **Stage-list DSP engine.** Expander → Denoise → De-resonator → Shimmer

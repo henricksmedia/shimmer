@@ -2,7 +2,7 @@
 audio_io.py — Audio file I/O, measurements, and volume management.
 
 Provides format-agnostic load/save for WAV / FLAC / OGG (via soundfile) and
-MP3 / M4A / AAC (via pydub + system ffmpeg).  The engine never touches the
+MP3 / M4A / AAC (via ffmpeg subprocess).  The engine never touches the
 filesystem.
 """
 
@@ -10,21 +10,25 @@ from __future__ import annotations
 
 import io
 import os
+import shutil
+import subprocess
+import tempfile
 from typing import Dict, Any, Optional, Callable, Tuple
 
 import numpy as np
 import soundfile as sf
 
 from dsp import as_2d, lin_to_db
-from params import Params
+from params import Params, MasterParams
 from engine import process
+from mastering import master, master_params_from_json, tpdf_dither
 
 
 # Extensions soundfile handles natively (depends on libsndfile version,
 # but these are always supported).
 _SOUNDFILE_EXTS = {".wav", ".flac", ".ogg", ".aiff", ".aif"}
 
-# Extensions that require ffmpeg (via pydub).
+# Extensions that require ffmpeg.
 _FFMPEG_EXTS = {".mp3", ".m4a", ".aac", ".mp4"}
 
 
@@ -32,19 +36,101 @@ class AudioIOError(RuntimeError):
     """Raised when an audio file cannot be read or written."""
 
 
-# ---------------------------------------------------------------------------
-# Lazy pydub import (optional dependency)
-# ---------------------------------------------------------------------------
+def _ffmpeg_path() -> str:
+    return shutil.which("ffmpeg") or "ffmpeg"
 
-def _import_pydub():
+
+def _ffmpeg_decode(path: str) -> Tuple[np.ndarray, int]:
+    """Decode arbitrary audio to float32 stereo/mono via ffmpeg pipe."""
+    ffmpeg = _ffmpeg_path()
+    cmd = [
+        ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error",
+        "-i", path,
+        "-f", "f32le", "-acodec", "pcm_f32le", "-ac", "2",
+        "pipe:1",
+    ]
     try:
-        from pydub import AudioSegment
-        return AudioSegment
-    except ImportError as e:
+        proc = subprocess.run(
+            cmd, capture_output=True, check=True, timeout=600)
+    except FileNotFoundError as e:
         raise AudioIOError(
-            "pydub is required for MP3/M4A support. "
-            "Install with: pip install pydub. Also requires ffmpeg on PATH."
+            "ffmpeg is required for MP3/M4A support. Install ffmpeg and add it to PATH."
         ) from e
+    except subprocess.CalledProcessError as e:
+        err = (e.stderr or b"").decode("utf-8", errors="replace")
+        raise AudioIOError(
+            f"Failed to decode '{path}' with ffmpeg.\n{err}"
+        ) from e
+
+    raw = np.frombuffer(proc.stdout, dtype=np.float32)
+    if raw.size == 0:
+        raise AudioIOError(f"ffmpeg returned no audio data for '{path}'")
+    # Probe channel layout from ffprobe if possible; default stereo interleaved.
+    n_ch = 2
+    if raw.size % n_ch != 0:
+        n_ch = 1
+    if n_ch > 1:
+        x = raw.reshape(-1, n_ch)
+    else:
+        x = raw.reshape(-1, 1)
+    # Sample rate via ffprobe.
+    sr = _ffprobe_sample_rate(path)
+    return x.astype(np.float32, copy=False), int(sr)
+
+
+def _ffprobe_sample_rate(path: str) -> int:
+    ffprobe = shutil.which("ffprobe") or "ffprobe"
+    cmd = [
+        ffprobe, "-v", "error", "-select_streams", "a:0",
+        "-show_entries", "stream=sample_rate",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        path,
+    ]
+    try:
+        out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL, timeout=30)
+        return int(float(out.decode().strip()))
+    except Exception:
+        return 44100
+
+
+def _ffmpeg_encode(path: str, y: np.ndarray, sr: int,
+                   fmt: str, bitrate: str = "320k") -> None:
+    """Encode float32 audio to MP3/M4A via ffmpeg."""
+    ffmpeg = _ffmpeg_path()
+    y = as_2d(np.asarray(y, dtype=np.float32))
+    y_clip = np.clip(y, -1.0, 1.0)
+    n_ch = y_clip.shape[1]
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        sf.write(tmp_path, y_clip, sr, subtype="PCM_16")
+        ext = os.path.splitext(path)[1].lower()
+        out_fmt = "mp4" if ext == ".m4a" else fmt
+        cmd = [
+            ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
+            "-i", tmp_path,
+            "-ac", str(n_ch),
+        ]
+        if out_fmt in ("mp3",):
+            cmd += ["-b:a", bitrate]
+        cmd += [path]
+        try:
+            subprocess.run(cmd, capture_output=True, check=True, timeout=600)
+        except FileNotFoundError as e:
+            raise AudioIOError(
+                "ffmpeg is required for MP3/M4A export. Install ffmpeg and add it to PATH."
+            ) from e
+        except subprocess.CalledProcessError as e:
+            err = (e.stderr or b"").decode("utf-8", errors="replace")
+            raise AudioIOError(
+                f"Failed to write '{path}' with ffmpeg.\n{err}"
+            ) from e
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +141,7 @@ def load_audio(path: str) -> Tuple[np.ndarray, int]:
     """Load an audio file as float32 (samples, channels) and sample rate.
 
     Tries soundfile first (WAV/FLAC/OGG/AIFF; MP3 works on libsndfile >= 1.1).
-    Falls back to pydub + ffmpeg for MP3/M4A/AAC.
+    Falls back to ffmpeg for MP3/M4A/AAC.
     """
     ext = os.path.splitext(path)[1].lower()
 
@@ -67,27 +153,7 @@ def load_audio(path: str) -> Tuple[np.ndarray, int]:
             if ext in _SOUNDFILE_EXTS:
                 raise
 
-    AudioSegment = _import_pydub()
-    try:
-        seg = AudioSegment.from_file(path)
-    except Exception as e:
-        raise AudioIOError(
-            f"Failed to decode '{path}'. If this is an MP3/M4A file, ensure "
-            f"ffmpeg is installed and on PATH.\nUnderlying error: {e}"
-        ) from e
-
-    sr = int(seg.frame_rate)
-    channels = int(seg.channels)
-    sample_width = int(seg.sample_width)  # bytes per sample
-    raw = seg.get_array_of_samples()
-    # pydub uses signed int samples; scale to [-1, 1].
-    max_val = float(1 << (8 * sample_width - 1))
-    x = np.asarray(raw, dtype=np.float32) / max_val
-    if channels > 1:
-        x = x.reshape(-1, channels)
-    else:
-        x = x.reshape(-1, 1)
-    return x, sr
+    return _ffmpeg_decode(path)
 
 
 # ---------------------------------------------------------------------------
@@ -96,37 +162,39 @@ def load_audio(path: str) -> Tuple[np.ndarray, int]:
 
 def save_audio(path: str, y: np.ndarray, sr: int,
                subtype: str = "PCM_24",
-               mp3_bitrate: str = "320k") -> None:
+               mp3_bitrate: str = "320k",
+               dither: bool = False) -> None:
     """Write audio to `path`, dispatching on file extension.
 
     WAV / FLAC / OGG / AIFF → soundfile with the given `subtype`.
-    MP3 / M4A / AAC → pydub + ffmpeg at `mp3_bitrate`.
+    MP3 / M4A / AAC → ffmpeg at `mp3_bitrate`.
+    When `dither` is True and subtype is PCM_16, applies TPDF dither.
     """
     ext = os.path.splitext(path)[1].lower()
     y = np.asarray(y, dtype=np.float32)
     if y.ndim == 1:
         y = y[:, None]
 
+    if dither and subtype.upper() in ("PCM_16", "PCM16"):
+        y = tpdf_dither(y, bits=16)
+
     if ext in _SOUNDFILE_EXTS or ext not in _FFMPEG_EXTS:
         sf.write(path, y, sr, subtype=subtype)
         return
 
-    AudioSegment = _import_pydub()
-    # pydub needs int16 PCM in memory.  Encode as WAV bytes and re-wrap.
-    y_clip = np.clip(y, -1.0, 1.0)
-    y_i16 = (y_clip * 32767.0).astype(np.int16)
-    buf = io.BytesIO()
-    sf.write(buf, y_i16, sr, format="WAV", subtype="PCM_16")
-    buf.seek(0)
-    seg = AudioSegment.from_file(buf, format="wav")
     fmt = "mp4" if ext == ".m4a" else ext.lstrip(".")
-    try:
-        seg.export(path, format=fmt, bitrate=mp3_bitrate)
-    except Exception as e:
-        raise AudioIOError(
-            f"Failed to write '{path}'. Ensure ffmpeg is installed and on "
-            f"PATH.\nUnderlying error: {e}"
-        ) from e
+    _ffmpeg_encode(path, y, sr, fmt=fmt, bitrate=mp3_bitrate)
+
+
+def encode_wav_bytes(y: np.ndarray, sr: int, subtype: str = "PCM_16") -> bytes:
+    """Encode audio to an in-memory WAV. Used by the live-preview API so
+    renders never touch the filesystem."""
+    y = np.asarray(y, dtype=np.float32)
+    if y.ndim == 1:
+        y = y[:, None]
+    buf = io.BytesIO()
+    sf.write(buf, y, sr, format="WAV", subtype=subtype)
+    return buf.getvalue()
 
 
 # ---------------------------------------------------------------------------
@@ -154,22 +222,7 @@ def preserve_volume(y: np.ndarray, input_peak: float,
                     input_rms: Optional[float] = None,
                     max_scale: float = 4.0,
                     peak_ceiling: float = 0.999) -> np.ndarray:
-    """Scale output to preserve perceived loudness.
-
-    If `input_rms` is provided, scales the output so its broadband RMS
-    matches the input RMS (loudness-match), then clamps the scale so the
-    output peak never exceeds `peak_ceiling`. This is the right knob
-    when stages remove substantial energy from a band the original peak
-    didn't live in (e.g. shimmer in 5-12 kHz while peaks are set by a
-    kick / vocal): peak-match alone leaves the file sounding quieter
-    because total RMS dropped but the peak didn't.
-
-    If `input_rms` is None, falls back to the legacy peak-match
-    behaviour for backwards compatibility.
-
-    `max_scale` is a safety clamp on how much amplification is allowed
-    (4x = +12 dB) to prevent runaway boosts on near-silent outputs.
-    """
+    """Scale output to preserve perceived loudness."""
     y = np.asarray(y, dtype=np.float32)
     if input_peak < 1e-6:
         return y
@@ -182,8 +235,6 @@ def preserve_volume(y: np.ndarray, input_peak: float,
         if output_rms < 1e-6:
             return y
         scale = float(input_rms / output_rms)
-        # Don't let the boost push the peak above the ceiling — preserve
-        # loudness up to the point where it would clip, then back off.
         peak_limit = peak_ceiling / output_peak
         if scale > peak_limit:
             scale = peak_limit
@@ -215,28 +266,39 @@ def process_file(
     subtype: str = "PCM_24",
     mp3_bitrate: str = "320k",
     progress_callback: Optional[Callable[[float], None]] = None,
+    master_params: Optional[MasterParams] = None,
+    mastering_analysis: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Read an audio file, process it, write the result.
+    """Read an audio file, process it, write the result."""
+    from engine import apply_post_filters
 
-    Input may be WAV / FLAC / OGG / AIFF / MP3 / M4A / AAC.
-    Output format is inferred from `output_path` extension.
-    """
     x, sr = load_audio(input_path)
 
     meas_in = measure(x)
     y = process(x, sr, params, progress_callback=progress_callback)
     y2 = as_2d(y)
 
-    if do_preserve_volume:
-        y2 = preserve_volume(
-            y2, meas_in["peak_linear"], input_rms=meas_in["rms_linear"])
-    y2 = clip_protect(y2)
-
-    save_audio(output_path, y2, sr, subtype=subtype, mp3_bitrate=mp3_bitrate)
+    mastering_report: Dict[str, Any] = {"enabled": False}
+    use_mastering = master_params is not None and master_params.enabled
 
     if write_diff:
-        diff = (x[:y2.shape[0], :] - y2).astype(np.float32)
+        n = min(x.shape[0], y2.shape[0])
+        x_ref = apply_post_filters(x[:n, :].astype(np.float32), sr, params)
+        diff = (x_ref - y2[:n, :]).astype(np.float32)
         save_audio(write_diff, diff, sr, subtype=subtype, mp3_bitrate=mp3_bitrate)
+
+    if use_mastering:
+        y2, mastering_report = master(
+            y2, sr, master_params, analysis=mastering_analysis)
+    elif do_preserve_volume:
+        y2 = preserve_volume(
+            y2, meas_in["peak_linear"], input_rms=meas_in["rms_linear"])
+        y2 = clip_protect(y2)
+
+    use_dither = subtype.upper() in ("PCM_16", "PCM16")
+    save_audio(
+        output_path, y2, sr, subtype=subtype, mp3_bitrate=mp3_bitrate,
+        dither=use_dither)
 
     meas_out = measure(y2)
 
@@ -246,4 +308,5 @@ def process_file(
         "duration_s": float(x.shape[0] / sr),
         "input": meas_in,
         "output": meas_out,
+        "mastering": mastering_report,
     }

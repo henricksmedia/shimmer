@@ -2,12 +2,11 @@
 
 import { initSingleTab } from './single.js';
 import { initBatchTab }  from './batch.js';
-import { initHelp }      from './help.js';
+import { initHelp, openHelp } from './help.js';
 
 function wireTabs() {
     const tabs = document.querySelectorAll('.tab');
     const panels = document.querySelectorAll('.tab-panel');
-    const processBar = document.getElementById('process-bar');
 
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -19,8 +18,6 @@ function wireTabs() {
             });
             panels.forEach(p => p.classList.toggle(
                 'active', p.id === `tab-${name}`));
-            // Process bar is only useful on the Single tab.
-            processBar.hidden = (name !== 'single');
         });
     });
 }
@@ -31,10 +28,21 @@ async function boot() {
         await initSingleTab();
         await initBatchTab();
         initHelp({ presetSelect: document.getElementById('preset-select') });
+
+        // First visit: open the quick-start guide once.
+        try {
+            if (!localStorage.getItem('shimmer.quickstart-seen')) {
+                localStorage.setItem('shimmer.quickstart-seen', '1');
+                openHelp('quickstart');
+            }
+        } catch (_) { /* storage unavailable — skip */ }
     } catch (e) {
         console.error('Boot failed:', e);
         const box = document.getElementById('metrics-box');
-        if (box) box.textContent = `UI failed to load: ${e.message}`;
+        if (box) {
+            box.textContent = `UI failed to load: ${e.message}`;
+            box.hidden = false;
+        }
     }
 }
 

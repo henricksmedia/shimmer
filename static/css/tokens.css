@@ -42,13 +42,13 @@
     --gap-6: 24px;
 
     /* Layout constants */
-    --guide-width: 285px;
-    --header-h: 72px;
-    --process-bar-h: 56px;
-    --preview-bar-h: 48px;
+    --header-h: 52px;
 }
 
 * { box-sizing: border-box; }
+
+/* The hidden attribute must always win, even over display classes. */
+[hidden] { display: none !important; }
 
 html, body {
     margin: 0;

@@ -12,6 +12,9 @@ export async function initBatchTab() {
     const presetGroup  = $('batch-preset-group');
     const formatSelect = $('batch-format');
     const preserveVol  = $('batch-preserve-vol');
+    const masterEnabled = $('batch-master-enabled');
+    const masterTarget = $('batch-master-target');
+    const masterIntensity = $('batch-master-intensity');
     const runBtn       = $('batch-btn');
     const logEl        = $('batch-log');
     const strengthEl   = $('batch-strength');
@@ -105,9 +108,14 @@ export async function initBatchTab() {
             output_folder: outputFolder.value.trim(),
             preset: presetSelect.value,
             output_format: formatSelect.value,
-            preserve_volume: preserveVol.checked,
+            preserve_volume: preserveVol.checked && !(masterEnabled && masterEnabled.checked),
             auto_detect: autoDetect,
             preset_strength: Number.isFinite(strength) ? strength : 1.0,
+            mastering: {
+                enabled: masterEnabled ? masterEnabled.checked : false,
+                target: masterTarget ? masterTarget.value : 'streaming',
+                intensity: masterIntensity ? masterIntensity.value : 'med',
+            },
         };
 
         postBatchStream(payload, {

@@ -310,3 +310,38 @@ def apply_preset_strength(p: "Params", strength: float) -> None:
     elif scaled_iter > 3:
         scaled_iter = 3
     p.iterations = scaled_iter
+
+
+# ---------------------------------------------------------------------------
+# Mastering parameters
+# ---------------------------------------------------------------------------
+
+LOUDNESS_TARGETS: dict[str, float] = {
+    "streaming": -14.0,
+    "loud": -11.0,
+    "cd": -9.0,
+}
+
+
+def intensity_to_eq_strength(intensity: str) -> float:
+    """Map Low/Med/High mastering intensity to EQ strength 0..1."""
+    return {
+        "low": 0.25,
+        "med": 0.55,
+        "high": 0.85,
+    }.get(str(intensity).lower(), 0.55)
+
+
+@dataclass
+class MasterParams:
+    """True mastering chain settings (post artifact cleaning)."""
+
+    enabled: bool = True
+    target_lufs: float = -14.0       # integrated LUFS target
+    ceiling_dbtp: float = -1.0       # true-peak ceiling
+    eq_strength: float = 0.55        # 0..1 tone-match strength
+    intensity: str = "med"           # low | med | high (overrides eq_strength)
+    hp_hz: float = 25.0              # subsonic HP + DC prep
+    lookahead_ms: float = 2.0
+    release_ms: float = 50.0
+    max_iterations: int = 2          # LUFS micro-adjust passes

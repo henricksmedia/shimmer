@@ -16,7 +16,7 @@ import sys
 import time
 
 from dsp import band_from_center
-from params import Params
+from params import Params, MasterParams, LOUDNESS_TARGETS
 from presets import get_preset, list_presets, PRESET_NAMES
 from audio_io import process_file
 
@@ -175,6 +175,23 @@ def _build_parser() -> argparse.ArgumentParser:
     post.add_argument("--presence-hz", type=float, default=None)
     post.add_argument("--presence-db", type=float, default=None)
 
+    # --- Mastering ---
+    mst = ap.add_argument_group("mastering")
+    mst.add_argument("--master", action="store_true",
+                     help="Enable true mastering (LUFS target + limiter + EQ)")
+    mst.add_argument("--no-master", action="store_true",
+                     help="Disable mastering when using defaults")
+    mst.add_argument("--target", type=str, default=None,
+                     choices=list(LOUDNESS_TARGETS.keys()),
+                     help="Loudness target preset: streaming (-14), loud (-11), cd (-9)")
+    mst.add_argument("--target-lufs", type=float, default=None,
+                     help="Custom integrated LUFS target")
+    mst.add_argument("--ceiling", type=float, default=None,
+                     help="True-peak ceiling in dBTP (default -1.0)")
+    mst.add_argument("--master-intensity", type=str, default=None,
+                     choices=["low", "med", "high"],
+                     help="Mastering EQ intensity")
+
     # --- Output ---
     out = ap.add_argument_group("output")
     out.add_argument("--no-pad", action="store_true")
@@ -298,6 +315,24 @@ def _resolve_params(args) -> Params:
     return p
 
 
+def _resolve_master_params(args) -> MasterParams | None:
+    """Build MasterParams from CLI flags. None = mastering off."""
+    if args.no_master:
+        return None
+    if not args.master and args.target is None and args.target_lufs is None:
+        return None
+    mp = MasterParams(enabled=True)
+    if args.target:
+        mp.target_lufs = LOUDNESS_TARGETS[args.target]
+    if args.target_lufs is not None:
+        mp.target_lufs = float(args.target_lufs)
+    if args.ceiling is not None:
+        mp.ceiling_dbtp = float(args.ceiling)
+    if args.master_intensity:
+        mp.intensity = args.master_intensity
+    return mp
+
+
 def _progress_bar(fraction: float):
     """Simple inline progress bar."""
     width = 40
@@ -344,11 +379,15 @@ def main() -> int:
         return 1
 
     params = _resolve_params(args)
+    master_params = _resolve_master_params(args)
 
     preset_label = args.preset or "generic"
     print(f"Shimmer removal: {args.input}")
     print(f"  Preset:  {preset_label}")
     print(f"  Band:    {params.start_hz:.0f} – {params.end_hz:.0f} Hz")
+    if master_params and master_params.enabled:
+        print(f"  Master:  {master_params.target_lufs:.1f} LUFS, "
+              f"ceiling {master_params.ceiling_dbtp:.1f} dBTP")
 
     if params.denoise > 0:
         print(f"  Denoise: {params.denoise:.0%}")
@@ -377,6 +416,7 @@ def main() -> int:
         do_preserve_volume=not args.no_preserve_volume,
         subtype=args.subtype,
         progress_callback=_progress_bar,
+        master_params=master_params,
     )
 
     elapsed = time.time() - t_start
@@ -384,6 +424,12 @@ def main() -> int:
     print(f"\n  Duration:  {result['duration_s']:.1f}s @ {result['sr']} Hz, {result['channels']}ch")
     print(f"  Input:     peak {result['input']['peak_dbfs']:.1f} dBFS, rms {result['input']['rms_dbfs']:.1f} dBFS")
     print(f"  Output:    peak {result['output']['peak_dbfs']:.1f} dBFS, rms {result['output']['rms_dbfs']:.1f} dBFS")
+    if result.get("mastering", {}).get("enabled"):
+        m = result["mastering"]
+        b, a = m.get("before", {}), m.get("after", {})
+        print(f"  LUFS:      {b.get('lufs_i', '?'):.1f} -> {a.get('lufs_i', '?'):.1f} "
+              f"(target {m.get('target_lufs', '?'):.1f})")
+        print(f"  True peak: {b.get('true_peak_dbtp', '?'):.1f} -> {a.get('true_peak_dbtp', '?'):.1f} dBTP")
     print(f"  Processed in {elapsed:.1f}s")
     print(f"  Written:   {args.output}")
 

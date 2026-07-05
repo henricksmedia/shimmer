@@ -1,19 +1,18 @@
 // single.js — Orchestrates the Single-File tab.
 
 import { renderControls } from './controls.js';
-import {
-    installSyncedGroup, setAudioSource, makePreviewModeController,
-} from './players.js';
 import { initPresetSelect, presetToSliderValues, runAutoDetect } from './preset.js';
 import {
     submitProcess, openSSE, fetchMetrics, resultUrl,
-    uploadFile, dropSession, renderPreview, previewUrl,
+    uploadFile, dropSession, renderPreview,
 } from './api.js';
 import { makeSettingsSaver, loadSettings } from './settings.js';
 import { openHelp } from './help.js';
+import { createUnifiedPlayer, fmtTime } from './visualizer.js';
 
 
 const PREVIEW_DEBOUNCE_MS = 250;
+const PREVIEW_CACHE_MAX = 20;
 
 
 export async function initSingleTab() {
@@ -25,7 +24,16 @@ export async function initSingleTab() {
     const selectedFile = $('selected-file');
     const presetSelect = $('preset-select');
     const presetDesc   = $('preset-desc');
-    const autoBtn      = $('auto-detect-btn');
+    const autoBtn      = $('analyze-btn');
+    const masterEnabled = $('master-enabled');
+    const masterTarget  = $('master-target');
+    const masterIntensity = $('master-intensity');
+    const masteringReadout = $('mastering-readout');
+    const preserveVolCard = $('preserve-vol-card');
+    const abLoudnessMatch = $('ab-loudness-match');
+    const stepUpload = $('step-upload');
+    const stepAnalyze = $('step-analyze');
+    const stepProcess = $('step-process');
     const slidersHost  = $('sliders-host');
     const preserveVol  = $('preserve-vol');
     const outputFormat = $('output-format');
@@ -38,13 +46,59 @@ export async function initSingleTab() {
     const audioProc = $('audio-processed');
     const audioDiff = $('audio-diff');
     const metricsBox = $('metrics-box');
-    function setMetrics(text) {
-        const t = text == null ? '' : String(text);
-        metricsBox.textContent = t;
-        metricsBox.hidden = t.length === 0;
+    // Renders a slim strip of stat chips. Accepts a string or an array
+    // of strings; empty input hides the strip.
+    function setMetrics(items) {
+        metricsBox.innerHTML = '';
+        const arr = (items == null ? [] :
+            (Array.isArray(items) ? items : [String(items)]))
+            .map(s => String(s).trim())
+            .filter(s => s.length > 0);
+        for (const text of arr) {
+            const chip = document.createElement('span');
+            chip.className = 'metric-chip';
+            if (/^Error\b/i.test(text)) chip.classList.add('err');
+            chip.textContent = text;
+            chip.title = text;
+            metricsBox.appendChild(chip);
+        }
+        metricsBox.hidden = arr.length === 0;
     }
     const autoDetectResults = $('auto-detect-results');
     const downloadLink = $('download-link');
+    const doneBanner = $('done-banner');
+    const doneChips = $('done-chips');
+
+    // ── Advanced controls drawer ─────────────────────────────────────
+    const advOpenBtn  = $('advanced-open-btn');
+    const advDrawer   = $('advanced-drawer');
+    const advBackdrop = $('advanced-drawer-backdrop');
+    const advCloseBtn = $('advanced-close');
+
+    function openAdvancedDrawer() {
+        advDrawer.hidden = false;
+        advBackdrop.hidden = false;
+    }
+    function closeAdvancedDrawer() {
+        advDrawer.hidden = true;
+        advBackdrop.hidden = true;
+    }
+    advOpenBtn.addEventListener('click', openAdvancedDrawer);
+    advCloseBtn.addEventListener('click', closeAdvancedDrawer);
+    advBackdrop.addEventListener('click', closeAdvancedDrawer);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !advDrawer.hidden) closeAdvancedDrawer();
+    });
+
+    // ── Preset description: collapsed to 2 lines, click to expand ────
+    presetDesc.addEventListener('click', () => {
+        presetDesc.classList.toggle('expanded');
+    });
+    document.addEventListener('click', (e) => {
+        if (!presetDesc.contains(e.target)) {
+            presetDesc.classList.remove('expanded');
+        }
+    });
 
     const previewToggle  = $('preview-toggle');
     const previewControls = $('preview-controls');
@@ -52,8 +106,17 @@ export async function initSingleTab() {
     const previewHereBtn = $('preview-here-btn');
     const previewStatus  = $('preview-status');
 
-    const syncGroup = installSyncedGroup([audioOrig, audioProc, audioDiff]);
-    const previewMode = makePreviewModeController(syncGroup);
+    let lastAnalysis = null;
+    let lastMasteringReport = null;
+    // Match deltas (processed LUFS minus original LUFS). Preview uses
+    // per-render slice loudness; full uses whole-file metrics. `null`
+    // means "no data yet for this state".
+    let fullMatchDb = null;
+    let previewMatchDb = null;
+    // Analyze timeline (intensity bins over the whole file), kept so the
+    // preview window can auto-anchor on the artifact-hot region.
+    let lastTimeline = null;
+    let player = null;
 
     const saveSettings = makeSettingsSaver();
 
@@ -64,6 +127,7 @@ export async function initSingleTab() {
         durationS: 0,
         active: false,
         anchorS: 0,        // start of the loop window in source time
+        anchorMode: 'auto',  // 'auto' = artifact-hot region; 'manual' = playhead
         windowS: 10,
         renderInflight: null,  // AbortController for the in-flight render
         renderPending: false,
@@ -71,6 +135,10 @@ export async function initSingleTab() {
         originalBlobUrl: null,
         savedTime: 0,
     };
+
+    // Decoded render cache keyed by (window + params). Hits skip the
+    // network and swap buffers instantly.
+    const previewCache = new Map();  // key -> {processedBuf, removedBuf, meta}
 
     function currentStrength() {
         const v = parseFloat(strengthEl.value);
@@ -98,6 +166,46 @@ export async function initSingleTab() {
         (specKey) => openHelp('controls', specKey),
     );
 
+    player = createUnifiedPlayer({
+        els: { original: audioOrig, processed: audioProc, removed: audioDiff },
+        canvas: $('player-canvas'),
+        playBtn: $('player-play'),
+        timeLabel: $('player-time'),
+        tabsHost: $('track-tabs'),
+        modeWaveBtn: $('viz-mode-wave'),
+        modeSpecBtn: $('viz-mode-spec'),
+        spectrumCanvas: $('spectrum-live'),
+        metersHost: $('player-meters'),
+        lufsFillEl: $('viz-lufs-fill'),
+        lufsTargetEl: $('viz-lufs-target'),
+        getShimmerBand: () => {
+            const v = controls.getValues();
+            return { lo: v.start_hz || 5100, hi: v.end_hz || 7200 };
+        },
+    });
+    player.attachKeyboard();
+
+    const abMatchNote = $('ab-match-note');
+
+    function applyLoudnessMatch() {
+        // Delta = processed LUFS minus original LUFS, from the state we
+        // are actually auditioning: per-render slice loudness while the
+        // preview loop is live, whole-file metrics after a full run.
+        const d = previewState.active ? previewMatchDb : fullMatchDb;
+        if (abMatchNote) {
+            abMatchNote.textContent =
+                abLoudnessMatch.checked && d == null ? '(waiting for render)' : '';
+        }
+        const dd = d == null ? 0 : d;
+        // Attenuate whichever side is louder so the comparison is fair.
+        // Removed is an audition track and stays out of the match.
+        player.setLoudnessMatch(abLoudnessMatch.checked, {
+            original:  dd < 0 ? dd : 0,
+            processed: dd > 0 ? -dd : 0,
+            removed:   0,
+        });
+    }
+
     // Wire initial slider values from the default preset.
     controls.setValues(presetToSliderValues(
         byName.get(defaultName), currentStrength()));
@@ -117,6 +225,18 @@ export async function initSingleTab() {
         preserveVol.checked = saved.preserve_volume;
     }
     if (saved && saved.output_format) outputFormat.value = saved.output_format;
+    if (saved && typeof saved.ab_loudness_match === 'boolean') {
+        abLoudnessMatch.checked = saved.ab_loudness_match;
+    }
+    if (saved && saved.mastering) {
+        if (typeof saved.mastering.enabled === 'boolean') {
+            masterEnabled.checked = saved.mastering.enabled;
+        }
+        if (saved.mastering.target) masterTarget.value = saved.mastering.target;
+        if (saved.mastering.intensity) masterIntensity.value = saved.mastering.intensity;
+    }
+    updateMasteringUI();
+    applyLoudnessMatch();
 
     // Live strength re-scaling: rebuild visible slider values from the
     // current preset every time the strength slider moves so the user
@@ -132,16 +252,102 @@ export async function initSingleTab() {
         schedulePreviewRender();
     });
 
-    // ── File selection ────────────────────────────────────────────────
+    function masteringPayload() {
+        return {
+            enabled: masterEnabled.checked,
+            target: masterTarget.value,
+            intensity: masterIntensity.value,
+        };
+    }
+
+    function updateMasteringUI() {
+        const on = masterEnabled.checked;
+        $('mastering-options').style.opacity = on ? '1' : '0.5';
+        preserveVolCard.hidden = on;
+        if (on) preserveVol.checked = false;
+    }
+
+    function setWizardStep(step) {
+        [stepUpload, stepAnalyze, stepProcess].forEach((el, i) => {
+            if (el) el.classList.toggle('active', i <= step);
+            if (el) el.classList.toggle('done', i < step);
+        });
+    }
+
+    function renderAnalysisReadout(analysis) {
+        if (!analysis || !analysis.loudness) return;
+        const l = analysis.loudness;
+        masteringReadout.hidden = false;
+        masteringReadout.textContent =
+            `Input: ${l.lufs_i?.toFixed?.(1) ?? '?'} LUFS · ` +
+            `TP ${l.true_peak_dbtp?.toFixed?.(1) ?? '?'} dBTP · ` +
+            `LRA ${l.lra?.toFixed?.(1) ?? '?'}`;
+    }
+
+    masterEnabled.addEventListener('change', () => {
+        updateMasteringUI();
+        pushSettings();
+        schedulePreviewRender();
+    });
+    masterTarget.addEventListener('change', () => {
+        player.setTargetLufs(
+            { streaming: -14, loud: -11, cd: -9 }[masterTarget.value] || -14);
+        pushSettings();
+        schedulePreviewRender();
+    });
+    masterIntensity.addEventListener('change', () => {
+        pushSettings();
+        schedulePreviewRender();
+    });
+    abLoudnessMatch.addEventListener('change', () => {
+        applyLoudnessMatch();
+        pushSettings();
+    });
     let currentFile = null;
+
+    function hideDoneBanner() {
+        doneBanner.hidden = true;
+        doneBanner.classList.remove('flash');
+        processBtn.classList.remove('btn-secondary');
+        processBtn.classList.add('btn-primary');
+    }
+
+    function showDoneBanner(chips) {
+        doneChips.innerHTML = '';
+        for (const c of chips) {
+            const span = document.createElement('span');
+            span.className = 'done-chip';
+            span.textContent = c;
+            doneChips.appendChild(span);
+        }
+        doneBanner.hidden = false;
+        // Restart the flash animation.
+        doneBanner.classList.remove('flash');
+        void doneBanner.offsetWidth;
+        doneBanner.classList.add('flash');
+        // Shift visual priority: Download becomes the primary action.
+        processBtn.classList.remove('btn-primary');
+        processBtn.classList.add('btn-secondary');
+    }
 
     function adoptFile(file) {
         currentFile = file;
         selectedFile.hidden = false;
         selectedFile.textContent = `${file.name}  (${(file.size/1048576).toFixed(1)} MB)`;
+        selectedFile.title = selectedFile.textContent;
+        dropzone.classList.add('has-file');
+        pickBtn.textContent = 'Change…';
         processBtn.disabled = false;
+        setWizardStep(0);
+        lastAnalysis = null;
+        lastTimeline = null;
+        fullMatchDb = null;
+        previewMatchDb = null;
+        previewState.anchorMode = 'auto';
+        previewCache.clear();
+        masteringReadout.hidden = true;
         setMetrics('');
-        if (downloadLink) downloadLink.hidden = true;
+        hideDoneBanner();
 
         // Tear down any prior preview session and reset preview UI.
         teardownPreviewSession();
@@ -152,7 +358,8 @@ export async function initSingleTab() {
             try { URL.revokeObjectURL(previewState.originalBlobUrl); } catch (_) {}
         }
         previewState.originalBlobUrl = URL.createObjectURL(file);
-        audioOrig.src = previewState.originalBlobUrl;
+        player.resetTracks();
+        player.setSource('original', previewState.originalBlobUrl);
         setPreviewStatus('Tick "Live preview" to loop edits around the playhead.');
     }
 
@@ -180,6 +387,18 @@ export async function initSingleTab() {
         }
     });
 
+    // The whole window is a drop target once the dropzone has collapsed
+    // to its compact chip. (Dropzone drops stop propagation above.)
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const singleActive = document.getElementById('tab-single')
+            .classList.contains('active');
+        if (singleActive && e.dataTransfer && e.dataTransfer.files[0]) {
+            adoptFile(e.dataTransfer.files[0]);
+        }
+    });
+
     // ── Auto-detect ──────────────────────────────────────────────────
     const labelOf = (key) => {
         const p = byName.get(key);
@@ -201,6 +420,14 @@ export async function initSingleTab() {
         autoDetectResults.appendChild(err);
     }
 
+    // Close any open auto-detect details popover on outside click.
+    document.addEventListener('click', (e) => {
+        if (!autoDetectResults.contains(e.target)) {
+            const pop = autoDetectResults.querySelector('.ad-pop');
+            if (pop) pop.hidden = true;
+        }
+    });
+
     function renderAutoDetect(r) {
         autoDetectResults.hidden = false;
         autoDetectResults.innerHTML = '';
@@ -214,24 +441,18 @@ export async function initSingleTab() {
             return;
         }
 
-        // Top pick
+        // Slim summary row: eyebrow + name + confidence + Details.
         const top = ranked[0];
-        const topBlock = document.createElement('div');
-        topBlock.className = 'ad-top';
+        const row = document.createElement('div');
+        row.className = 'ad-row';
 
-        const topRow = document.createElement('div');
-        topRow.className = 'ad-top-row';
-
-        const lbl = document.createElement('div');
-        lbl.className = 'ad-label-block';
         const eyebrow = document.createElement('div');
         eyebrow.className = 'ad-eyebrow';
-        eyebrow.textContent = 'Suggested preset';
+        eyebrow.textContent = 'Suggested';
         const name = document.createElement('div');
         name.className = 'ad-name';
         name.textContent = top.label || labelOf(top.name);
-        lbl.appendChild(eyebrow);
-        lbl.appendChild(name);
+        name.title = name.textContent;
 
         const confWrap = document.createElement('div');
         confWrap.className = 'ad-confidence-wrap';
@@ -248,18 +469,29 @@ export async function initSingleTab() {
         confWrap.appendChild(conf);
         confWrap.appendChild(pctText);
 
-        topRow.appendChild(lbl);
-        topRow.appendChild(confWrap);
-        topBlock.appendChild(topRow);
+        const detailsBtn = document.createElement('button');
+        detailsBtn.type = 'button';
+        detailsBtn.className = 'btn btn-ghost ad-details-btn';
+        detailsBtn.textContent = 'Details';
+
+        row.appendChild(eyebrow);
+        row.appendChild(name);
+        row.appendChild(confWrap);
+        row.appendChild(detailsBtn);
+        autoDetectResults.appendChild(row);
+
+        // Details popover: reason, timeline sparkline, alternates.
+        const pop = document.createElement('div');
+        pop.className = 'ad-pop';
+        pop.hidden = true;
 
         if (top.reason) {
             const reason = document.createElement('p');
             reason.className = 'ad-reason';
             reason.textContent = top.reason;
-            topBlock.appendChild(reason);
+            pop.appendChild(reason);
         }
 
-        // Timeline sparkline
         const tl = r.timeline && Array.isArray(r.timeline.intensity)
             ? r.timeline.intensity : [];
         const tlEl = document.createElement('div');
@@ -280,9 +512,7 @@ export async function initSingleTab() {
                 tlEl.appendChild(bar);
             }
         }
-        topBlock.appendChild(tlEl);
-
-        autoDetectResults.appendChild(topBlock);
+        pop.appendChild(tlEl);
 
         // Alternates (rank 2 and 3)
         const alts = ranked.slice(1, 3);
@@ -290,13 +520,13 @@ export async function initSingleTab() {
             const altsLabel = document.createElement('div');
             altsLabel.className = 'ad-alts-label';
             altsLabel.textContent = 'Also consider';
-            autoDetectResults.appendChild(altsLabel);
+            pop.appendChild(altsLabel);
 
             const altsList = document.createElement('div');
             altsList.className = 'ad-alts';
             for (const a of alts) {
-                const row = document.createElement('div');
-                row.className = 'ad-alt';
+                const alt = document.createElement('div');
+                alt.className = 'ad-alt';
 
                 const info = document.createElement('div');
                 info.className = 'ad-alt-info';
@@ -322,13 +552,18 @@ export async function initSingleTab() {
                     applyDetectedPreset(a.name);
                 });
 
-                row.appendChild(info);
-                row.appendChild(apct);
-                row.appendChild(apply);
-                altsList.appendChild(row);
+                alt.appendChild(info);
+                alt.appendChild(apct);
+                alt.appendChild(apply);
+                altsList.appendChild(alt);
             }
-            autoDetectResults.appendChild(altsList);
+            pop.appendChild(altsList);
         }
+
+        autoDetectResults.appendChild(pop);
+        detailsBtn.addEventListener('click', () => {
+            pop.hidden = !pop.hidden;
+        });
     }
 
     autoBtn.addEventListener('click', async () => {
@@ -337,14 +572,27 @@ export async function initSingleTab() {
             return;
         }
         const originalLabel = autoBtn.textContent;
-        autoBtn.textContent = 'Analysing…';
+        autoBtn.textContent = 'Analyzing…';
         autoBtn.disabled = true;
         try {
             const r = await runAutoDetect(currentFile);
             applyDetectedPreset(r.preset);
             renderAutoDetect(r);
+            if (r.timeline && Array.isArray(r.timeline.intensity) &&
+                r.timeline.intensity.length > 0) {
+                lastTimeline = r.timeline.intensity;
+                // Re-anchor a live loop onto the newly-found hot region.
+                if (previewState.active && previewState.anchorMode === 'auto') {
+                    schedulePreviewRender();
+                }
+            }
+            if (r.analysis) {
+                lastAnalysis = r.analysis;
+                renderAnalysisReadout(r.analysis);
+            }
+            setWizardStep(1);
         } catch (e) {
-            showAutoDetectError(`Auto-detect failed: ${e.message}`);
+            showAutoDetectError(`Analyze failed: ${e.message}`);
         } finally {
             autoBtn.textContent = originalLabel;
             autoBtn.disabled = false;
@@ -359,6 +607,8 @@ export async function initSingleTab() {
             sliders: controls.getValues(),
             preserve_volume: preserveVol.checked,
             output_format: outputFormat.value,
+            mastering: masteringPayload(),
+            ab_loudness_match: abLoudnessMatch.checked,
         });
     }
     preserveVol.addEventListener('change', () => {
@@ -375,13 +625,6 @@ export async function initSingleTab() {
         previewStatus.textContent = text;
         previewStatus.classList.remove('live', 'error');
         if (kind) previewStatus.classList.add(kind);
-    }
-
-    function fmtTime(t) {
-        if (!Number.isFinite(t) || t < 0) return '0:00';
-        const m = Math.floor(t / 60);
-        const s = Math.floor(t % 60);
-        return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
     async function teardownPreviewSession() {
@@ -415,6 +658,25 @@ export async function initSingleTab() {
         return {start, end};
     }
 
+    // Start time of the max-intensity contiguous window in the Analyze
+    // timeline, or null when no timeline exists yet.
+    function hottestAnchor(winSec, totalS) {
+        if (!lastTimeline || !lastTimeline.length ||
+            !Number.isFinite(totalS) || totalS <= 0) return null;
+        const binS = totalS / lastTimeline.length;
+        const winBins = Math.max(1, Math.round(winSec / binS));
+        let sum = 0, bestSum = -Infinity, bestIdx = 0;
+        for (let i = 0; i < lastTimeline.length; i++) {
+            sum += lastTimeline[i];
+            if (i >= winBins) sum -= lastTimeline[i - winBins];
+            if (i >= winBins - 1 && sum > bestSum) {
+                bestSum = sum;
+                bestIdx = i - winBins + 1;
+            }
+        }
+        return bestIdx * binS;
+    }
+
     async function ensurePreviewSession() {
         if (previewState.sessionId) return previewState.sessionId;
         if (!currentFile) return null;
@@ -423,11 +685,33 @@ export async function initSingleTab() {
             const r = await uploadFile(currentFile);
             previewState.sessionId = r.session_id;
             previewState.durationS = r.duration_s;
+            if (r.analysis) {
+                lastAnalysis = r.analysis;
+                renderAnalysisReadout(r.analysis);
+            }
             return r.session_id;
         } catch (e) {
             setPreviewStatus(`Preview upload failed: ${e.message}`, 'error');
             return null;
         }
+    }
+
+    // Install a render (fresh or cached) into the player and refresh the
+    // match gains from the slice loudness in its metadata.
+    function applyPreviewResult(entry, start, end, region, note) {
+        player.setPreviewBuffers({
+            processedBuf: entry.processedBuf,
+            removedBuf: entry.removedBuf,
+            startS: start,
+            endS: end,
+        });
+        const meta = entry.meta || {};
+        previewMatchDb =
+            (typeof meta.lufs_processed === 'number' &&
+             typeof meta.lufs_original === 'number')
+                ? meta.lufs_processed - meta.lufs_original : null;
+        applyLoudnessMatch();
+        setPreviewStatus(`Live · loop ${region} · ${note}`, 'live');
     }
 
     async function doPreviewRender() {
@@ -444,13 +728,21 @@ export async function initSingleTab() {
 
         const winSec = parseFloat(previewWindow.value) || 10;
         previewState.windowS = winSec;
+
+        // Auto mode anchors on the artifact-hot region once Analyze has
+        // produced a timeline; "Set from playhead" switches to manual.
+        let regionNote = '';
+        if (previewState.anchorMode === 'auto') {
+            const hot = hottestAnchor(winSec, previewState.durationS);
+            if (hot != null) {
+                previewState.anchorS = hot;
+                regionNote = ' (hottest region)';
+            }
+        }
+
         const {start, end} = clampWindow(
             previewState.anchorS, winSec, previewState.durationS);
-
-        const ctrl = new AbortController();
-        previewState.renderInflight = ctrl;
-        const region = `${fmtTime(start)}–${fmtTime(end)}`;
-        setPreviewStatus(`Rendering ${region}…`);
+        const region = `${fmtTime(start)}–${fmtTime(end)}${regionNote}`;
 
         const overrides = controls.getValues();
         const payload = {
@@ -460,18 +752,41 @@ export async function initSingleTab() {
             preset: presetSelect.value,
             preset_strength: currentStrength(),
             overrides,
-            preserve_volume: preserveVol.checked,
+            preserve_volume: preserveVol.checked && !masterEnabled.checked,
+            mastering: masteringPayload(),
         };
+
+        // Decoded-render cache: same window + same params = instant swap.
+        const cacheKey = JSON.stringify([
+            start, end, payload.preset, payload.preset_strength,
+            overrides, payload.preserve_volume, payload.mastering,
+        ]);
+        const hit = previewCache.get(cacheKey);
+        if (hit) {
+            previewCache.delete(cacheKey);
+            previewCache.set(cacheKey, hit);  // LRU refresh
+            applyPreviewResult(hit, start, end, region, 'cached');
+            return;
+        }
+
+        const ctrl = new AbortController();
+        previewState.renderInflight = ctrl;
+        setPreviewStatus(`Rendering ${region}…`);
 
         try {
             const r = await renderPreview(payload, {signal: ctrl.signal});
-            await previewMode.swapLoop({
-                processed: previewUrl(sid, r.render_id, 'processed'),
-                diff:      previewUrl(sid, r.render_id, 'diff'),
-            }, {autoplayActive: true});
-            setPreviewStatus(
-                `Live · loop ${region} · rendered in ${r.render_ms} ms`,
-                'live');
+            const [processedBuf, removedBuf] = await Promise.all([
+                player.decodeAudio(r.processed),
+                player.decodeAudio(r.removed),
+            ]);
+            const entry = {processedBuf, removedBuf, meta: r.meta};
+            previewCache.set(cacheKey, entry);
+            while (previewCache.size > PREVIEW_CACHE_MAX) {
+                previewCache.delete(previewCache.keys().next().value);
+            }
+            applyPreviewResult(
+                entry, start, end, region,
+                `rendered in ${r.meta.render_ms} ms`);
         } catch (e) {
             if (e.name !== 'AbortError') {
                 setPreviewStatus(`Preview failed: ${e.message}`, 'error');
@@ -496,29 +811,33 @@ export async function initSingleTab() {
         }, PREVIEW_DEBOUNCE_MS);
     }
 
-    function captureOriginalTime() {
-        const t = Number(audioOrig && audioOrig.currentTime);
+    function capturePlayheadTime() {
+        const t = Number(player.getTime());
         return Number.isFinite(t) ? t : 0;
     }
 
     function applyPreviewToggle(on) {
         previewState.active = !!on;
         previewControls.hidden = !on;
-        previewMode.setLooping(on);
 
         if (on) {
-            previewState.anchorS = captureOriginalTime();
+            // Auto mode resolves to the artifact-hot region inside
+            // doPreviewRender; the playhead is the fallback anchor.
+            previewState.anchorS = capturePlayheadTime();
             previewState.windowS = parseFloat(previewWindow.value) || 10;
             if (!currentFile) {
                 setPreviewStatus('Drop a file first.');
                 return;
             }
+            applyLoudnessMatch();  // switch match source to preview LUFS
             doPreviewRender();
         } else {
-            setAudioSource(audioProc, '');
-            setAudioSource(audioDiff, '');
+            player.exitPreview();
+            player.setSource('processed', null);
+            player.setSource('removed', null);
+            applyLoudnessMatch();  // back to full-run metrics
             setPreviewStatus(currentFile
-                ? 'Live preview off — Original plays the full track.'
+                ? 'Live preview off — playhead runs the full track.'
                 : 'Drop a file to start.');
         }
     }
@@ -531,8 +850,10 @@ export async function initSingleTab() {
         schedulePreviewRender();
     });
     previewHereBtn.addEventListener('click', () => {
-        // Read from the always-full-length Original player and re-anchor.
-        previewState.anchorS = captureOriginalTime();
+        // Re-anchor the loop window at the shared playhead (manual
+        // override of the auto hot-region anchoring).
+        previewState.anchorMode = 'manual';
+        previewState.anchorS = capturePlayheadTime();
         if (!previewState.active) {
             previewToggle.checked = true;
             applyPreviewToggle(true);
@@ -562,15 +883,19 @@ export async function initSingleTab() {
 
         try {
             const overrides = controls.getValues();
+            const paramsBody = {
+                preset: presetSelect.value,
+                preset_strength: currentStrength(),
+                overrides,
+                mastering: masteringPayload(),
+            };
+            if (lastAnalysis) paramsBody.mastering_analysis = lastAnalysis;
+
             const job = await submitProcess(
                 currentFile,
-                {
-                    preset: presetSelect.value,
-                    preset_strength: currentStrength(),
-                    overrides,
-                },
+                paramsBody,
                 outputFormat.value,
-                preserveVol.checked,
+                preserveVol.checked && !masterEnabled.checked,
             );
 
             await new Promise((resolve, reject) => {
@@ -586,21 +911,50 @@ export async function initSingleTab() {
                 });
             });
 
-            setAudioSource(audioProc, resultUrl(job.job_id, 'processed'));
-            setAudioSource(audioDiff, resultUrl(job.job_id, 'diff'));
-            syncGroup.reset();
-            syncGroup.setActive(audioOrig);
+            await player.loadFromJob(job.job_id);
+            player.setTrack('processed');
 
             downloadLink.href = resultUrl(job.job_id, 'processed');
-            downloadLink.hidden = false;
+            setWizardStep(2);
 
+            const bannerChips = [];
             const m = await fetchMetrics(job.job_id);
             if (m && m.metrics) {
                 const mm = m.metrics;
-                let txt =
-                    `Input:    peak ${mm.input.peak_dbfs.toFixed(1)} dBFS   rms ${mm.input.rms_dbfs.toFixed(1)} dBFS\n` +
-                    `Output:   peak ${mm.output.peak_dbfs.toFixed(1)} dBFS   rms ${mm.output.rms_dbfs.toFixed(1)} dBFS\n` +
-                    `Duration: ${mm.duration_s.toFixed(1)}s   ${mm.sample_rate} Hz   ${mm.channels}ch`;
+                const chips = [
+                    `Peak ${mm.input.peak_dbfs.toFixed(1)} → ${mm.output.peak_dbfs.toFixed(1)} dBFS`,
+                    `RMS ${mm.input.rms_dbfs.toFixed(1)} → ${mm.output.rms_dbfs.toFixed(1)} dBFS`,
+                    `${mm.duration_s.toFixed(1)}s · ${mm.sample_rate} Hz · ${mm.channels}ch`,
+                ];
+
+                fullMatchDb = null;
+                const mast = mm.mastering;
+                if (mast && mast.enabled && mast.before && mast.after) {
+                    chips.push(
+                        `LUFS ${mast.before.lufs_i?.toFixed(1)} → ${mast.after.lufs_i?.toFixed(1)} (target ${mast.target_lufs})`);
+                    chips.push(
+                        `TP ${mast.before.true_peak_dbtp?.toFixed(1)} → ${mast.after.true_peak_dbtp?.toFixed(1)} dBTP`);
+                    if (mast.limiter && mast.limiter.max_gain_reduction_db != null) {
+                        chips.push(
+                            `Limiter ${mast.limiter.max_gain_reduction_db.toFixed(1)} dB max GR`);
+                    }
+                    lastMasteringReport = mast;
+                    fullMatchDb = -(mast.ab_match_gain_db || 0);
+                    player.setTargetLufs(mast.target_lufs);
+                    bannerChips.push(
+                        `${mast.before.lufs_i?.toFixed(1)} → ${mast.after.lufs_i?.toFixed(1)} LUFS`);
+                    bannerChips.push(
+                        `TP ${mast.after.true_peak_dbtp?.toFixed(1)} dBTP`);
+                }
+                // Loudness match with mastering off: use the whole-file
+                // LUFS pair the server now measures on every run.
+                const loud = mm.loudness;
+                if (fullMatchDb == null && loud &&
+                    typeof loud.input_lufs_i === 'number' &&
+                    typeof loud.output_lufs_i === 'number') {
+                    fullMatchDb = loud.output_lufs_i - loud.input_lufs_i;
+                }
+                applyLoudnessMatch();
 
                 const diag = mm.diagnostic;
                 if (diag && diag.before && diag.after) {
@@ -608,25 +962,29 @@ export async function initSingleTab() {
                         (v == null || Number.isNaN(v)) ? 'n/a' : v.toFixed(digits);
                     const b = diag.before;
                     const a = diag.after;
-                    const bRms = fmt(b.band_5_8k_rms_db, 1);
-                    const aRms = fmt(a.band_5_8k_rms_db, 1);
-                    const bAm = fmt(b.band_5_8k_am_depth);
-                    const aAm = fmt(a.band_5_8k_am_depth);
-                    txt += `\n\n5-8 kHz energy:   ${bRms} dB → ${aRms} dB`;
-                    txt += `\n5-8 kHz AM depth: ${bAm} → ${aAm}`;
+                    chips.push(
+                        `5-8k energy ${fmt(b.band_5_8k_rms_db, 1)} → ${fmt(a.band_5_8k_rms_db, 1)} dB`);
+                    chips.push(
+                        `5-8k AM ${fmt(b.band_5_8k_am_depth)} → ${fmt(a.band_5_8k_am_depth)}`);
                     if (Array.isArray(a.top_peaks) && a.top_peaks.length) {
                         const peaks = a.top_peaks
                             .slice(0, 3)
                             .map(pk => `${(pk.hz / 1000).toFixed(2)}k +${fmt(pk.excess_db, 1)}dB`)
                             .join(', ');
-                        txt += `\nTop surviving peaks: ${peaks}`;
+                        chips.push(`Peaks left: ${peaks}`);
                     } else {
-                        txt += `\nTop surviving peaks: none`;
+                        chips.push('Peaks left: none');
                     }
                 }
 
-                setMetrics(txt);
+                setMetrics(chips);
             }
+
+            if (bannerChips.length === 0) bannerChips.push('Cleaned');
+            bannerChips.push(outputFormat.value.toUpperCase());
+            downloadLink.textContent =
+                `Download ${outputFormat.value.toUpperCase()}`;
+            showDoneBanner(bannerChips);
         } catch (e) {
             setMetrics(`Error: ${e.message}`);
         } finally {
