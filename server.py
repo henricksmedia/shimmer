@@ -56,12 +56,14 @@ from audio_io import (
     process_file, encode_wav_bytes,
 )
 from engine import process, apply_post_filters
-from dsp import as_2d
+from dsp import as_2d, trim_silence as dsp_trim_silence
 from jobs import JOB_STORE, Job
 from params import Params, apply_preset_strength, MasterParams
 from mastering import (
     master, master_params_from_json, analyze_track, measure_loudness,
+    get_export_ceiling_dbtp,
 )
+from pipeline import clean_and_master
 from presets import (
     PRESETS, PRESET_NAMES, VISIBLE_PRESETS,
     get_preset, describe_preset, label_for, is_visible,
@@ -184,35 +186,37 @@ def _master_params_from_request(data: Dict[str, Any]) -> MasterParams:
 def _run_job_sync(job: Job, upload_path: str, params: Params,
                   preserve_vol: bool, progress_cb,
                   master_params: Optional[MasterParams] = None,
-                  mastering_analysis: Optional[Dict[str, Any]] = None) -> None:
+                  mastering_analysis: Optional[Dict[str, Any]] = None,
+                  trim_silence: bool = False) -> None:
     """CPU-bound worker: runs in a thread executor."""
     x, sr = load_audio(upload_path)
     meas_in = measure(x)
-    diagnostic_out: Dict[str, Any] = {}
-    y = process(x, sr, params,
-                progress_callback=progress_cb,
-                diagnostic_out=diagnostic_out)
-    y2 = as_2d(y)
-
-    n = min(x.shape[0], y2.shape[0])
-    x_ref = apply_post_filters(x[:n, :].astype(np.float32), sr, params)
-    diff = (x_ref - y2[:n, :]).astype("float32") * 5.0
-
-    mastering_report: Dict[str, Any] = {"enabled": False}
     use_mastering = master_params is not None and master_params.enabled
 
-    if use_mastering:
-        if mastering_analysis is None:
-            mastering_analysis = analyze_track(y2, sr)
-        y2, mastering_report = master(
-            y2, sr, master_params, analysis=mastering_analysis)
-    elif preserve_vol:
+    # RAW-input analysis: the tone curve must come from the unprocessed
+    # signal, never from cleaned audio (post-clean tone match would
+    # boost the harshness the cleaner removed).
+    if use_mastering and mastering_analysis is None:
+        mastering_analysis = analyze_track(x, sr)
+
+    y2, removed, pipe_report = clean_and_master(
+        x, sr, params,
+        master_params=master_params if use_mastering else None,
+        progress_callback=progress_cb,
+        raw_analysis=mastering_analysis,
+    )
+    mastering_report: Dict[str, Any] = pipe_report.get(
+        "mastering", {"enabled": False})
+
+    if not use_mastering and preserve_vol:
         y2 = preserve_volume(
             y2, meas_in["peak_linear"], input_rms=meas_in["rms_linear"])
         y2 = clip_protect(y2)
 
     meas_out = measure(y2)
-    diff = clip_protect(diff)
+    # The removed-signal file is exported UNBOOSTED — audition boost is a
+    # client-side monitoring gain only (never baked into files).
+    diff = clip_protect(removed)
 
     # Input/output LUFS so the client can loudness-match A/B in every
     # state, not just when mastering ran (the report covers that case).
@@ -241,6 +245,20 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
     save_audio(processed_path, y2, sr)
     save_audio(diff_path, diff, sr)
 
+    # Silence trim is an export-only variant: the playback files above stay
+    # full length so the synced A/B/C player keeps a shared clock.
+    trim_report: Dict[str, Any] = {"enabled": False}
+    if trim_silence:
+        y_trim, cut_head, cut_tail = dsp_trim_silence(y2, sr)
+        trimmed_path = os.path.join(job.workdir, f"trimmed{job.output_ext}")
+        save_audio(trimmed_path, y_trim, sr)
+        job.trimmed_path = trimmed_path
+        trim_report = {
+            "enabled": True,
+            "cut_head_s": round(cut_head, 3),
+            "cut_tail_s": round(cut_tail, 3),
+        }
+
     job.processed_path = processed_path
     job.diff_path = diff_path
     job.metrics = {
@@ -249,16 +267,22 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         "duration_s": float(x.shape[0] / sr),
         "input": meas_in,
         "output": meas_out,
-        "diagnostic": diagnostic_out,
+        "pipeline": {
+            "tone_curve_db": pipe_report.get("tone_curve_db", []),
+            "side_width_compensation": pipe_report.get(
+                "side_width_compensation", {}),
+        },
         "mastering": mastering_report,
         "loudness": loudness,
+        "trim": trim_report,
     }
 
 
 async def _run_job_async(job: Job, upload_path: str, params: Params,
                          preserve_vol: bool,
                          master_params: Optional[MasterParams] = None,
-                         mastering_analysis: Optional[Dict[str, Any]] = None) -> None:
+                         mastering_analysis: Optional[Dict[str, Any]] = None,
+                         trim_silence: bool = False) -> None:
     """Schedule the worker on the default executor; push done sentinel."""
     loop = asyncio.get_running_loop()
     cb = _threadsafe_progress_pusher(job, loop)
@@ -267,7 +291,7 @@ async def _run_job_async(job: Job, upload_path: str, params: Params,
         await loop.run_in_executor(
             None, _run_job_sync,
             job, upload_path, params, preserve_vol, cb,
-            master_params, mastering_analysis)
+            master_params, mastering_analysis, trim_silence)
         job.progress = 1.0
         job.status = "done"
         await job.queue.put({"fraction": 1.0, "done": True})
@@ -372,6 +396,7 @@ async def api_process(
     params: str = Form(...),
     preserve_volume: bool = Form(True),
     output_format: str = Form("wav"),
+    trim_silence: bool = Form(False),
 ) -> JSONResponse:
     try:
         params_data = json.loads(params)
@@ -390,6 +415,12 @@ async def api_process(
     if output_ext not in {".wav", ".flac", ".mp3", ".ogg", ".m4a"}:
         raise HTTPException(400, f"Unsupported output format: {output_format}")
 
+    # Codec-aware true-peak ceiling: lossy encoders overshoot on decode,
+    # so MP3/OGG/M4A exports get -1.5 dBTP unless the user explicitly
+    # chose a ceiling.
+    if (params_data.get("mastering") or {}).get("ceiling_dbtp") is None:
+        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
+
     job = JOB_STORE.create(output_ext=output_ext)
     job.preset_name = params_data.get("preset") or "generic"
 
@@ -405,7 +436,8 @@ async def api_process(
 
     # Fire-and-forget worker task; progress flows via job.queue → SSE.
     asyncio.create_task(_run_job_async(
-        job, job.original_path, p, preserve_volume, mp, mastering_analysis))
+        job, job.original_path, p, preserve_volume, mp, mastering_analysis,
+        trim_silence))
     JOB_STORE.sweep()
     return JSONResponse({"job_id": job.id})
 
@@ -466,6 +498,7 @@ async def api_result(job_id: str, kind: str = "processed") -> FileResponse:
         "processed": job.processed_path,
         "diff":      job.diff_path,
         "original":  job.original_path,
+        "trimmed":   job.trimmed_path,
     }.get(kind)
     if not path or not os.path.isfile(path):
         raise HTTPException(404, f"No {kind} artefact for this job")
@@ -486,7 +519,8 @@ async def api_result(job_id: str, kind: str = "processed") -> FileResponse:
     if kind == "original":
         download_name = f"{safe_stem}_original{ext}"
     else:
-        suffix = "removed" if kind == "diff" else "processed"
+        suffix = {"diff": "removed", "trimmed": "trimmed"}.get(
+            kind, "processed")
         download_name = (
             f"{safe_stem}_{safe_preset}_{suffix}_{short_id}{ext}"
         )
@@ -544,7 +578,11 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     preserve_vol = bool(payload.get("preserve_volume", True))
     output_format = (payload.get("output_format") or "wav").lstrip(".").lower()
     auto_detect = bool(payload.get("auto_detect", False))
+    trim_silence = bool(payload.get("trim_silence", False))
     mp = master_params_from_json(payload.get("mastering") or {})
+    # Codec-aware ceiling unless the user explicitly chose one.
+    if (payload.get("mastering") or {}).get("ceiling_dbtp") is None:
+        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
 
     # Preset strength: parse and clamp to [0, 2].
     raw_strength = payload.get("preset_strength")
@@ -597,10 +635,11 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
             try:
                 r = await loop.run_in_executor(
                     None, _batch_one, src, dst, preset, preserve_vol,
-                    auto_detect, preset_strength, mp)
+                    auto_detect, preset_strength, mp, trim_silence)
                 yield _sse_event({
                     "type": "file_done", "index": i, "name": name,
                     "duration_s": r["duration_s"],
+                    "trim": r.get("trim"),
                     "peak_in_db": r["input"]["peak_dbfs"],
                     "peak_out_db": r["output"]["peak_dbfs"],
                     "detected_preset": r.get("detected_preset"),
@@ -619,7 +658,8 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
 
 def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
                auto_detect: bool = False, preset_strength: float = 1.0,
-               master_params: Optional[MasterParams] = None):
+               master_params: Optional[MasterParams] = None,
+               trim_silence: bool = False):
     detected_info: Dict[str, Any] = {}
 
     if auto_detect:
@@ -646,6 +686,7 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
         input_path=src, output_path=dst,
         params=params, do_preserve_volume=preserve_vol,
         master_params=master_params,
+        trim_silence=trim_silence,
     )
     result.update(detected_info)
     return result
@@ -659,7 +700,61 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
 # minimum-statistics noise PSD, DeCheckerStage's persistence EMA, etc.) have
 # time to settle before the audible window begins.  Discarded after render.
 _PREVIEW_PREROLL_S = 1.5
-_PREVIEW_POSTROLL_S = 0.25  # mostly to absorb STFT tail
+# Post-roll appended so the DSP block never truncates mid-window: STFT
+# overlap-add, the FIR crossover group delay, envelope followers and the
+# limiter lookahead all need audio AFTER the audible region or the loop
+# end clicks/sputters.  0.5 s minimum per spec; FIR/lookahead margins are
+# added on top in _preview_margin_s().
+_PREVIEW_POSTROLL_S = 0.5
+
+
+def _preview_margin_s(p: Params, sr: int,
+                      master_params: Optional[MasterParams]) -> float:
+    """Extra safety margin: FIR crossover group delay + limiter lookahead."""
+    fir_delay_s = (int(p.crossover_taps) // 2) / float(max(1, sr))
+    lookahead_s = 0.0
+    if master_params is not None and master_params.enabled:
+        lookahead_s = float(master_params.lookahead_ms) / 1000.0
+    return fir_delay_s + lookahead_s
+
+
+def extract_preview_block(samples: np.ndarray, sr: int,
+                          start_s: float, end_s: float,
+                          extra_margin_s: float = 0.0):
+    """Extract pre-roll + requested slice + post-roll from the session.
+
+    Returns (block, head_pad_samples, audible_len_samples). Handles
+    edge cases near the beginning/end of the file and files shorter
+    than the requested slice (pads shrink to what's available).
+    """
+    n_total = samples.shape[0]
+    duration = n_total / sr
+
+    start_s = float(max(0.0, min(duration, start_s)))
+    end_s = float(max(start_s + 0.05, min(duration, end_s)))
+
+    audible_n0 = int(round(start_s * sr))
+    audible_n1 = int(round(end_s * sr))
+    audible_n1 = min(audible_n1, n_total)
+
+    pre_n = int(round((_PREVIEW_PREROLL_S + extra_margin_s) * sr))
+    post_n = int(round((_PREVIEW_POSTROLL_S + extra_margin_s) * sr))
+    n0 = max(0, audible_n0 - pre_n)
+    n1 = min(n_total, audible_n1 + post_n)
+
+    head_pad = audible_n0 - n0
+    block = samples[n0:n1, :].copy()
+    return block, head_pad, audible_n1 - audible_n0
+
+
+def trim_processed_preview(y: np.ndarray, head_pad: int,
+                           audible_len: int) -> np.ndarray:
+    """Trim a processed padded block back to the audible window."""
+    y = as_2d(np.asarray(y, dtype=np.float32))
+    out = y[head_pad:head_pad + audible_len, :]
+    if out.shape[0] < audible_len:
+        out = np.pad(out, ((0, audible_len - out.shape[0]), (0, 0)))
+    return out
 
 
 @app.post("/api/upload")
@@ -741,38 +836,32 @@ def _render_preview_sync(sess, start_s: float, end_s: float, p: Params,
     encoded to in-memory WAVs and returned in the response body — no
     per-render files, no render ids, no GC.
 
-    We pad the window with PREROLL/POSTROLL on both sides, run process()
-    with pad=False and fade_ms=0, then trim back to the audible window so
-    loop boundaries are clean and stateful stages have warmed up.
+    We pad the window with PREROLL/POSTROLL (+ FIR/lookahead margins) on
+    both sides, run the safe pipeline with pad=False and fade_ms=0, then
+    trim back to the audible window so loop boundaries are clean and
+    stateful stages have warmed up.
     """
     sr = sess.sr
-    n_total = sess.samples.shape[0]
-    duration = n_total / sr
 
-    start_s = float(max(0.0, min(duration, start_s)))
-    end_s = float(max(start_s + 0.05, min(duration, end_s)))
-
-    audible_n0 = int(round(start_s * sr))
-    audible_n1 = int(round(end_s * sr))
-
-    pre_n = int(round(_PREVIEW_PREROLL_S * sr))
-    post_n = int(round(_PREVIEW_POSTROLL_S * sr))
-    n0 = max(0, audible_n0 - pre_n)
-    n1 = min(n_total, audible_n1 + post_n)
-
-    head_pad = audible_n0 - n0  # how much pre-roll we actually got
-    in_slice = sess.samples[n0:n1, :].copy()
+    use_mastering = master_params is not None and master_params.enabled
+    margin_s = _preview_margin_s(p, sr, master_params)
+    in_slice, head_pad, audible_len = extract_preview_block(
+        sess.samples, sr, start_s, end_s, extra_margin_s=margin_s)
 
     # Disable engine's own pad/fade for slice rendering — the discarded
     # warm-up tail handles edge effects, and looping needs no fades.
     p.pad = False
     p.fade_ms = 0.0
 
-    y = process(in_slice, sr, p)
-    y2 = as_2d(y)
+    # Full safe pipeline (tone curve from the session's RAW analysis,
+    # band split, M/S clean, width comp, mastering) on the padded block.
+    y2, removed_block, _report = clean_and_master(
+        in_slice, sr, p,
+        master_params=master_params if use_mastering else None,
+        raw_analysis=dict(sess.track_analysis or {}),
+    )
 
-    audible_len = audible_n1 - audible_n0
-    proc_audible = y2[head_pad:head_pad + audible_len, :]
+    proc_audible = trim_processed_preview(y2, head_pad, audible_len)
     orig_audible = in_slice[head_pad:head_pad + audible_len, :]
 
     # Measure ONLY the audible region — using the full padded slice
@@ -780,29 +869,19 @@ def _render_preview_sync(sess, start_s: float, end_s: float, p: Params,
     # making the RMS comparison wrong (preview ends up scaled DOWN
     # because input_rms < proc_audible_rms).
     audible_in_meas = measure(orig_audible)
-    use_mastering = master_params is not None and master_params.enabled
 
-    if use_mastering:
-        analysis = dict(sess.track_analysis or {})
-        proc_audible, _report = master(
-            proc_audible, sr, master_params, analysis=analysis)
-    elif preserve_vol:
-        proc_audible = preserve_volume(
-            proc_audible, audible_in_meas["peak_linear"],
-            input_rms=audible_in_meas["rms_linear"])
-        proc_audible = clip_protect(proc_audible)
-    else:
+    if not use_mastering:
+        if preserve_vol:
+            proc_audible = preserve_volume(
+                proc_audible, audible_in_meas["peak_linear"],
+                input_rms=audible_in_meas["rms_linear"])
         proc_audible = clip_protect(proc_audible)
 
-    n_match = min(orig_audible.shape[0], proc_audible.shape[0])
-    # Apply the same post-FX chain to the dry reference so the diff
-    # only shows what the STFT stages actually removed (otherwise the
-    # subsonic HP / shelves leave audible bass + tilt in the diff).
-    # Shipped UNBOOSTED — the client applies an audition boost via a
-    # gain node (capped against the slice's own peak to avoid clipping).
-    orig_ref = apply_post_filters(
-        orig_audible[:n_match, :].astype(np.float32), sr, p)
-    diff = (orig_ref - proc_audible[:n_match, :]).astype(np.float32)
+    # Removed signal straight from the pipeline (what cleaning stripped
+    # from the high band). Shipped UNBOOSTED — the client applies an
+    # audition boost via a gain node (capped against the slice's own
+    # peak to avoid clipping).
+    diff = trim_processed_preview(removed_block, head_pad, audible_len)
     diff = clip_protect(diff)
 
     return {

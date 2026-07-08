@@ -20,8 +20,10 @@ class Params:
     edge_hz: float = 200.0         # cosine taper width at band edges
 
     # ── STFT settings ─────────────────────────────────────────────────────
-    n_fft: int = 2048
-    hop: int = 512
+    # 4096/1024 = 75% overlap Hann, per the safe-mastering spec. Presets
+    # may override for artifact shapes that need finer time resolution.
+    n_fft: int = 4096
+    hop: int = 1024
 
     # ── Noise-likeness gate (spectral flatness window) ────────────────────
     flat_start: float = 0.25       # flatness below this = tonal, skip
@@ -42,15 +44,26 @@ class Params:
     # frames (essential for broadband Suno hash where dense IS the artifact).
     density_floor: float = 0.0
 
-    # ── Transient protection (energy flux) ────────────────────────────────
+    # ── Transient protection (energy flux -> attack/hold/release) ────────
     flux_thr_db: float = 6.0       # flux above this starts protecting
     flux_range_db: float = 8.0     # flux range for full protection
-    # Steady-state mode: when True, Shimmer/DeHarsh/DeChecker/Denoise/
-    # DeResonator stages SKIP the per-frame transient gate. The
-    # `w_nontrans` factor is replaced with 1.0 in their depth equation.
-    # Use this when the artifact is steady-state (Suno hash, sustained
-    # cymbal sheen) and the transient gate is silently weakening
-    # cleaning on every consonant / drum hit.
+    # Transient HOLD envelope (replaces the old single-frame gate).
+    # When transient confidence exceeds th_threshold, cleaning drops to
+    # zero instantly, holds for th_hold_ms, then ramps back over
+    # th_release_ms. This protects snare ring, consonant decay, cymbal
+    # tails and room reflections that a one-frame gate would slice off.
+    th_threshold: float = 0.65     # transient confidence trigger (0..1)
+    th_hold_ms: float = 70.0       # full-protection hold after a transient
+    th_release_ms: float = 160.0   # smooth ramp back to full cleaning
+    # How strongly the hold envelope also reduces the Surgical
+    # De-noising group (denoise / de-resonator / de-checkerboard /
+    # tone killer). 0 = surgical stages ignore transients,
+    # 1 = surgical stages gate as hard as the dynamic group.
+    th_surgical_reduction: float = 0.35
+    # DEPRECATED — ignored by the engine. The old behavior (skip the
+    # transient gate entirely for steady-state artifacts) removed
+    # protection from every consonant and drum hit; the hold envelope
+    # above provides steady-state cleaning without that damage.
     steady_state_mode: bool = False
 
     # ── Random-phase noise resynth (de-crystallize texture) ───────────────
@@ -139,8 +152,8 @@ class Params:
     # pair per sub-band, and applies per-sub-band gain reduction when
     # E_fast / E_slow exceeds threshold. Surgical: leaves steady spectral
     # content alone, kills only the rapid level swings that are the
-    # "flicker." Crucially does NOT multiply depth by w_nontrans — flicker
-    # IS the modulation; gating it off transients defeats the stage.
+    # "flicker." Honors the transient hold envelope so snare/cymbal
+    # attacks (which raise E_fast exactly like flicker) are spared.
     flicker_tame: float = 0.0       # 0..1 strength
     ft_start_hz: float = 4500.0
     ft_end_hz: float = 12000.0      # extended into the 8-14 kHz secondary hash band
@@ -181,6 +194,12 @@ class Params:
     subsonic_hz: float = 0.0       # highpass cutoff (0 = disabled)
     presence_hz: float = 0.0       # presence shelf cutoff (0 = disabled)
     presence_db: float = 0.0       # presence shelf gain (positive = boost)
+    # Low-mid peaking bell (zero-phase). The band-split pipeline never
+    # sends low-mids through the STFT engine, so mud/boxiness fixes
+    # happen here as a gentle static EQ instead of spectral surgery.
+    lowmid_hz: float = 0.0         # bell center (0 = disabled)
+    lowmid_db: float = 0.0         # bell gain (negative = de-mud cut)
+    lowmid_q: float = 1.0          # bell Q
 
     # ── Iterations (re-run the whole pipeline N times) ────────────────────
     # Each pass starts from the previous pass's output. The second pass
@@ -212,6 +231,22 @@ class Params:
     # band (energy + AM depth) and a list of top surviving narrow peaks,
     # and stashes them on the engine's diagnostic_callback if any.
     diagnostic: bool = False
+
+    # ── Band-split / M/S pipeline (pipeline.py) ───────────────────────────
+    # The safe pipeline splits the mix with a complementary linear-phase
+    # FIR crossover; the low/mid body bypasses the STFT engine entirely
+    # and only the high band is cleaned, in Mid/Side, with Side cleaned
+    # harder than Mid (center vocals / snare / leads live in Mid).
+    crossover_hz: float = 4500.0   # low/high split point (4500 or 5000)
+    crossover_taps: int = 1023     # odd FIR length
+    ms_mid_scale: float = 0.2      # cleaning strength multiplier for Mid
+    ms_side_scale: float = 1.0     # cleaning strength multiplier for Side
+
+    # Side width compensation (restores stereo energy over-cleaned from
+    # the Side channel; see bands.side_width_compensation).
+    swc_threshold_db: float = 3.0
+    swc_max_makeup_db: float = 1.5
+    swc_smoothing_ms: float = 150.0
 
     # ── Misc ──────────────────────────────────────────────────────────────
     seed: int = 0
@@ -254,6 +289,9 @@ _STRENGTH_AMOUNT_KEYS = (
 
     # High-shelf air cut: more cut at higher strength (negative dB).
     ("high_shelf_db", -12.0, 0.0),
+
+    # Low-mid de-mud bell: deeper cut at higher strength (negative dB).
+    ("lowmid_db", -8.0, 0.0),
 )
 
 # Denoise floor scales to a deeper minimum at higher strength
@@ -338,10 +376,10 @@ class MasterParams:
 
     enabled: bool = True
     target_lufs: float = -14.0       # integrated LUFS target
-    ceiling_dbtp: float = -1.0       # true-peak ceiling
-    eq_strength: float = 0.55        # 0..1 tone-match strength
+    ceiling_dbtp: float = -1.0       # true-peak ceiling (codec-aware at export)
+    eq_strength: float = 0.55        # 0..1 tone-curve strength (applied PRE-clean)
     intensity: str = "med"           # low | med | high (overrides eq_strength)
+    tilt: str = "neutral"            # brightest | bright | neutral | warm | warmer
     hp_hz: float = 25.0              # subsonic HP + DC prep
     lookahead_ms: float = 2.0
     release_ms: float = 50.0
-    max_iterations: int = 2          # LUFS micro-adjust passes

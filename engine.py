@@ -33,7 +33,7 @@ from scipy.ndimage import median_filter, uniform_filter1d
 
 from dsp import (
     as_2d, edge_taper, freq_bin_indices, frame_coeff,
-    spectral_flatness, apply_high_shelf, apply_highpass,
+    spectral_flatness, apply_high_shelf, apply_highpass, apply_peaking,
 )
 from params import Params
 
@@ -134,7 +134,6 @@ class DenoiseStage(Stage):
         self.block_ctr = 0
         self.gain_sm: Optional[np.ndarray] = (
             np.ones(self.idx.size, dtype=np.float32) if self.idx.size else None)
-        self.steady_state = bool(p.steady_state_mode)
 
     def apply(self, spec, ctx):
         if self.idx.size == 0:
@@ -173,7 +172,7 @@ class DenoiseStage(Stage):
         g_dn = uniform_filter1d(
             gsm, size=self.freq_smooth, mode="nearest").astype(np.float32)
 
-        nt = 1.0 if self.steady_state else ctx["w_nontrans"]
+        nt = ctx["w_surgical"]
         depth = self.strength * (0.5 + 0.5 * ctx["w_noise"]) * nt
         g_eff = 1.0 - (depth * self.taper) * (1.0 - g_dn)
         spec[self.idx, :] *= g_eff[:, None]
@@ -213,7 +212,6 @@ class DeResonatorStage(Stage):
 
         self.persist = (
             np.zeros(self.idx.size, dtype=np.float32) if self.idx.size else None)
-        self.steady_state = bool(p.steady_state_mode)
         self.density_floor = float(np.clip(p.deq_density_floor, 0.0, 1.0))
 
     def apply(self, spec, ctx):
@@ -244,7 +242,7 @@ class DeResonatorStage(Stage):
             self.slope * over * gate, self.max_att_db).astype(np.float32)
         gain = (10.0 ** (-att_db / 20.0)).astype(np.float32)
 
-        nt = 1.0 if self.steady_state else ctx["w_nontrans"]
+        nt = ctx["w_surgical"]
         depth = self.strength * nt * w_narrow
         g_eff = 1.0 - (depth * self.taper) * (1.0 - gain)
         if self.freq_smooth > 1:
@@ -284,7 +282,6 @@ class ShimmerStage(Stage):
         self.density_hi = float(p.density_hi)
         self.flat_start = float(p.flat_start)
         self.flat_end = float(p.flat_end)
-        self.steady_state = bool(p.steady_state_mode)
         self.density_floor = float(np.clip(p.density_floor, 0.0, 1.0))
 
     def apply(self, spec, ctx):
@@ -309,7 +306,7 @@ class ShimmerStage(Stage):
         if self.density_floor > 0.0 and self.density_floor > w_narrow:
             w_narrow = self.density_floor
 
-        nt = 1.0 if self.steady_state else ctx["w_nontrans"]
+        nt = ctx["w_nontrans"]
         depth = w_noise_sh * nt * w_narrow
         att_db = np.zeros_like(over, dtype=np.float32)
         att_db[mask] = (self.slope * over[mask]).astype(np.float32)
@@ -350,7 +347,6 @@ class DeHarshStage(Stage):
         self.a_att = frame_coeff(hop, sr, p.dh_attack_ms)
         self.a_rel = frame_coeff(hop, sr, p.dh_release_ms)
         self.g_sm = 1.0
-        self.steady_state = bool(p.steady_state_mode)
 
     def apply(self, spec, ctx):
         if self.idx.size == 0 or self.ref_idx.size == 0:
@@ -361,6 +357,12 @@ class DeHarshStage(Stage):
         ref_p = float(np.mean(psd[self.ref_idx]))
         band_db = 10.0 * math.log10(max(band_p, eps))
         ref_db = 10.0 * math.log10(max(ref_p, eps))
+        # Guard: if the reference band is essentially silent (e.g. it
+        # falls below the pipeline's crossover and the engine only sees
+        # the high band), the ratio is meaningless — skip rather than
+        # slam the band with max attenuation every frame.
+        if ref_db < -75.0:
+            return spec
         excess = band_db - ref_db - self.thr_db
         if excess > 0.0:
             att_db = min(self.slope * excess, self.max_att_db)
@@ -373,7 +375,7 @@ class DeHarshStage(Stage):
         else:
             self.g_sm = self.a_rel * self.g_sm + (1.0 - self.a_rel) * g_inst
 
-        nt = 1.0 if self.steady_state else ctx["w_nontrans"]
+        nt = ctx["w_nontrans"]
         depth = self.strength * nt
         g_eff = 1.0 - (depth * self.taper) * (1.0 - float(self.g_sm))
         spec[self.idx, :] *= g_eff[:, None]
@@ -406,8 +408,11 @@ class FlickerTamerStage(Stage):
          via the precomputed taper weights so the per-frame spec gets
          a smooth gain curve rather than discrete steps.
 
-    Crucially does NOT multiply depth by `w_nontrans` -- the flicker IS
-    the modulation, gating it off transients defeats the stage.
+    Honors the transient HOLD envelope (`w_nontrans`): a musical attack
+    raises E_fast exactly like flicker does, so the tamer must back off
+    around transients. Steady flicker between hits is still caught —
+    the hold envelope recovers within ~230 ms while the artifact is
+    continuous.
     """
     name = "flicker_tame"
 
@@ -501,7 +506,10 @@ class FlickerTamerStage(Stage):
             np.maximum(self.E_fast, eps) / np.maximum(self.E_slow, eps))
         excess_db = np.maximum(0.0, ratio_db - self.thr_db)
         att_db_band = np.minimum(self.slope * excess_db, self.max_att_db)
-        att_db_band *= self.strength
+        # Dynamic Tonal Control group honors the transient hold envelope:
+        # a snare/cymbal attack raises E_fast exactly like flicker does,
+        # so without this the tamer eats musical transients.
+        att_db_band *= self.strength * float(ctx["w_nontrans"])
 
         # Map per-band attenuation to per-bin attenuation, weighted by
         # the inter-band taper so adjacent sub-bands smoothly blend.
@@ -632,7 +640,6 @@ class DeCheckerStage(Stage):
         self.persist_score = 0.0
         self.persist_lag = 0
         self.med_size = 7  # narrow median for peak exposure
-        self.steady_state = bool(p.steady_state_mode)
 
     def apply(self, spec, ctx):
         n = self.idx.size
@@ -694,7 +701,7 @@ class DeCheckerStage(Stage):
 
         att_db = np.minimum(self.strength * match * gate, self.max_att_db)
         gain = (10.0 ** (-att_db / 20.0)).astype(np.float32)
-        depth = 1.0 if self.steady_state else ctx["w_nontrans"]
+        depth = ctx["w_surgical"]
         g_eff = 1.0 - depth * (1.0 - gain)
         spec[self.idx, :] *= g_eff[:, None]
         return spec
@@ -792,12 +799,70 @@ def _compute_noise_gate(spec, psd, dn_idx, p, eps):
     return w_noise, band_db
 
 
-def _compute_transient_gate(band_db, p, prev_band_db):
-    """Energy flux -> transient weight (1=steady, 0=transient)."""
-    flux = max(0.0, band_db - prev_band_db) if prev_band_db is not None else 0.0
-    w_trans = float(np.clip(
-        (flux - p.flux_thr_db) / max(1e-6, p.flux_range_db), 0.0, 1.0))
-    return 1.0 - w_trans
+class TransientHoldGate:
+    """Attack/hold/release transient protection envelope.
+
+    Replaces the old memoryless per-frame gate: a single-frame gate
+    turned cleaning back on immediately after the detected transient
+    frame, slicing off snare ring, consonant decay, cymbal tails and
+    room reflections.
+
+    Behavior per frame (driven by band energy flux):
+      * transient confidence = clip((flux - flux_thr_db) / flux_range_db)
+      * confidence >= threshold  -> envelope drops to 0 instantly
+        (attack: instant) and a hold timer restarts
+      * hold lasts `hold_ms`, envelope stays at 0
+      * then the envelope ramps smoothly back to 1 over `release_ms`
+        (smoothstep, no one-frame jumps)
+
+    Two weights are produced:
+      * `dynamic`  — full-depth gate for the Dynamic Tonal Control
+        macro group (shimmer / de-harsh / flicker tamer)
+      * `surgical` — milder version for the Surgical De-noising group
+        (denoise / de-resonator / de-checkerboard); reduced at most
+        `surgical_reduction` during the hold
+    Both also honor the instantaneous sub-threshold confidence so mild
+    transients still get proportional protection.
+    """
+
+    def __init__(self, p: Params, sr: int, hop: int) -> None:
+        self.flux_thr_db = float(p.flux_thr_db)
+        self.flux_range_db = max(1e-6, float(p.flux_range_db))
+        self.threshold = float(p.th_threshold)
+        self.hold_frames = max(1, int(round(
+            (float(p.th_hold_ms) / 1000.0) * sr / hop)))
+        self.release_frames = max(1, int(round(
+            (float(p.th_release_ms) / 1000.0) * sr / hop)))
+        self.surgical_reduction = float(np.clip(p.th_surgical_reduction, 0.0, 1.0))
+        # Large sentinel = "no transient seen yet".
+        self.frames_since = self.hold_frames + self.release_frames + 1
+
+    def envelope(self) -> float:
+        """Current hold/release envelope value in [0, 1]."""
+        if self.frames_since <= self.hold_frames:
+            return 0.0
+        t = (self.frames_since - self.hold_frames) / float(self.release_frames)
+        if t >= 1.0:
+            return 1.0
+        return float(t * t * (3.0 - 2.0 * t))  # smoothstep
+
+    def update(self, band_db: float, prev_band_db) -> tuple:
+        """Advance one frame. Returns (w_dynamic, w_surgical)."""
+        flux = max(0.0, band_db - prev_band_db) if prev_band_db is not None else 0.0
+        conf = float(np.clip(
+            (flux - self.flux_thr_db) / self.flux_range_db, 0.0, 1.0))
+
+        if conf >= self.threshold:
+            self.frames_since = 0  # instant attack + (re)start hold
+        else:
+            self.frames_since += 1
+
+        env = self.envelope()
+        # Sub-threshold instantaneous protection (proportional, like the
+        # old gate) combined with the hold/release envelope.
+        w_dynamic = min(1.0 - conf, env)
+        w_surgical = 1.0 - self.surgical_reduction * (1.0 - w_dynamic)
+        return w_dynamic, w_surgical
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -819,6 +884,8 @@ def apply_post_filters(y: np.ndarray, sr: int, p: Params) -> np.ndarray:
         y = apply_high_shelf(y, sr, p.high_shelf_hz, p.high_shelf_db)
     if abs(p.presence_db) > 0.1 and p.presence_hz > 0:
         y = apply_high_shelf(y, sr, p.presence_hz, p.presence_db)
+    if abs(p.lowmid_db) > 0.1 and p.lowmid_hz > 0:
+        y = apply_peaking(y, sr, p.lowmid_hz, p.lowmid_db, p.lowmid_q)
     return y
 
 
@@ -1014,6 +1081,7 @@ def _run_stft_pass(x: np.ndarray, sr: int, p: Params,
 
     dn_idx = freq_bin_indices(freqs, p.dn_start_hz, p.dn_end_hz)
     stages = _build_stages(p, sr, hop, freqs, nyq)
+    th_gate = TransientHoldGate(p, sr, hop)
 
     rng = np.random.default_rng(int(p.seed))
     y = np.zeros((n_samples + n_fft, n_ch), dtype=np.float32)
@@ -1037,13 +1105,14 @@ def _run_stft_pass(x: np.ndarray, sr: int, p: Params,
         psd = np.mean(np.abs(spec) ** 2, axis=1).astype(np.float32) + eps
 
         w_noise, band_db = _compute_noise_gate(spec, psd, dn_idx, p, eps)
-        w_nontrans = _compute_transient_gate(band_db, p, prev_band_db)
+        w_nontrans, w_surgical = th_gate.update(band_db, prev_band_db)
         prev_band_db = band_db
 
         ctx: Dict[str, Any] = {
             "psd": psd,
             "w_noise": w_noise,
             "w_nontrans": w_nontrans,
+            "w_surgical": w_surgical,
             "band_db": band_db,
             "rng": rng,
             "eps": eps,

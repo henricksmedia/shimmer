@@ -39,6 +39,10 @@ body {
 
 /* Slow diagonal light sweep across the wordmark. */
 .brand-shimmer {
+    font-family: var(--font-logo);
+    font-weight: 400;          /* Audiowide ships a single weight */
+    font-size: 19px;
+    letter-spacing: 0.5px;
     background: linear-gradient(115deg,
         var(--fg-0) 0%, var(--fg-0) 42%,
         #ffffff 50%,
@@ -202,6 +206,21 @@ body {
     width: 100%;
     padding: 12px 16px;
     font-size: 14px;
+}
+
+/* Main call-to-action: gold, so it stands out from the purple UI.
+   Only in its primary state — after processing it demotes to btn-secondary. */
+.process-btn.btn-primary,
+.batch-btn.btn-primary {
+    background: linear-gradient(135deg, var(--amber), var(--gold));
+    color: #1a1206;
+    font-weight: 600;
+    box-shadow: 0 2px 14px rgba(240, 165, 0, 0.28);
+}
+.process-btn.btn-primary:hover:not(:disabled),
+.batch-btn.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ffb61f, #e3b26b);
+    box-shadow: 0 2px 20px rgba(240, 165, 0, 0.45);
 }
 
 /* ── Small screens: normal scrolling single column ─────────────────── */

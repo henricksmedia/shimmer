@@ -1,9 +1,19 @@
 """
-mastering.py — True mastering chain (LUFS, tone-match EQ, true-peak limiter).
+mastering.py — True mastering chain (LUFS, tone curve, true-peak limiter).
 
-Pure NumPy/SciPy — no file I/O, no server imports.  Chain order:
-  HP/DC -> tone-match EQ -> gain to target LUFS -> true-peak limiter
-  -> re-measure and micro-adjust (up to 2 iterations).
+Pure NumPy/SciPy — no file I/O, no server imports.
+
+Safe-mastering architecture:
+  * The tone curve is computed from the RAW, unprocessed input only
+    (compute_tone_curve) and applied BEFORE artifact cleaning
+    (apply_tone_curve) — never after, so corrective EQ cannot re-boost
+    the harsh peaks the cleaner just removed. Bounds: +2.0 / -3.0 dB,
+    with boosts additionally limited in the 5-12 kHz harshness band.
+  * master() is single-pass: HP/DC -> one static LUFS gain ->
+    soft peak shaper (top ~2 dB) -> one 4x-oversampled lookahead
+    true-peak limiter. No iterative gain/limit loops.
+  * Export ceilings are codec-aware: WAV/FLAC -1.0 dBTP, lossy -1.5 dBTP
+    (get_export_ceiling_dbtp) so MP3/AAC decoders don't clip.
 """
 
 from __future__ import annotations
@@ -35,8 +45,37 @@ _REF_DB = np.array([
     0.5, 1, 1.5, 2,
 ], dtype=np.float64)
 
-_MAX_EQ_DB = 3.0
+_MAX_EQ_BOOST_DB = 2.0    # static tone curve max boost
+_MAX_EQ_CUT_DB = 3.0      # static tone curve max cut
+
+# Stylistic warm<->bright tilt (5-position tone control). The value is
+# the tilt amplitude in dB at the frequency extremes; positive = bright
+# (boost highs / shave lows), negative = warm. Applied as an offset to
+# the corrective delta BEFORE the hard clip and the 5-12 kHz harshness
+# guard, so those bounds remain absolute guarantees.
+TILT_POSITIONS: dict[str, float] = {
+    "warmer": -2.0,
+    "warm": -1.0,
+    "neutral": 0.0,
+    "bright": 1.0,
+    "brightest": 2.0,
+}
+_HARSH_LO_HZ = 5000.0     # harshness band: boosts are limited here...
+_HARSH_HI_HZ = 12000.0    # ...so EQ can't reintroduce AI fizz
+_HARSH_MAX_BOOST_DB = 0.5
 _OVERSAMPLE = 4
+
+# Codec-aware true-peak export ceilings (dBTP). Lossy encoders overshoot
+# on decode, so they get extra headroom.
+_CEILING_LOSSLESS_DBTP = -1.0
+_CEILING_LOSSY_DBTP = -1.5
+_LOSSY_FORMATS = {"mp3", "m4a", "aac", "ogg", "opus", "mp4"}
+
+
+def get_export_ceiling_dbtp(export_format: str) -> float:
+    """True-peak ceiling for an export format ('wav', 'mp3', '.flac', ...)."""
+    fmt = str(export_format or "").lower().lstrip(".").strip()
+    return _CEILING_LOSSY_DBTP if fmt in _LOSSY_FORMATS else _CEILING_LOSSLESS_DBTP
 
 
 def _mono_mix(x: np.ndarray) -> np.ndarray:
@@ -134,22 +173,73 @@ def _interp_correction(freqs_hz: np.ndarray, correction_db: np.ndarray,
     ).astype(np.float64)
 
 
-def tone_match_eq(x: np.ndarray, sr: int, strength: float = 1.0,
-                  max_db: float = _MAX_EQ_DB) -> Tuple[np.ndarray, List[float]]:
-    """Apply gentle analysis-driven corrective EQ (zero-phase STFT domain).
+def tilt_offsets_db(tilt: str) -> np.ndarray:
+    """Per-band dB offsets for a warm<->bright tilt position.
 
-    Returns (processed_audio, per-band correction dB applied).
+    Smooth tanh ramp in log-frequency space centered at 1 kHz, reaching
+    ~90% of the tilt amplitude at the spectrum extremes. Unknown or
+    'neutral' positions return all zeros.
+    """
+    amount = TILT_POSITIONS.get(str(tilt or "neutral").lower(), 0.0)
+    if abs(amount) < 1e-9:
+        return np.zeros(_REF_FREQS.size, dtype=np.float64)
+    ramp = np.tanh(np.log2(_REF_FREQS / 1000.0) / 3.0)
+    return amount * ramp
+
+
+def compute_tone_curve(x_raw: np.ndarray, sr: int, strength: float = 1.0,
+                       raw_spectrum: Dict[str, Any] | None = None,
+                       tilt: str = "neutral") -> List[float]:
+    """Compute the bounded static tone curve from the RAW input analysis.
+
+    Must be called on the unprocessed input, before any artifact
+    cleaning — the curve is calculated once and never recomputed after
+    cleaning (a post-clean tone match would boost back the harsh peaks
+    the cleaner removed).
+
+    `tilt` adds a stylistic warm<->bright offset (see TILT_POSITIONS)
+    on top of the corrective match. It is independent of `strength` —
+    the user's tone choice applies in full even when correction is
+    dialed down — but shares all safety bounds with the correction.
+
+    Bounds: boost <= +2.0 dB, cut <= -3.0 dB, 1/3-octave smoothing,
+    boosts additionally capped at +0.5 dB inside 5-12 kHz.
+
+    Returns per-band correction in dB aligned with `_REF_FREQS`.
     """
     strength = float(np.clip(strength, 0.0, 1.0))
-    if strength < 1e-4:
-        return as_2d(np.asarray(x, dtype=np.float32)), [0.0] * len(_REF_FREQS)
+    tilt_delta = tilt_offsets_db(tilt)
+    has_tilt = float(np.max(np.abs(tilt_delta))) > 1e-9
+    if strength < 1e-4 and not has_tilt:
+        return [0.0] * len(_REF_FREQS)
 
-    spec = analyze_spectrum(x, sr)
-    measured = np.array(spec["band_db"], dtype=np.float64)
-    # Relative to reference: positive correction = boost where track is weak.
-    delta = (_REF_DB - measured) * strength
-    delta = np.clip(delta, -max_db, max_db)
-    delta = gaussian_filter1d(delta, sigma=1.0)
+    if strength < 1e-4:
+        delta = tilt_delta.copy()
+    else:
+        spec = raw_spectrum if raw_spectrum is not None else analyze_spectrum(x_raw, sr)
+        measured = np.array(spec["band_db"], dtype=np.float64)
+        # Relative to reference: positive correction = boost where track is weak.
+        delta = (_REF_DB - measured) * strength + tilt_delta
+    delta = np.clip(delta, -_MAX_EQ_CUT_DB, _MAX_EQ_BOOST_DB)
+    delta = gaussian_filter1d(delta, sigma=1.0)  # ~1/3-octave smoothing
+
+    # Harshness guard: never boost meaningfully in the 5-12 kHz band
+    # where AI fizz/shimmer lives (cuts remain allowed).
+    harsh = (_REF_FREQS >= _HARSH_LO_HZ) & (_REF_FREQS <= _HARSH_HI_HZ)
+    delta[harsh] = np.minimum(delta[harsh], _HARSH_MAX_BOOST_DB)
+    # Re-clip after smoothing so bounds are hard guarantees.
+    delta = np.clip(delta, -_MAX_EQ_CUT_DB, _MAX_EQ_BOOST_DB)
+    return delta.tolist()
+
+
+def apply_tone_curve(x: np.ndarray, sr: int,
+                     correction_db: List[float]) -> np.ndarray:
+    """Apply a precomputed static tone curve (zero-phase STFT domain)."""
+    delta = np.asarray(correction_db, dtype=np.float64)
+    if delta.size != _REF_FREQS.size:
+        raise ValueError("correction_db length mismatch with _REF_FREQS")
+    if float(np.max(np.abs(delta))) < 1e-3:
+        return as_2d(np.asarray(x, dtype=np.float32))
 
     n_fft = 4096
     hop = n_fft // 4
@@ -180,7 +270,82 @@ def tone_match_eq(x: np.ndarray, sr: int, strength: float = 1.0,
         y[mask] /= wsum[mask]
         out[:, ch] = y[pad:pad + n_samples]
 
-    return out.astype(np.float32), delta.tolist()
+    return out.astype(np.float32)
+
+
+def tone_match_eq(x: np.ndarray, sr: int, strength: float = 1.0,
+                  raw_spectrum: Dict[str, Any] | None = None,
+                  tilt: str = "neutral") -> Tuple[np.ndarray, List[float]]:
+    """Compute the tone curve from `x` (which must be RAW audio) and apply it.
+
+    Convenience wrapper for compute_tone_curve + apply_tone_curve.
+    Returns (processed_audio, per-band correction dB applied).
+    """
+    delta = compute_tone_curve(x, sr, strength=strength,
+                               raw_spectrum=raw_spectrum, tilt=tilt)
+    return apply_tone_curve(x, sr, delta), delta
+
+
+def _peak_hold_release(x: np.ndarray, coeff: float) -> np.ndarray:
+    """Vectorized peak-hold with exponential decay:
+
+        y[i] = max(x[i], y[i-1] * coeff)
+
+    Instant attack (y snaps up to x), exponential release. Computed
+    blockwise with the scaled-cummax trick so no per-sample Python loop
+    is needed; block size is bounded so coeff**-block stays well inside
+    float64 range.
+    """
+    x = np.asarray(x, dtype=np.float64)
+    n = x.size
+    if n == 0 or coeff <= 0.0:
+        return x.copy()
+    # coeff**-B <= 1e12  =>  B <= 12*ln(10) / -ln(coeff)
+    block = int(min(8192.0, max(1.0, 12.0 * math.log(10.0)
+                                / max(1e-12, -math.log(min(coeff, 0.9999999))))))
+    out = np.empty(n, dtype=np.float64)
+    state = 0.0
+    for s in range(0, n, block):
+        blk = x[s:s + block]
+        m = blk.size
+        k = np.arange(1, m + 1, dtype=np.float64)
+        decay = coeff ** k
+        within = np.maximum.accumulate(blk / decay) * decay
+        res = np.maximum(within, state * decay)
+        out[s:s + m] = res
+        state = float(res[-1])
+    return out
+
+
+def soft_peak_shaper(x: np.ndarray, ceiling_dbtp: float = -1.0,
+                     knee_db: float = 2.0) -> Tuple[np.ndarray, Dict[str, float]]:
+    """Gentle waveshaper catching the top ~`knee_db` dB before the limiter.
+
+    Below the knee the signal is bit-transparent (identity). Inside the
+    knee, peaks are smoothly compressed with a cubic soft clip that
+    approaches (but never quite reaches) ~1 dB above the ceiling, so the
+    true-peak limiter that follows only has to shave the last fraction
+    of a dB instead of doing all the work — that keeps limiter gain
+    reduction (and pumping) low.
+    """
+    x = as_2d(np.asarray(x, dtype=np.float64))
+    ceiling = float(db_to_lin(ceiling_dbtp))
+    knee_start = float(ceiling * db_to_lin(-abs(knee_db)))  # e.g. -3 dBTP for -1/2
+    span = max(1e-9, ceiling * 1.12 - knee_start)  # allow ~1 dB overshoot pre-limiter
+
+    ax = np.abs(x)
+    over = ax > knee_start
+    if not np.any(over):
+        return x.astype(np.float32), {"shaped_ratio": 0.0}
+
+    t = np.clip((ax[over] - knee_start) / span, 0.0, None)
+    # Smooth rational saturator: t / (1 + t) maps [0, inf) -> [0, 1).
+    shaped = knee_start + span * (t / (1.0 + t))
+    y = x.copy()
+    y[over] = np.sign(x[over]) * shaped
+    return y.astype(np.float32), {
+        "shaped_ratio": float(np.mean(over)),
+    }
 
 
 def true_peak_limiter(x: np.ndarray, sr: int,
@@ -227,15 +392,7 @@ def true_peak_limiter(x: np.ndarray, sr: int,
 
     # Smooth gain recovery (release); attack is instantaneous via lookahead.
     release_coeff = math.exp(-1.0 / (max(1e-4, release_ms * 0.001) * sr))
-    g_smooth = np.empty(n_samples, dtype=np.float64)
-    g_state = 1.0
-    for i in range(n_samples):
-        target = gain[i]
-        if target < g_state:
-            g_state = target
-        else:
-            g_state = target + (g_state - target) * release_coeff
-        g_smooth[i] = g_state
+    g_smooth = 1.0 - _peak_hold_release(1.0 - gain, release_coeff)
 
     min_gain = float(np.min(g_smooth))
     max_gr_db = 20.0 * math.log10(max(min_gain, 1e-12)) if min_gain < 1.0 else 0.0
@@ -245,6 +402,13 @@ def true_peak_limiter(x: np.ndarray, sr: int,
         "max_gain_reduction_db": float(max_gr_db),
         "ceiling_dbtp": float(ceiling_dbtp),
     }
+
+
+def resolve_eq_strength(mp: MasterParams) -> float:
+    """Effective tone-curve strength from MasterParams (intensity wins)."""
+    if mp.intensity and mp.intensity in ("low", "med", "high"):
+        return intensity_to_eq_strength(mp.intensity)
+    return float(np.clip(mp.eq_strength, 0.0, 1.0))
 
 
 def apply_gain_to_lufs(x: np.ndarray, sr: int, target_lufs: float) -> Tuple[np.ndarray, float]:
@@ -269,8 +433,19 @@ def tpdf_dither(x: np.ndarray, bits: int = 16) -> np.ndarray:
 
 
 def master(x: np.ndarray, sr: int, mp: MasterParams,
-           analysis: Dict[str, Any] | None = None) -> Tuple[np.ndarray, Dict[str, Any]]:
-    """Run the full mastering chain. Returns (audio, report dict)."""
+           analysis: Dict[str, Any] | None = None,
+           eq_bands_db: List[float] | None = None
+           ) -> Tuple[np.ndarray, Dict[str, Any]]:
+    """Run the single-pass mastering chain. Returns (audio, report dict).
+
+    Chain: HP/DC -> one static LUFS gain -> soft peak shaper ->
+    one 4x-oversampled lookahead true-peak limiter.
+
+    No tone EQ happens here — the static tone curve must be applied
+    BEFORE artifact cleaning (see compute_tone_curve / apply_tone_curve).
+    Pass `eq_bands_db` (the curve applied upstream) so it lands in the
+    report for the UI.
+    """
     if not mp.enabled:
         return as_2d(np.asarray(x, dtype=np.float32)), {"enabled": False}
 
@@ -285,38 +460,21 @@ def master(x: np.ndarray, sr: int, mp: MasterParams,
         y = remove_dc(y)
         y = apply_highpass(y, sr, mp.hp_hz)
 
-    # Tone match
-    eq_strength = float(mp.eq_strength)
-    if mp.intensity and mp.intensity in ("low", "med", "high"):
-        eq_strength = intensity_to_eq_strength(mp.intensity)
-    y, eq_applied = tone_match_eq(y, sr, strength=eq_strength)
-
+    # One static LUFS gain — measured once, applied once. The limiter
+    # may pull the final integrated value slightly below target; that
+    # small shortfall is the price of not crushing the mix with
+    # iterative gain/limit passes.
     target = float(mp.target_lufs)
-    total_gain_db = 0.0
-    limiter_stats: Dict[str, float] = {}
-    iterations = max(1, min(3, int(mp.max_iterations)))
+    y, gain_db = apply_gain_to_lufs(y, sr, target)
 
-    for _ in range(iterations):
-        y, gain_db = apply_gain_to_lufs(y, sr, target)
-        total_gain_db += gain_db
-        y, limiter_stats = true_peak_limiter(
-            y, sr, ceiling_dbtp=mp.ceiling_dbtp,
-            lookahead_ms=mp.lookahead_ms,
-            release_ms=mp.release_ms,
-        )
-        after_partial = measure_loudness(y, sr)
-        err = target - after_partial["lufs_i"]
-        if abs(err) < 0.35:
-            break
-        # Micro-adjust: small corrective gain (limiter pulled LUFS down).
-        if math.isfinite(err) and abs(err) < 3.0:
-            adj_lin = float(db_to_lin(err * 0.85))
-            y = (y * adj_lin).astype(np.float32)
-            y, limiter_stats = true_peak_limiter(
-                y, sr, ceiling_dbtp=mp.ceiling_dbtp,
-                lookahead_ms=mp.lookahead_ms,
-                release_ms=mp.release_ms,
-            )
+    # Dual-stage peak control: shaper takes the top ~2 dB, limiter
+    # trims true peaks to the ceiling in a single pass.
+    y, shaper_stats = soft_peak_shaper(y, ceiling_dbtp=mp.ceiling_dbtp)
+    y, limiter_stats = true_peak_limiter(
+        y, sr, ceiling_dbtp=mp.ceiling_dbtp,
+        lookahead_ms=mp.lookahead_ms,
+        release_ms=mp.release_ms,
+    )
 
     after = measure_loudness(y, sr)
     after_spec = analyze_spectrum(y, sr)
@@ -324,14 +482,19 @@ def master(x: np.ndarray, sr: int, mp: MasterParams,
     report: Dict[str, Any] = {
         "enabled": True,
         "target_lufs": target,
-        "ceiling_dbtp": mp.ceiling_dbtp,
-        "eq_strength": eq_strength,
-        "eq_bands_db": eq_applied,
+        "current_lufs": before["lufs_i"],
+        "gain_db": float(gain_db),
+        "ceiling_dbtp": float(mp.ceiling_dbtp),
+        "estimated_true_peak": after["true_peak_dbtp"],
+        "limiter_gain_reduction": limiter_stats.get("max_gain_reduction_db", 0.0),
+        "eq_bands_db": list(eq_bands_db) if eq_bands_db is not None else [],
+        "tilt": mp.tilt,
         "before": before,
         "after": after,
         "spectrum_before": before_spec,
         "spectrum_after": after_spec,
-        "total_gain_db": float(total_gain_db),
+        "total_gain_db": float(gain_db),
+        "shaper": shaper_stats,
         "limiter": limiter_stats,
         "lufs_error": float(after["lufs_i"] - target) if math.isfinite(after["lufs_i"]) else None,
         "ab_match_gain_db": float(
@@ -358,6 +521,10 @@ def master_params_from_json(data: Dict[str, Any] | None) -> MasterParams:
         mp.eq_strength = float(data["eq_strength"])
     if "intensity" in data and data["intensity"]:
         mp.intensity = str(data["intensity"]).lower()
+    if "tilt" in data and data["tilt"]:
+        t = str(data["tilt"]).lower()
+        if t in TILT_POSITIONS:
+            mp.tilt = t
     if "hp_hz" in data and data["hp_hz"] is not None:
         mp.hp_hz = float(data["hp_hz"])
     return mp

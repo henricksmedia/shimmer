@@ -28,6 +28,7 @@ export async function initSingleTab() {
     const masterEnabled = $('master-enabled');
     const masterTarget  = $('master-target');
     const masterIntensity = $('master-intensity');
+    const masterTilt = $('master-tilt');
     const masteringReadout = $('mastering-readout');
     const preserveVolCard = $('preserve-vol-card');
     const abLoudnessMatch = $('ab-loudness-match');
@@ -36,6 +37,7 @@ export async function initSingleTab() {
     const stepProcess = $('step-process');
     const slidersHost  = $('sliders-host');
     const preserveVol  = $('preserve-vol');
+    const trimSilence  = $('trim-silence');
     const outputFormat = $('output-format');
     const processBtn   = $('process-btn');
     const progressEl   = $('progress');
@@ -173,6 +175,7 @@ export async function initSingleTab() {
         timeLabel: $('player-time'),
         tabsHost: $('track-tabs'),
         modeWaveBtn: $('viz-mode-wave'),
+        modeOverlayBtn: $('viz-mode-overlay'),
         modeSpecBtn: $('viz-mode-spec'),
         spectrumCanvas: $('spectrum-live'),
         metersHost: $('player-meters'),
@@ -224,6 +227,9 @@ export async function initSingleTab() {
     if (saved && typeof saved.preserve_volume === 'boolean') {
         preserveVol.checked = saved.preserve_volume;
     }
+    if (saved && typeof saved.trim_silence === 'boolean') {
+        trimSilence.checked = saved.trim_silence;
+    }
     if (saved && saved.output_format) outputFormat.value = saved.output_format;
     if (saved && typeof saved.ab_loudness_match === 'boolean') {
         abLoudnessMatch.checked = saved.ab_loudness_match;
@@ -234,6 +240,7 @@ export async function initSingleTab() {
         }
         if (saved.mastering.target) masterTarget.value = saved.mastering.target;
         if (saved.mastering.intensity) masterIntensity.value = saved.mastering.intensity;
+        if (saved.mastering.tilt) masterTilt.value = saved.mastering.tilt;
     }
     updateMasteringUI();
     applyLoudnessMatch();
@@ -257,6 +264,7 @@ export async function initSingleTab() {
             enabled: masterEnabled.checked,
             target: masterTarget.value,
             intensity: masterIntensity.value,
+            tilt: masterTilt.value,
         };
     }
 
@@ -296,6 +304,10 @@ export async function initSingleTab() {
         schedulePreviewRender();
     });
     masterIntensity.addEventListener('change', () => {
+        pushSettings();
+        schedulePreviewRender();
+    });
+    masterTilt.addEventListener('change', () => {
         pushSettings();
         schedulePreviewRender();
     });
@@ -420,14 +432,6 @@ export async function initSingleTab() {
         autoDetectResults.appendChild(err);
     }
 
-    // Close any open auto-detect details popover on outside click.
-    document.addEventListener('click', (e) => {
-        if (!autoDetectResults.contains(e.target)) {
-            const pop = autoDetectResults.querySelector('.ad-pop');
-            if (pop) pop.hidden = true;
-        }
-    });
-
     function renderAutoDetect(r) {
         autoDetectResults.hidden = false;
         autoDetectResults.innerHTML = '';
@@ -441,67 +445,88 @@ export async function initSingleTab() {
             return;
         }
 
-        // Slim summary row: eyebrow + name + confidence + Details.
-        const top = ranked[0];
-        const row = document.createElement('div');
-        row.className = 'ad-row';
+        const heading = document.createElement('div');
+        heading.className = 'ad-cards-label';
+        heading.textContent = ranked.length > 1 ? 'Best matches' : 'Best match';
+        autoDetectResults.appendChild(heading);
 
-        const eyebrow = document.createElement('div');
-        eyebrow.className = 'ad-eyebrow';
-        eyebrow.textContent = 'Suggested';
-        const name = document.createElement('div');
-        name.className = 'ad-name';
-        name.textContent = top.label || labelOf(top.name);
-        name.title = name.textContent;
+        const list = document.createElement('div');
+        list.className = 'ad-cards';
+        const cards = [];
 
-        const confWrap = document.createElement('div');
-        confWrap.className = 'ad-confidence-wrap';
-        const conf = document.createElement('div');
-        conf.className = 'ad-confidence';
-        const fill = document.createElement('div');
-        fill.className = 'ad-confidence-fill';
-        const pct = Math.round((top.confidence || 0) * 100);
-        fill.style.width = `${pct}%`;
-        conf.appendChild(fill);
-        const pctText = document.createElement('div');
-        pctText.className = 'ad-confidence-pct';
-        pctText.textContent = `${pct}%`;
-        confWrap.appendChild(conf);
-        confWrap.appendChild(pctText);
+        const setActive = (idx) => {
+            cards.forEach((c, i) => {
+                c.card.classList.toggle('active', i === idx);
+                c.apply.textContent = i === idx ? 'Applied' : 'Apply';
+                c.apply.disabled = i === idx;
+            });
+        };
 
-        const detailsBtn = document.createElement('button');
-        detailsBtn.type = 'button';
-        detailsBtn.className = 'btn btn-ghost ad-details-btn';
-        detailsBtn.textContent = 'Details';
+        ranked.slice(0, 3).forEach((entry, i) => {
+            const card = document.createElement('div');
+            card.className = 'ad-card';
 
-        row.appendChild(eyebrow);
-        row.appendChild(name);
-        row.appendChild(confWrap);
-        row.appendChild(detailsBtn);
-        autoDetectResults.appendChild(row);
+            const head = document.createElement('div');
+            head.className = 'ad-card-head';
 
-        // Details popover: reason, timeline sparkline, alternates.
-        const pop = document.createElement('div');
-        pop.className = 'ad-pop';
-        pop.hidden = true;
+            const rank = document.createElement('span');
+            rank.className = 'ad-card-rank';
+            rank.textContent = `${i + 1}`;
 
-        if (top.reason) {
-            const reason = document.createElement('p');
-            reason.className = 'ad-reason';
-            reason.textContent = top.reason;
-            pop.appendChild(reason);
-        }
+            const name = document.createElement('div');
+            name.className = 'ad-name';
+            name.textContent = entry.label || labelOf(entry.name);
+            name.title = name.textContent;
+
+            const confWrap = document.createElement('div');
+            confWrap.className = 'ad-confidence-wrap';
+            const conf = document.createElement('div');
+            conf.className = 'ad-confidence';
+            const fill = document.createElement('div');
+            fill.className = 'ad-confidence-fill';
+            const pct = Math.round((entry.confidence || 0) * 100);
+            fill.style.width = `${pct}%`;
+            conf.appendChild(fill);
+            const pctText = document.createElement('div');
+            pctText.className = 'ad-confidence-pct';
+            pctText.textContent = `${pct}%`;
+            confWrap.appendChild(conf);
+            confWrap.appendChild(pctText);
+
+            const apply = document.createElement('button');
+            apply.type = 'button';
+            apply.className = 'btn btn-ghost ad-apply-btn';
+            apply.addEventListener('click', () => {
+                applyDetectedPreset(entry.name);
+                setActive(i);
+            });
+
+            head.appendChild(rank);
+            head.appendChild(name);
+            head.appendChild(confWrap);
+            head.appendChild(apply);
+            card.appendChild(head);
+
+            if (entry.reason) {
+                const reason = document.createElement('div');
+                reason.className = 'ad-card-reason';
+                reason.textContent = entry.reason;
+                reason.title = entry.reason;
+                card.appendChild(reason);
+            }
+
+            cards.push({card, apply});
+            list.appendChild(card);
+        });
+
+        autoDetectResults.appendChild(list);
+        setActive(0);  // top pick is auto-applied by the caller
 
         const tl = r.timeline && Array.isArray(r.timeline.intensity)
             ? r.timeline.intensity : [];
-        const tlEl = document.createElement('div');
-        tlEl.className = 'ad-timeline';
-        if (tl.length === 0) {
-            const empty = document.createElement('div');
-            empty.className = 'ad-timeline-empty';
-            empty.textContent = '(timeline unavailable)';
-            tlEl.appendChild(empty);
-        } else {
+        if (tl.length > 0) {
+            const tlEl = document.createElement('div');
+            tlEl.className = 'ad-timeline';
             for (const v of tl) {
                 const bar = document.createElement('div');
                 bar.className = 'ad-timeline-bar';
@@ -511,59 +536,8 @@ export async function initSingleTab() {
                 bar.title = `intensity ${(v * 100).toFixed(0)}%`;
                 tlEl.appendChild(bar);
             }
+            autoDetectResults.appendChild(tlEl);
         }
-        pop.appendChild(tlEl);
-
-        // Alternates (rank 2 and 3)
-        const alts = ranked.slice(1, 3);
-        if (alts.length > 0) {
-            const altsLabel = document.createElement('div');
-            altsLabel.className = 'ad-alts-label';
-            altsLabel.textContent = 'Also consider';
-            pop.appendChild(altsLabel);
-
-            const altsList = document.createElement('div');
-            altsList.className = 'ad-alts';
-            for (const a of alts) {
-                const alt = document.createElement('div');
-                alt.className = 'ad-alt';
-
-                const info = document.createElement('div');
-                info.className = 'ad-alt-info';
-                const an = document.createElement('div');
-                an.className = 'ad-alt-name';
-                an.textContent = a.label || labelOf(a.name);
-                const ar = document.createElement('div');
-                ar.className = 'ad-alt-reason';
-                ar.textContent = a.reason || '';
-                ar.title = a.reason || '';
-                info.appendChild(an);
-                info.appendChild(ar);
-
-                const apct = document.createElement('div');
-                apct.className = 'ad-alt-pct';
-                apct.textContent = `${Math.round((a.confidence || 0) * 100)}%`;
-
-                const apply = document.createElement('button');
-                apply.type = 'button';
-                apply.className = 'btn btn-ghost';
-                apply.textContent = 'Apply';
-                apply.addEventListener('click', () => {
-                    applyDetectedPreset(a.name);
-                });
-
-                alt.appendChild(info);
-                alt.appendChild(apct);
-                alt.appendChild(apply);
-                altsList.appendChild(alt);
-            }
-            pop.appendChild(altsList);
-        }
-
-        autoDetectResults.appendChild(pop);
-        detailsBtn.addEventListener('click', () => {
-            pop.hidden = !pop.hidden;
-        });
     }
 
     autoBtn.addEventListener('click', async () => {
@@ -606,6 +580,7 @@ export async function initSingleTab() {
             preset_strength: currentStrength(),
             sliders: controls.getValues(),
             preserve_volume: preserveVol.checked,
+            trim_silence: trimSilence.checked,
             output_format: outputFormat.value,
             mastering: masteringPayload(),
             ab_loudness_match: abLoudnessMatch.checked,
@@ -615,6 +590,7 @@ export async function initSingleTab() {
         pushSettings();
         schedulePreviewRender();
     });
+    trimSilence.addEventListener('change', pushSettings);
     outputFormat.addEventListener('change', pushSettings);
 
     // ── Live preview ──────────────────────────────────────────────────
@@ -891,11 +867,13 @@ export async function initSingleTab() {
             };
             if (lastAnalysis) paramsBody.mastering_analysis = lastAnalysis;
 
+            const wantTrim = trimSilence.checked;
             const job = await submitProcess(
                 currentFile,
                 paramsBody,
                 outputFormat.value,
                 preserveVol.checked && !masterEnabled.checked,
+                wantTrim,
             );
 
             await new Promise((resolve, reject) => {
@@ -914,7 +892,8 @@ export async function initSingleTab() {
             await player.loadFromJob(job.job_id);
             player.setTrack('processed');
 
-            downloadLink.href = resultUrl(job.job_id, 'processed');
+            downloadLink.href = resultUrl(
+                job.job_id, wantTrim ? 'trimmed' : 'processed');
             setWizardStep(2);
 
             const bannerChips = [];
@@ -927,6 +906,13 @@ export async function initSingleTab() {
                     `${mm.duration_s.toFixed(1)}s · ${mm.sample_rate} Hz · ${mm.channels}ch`,
                 ];
 
+                if (mm.trim && mm.trim.enabled) {
+                    const cut = (mm.trim.cut_head_s || 0) + (mm.trim.cut_tail_s || 0);
+                    chips.push(cut > 0.05
+                        ? `Export trims ${cut.toFixed(1)}s silence`
+                        : 'Export trim: no silence found');
+                }
+
                 fullMatchDb = null;
                 const mast = mm.mastering;
                 if (mast && mast.enabled && mast.before && mast.after) {
@@ -935,8 +921,17 @@ export async function initSingleTab() {
                     chips.push(
                         `TP ${mast.before.true_peak_dbtp?.toFixed(1)} → ${mast.after.true_peak_dbtp?.toFixed(1)} dBTP`);
                     if (mast.limiter && mast.limiter.max_gain_reduction_db != null) {
-                        chips.push(
-                            `Limiter ${mast.limiter.max_gain_reduction_db.toFixed(1)} dB max GR`);
+                        const gr = mast.limiter.max_gain_reduction_db;
+                        chips.push(`Limiter ${gr.toFixed(1)} dB max GR`);
+                        // Warm tilt boosts the low end, which is what drives
+                        // limiter pumping at loud targets — warn when the
+                        // combination is actually working the limiter hard.
+                        const warmTilt = mast.tilt === 'warm' || mast.tilt === 'warmer';
+                        if (warmTilt && gr < -3) {
+                            chips.push(
+                                '⚠ Warm tilt + loud target is pushing the limiter — ' +
+                                'possible pumping. Try a lower loudness target.');
+                        }
                     }
                     lastMasteringReport = mast;
                     fullMatchDb = -(mast.ab_match_gain_db || 0);

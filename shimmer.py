@@ -191,6 +191,10 @@ def _build_parser() -> argparse.ArgumentParser:
     mst.add_argument("--master-intensity", type=str, default=None,
                      choices=["low", "med", "high"],
                      help="Mastering EQ intensity")
+    mst.add_argument("--master-tilt", type=str, default=None,
+                     choices=["brightest", "bright", "neutral", "warm", "warmer"],
+                     help="Tone tilt: warm boosts lows / rolls off air, "
+                          "bright does the opposite (default neutral)")
 
     # --- Output ---
     out = ap.add_argument_group("output")
@@ -207,6 +211,9 @@ def _build_parser() -> argparse.ArgumentParser:
     misc = ap.add_argument_group("misc")
     misc.add_argument("--seed", type=int, default=None)
     misc.add_argument("--debug", action="store_true")
+    misc.add_argument("--legacy-engine", action="store_true",
+                      help="Use the old full-mix STFT engine instead of the "
+                           "safe band-split/M-S pipeline")
 
     return ap
 
@@ -330,6 +337,8 @@ def _resolve_master_params(args) -> MasterParams | None:
         mp.ceiling_dbtp = float(args.ceiling)
     if args.master_intensity:
         mp.intensity = args.master_intensity
+    if args.master_tilt:
+        mp.tilt = args.master_tilt
     return mp
 
 
@@ -417,6 +426,7 @@ def main() -> int:
         subtype=args.subtype,
         progress_callback=_progress_bar,
         master_params=master_params,
+        use_pipeline=not args.legacy_engine,
     )
 
     elapsed = time.time() - t_start

@@ -12,9 +12,11 @@ export async function initBatchTab() {
     const presetGroup  = $('batch-preset-group');
     const formatSelect = $('batch-format');
     const preserveVol  = $('batch-preserve-vol');
+    const trimSilence  = $('batch-trim-silence');
     const masterEnabled = $('batch-master-enabled');
     const masterTarget = $('batch-master-target');
     const masterIntensity = $('batch-master-intensity');
+    const masterTilt = $('batch-master-tilt');
     const runBtn       = $('batch-btn');
     const logEl        = $('batch-log');
     const strengthEl   = $('batch-strength');
@@ -109,12 +111,14 @@ export async function initBatchTab() {
             preset: presetSelect.value,
             output_format: formatSelect.value,
             preserve_volume: preserveVol.checked && !(masterEnabled && masterEnabled.checked),
+            trim_silence: trimSilence.checked,
             auto_detect: autoDetect,
             preset_strength: Number.isFinite(strength) ? strength : 1.0,
             mastering: {
                 enabled: masterEnabled ? masterEnabled.checked : false,
                 target: masterTarget ? masterTarget.value : 'streaming',
                 intensity: masterIntensity ? masterIntensity.value : 'med',
+                tilt: masterTilt ? masterTilt.value : 'neutral',
             },
         };
 
@@ -141,6 +145,11 @@ export async function initBatchTab() {
                             ? ` (${Math.round(msg.detected_confidence * 100)}%)`
                             : '';
                         line += `   preset: ${msg.detected_label || msg.detected_preset}${pct}`;
+                    }
+
+                    if (msg.trim && msg.trim.enabled) {
+                        const cut = (msg.trim.cut_head_s || 0) + (msg.trim.cut_tail_s || 0);
+                        if (cut > 0.05) line += `   trimmed ${cut.toFixed(1)}s`;
                     }
 
                     append(line, 'ok');

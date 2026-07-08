@@ -846,7 +846,12 @@ def suggest_preset(input_path: str,
             if i == 0:
                 conf = confidence_top
             else:
-                conf = float(np.clip(score / best_score, 0.0, 1.0))
+                # Same scale as the top pick: its margin-aware confidence
+                # decayed by relative score, so percentages always descend
+                # in rank order (a raw score/best ratio can exceed the top
+                # pick's own confidence when the race is close).
+                conf = confidence_top * float(
+                    np.clip(score / best_score, 0.0, 1.0))
             ranked.append({
                 "name":       name,
                 "label":      label_for(name),

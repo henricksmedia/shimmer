@@ -35,3 +35,6 @@ Desktop.ini
 # Local diagnostics and test audio (not for the public repo)
 testing/
 diag_*.py
+
+# Claude Code local permissions (machine-specific)
+.claude/settings.local.json

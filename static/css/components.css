@@ -630,29 +630,53 @@
     border-color: var(--danger);
 }
 
-/* ── Auto-detect results: slim summary row + details popover ──────── */
+/* ── Auto-detect results: ranked match cards + timeline ───────────── */
 
 .auto-detect-results {
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-2);
     background: var(--bg-1);
     border: 1px solid var(--line);
     border-radius: var(--radius-s);
-    padding: 6px 10px;
+    padding: var(--gap-2) 10px;
     margin-top: var(--gap-2);
 }
 
-.ad-row {
-    display: flex;
-    align-items: center;
-    gap: var(--gap-2);
-    min-width: 0;
-}
-.ad-eyebrow {
+.ad-cards-label {
     font-family: var(--font-mono);
     font-size: 10.5px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--fg-2);
+}
+.ad-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-2);
+}
+.ad-card {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    padding: 8px 10px;
+}
+.ad-card.active {
+    border-color: var(--purple);
+}
+.ad-card-head {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-2);
+    min-width: 0;
+}
+.ad-card-rank {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--fg-2);
+    background: var(--bg-3);
+    border-radius: 3px;
+    padding: 1px 6px;
     flex: 0 0 auto;
 }
 .ad-name {
@@ -673,27 +697,23 @@
     margin-left: auto;
     flex: 0 0 auto;
 }
-.ad-details-btn {
+.ad-apply-btn {
     flex: 0 0 auto;
     padding: 3px 10px;
     font-size: 11.5px;
 }
-
-.ad-pop {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0; right: 0;
-    z-index: 650;
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap-2);
-    background: var(--bg-2);
-    border: 1px solid var(--line-2);
-    border-radius: var(--radius-s);
-    padding: var(--gap-3);
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
-    max-height: 48vh;
-    overflow-y: auto;
+.ad-apply-btn:disabled {
+    color: var(--purple);
+    opacity: 1;
+}
+.ad-card-reason {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--fg-2);
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .ad-confidence {
     flex: 1;
@@ -742,57 +762,6 @@
     font-size: 11px;
     color: var(--fg-3);
     align-self: center;
-}
-
-.ad-alts-label {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--fg-2);
-    margin-bottom: var(--gap-1);
-}
-.ad-alts {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap-2);
-}
-.ad-alt {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--gap-2);
-    background: var(--bg-2);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-s);
-    padding: 8px 10px;
-}
-.ad-alt-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
-}
-.ad-alt-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--fg-0);
-}
-.ad-alt-reason {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    color: var(--fg-2);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.ad-alt-pct {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--fg-2);
-    min-width: 36px;
-    text-align: right;
 }
 
 .ad-error {
@@ -936,6 +905,7 @@
     gap: var(--gap-2);
 }
 .master-grid .label { margin-top: var(--gap-1); }
+.master-grid-span { grid-column: 1 / -1; }
 .mastering-readout {
     margin-top: var(--gap-2);
     font-size: 12px;

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Climate+Crisis&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+    href="https://fonts.googleapis.com/css2?family=Audiowide&family=Climate+Crisis&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/static/css/tokens.css">
 <link rel="stylesheet" href="/static/css/layout.css">
 <link rel="stylesheet" href="/static/css/components.css">
@@ -92,15 +92,27 @@
                                 <select id="master-target" class="select">
                                     <option value="streaming" selected>Streaming (−14 LUFS)</option>
                                     <option value="loud">Loud (−11 LUFS)</option>
-                                    <option value="cd">CD / Club (−9 LUFS)</option>
+                                    <option value="cd" title="Very loud master — heavy limiting can add audible distortion. Streaming platforms will turn it back down anyway.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="label" for="master-intensity">Intensity</label>
-                                <select id="master-intensity" class="select">
+                                <label class="label" for="master-intensity">Tone match</label>
+                                <select id="master-intensity" class="select"
+                                        title="How strongly the corrective EQ pulls the track toward a neutral reference curve. Does not change loudness — that's the loudness target.">
                                     <option value="low">Low — gentle EQ</option>
                                     <option value="med" selected>Medium</option>
                                     <option value="high">High — more correction</option>
+                                </select>
+                            </div>
+                            <div class="master-grid-span">
+                                <label class="label" for="master-tilt">Tone</label>
+                                <select id="master-tilt" class="select"
+                                        title="Stylistic warm–bright tilt on top of the tone match. Bounded by the same safety limits: boosts never exceed +2 dB, and the 5–12 kHz harshness band stays capped so AI fizz can't come back.">
+                                    <option value="brightest">Brightest — max air &amp; sparkle</option>
+                                    <option value="bright">Bright — crisper, more presence</option>
+                                    <option value="neutral" selected>Neutral — no tilt</option>
+                                    <option value="warm">Warm — rounder, softer top</option>
+                                    <option value="warmer">Warmer — max weight, rolled-off air</option>
                                 </select>
                             </div>
                         </div>
@@ -110,12 +122,13 @@
 
                 <div class="inline-field">
                     <label class="label" for="output-format">Output format</label>
-                    <select id="output-format" class="select">
-                        <option value="wav" selected>WAV (24-bit PCM)</option>
-                        <option value="flac">FLAC</option>
-                        <option value="mp3">MP3 (320 kbps)</option>
-                        <option value="ogg">OGG Vorbis</option>
-                        <option value="m4a">M4A (AAC)</option>
+                    <select id="output-format" class="select"
+                            title="True-peak ceiling adapts to the format: −1.0 dBTP for lossless (WAV/FLAC), −1.5 dBTP for lossy (MP3/OGG/M4A) so the encoder can't clip on decode.">
+                        <option value="wav" selected>WAV (24-bit PCM) · −1.0 dBTP</option>
+                        <option value="flac">FLAC · −1.0 dBTP</option>
+                        <option value="mp3">MP3 (320 kbps) · −1.5 dBTP</option>
+                        <option value="ogg">OGG Vorbis · −1.5 dBTP</option>
+                        <option value="m4a">M4A (AAC) · −1.5 dBTP</option>
                     </select>
                 </div>
 
@@ -123,6 +136,12 @@
                        title="When mastering is enabled, LUFS targeting handles loudness. Use this when mastering is off to A/B fairly.">
                     <input type="checkbox" id="preserve-vol" checked>
                     <span>Match loudness when mastering is off</span>
+                </label>
+
+                <label class="checkbox-row"
+                       title="Removes silence below −60 dBFS from the start and end of the downloaded file, keeping a short natural pad. Playback here stays full-length so A/B comparison remains in sync.">
+                    <input type="checkbox" id="trim-silence">
+                    <span>Trim leading/trailing silence on export</span>
                 </label>
 
                 <button type="button" class="btn btn-ghost advanced-open-btn" id="advanced-open-btn">
@@ -157,12 +176,13 @@
                             <button type="button" class="track-tab" data-track="processed" disabled title="Hear the cleaned + mastered result (key: 2)">
                                 <span class="track-key">2</span> Processed
                             </button>
-                            <button type="button" class="track-tab" data-track="removed" disabled title="Hear only what was removed, boosted 5x (key: 3)">
-                                <span class="track-key">3</span> Removed <span class="hint">5×</span>
+                            <button type="button" class="track-tab" data-track="removed" disabled title="Hear only what Shimmer stripped away — boosted for monitoring, never in your export. If you hear vocals, snare snap, or musical detail, reduce the cleaning strength. (key: 3)">
+                                <span class="track-key">3</span> Removed <span class="hint">boosted</span>
                             </button>
                         </div>
                         <div class="player-view-toggle">
                             <button type="button" class="viz-mode-btn active" id="viz-mode-wave" title="Waveform view">Waveform</button>
+                            <button type="button" class="viz-mode-btn" id="viz-mode-overlay" title="Waveform over spectrogram — see when and where artifacts hit at once">Both</button>
                             <button type="button" class="viz-mode-btn" id="viz-mode-spec" title="Spectrogram view — artifacts show as bright streaks in the shaded band">Spectrogram</button>
                         </div>
                     </div>
@@ -299,6 +319,12 @@
                     <span>Match loudness when mastering is off</span>
                 </label>
 
+                <label class="checkbox-row"
+                       title="Removes silence below −60 dBFS from the start and end of each output file, keeping a short natural pad.">
+                    <input type="checkbox" id="batch-trim-silence">
+                    <span>Trim leading/trailing silence</span>
+                </label>
+
                 <div class="control-block mastering-card batch-mastering">
                     <label class="checkbox-row">
                         <input type="checkbox" id="batch-master-enabled" checked>
@@ -308,13 +334,21 @@
                     <select id="batch-master-target" class="select">
                         <option value="streaming" selected>Streaming (−14 LUFS)</option>
                         <option value="loud">Loud (−11 LUFS)</option>
-                        <option value="cd">CD / Club (−9 LUFS)</option>
+                        <option value="cd" title="Very loud master — heavy limiting can add audible distortion.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
                     </select>
-                    <label class="label" for="batch-master-intensity">Intensity</label>
+                    <label class="label" for="batch-master-intensity">Tone match</label>
                     <select id="batch-master-intensity" class="select">
                         <option value="low">Low</option>
                         <option value="med" selected>Medium</option>
                         <option value="high">High</option>
+                    </select>
+                    <label class="label" for="batch-master-tilt">Tone</label>
+                    <select id="batch-master-tilt" class="select">
+                        <option value="brightest">Brightest</option>
+                        <option value="bright">Bright</option>
+                        <option value="neutral" selected>Neutral</option>
+                        <option value="warm">Warm</option>
+                        <option value="warmer">Warmer</option>
                     </select>
                 </div>
             </div>

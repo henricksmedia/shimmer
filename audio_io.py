@@ -18,7 +18,7 @@ from typing import Dict, Any, Optional, Callable, Tuple
 import numpy as np
 import soundfile as sf
 
-from dsp import as_2d, lin_to_db
+from dsp import as_2d, lin_to_db, trim_silence as dsp_trim_silence
 from params import Params, MasterParams
 from engine import process
 from mastering import master, master_params_from_json, tpdf_dither
@@ -268,18 +268,77 @@ def process_file(
     progress_callback: Optional[Callable[[float], None]] = None,
     master_params: Optional[MasterParams] = None,
     mastering_analysis: Optional[Dict[str, Any]] = None,
+    use_pipeline: bool = True,
+    trim_silence: bool = False,
 ) -> Dict[str, Any]:
-    """Read an audio file, process it, write the result."""
+    """Read an audio file, process it, write the result.
+
+    `use_pipeline=True` (default) runs the safe band-split/M-S pipeline:
+    the low/mid body bypasses the STFT engine, only the high band is
+    cleaned, and mastering is single-pass true-peak safe. Set False to
+    fall back to the legacy full-mix engine.
+    """
     from engine import apply_post_filters
 
     x, sr = load_audio(input_path)
 
     meas_in = measure(x)
-    y = process(x, sr, params, progress_callback=progress_callback)
-    y2 = as_2d(y)
-
     mastering_report: Dict[str, Any] = {"enabled": False}
     use_mastering = master_params is not None and master_params.enabled
+
+    if use_pipeline:
+        from pipeline import clean_and_master
+
+        y2, removed, pipe_report = clean_and_master(
+            x, sr, params,
+            master_params=master_params if use_mastering else None,
+            progress_callback=progress_callback,
+            raw_analysis=mastering_analysis,
+        )
+        mastering_report = pipe_report.get("mastering", {"enabled": False})
+
+        if write_diff:
+            save_audio(write_diff, removed, sr,
+                       subtype=subtype, mp3_bitrate=mp3_bitrate)
+
+        if not use_mastering and do_preserve_volume:
+            y2 = preserve_volume(
+                y2, meas_in["peak_linear"], input_rms=meas_in["rms_linear"])
+            y2 = clip_protect(y2)
+
+        trim_report: Dict[str, Any] = {"enabled": False}
+        if trim_silence:
+            y2, cut_head, cut_tail = dsp_trim_silence(y2, sr)
+            trim_report = {
+                "enabled": True,
+                "cut_head_s": round(cut_head, 3),
+                "cut_tail_s": round(cut_tail, 3),
+            }
+
+        use_dither = subtype.upper() in ("PCM_16", "PCM16")
+        save_audio(
+            output_path, y2, sr, subtype=subtype, mp3_bitrate=mp3_bitrate,
+            dither=use_dither)
+
+        meas_out = measure(y2)
+        return {
+            "sr": sr,
+            "channels": x.shape[1],
+            "duration_s": float(x.shape[0] / sr),
+            "input": meas_in,
+            "output": meas_out,
+            "mastering": mastering_report,
+            "trim": trim_report,
+            "pipeline": {
+                "tone_curve_db": pipe_report.get("tone_curve_db", []),
+                "side_width_compensation": pipe_report.get(
+                    "side_width_compensation", {}),
+            },
+        }
+
+    # ── Legacy full-mix engine path ───────────────────────────────────────
+    y = process(x, sr, params, progress_callback=progress_callback)
+    y2 = as_2d(y)
 
     if write_diff:
         n = min(x.shape[0], y2.shape[0])
@@ -295,6 +354,15 @@ def process_file(
             y2, meas_in["peak_linear"], input_rms=meas_in["rms_linear"])
         y2 = clip_protect(y2)
 
+    trim_report = {"enabled": False}
+    if trim_silence:
+        y2, cut_head, cut_tail = dsp_trim_silence(y2, sr)
+        trim_report = {
+            "enabled": True,
+            "cut_head_s": round(cut_head, 3),
+            "cut_tail_s": round(cut_tail, 3),
+        }
+
     use_dither = subtype.upper() in ("PCM_16", "PCM16")
     save_audio(
         output_path, y2, sr, subtype=subtype, mp3_bitrate=mp3_bitrate,
@@ -309,4 +377,5 @@ def process_file(
         "input": meas_in,
         "output": meas_out,
         "mastering": mastering_report,
+        "trim": trim_report,
     }

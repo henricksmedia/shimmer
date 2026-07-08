@@ -40,7 +40,7 @@ REM is the only way to know the venv actually has what we need.
 "%PY%" -c "import fastapi, uvicorn, numpy, scipy, soundfile, pyloudnorm" 1>nul 2>nul
 if %errorlevel% neq 0 (
     echo  Installing dependencies with uv...
-    uv pip install -r requirements.txt
+    uv pip install -r docs\requirements.txt
     if %errorlevel% neq 0 (
         echo  Failed to install dependencies.
         pause

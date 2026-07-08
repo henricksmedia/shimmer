@@ -24,6 +24,8 @@ Catalog (visible in the UI):
   Phantom Cymbal     - washy metallic cymbal wash in the 4-10 kHz band
   Harsh Veil         - gritty texture across the upper-mids (4-12 kHz)
   Deep Scrub         - maximum-strength wide-band cleanup (3-18 kHz)
+  Muddy / Boxy       - low-mid mud cleanup (200-500 Hz bell cut, static EQ)
+  Dark Mix Rescue    - brighten dull mixes + clean the exposed top end
 
 Legacy version-named keys (suno_v3 .. suno_v5.5, suno_cymbal) remain as
 hidden aliases so existing CLI calls, saved settings, and external scripts
@@ -415,10 +417,12 @@ def suno_hash() -> Params:
          tight ceilings, just enough to mop up the steady-state noise
          floor that survives AM compression. NOT enough to dull real
          music.
-      3. Uses **steady_state_mode** + **density_floor=0.7** so the
-         broadband stages stay active on vocal frames where the hash
-         actually rides (otherwise w_nontrans / density gating would
-         silently disable them).
+      3. Uses **density_floor=0.7** so the broadband stages stay
+         active on dense vocal frames where the hash actually rides.
+         Transient protection is handled by the engine's hold/release
+         envelope (attack instant, ~70 ms hold, ~160 ms release), so
+         drum hits and consonants are spared without disabling
+         steady-state cleaning between them.
 
     Iterations=1: a single pass with surgical FlickerTamer is enough
     on real material; iter=2 was compounding the broadband attenuation.
@@ -432,7 +436,10 @@ def suno_hash() -> Params:
         n_fft=4096,
         hop=1024,
 
-        steady_state_mode=True,
+        # Crossover below the artifact band so the 4.5 kHz band start
+        # sits fully inside the cleaned high band (FIR transition).
+        crossover_hz=4000.0,
+
         density_floor=0.70,
         deq_density_floor=0.6,
 
@@ -506,9 +513,10 @@ def presence_haze() -> Params:
 
     Strategy: denoise-led with a short minimum-statistics window and
     fast upward drift so the noise floor estimate tracks the
-    content-gated wash. steady_state_mode + density_floor keep all
-    stages active during busy frames. A small presence shelf cut
-    handles whatever spectral processing can't reach.
+    content-gated wash. density_floor keeps all stages active during
+    busy frames (transients are protected by the engine's hold
+    envelope). A small presence shelf cut handles whatever spectral
+    processing can't reach.
     """
     return Params(
         start_hz=3000.0,
@@ -523,7 +531,10 @@ def presence_haze() -> Params:
         flat_start=0.15,
         flat_end=0.55,
 
-        steady_state_mode=True,
+        # Artifact band starts at 3 kHz — drop the crossover below it
+        # so the presence band actually reaches the engine.
+        crossover_hz=2500.0,
+
         density_floor=0.60,
         density_lo=0.02,
         density_hi=0.30,
@@ -566,8 +577,9 @@ def phantom_cymbal() -> Params:
 
     Strategy: DeResonator + DeHarsh led, targeting the metallic peaks
     that hide inside the broadband wash. Denoise and ShimmerStage
-    provide broadband support. steady_state_mode + density_floor keep
-    processing engaged during the busy frames where the wash is worst.
+    provide broadband support. density_floor keeps processing engaged
+    during the busy frames where the wash is worst; the engine's
+    transient hold envelope protects the hits themselves.
     """
     return Params(
         start_hz=4000.0,
@@ -582,7 +594,8 @@ def phantom_cymbal() -> Params:
         flat_start=0.15,
         flat_end=0.55,
 
-        steady_state_mode=True,
+        crossover_hz=3500.0,
+
         density_floor=0.50,
         deq_density_floor=0.50,
         density_lo=0.02,
@@ -657,7 +670,8 @@ def harsh_veil() -> Params:
         flat_start=0.18,
         flat_end=0.60,
 
-        steady_state_mode=True,
+        crossover_hz=3500.0,
+
         density_floor=0.50,
         deq_density_floor=0.40,
         density_lo=0.02,
@@ -712,10 +726,12 @@ def deep_scrub() -> Params:
     subtlety isn't working and you need the artifact gone.
 
     Strategy: all stages active simultaneously. Two iterations, wide
-    bands, high density floor, steady-state mode. Pre-analyze for
-    full-file two-pass detection. High-shelf and presence-shelf cuts
-    as a final safety net. Expect noticeable high-frequency dulling --
-    that's the trade-off.
+    bands, high density floor. Pre-analyze for full-file two-pass
+    detection. High-shelf and presence-shelf cuts as a final safety
+    net. Expect noticeable high-frequency dulling -- that's the
+    trade-off. Transient hits are still protected by the engine's
+    hold envelope, and the Side channel takes the brunt of the
+    cleaning via the M/S split.
     """
     return Params(
         start_hz=3000.0,
@@ -730,7 +746,11 @@ def deep_scrub() -> Params:
         flat_start=0.15,
         flat_end=0.55,
 
-        steady_state_mode=True,
+        crossover_hz=2500.0,
+        # Deep scrub is the "make it stop" preset — allow more Mid
+        # cleaning than the default 0.2 (still gentler than Side).
+        ms_mid_scale=0.45,
+
         density_floor=0.70,
         deq_density_floor=0.60,
         density_lo=0.02,
@@ -841,7 +861,14 @@ def vocal_glaze() -> Params:
         flat_start=0.10,
         flat_end=0.45,
 
-        steady_state_mode=True,
+        # The glaze rides the center vocal, so the crossover drops to
+        # 300 Hz: DeHarsh needs the clean vocal fundamental (300-1500
+        # Hz) inside the engine band as its reference. Content below
+        # 2 kHz is untouched anyway (no stage band covers it) and the
+        # transient hold + Mid scaling protect the vocal core.
+        crossover_hz=300.0,
+        ms_mid_scale=0.5,
+
         density_floor=0.55,
         density_lo=0.02,
         density_hi=0.25,
@@ -954,10 +981,13 @@ def vocal_glaze_plus() -> Params:
         flat_start=0.15,
         flat_end=0.55,
 
-        # Both primary presets use steady_state_mode + density_floor
-        # so broadband stages stay active on dense vocal/drum frames
-        # where the artifacts actually live.
-        steady_state_mode=True,
+        # density_floor keeps broadband stages active on dense
+        # vocal/drum frames where the artifacts actually live; the
+        # engine's transient hold envelope protects the hits.
+        # Crossover at 300 Hz so the vocal-fundamental DeHarsh
+        # reference band reaches the engine (see vocal_glaze).
+        crossover_hz=300.0,
+        ms_mid_scale=0.5,
         density_floor=0.65,
         deq_density_floor=0.55,
         density_lo=0.02,
@@ -1071,7 +1101,8 @@ def echo_sheen() -> Params:
         flat_start=0.12,
         flat_end=0.50,
 
-        steady_state_mode=True,
+        crossover_hz=2500.0,
+
         density_floor=0.60,
         density_lo=0.02,
         density_hi=0.30,
@@ -1193,6 +1224,100 @@ def reverb_flutter() -> Params:
     )
 
 
+def muddy_boxy() -> Params:
+    """
+    Muddy, boxy low-mids (200-500 Hz buildup).
+
+    The classic AI-mix complaint that no high-band preset touches: the
+    song sounds thick, congested, "recorded in a cardboard box." Bass
+    and low vocal/guitar energy pile up around 250-400 Hz and mask
+    everything above.
+
+    This is NOT an STFT-surgery problem — the band-split pipeline
+    never sends low-mids through the artifact engine (by design, to
+    protect the body of the song). Instead this preset works through
+    gentle static EQ:
+
+      - a wide peaking cut centred at 300 Hz (the "mud bell"),
+      - a small presence lift so the cleared midrange opens up,
+      - a subsonic highpass to stop sub-rumble feeding the thickness.
+
+    High-band cleaning is minimal (mild tone killer only) — pair with
+    Mastering enabled so the bounded tone curve can also help rebalance.
+    Scale the mud cut with Preset Strength.
+    """
+    return Params(
+        # Minimal high-band engine work: keep a soft safety net only.
+        tone_kill=0.3,
+
+        # The actual de-mud: wide bell cut at 300 Hz.
+        lowmid_hz=300.0,
+        lowmid_db=-3.5,
+        lowmid_q=0.8,
+
+        # Open the top a touch so the mix doesn't feel darker after
+        # the low-mid cleanup.
+        presence_hz=3500.0,
+        presence_db=1.0,
+
+        subsonic_hz=30.0,
+    )
+
+
+def dark_mix_rescue() -> Params:
+    """
+    Dull, dark, lifeless mix rescue (brighten + de-mud + clean).
+
+    For AI songs that came out sounding like they're behind a blanket:
+    no air, muffled vocals, murky low-mids. The inverse problem of
+    harshness — but brightening a dark AI mix also EXPOSES the hash
+    and shimmer that the darkness was hiding, so this preset pairs the
+    tonal rescue with moderate high-band cleaning:
+
+      - high-shelf air lift (+2.5 dB above 9 kHz) and presence lift,
+      - low-mid mud cut so the brightening reads as clarity, not hiss,
+      - FlickerTamer + denoise on the newly exposed 4.5-14 kHz band so
+        the lifted top end stays clean,
+      - tone killer for whistles that become audible once lifted.
+
+    Pair with Mastering enabled: the bounded tone curve (max +2 dB,
+    boost-limited 5-12 kHz) adds broadband support without the risk of
+    re-boosting harshness.
+    """
+    return Params(
+        start_hz=4500.0,
+        end_hz=14000.0,
+        edge_hz=400.0,
+
+        crossover_hz=4000.0,
+
+        # Clean the band we are about to brighten.
+        denoise=0.30,
+        dn_start_hz=4500.0,
+        dn_end_hz=14000.0,
+        dn_floor_db=-14.0,
+
+        flicker_tame=0.45,
+        ft_start_hz=4500.0,
+        ft_end_hz=12000.0,
+
+        tone_kill=0.45,
+        tk_start_hz=4000.0,
+        tk_end_hz=20000.0,
+
+        # The rescue: air + presence up, mud down.
+        high_shelf_hz=9000.0,
+        high_shelf_db=2.5,
+        presence_hz=3000.0,
+        presence_db=1.5,
+        lowmid_hz=350.0,
+        lowmid_db=-2.0,
+        lowmid_q=0.9,
+
+        subsonic_hz=30.0,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -1216,6 +1341,8 @@ PRESETS: Dict[str, Callable[[], Params]] = {
     "phantom_cymbal":    phantom_cymbal,
     "harsh_veil":        harsh_veil,
     "deep_scrub":        deep_scrub,
+    "muddy_boxy":        muddy_boxy,
+    "dark_mix_rescue":   dark_mix_rescue,
 }
 
 VISIBLE_PRESETS = list(PRESETS.keys())
@@ -1254,6 +1381,8 @@ PRESET_LABELS: Dict[str, str] = {
     "phantom_cymbal":    "Phantom Cymbal",
     "harsh_veil":        "Harsh Veil",
     "deep_scrub":        "Deep Scrub",
+    "muddy_boxy":        "Muddy / Boxy (De-Mud)",
+    "dark_mix_rescue":   "Dark Mix Rescue (Brighten)",
 }
 
 # All resolvable preset keys (visible + aliases). The /api/presets endpoint

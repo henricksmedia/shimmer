@@ -14,8 +14,12 @@ const REMOVED_BOOST_DB = 14;
 
 // ── Colors (match tokens.css) ───────────────────────────────────────
 const C = {
-    waveTop: 'rgba(160, 140, 250, 0.95)',
-    waveRms: 'rgba(108, 92, 231, 0.55)',
+    waveTop: 'rgba(160, 140, 250, 0.45)',
+    waveRms: 'rgba(138, 120, 246, 0.92)',
+    // Overlay mode: waveform drawn on top of the spectrogram, so it
+    // reads as a light translucent trace instead of solid purple.
+    overlayTop: 'rgba(255, 255, 255, 0.22)',
+    overlayRms: 'rgba(255, 255, 255, 0.38)',
     waveBg: '#0e0e16',
     playhead: 'rgba(255, 255, 255, 0.9)',
     loopFill: 'rgba(212, 165, 90, 0.14)',
@@ -82,9 +86,30 @@ function heat(t) {
     return [240 + 15 * u, 148 + 90 * u, 40 + 160 * u];
 }
 
+// ── Display mixdown ─────────────────────────────────────────────────
+// The display (peaks + spectrogram) uses an average of all channels so
+// right-channel-only content is never invisible. Cached per buffer —
+// renderBase re-runs on every resize/track switch.
+const mixdownCache = new WeakMap();
+function displayData(buffer) {
+    if (buffer.numberOfChannels === 1) return buffer.getChannelData(0);
+    let mix = mixdownCache.get(buffer);
+    if (mix) return mix;
+    mix = new Float32Array(buffer.length);
+    mix.set(buffer.getChannelData(0));
+    for (let ch = 1; ch < buffer.numberOfChannels; ch++) {
+        const d = buffer.getChannelData(ch);
+        for (let i = 0; i < mix.length; i++) mix[i] += d[i];
+    }
+    const inv = 1 / buffer.numberOfChannels;
+    for (let i = 0; i < mix.length; i++) mix[i] *= inv;
+    mixdownCache.set(buffer, mix);
+    return mix;
+}
+
 // ── Peak computation ────────────────────────────────────────────────
 function computePeaks(buffer, width) {
-    const data = buffer.getChannelData(0);
+    const data = displayData(buffer);
     const n = data.length;
     const min = new Float32Array(width);
     const max = new Float32Array(width);
@@ -110,7 +135,7 @@ function computePeaks(buffer, width) {
 
 // ── Spectrogram (real STFT, log-frequency, rendered offscreen once) ─
 function computeSpectrogram(buffer, widthPx, heightPx) {
-    const data = buffer.getChannelData(0);
+    const data = displayData(buffer);
     const sr = buffer.sampleRate;
     const nFft = 1024;
     const bins = nFft / 2;
@@ -192,6 +217,7 @@ export function createUnifiedPlayer({
     timeLabel,
     tabsHost,            // container with [data-track] buttons
     modeWaveBtn,
+    modeOverlayBtn,
     modeSpecBtn,
     spectrumCanvas,      // live spectrum canvas (while playing)
     metersHost,          // wrapper for live meters (hidden when idle)
@@ -316,11 +342,13 @@ export function createUnifiedPlayer({
 
     // ── Levels (loudness-matched A/B + removed audition boost) ──────
     // Total per-track gain in dB. Removed is excluded from matching and
-    // instead carries the audition boost while previewing (the full-run
-    // removed file ships pre-boosted from the server).
+    // always carries the monitoring boost — server files and preview
+    // slices both ship UNBOOSTED so the boost is never baked into
+    // anything the user exports. Preview caps the boost against the
+    // slice's own peak; the full-run path uses the nominal boost.
     function trackGainDb(key) {
         if (key === 'removed') {
-            return state.preview ? prev.removedBoostDb : 0;
+            return state.preview ? prev.removedBoostDb : REMOVED_BOOST_DB;
         }
         return state.matchEnabled ? (state.gainDb[key] || 0) : 0;
     }
@@ -691,7 +719,10 @@ export function createUnifiedPlayer({
         const buf = buffers.get(displayKey());
         if (!buf) { baseValid = true; specData = null; return; }
 
-        if (state.mode === 'spectrogram') {
+        const showSpec = state.mode === 'spectrogram' || state.mode === 'overlay';
+        const showWave = state.mode === 'waveform' || state.mode === 'overlay';
+
+        if (showSpec) {
             specData = computeSpectrogram(buf, Math.floor(w / 2), Math.floor(h / 2));
             ctx.imageSmoothingEnabled = true;
             ctx.drawImage(specData.canvas, 0, 0, w, h);
@@ -710,17 +741,21 @@ export function createUnifiedPlayer({
             ctx.setLineDash([]);
         } else {
             specData = null;
+        }
+
+        if (showWave) {
+            const overlay = state.mode === 'overlay';
             const peaks = computePeaks(buf, w);
             const mid = h / 2;
             // min/max peak fill
-            ctx.fillStyle = C.waveTop;
+            ctx.fillStyle = overlay ? C.overlayTop : C.waveTop;
             for (let x = 0; x < w; x++) {
                 const y1 = mid - peaks.max[x] * mid;
                 const y2 = mid - peaks.min[x] * mid;
                 ctx.fillRect(x, Math.min(y1, y2), 1, Math.max(1, Math.abs(y2 - y1)));
             }
             // RMS body overlay
-            ctx.fillStyle = C.waveRms;
+            ctx.fillStyle = overlay ? C.overlayRms : C.waveRms;
             for (let x = 0; x < w; x++) {
                 const r = peaks.rms[x] * mid;
                 ctx.fillRect(x, mid - r, 1, Math.max(1, r * 2));
@@ -787,15 +822,42 @@ export function createUnifiedPlayer({
 
         const sr = audioCtx ? audioCtx.sampleRate : 48000;
         const nyq = sr / 2;
+        // Fixed axis (not Nyquist) so labels stay put across sample rates.
         const fMin = 40;
+        const fMax = Math.min(20000, nyq);
         const nBins = analyser.frequencyBinCount;
 
-        // Shimmer band shading (log-frequency x-axis)
         const xOfFreq = (f) => {
-            const frac = Math.log(Math.max(fMin, Math.min(nyq, f)) / fMin) /
-                         Math.log(nyq / fMin);
+            const frac = Math.log(Math.max(fMin, Math.min(fMax, f)) / fMin) /
+                         Math.log(fMax / fMin);
             return frac * w;
         };
+
+        // Frequency gridlines + labels (drawn first so the trace sits on top)
+        const ticks = [
+            [100, '100'], [1000, '1k'], [5000, '5k'],
+            [10000, '10k'], [20000, '20k'],
+        ];
+        ctx.font = `500 ${9 * dpr}px system-ui, sans-serif`;
+        ctx.textBaseline = 'bottom';
+        for (const [f, text] of ticks) {
+            if (f > fMax) continue;
+            const x = xOfFreq(f);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            const isLast = f >= fMax;
+            ctx.textAlign = isLast ? 'right' : 'left';
+            const pad = 3 * dpr;
+            ctx.fillText(text, isLast ? x - pad : x + pad, h - 2 * dpr);
+        }
+        ctx.textAlign = 'left';
+
+        // Shimmer band shading (log-frequency x-axis)
         const band = getShimmerBand();
         ctx.fillStyle = C.bandFill;
         ctx.fillRect(xOfFreq(band.lo), 0, xOfFreq(band.hi) - xOfFreq(band.lo), h);
@@ -809,27 +871,50 @@ export function createUnifiedPlayer({
             ctx.stroke();
         }
 
-        // Log-frequency line spectrum
+        // Log-frequency line spectrum — thin bright gradient line with a
+        // translucent filled body (blue/teal -> green/yellow -> pink).
         ctx.beginPath();
         let started = false;
         for (let px = 0; px < w; px += 2) {
             const frac = px / w;
-            const f = fMin * Math.pow(nyq / fMin, frac);
+            const f = fMin * Math.pow(fMax / fMin, frac);
             const bin = Math.min(nBins - 1, Math.round((f / nyq) * (nBins - 1)));
             const v = freqData[bin] / 255;
             const y = h - v * h;
             if (!started) { ctx.moveTo(px, y); started = true; }
             else ctx.lineTo(px, y);
         }
-        ctx.strokeStyle = C.specBar;
+        const grad = ctx.createLinearGradient(0, 0, w, 0);
+        grad.addColorStop(0.0, '#38bdf8');
+        grad.addColorStop(0.3, '#2dd4bf');
+        grad.addColorStop(0.55, '#a3e635');
+        grad.addColorStop(0.75, '#facc15');
+        grad.addColorStop(1.0, '#f472b6');
+        ctx.strokeStyle = grad;
         ctx.lineWidth = 1.5 * dpr;
         ctx.stroke();
         // Fill under the line
         ctx.lineTo(w, h);
         ctx.lineTo(0, h);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(140, 110, 250, 0.16)';
+        const bodyGrad = ctx.createLinearGradient(0, 0, 0, h);
+        bodyGrad.addColorStop(0, 'rgba(140, 110, 250, 0.28)');
+        bodyGrad.addColorStop(1, 'rgba(140, 110, 250, 0.06)');
+        ctx.fillStyle = bodyGrad;
         ctx.fill();
+
+        // Status label, top-left (listening aid, not diagnostics).
+        const statusText = {
+            original: 'BEFORE · SOURCE',
+            processed: 'AFTER · SHIMMER',
+            removed: 'REMOVED · SIGNAL — boosted for monitoring',
+        }[state.active] || '';
+        if (statusText) {
+            ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+            ctx.textBaseline = 'top';
+            ctx.fillText(statusText, 8 * dpr, 6 * dpr);
+        }
 
         // Level bar (RMS dBFS approximation against LUFS scale)
         if (lufsFillEl) {
@@ -906,13 +991,15 @@ export function createUnifiedPlayer({
     if (playBtn) playBtn.addEventListener('click', toggle);
 
     function setMode(mode) {
-        state.mode = mode === 'spectrogram' ? 'spectrogram' : 'waveform';
+        state.mode = ['spectrogram', 'overlay'].includes(mode) ? mode : 'waveform';
         if (modeWaveBtn) modeWaveBtn.classList.toggle('active', state.mode === 'waveform');
+        if (modeOverlayBtn) modeOverlayBtn.classList.toggle('active', state.mode === 'overlay');
         if (modeSpecBtn) modeSpecBtn.classList.toggle('active', state.mode === 'spectrogram');
         invalidateBase();
         drawFrame();
     }
     if (modeWaveBtn) modeWaveBtn.addEventListener('click', () => setMode('waveform'));
+    if (modeOverlayBtn) modeOverlayBtn.addEventListener('click', () => setMode('overlay'));
     if (modeSpecBtn) modeSpecBtn.addEventListener('click', () => setMode('spectrogram'));
 
     function attachKeyboard() {

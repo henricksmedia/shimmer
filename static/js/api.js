@@ -21,12 +21,13 @@ export async function saveSettings(payload) {
     });
 }
 
-export async function submitProcess(file, paramsBody, outputFormat, preserveVolume) {
+export async function submitProcess(file, paramsBody, outputFormat, preserveVolume, trimSilence) {
     const form = new FormData();
     form.append('file', file);
     form.append('params', JSON.stringify(paramsBody));
     form.append('output_format', outputFormat);
     form.append('preserve_volume', preserveVolume ? 'true' : 'false');
+    form.append('trim_silence', trimSilence ? 'true' : 'false');
     const res = await fetch('/api/process', {method: 'POST', body: form});
     if (!res.ok) {
         const text = await res.text();

@@ -33,6 +33,9 @@ class Job:
     original_path: str = ""
     processed_path: str = ""
     diff_path: str = ""
+    # Silence-trimmed export variant; playback always streams processed_path
+    # so the synced A/B/C player keeps a shared clock.
+    trimmed_path: str = ""
     output_ext: str = ".wav"
     # Friendly stems used for the download Content-Disposition filenames so
     # successive downloads don't all collide on `processed.wav` in the user's

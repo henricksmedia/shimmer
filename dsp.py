@@ -10,7 +10,7 @@ from __future__ import annotations
 import _winfix  # noqa: F401  # must precede scipy import on Windows
 
 import math
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from scipy.signal import butter, sosfiltfilt
@@ -130,3 +130,85 @@ def apply_highpass(x: np.ndarray, sr: int,
     wn = float(np.clip(cutoff_hz / (0.5 * sr), 1e-6, 0.999999))
     sos = butter(order, wn, btype="highpass", output="sos")
     return sosfiltfilt(sos, x, axis=0).astype(np.float32)
+
+
+def apply_peaking(x: np.ndarray, sr: int, center_hz: float,
+                  gain_db: float, q: float = 1.0) -> np.ndarray:
+    """Apply an RBJ peaking (bell) EQ, zero-phase.
+
+    gain_db < 0 cuts around center_hz (e.g. de-mud at 300 Hz),
+    gain_db > 0 boosts. Q controls bandwidth (1.0 ~ 1.4 octaves).
+    """
+    if abs(gain_db) < 0.1 or center_hz <= 0 or center_hz >= 0.49 * sr:
+        return x
+    A = 10.0 ** (gain_db / 40.0)
+    w0 = 2.0 * np.pi * center_hz / sr
+    cos_w0 = np.cos(w0)
+    alpha = np.sin(w0) / (2.0 * max(0.1, q))
+
+    b0 = 1 + alpha * A
+    b1 = -2 * cos_w0
+    b2 = 1 - alpha * A
+    a0 = 1 + alpha / A
+    a1 = -2 * cos_w0
+    a2 = 1 - alpha / A
+
+    sos = np.array([[b0/a0, b1/a0, b2/a0, 1.0, a1/a0, a2/a0]], dtype=np.float64)
+    return sosfiltfilt(sos, x, axis=0).astype(np.float32)
+
+
+# ---------------------------------------------------------------------------
+# Silence trimming
+# ---------------------------------------------------------------------------
+
+def find_audible_bounds(x: np.ndarray, sr: int,
+                        threshold_db: float = -60.0,
+                        window_ms: float = 20.0) -> Optional[Tuple[int, int]]:
+    """Return (start, end) sample indices of audible content, or None if
+    the whole file is below the threshold. Detection uses a windowed RMS
+    so a low-level noise floor doesn't count as audio."""
+    x = as_2d(np.asarray(x, dtype=np.float32))
+    mono = np.max(np.abs(x), axis=1)
+    win = max(1, int(sr * window_ms / 1000.0))
+    sq = np.concatenate(([0.0], np.cumsum(mono.astype(np.float64) ** 2)))
+    if sq.shape[0] <= win:
+        return None
+    rms = np.sqrt((sq[win:] - sq[:-win]) / win)
+    threshold = 10.0 ** (threshold_db / 20.0)
+    audible = np.flatnonzero(rms > threshold)
+    if audible.size == 0:
+        return None
+    # rms[i] covers samples [i, i+win); map back to sample positions.
+    return int(audible[0]), int(min(audible[-1] + win, x.shape[0]))
+
+
+def trim_silence(x: np.ndarray, sr: int,
+                 threshold_db: float = -60.0,
+                 head_pad_ms: float = 50.0,
+                 tail_pad_ms: float = 250.0,
+                 fade_ms: float = 10.0) -> Tuple[np.ndarray, float, float]:
+    """Clip silence from the start/end of (samples, channels) audio.
+
+    Keeps head_pad_ms / tail_pad_ms of breathing room around the audible
+    region and applies short edge fades so a mid-waveform cut can't click.
+    Returns (audio, seconds_cut_head, seconds_cut_tail).
+    """
+    x = as_2d(np.asarray(x, dtype=np.float32))
+    bounds = find_audible_bounds(x, sr, threshold_db)
+    if bounds is None:
+        return x, 0.0, 0.0
+
+    start, end = bounds
+    start = max(0, start - int(sr * head_pad_ms / 1000.0))
+    end = min(x.shape[0], end + int(sr * tail_pad_ms / 1000.0))
+    if start == 0 and end == x.shape[0]:
+        return x, 0.0, 0.0
+    y = x[start:end].copy()
+
+    fade = min(int(sr * fade_ms / 1000.0), y.shape[0] // 2)
+    if fade > 1:
+        ramp = np.linspace(0.0, 1.0, fade, dtype=np.float32)[:, None]
+        y[:fade] *= ramp
+        y[-fade:] *= ramp[::-1]
+
+    return y, start / sr, (x.shape[0] - end) / sr
