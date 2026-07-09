@@ -1006,6 +1006,11 @@ export function createUnifiedPlayer({
         document.addEventListener('keydown', (ev) => {
             const tag = (ev.target && ev.target.tagName || '').toLowerCase();
             if (['input', 'select', 'textarea', 'button'].includes(tag)) return;
+            // These shortcuts drive the Single File player only; without
+            // this guard they control the hidden player from other tabs
+            // (phantom playback on the Remix tab).
+            const singleTab = document.getElementById('tab-single');
+            if (singleTab && !singleTab.classList.contains('active')) return;
             if (ev.code === 'Space') {
                 ev.preventDefault();
                 toggle();

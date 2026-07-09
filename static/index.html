@@ -273,6 +273,12 @@
                     <progress id="remix-sep-progress" value="0" max="1" hidden></progress>
                 </div>
 
+                <div class="remix-toolbar" id="remix-toolbar" hidden>
+                    <button type="button" class="btn btn-ghost" id="remix-reset"
+                            title="Set every stem back to neutral (no effects, 0 dB, no mute/solo). Stems stay separated — nothing re-runs.">
+                        Reset mix
+                    </button>
+                </div>
                 <div id="remix-strips"></div>
 
                 <div class="control-block remix-render-block" hidden id="remix-render-block">
@@ -300,6 +306,8 @@
                         <button type="button" class="track-tab" id="remix-tab-remix" disabled>2 Remix</button>
                         <span class="player-kbd-hint">Loop window follows the playhead</span>
                     </div>
+                    <canvas id="remix-wave" class="remix-wave"
+                            title="Click to seek · shaded region is the loop window"></canvas>
                     <div class="remix-loop-row">
                         <label class="preview-mini-label" for="remix-window">Loop</label>
                         <select id="remix-window" class="select preview-select">

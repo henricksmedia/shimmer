@@ -24,7 +24,6 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 import numpy as np
-from scipy.signal import lfilter
 
 from dsp import as_2d
 
@@ -188,6 +187,28 @@ _COMB_S = (0.0297, 0.0371, 0.0411, 0.0437)
 _ALLPASS_S = (0.005, 0.0017)
 
 
+def _comb(x: np.ndarray, d: int, fb: float) -> np.ndarray:
+    """Feedback comb y[n] = x[n] + fb*y[n-d], vectorized blockwise: each
+    d-sized block depends only on the previous block, so the recursion
+    runs over n/d blocks instead of n samples."""
+    y = x.astype(np.float32).copy()
+    n = y.shape[0]
+    for s in range(d, n, d):
+        e = min(s + d, n)
+        y[s:e] += fb * y[s - d:s - d + (e - s)]
+    return y
+
+
+def _allpass(x: np.ndarray, d: int, g: float) -> np.ndarray:
+    """Schroeder allpass y[n] = -g*x[n] + x[n-d] + g*y[n-d], blockwise."""
+    n = x.shape[0]
+    y = (-g * x).astype(np.float32)
+    for s in range(d, n, d):
+        e = min(s + d, n)
+        y[s:e] += x[s - d:s - d + (e - s)] + g * y[s - d:s - d + (e - s)]
+    return y
+
+
 def reverb(x: np.ndarray, sr: int, mix: float, size: float) -> np.ndarray:
     """Simple stereo Schroeder reverb (4 combs + 2 allpasses per channel)."""
     if mix <= 0.005:
@@ -200,29 +221,30 @@ def reverb(x: np.ndarray, sr: int, mix: float, size: float) -> np.ndarray:
         acc = np.zeros(x.shape[0], dtype=np.float32)
         for i, base in enumerate(_COMB_S):
             d = max(1, int(sr * base * stretch * (1.0 + 0.011 * ch * (i + 1))))
-            a = np.zeros(d + 1)
-            a[0], a[d] = 1.0, -fb
-            acc += lfilter([1.0], a, x[:, ch]).astype(np.float32)
+            acc += _comb(x[:, ch], d, fb)
         y = acc / len(_COMB_S)
         for base in _ALLPASS_S:
-            d = max(1, int(sr * base))
-            g = 0.7
-            b = np.zeros(d + 1)
-            a = np.zeros(d + 1)
-            b[0], b[d] = -g, 1.0
-            a[0], a[d] = 1.0, -g
-            y = lfilter(b, a, y).astype(np.float32)
+            y = _allpass(y, max(1, int(sr * base)), 0.7)
         wet[:, ch] = y
     mix = float(np.clip(mix, 0.0, 1.0))
     return ((1.0 - 0.5 * mix) * x + mix * wet).astype(np.float32)
 
 
-def apply_stem_effects(x: np.ndarray, sr: int,
-                       s: StemSettings) -> np.ndarray:
-    """Full rack for one stem. Muted stems return silence."""
+def fx_signature(s: StemSettings) -> str:
+    """Stable key for the EFFECTS portion of the settings (gain and mute
+    excluded — those are cheap and applied after the cached fx render)."""
+    return "|".join(str(v) for v in (
+        s.formant_enabled, round(s.formant_ratio, 4),
+        s.saturation_enabled, round(s.saturation_drive_db, 2),
+        s.doubler_enabled, round(s.doubler_mix, 3),
+        round(s.doubler_detune_cents, 2),
+        s.reverb_enabled, round(s.reverb_mix, 3), round(s.reverb_size, 3),
+    ))
+
+
+def apply_fx_only(x: np.ndarray, sr: int, s: StemSettings) -> np.ndarray:
+    """The effects rack without gain/mute — the expensive, cacheable part."""
     x = as_2d(np.asarray(x, dtype=np.float32))
-    if s.mute:
-        return np.zeros_like(x)
     if s.formant_enabled:
         x = formant_shift(x, sr, s.formant_ratio)
     if s.saturation_enabled:
@@ -231,9 +253,24 @@ def apply_stem_effects(x: np.ndarray, sr: int,
         x = doubler(x, sr, s.doubler_mix, s.doubler_detune_cents)
     if s.reverb_enabled:
         x = reverb(x, sr, s.reverb_mix, s.reverb_size)
-    if abs(s.gain_db) >= 0.05:
-        x = (x * (10.0 ** (s.gain_db / 20.0))).astype(np.float32)
     return x
+
+
+def apply_gain_mute(x: np.ndarray, s: StemSettings) -> np.ndarray:
+    if s.mute:
+        return np.zeros_like(x)
+    if abs(s.gain_db) >= 0.05:
+        return (x * (10.0 ** (s.gain_db / 20.0))).astype(np.float32)
+    return x
+
+
+def apply_stem_effects(x: np.ndarray, sr: int,
+                       s: StemSettings) -> np.ndarray:
+    """Full rack for one stem. Muted stems return silence."""
+    x = as_2d(np.asarray(x, dtype=np.float32))
+    if s.mute:
+        return np.zeros_like(x)
+    return apply_gain_mute(apply_fx_only(x, sr, s), s)
 
 
 def render_remix(stems: Dict[str, np.ndarray], sr: int,

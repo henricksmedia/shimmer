@@ -1201,3 +1201,54 @@
     margin-top: var(--gap-2);
 }
 .remix-loop-row .preview-status { flex: 1; }
+
+/* Remix v2: fixed 4-across fx toggles, full-width param details, waveform */
+.remix-fx-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.remix-fx-params {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--strip-color);
+    border-radius: var(--radius-s);
+    background: var(--bg-1);
+    padding: 6px 9px;
+    margin-top: var(--gap-1);
+}
+.remix-fx-params-title {
+    font: 600 10px var(--font-ui);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fg-2);
+    margin-bottom: 3px;
+}
+.remix-fx-param { margin-top: 2px; }
+.remix-fx-param span { min-width: 96px; }
+
+.remix-wave {
+    display: block;
+    width: 100%;
+    height: 64px;
+    margin-top: var(--gap-2);
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    cursor: pointer;
+}
+
+.remix-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--gap-2);
+}
+.remix-toolbar .btn { font-size: 12px; padding: 5px 12px; }
+
+.remix-fx-desc {
+    font: 400 10px var(--font-ui);
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--fg-3);
+    margin-left: 6px;
+}
+.remix-fx-hint {
+    display: block;
+    font: italic 400 9px var(--font-ui);
+    color: var(--fg-3);
+}

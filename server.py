@@ -73,7 +73,8 @@ from preview_store import PREVIEW_STORE, clamp_samples_for_preview
 from settings_store import load_settings, save_settings
 import stems as stems_mod
 from stem_effects import (
-    STEM_NAMES, remix_settings_from_json, render_remix,
+    STEM_NAMES, apply_fx_only, apply_gain_mute, fx_signature,
+    remix_settings_from_json, render_remix,
 )
 from projects_store import list_projects, load_project, save_project
 
@@ -1099,15 +1100,44 @@ async def api_remix_preview(payload: Dict[str, Any]) -> Response:
 
     def _render() -> bytes:
         sr = sess.sr
-        sliced = {}
+        # Per-stem fx cache: the expensive rack render is keyed by
+        # (window, stem, fx settings) and reused across requests, so
+        # mute/solo/gain toggles and single-stem edits re-render only
+        # what actually changed.
+        cache: Dict[Any, np.ndarray] = getattr(sess, "_remix_fx_cache", None)
+        if cache is None:
+            cache = {}
+            sess._remix_fx_cache = cache
+
+        out = None
         head_pad = audible_len = 0
-        for name, arr in sess.stems.items():
+        for name in STEM_NAMES:
+            arr = sess.stems.get(name)
+            if arr is None:
+                continue
+            s = settings[name]
             block, head_pad, audible_len = extract_preview_block(
-                arr, sr, start_s, end_s,
-                extra_margin_s=0.0)
-            sliced[name] = block
-        y = render_remix(sliced, sr, settings)
-        y = trim_processed_preview(y, head_pad, audible_len)
+                arr, sr, start_s, end_s, extra_margin_s=0.0)
+            if s.mute:
+                continue  # skip the rack entirely for muted stems
+            key = (round(start_s, 3), round(end_s, 3), name, fx_signature(s))
+            y = cache.get(key)
+            if y is None:
+                y = apply_fx_only(block, sr, s)
+                cache[key] = y
+                while len(cache) > 24:
+                    cache.pop(next(iter(cache)))
+            y = apply_gain_mute(y, s)
+            out = y if out is None else out + y
+
+        if out is None:  # everything muted — ship silence
+            n = int(max(1, round((end_s - start_s) * sr)))
+            return encode_wav_bytes(
+                np.zeros((n, sess.channels), dtype=np.float32), sr)
+        peak = float(np.max(np.abs(out)))
+        if peak > 0.999:
+            out = out / peak * 0.999
+        y = trim_processed_preview(out, head_pad, audible_len)
         return encode_wav_bytes(y, sr)
 
     loop = asyncio.get_running_loop()

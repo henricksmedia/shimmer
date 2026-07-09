@@ -14,22 +14,53 @@ const STRIPS = [
     { key: 'other',  label: 'Other',  color: '#5aa7d4' },
 ];
 
-// Per-effect UI spec: key, label, params [{key, label, min, max, step, def}]
+// Per-effect UI spec. `label` is the industry term; `desc` is a short
+// plain-language descriptor shown muted beside it; `help` is the full
+// hover explanation. Params likewise: pro term + optional muted hint.
 const EFFECTS = [
-    { key: 'formant', label: 'Voice shape', params: [
-        { key: 'ratio', label: 'Deeper ↔ Thinner', min: 0.7, max: 1.4,
-          step: 0.01, def: 0.88 },
+    { key: 'formant', label: 'Formant', desc: 'voice character',
+      help: 'Formant shifting changes the character of a voice without ' +
+            'changing the pitch or melody — like the same performance from ' +
+            'a different singer. Meant for vocals; sounds strange on drums.',
+      params: [
+        { key: 'ratio', label: 'Shift', hint: 'deeper ↔ thinner',
+          min: 0.7, max: 1.4, step: 0.01, def: 0.88,
+          help: 'Left = bigger, darker, more masculine voice. ' +
+                'Right = smaller, brighter, younger. Center (1.0) = unchanged.' },
     ]},
-    { key: 'saturation', label: 'Grit', params: [
-        { key: 'drive_db', label: 'Drive', min: 0, max: 24, step: 0.5, def: 8 },
+    { key: 'saturation', label: 'Saturation', desc: 'warmth & drive',
+      help: 'Tape/tube-style harmonic saturation. A little = thicker and ' +
+            'closer; a lot = fuzzy and aggressive. Also punches up drums ' +
+            'and makes bass audible on small speakers.',
+      params: [
+        { key: 'drive_db', label: 'Drive', hint: 'dB',
+          min: 0, max: 24, step: 0.5, def: 8,
+          help: '4–8 dB = warmth. 10–16 = obvious grit. 20+ = megaphone.' },
     ]},
-    { key: 'doubler', label: 'Doubler', params: [
-        { key: 'mix', label: 'Amount', min: 0, max: 1, step: 0.05, def: 0.45 },
-        { key: 'detune_cents', label: 'Detune', min: 2, max: 40, step: 1, def: 12 },
+    { key: 'doubler', label: 'Doubler', desc: 'double-tracking',
+      help: 'Simulated double-tracking: slightly delayed, detuned copies ' +
+            'under the original. Reads as "thick, wide, produced" — great ' +
+            'on chorus vocals.',
+      params: [
+        { key: 'mix', label: 'Mix', hint: 'wet level',
+          min: 0, max: 1, step: 0.05, def: 0.45,
+          help: 'Level of the doubled takes under the dry signal.' },
+        { key: 'detune_cents', label: 'Detune', hint: 'cents',
+          min: 2, max: 40, step: 1, def: 12,
+          help: 'Pitch offset of the copies in cents. More = wider but ' +
+                'blurrier; less = tighter and subtler.' },
     ]},
-    { key: 'reverb', label: 'Space', params: [
-        { key: 'mix', label: 'Amount', min: 0, max: 1, step: 0.05, def: 0.25 },
-        { key: 'size', label: 'Size', min: 0, max: 1, step: 0.05, def: 0.5 },
+    { key: 'reverb', label: 'Reverb', desc: 'room & depth',
+      help: 'Puts the stem in a space. Dry = close and intimate; wet = ' +
+            'distant and epic. A touch on vocals is the fastest ' +
+            '"finished record" feel.',
+      params: [
+        { key: 'mix', label: 'Mix', hint: 'dry ↔ wet',
+          min: 0, max: 1, step: 0.05, def: 0.25,
+          help: 'Wet/dry balance. 0.15–0.3 = polish; 0.5+ = cathedral.' },
+        { key: 'size', label: 'Size', hint: 'room ↔ hall',
+          min: 0, max: 1, step: 0.05, def: 0.5,
+          help: 'Small = tight room, large = huge hall with a long decay tail.' },
     ]},
 ];
 
@@ -60,6 +91,8 @@ export async function initRemixTab() {
     const sepStatus = $('remix-sep-status');
     const sepProgress = $('remix-sep-progress');
     const stripsHost = $('remix-strips');
+    const toolbar = $('remix-toolbar');
+    const resetBtn = $('remix-reset');
     const renderBlock = $('remix-render-block');
     const renderBtn = $('remix-render-btn');
     const renderProgress = $('remix-render-progress');
@@ -181,6 +214,9 @@ export async function initRemixTab() {
     // ── Channel strips UI ────────────────────────────────────────────
     function buildStrips() {
         stripsHost.innerHTML = '';
+        // Exclusive solo clears other strips' solos, so every strip's
+        // M/S buttons need refreshing on any solo click.
+        const msRefreshers = [];
         for (const spec of STRIPS) {
             const st = state.strips[spec.key];
             const strip = document.createElement('div');
@@ -203,18 +239,32 @@ export async function initRemixTab() {
             soloBtn.type = 'button';
             soloBtn.className = 'remix-ms-btn solo';
             soloBtn.textContent = 'S';
-            soloBtn.title = 'Solo this stem';
+            soloBtn.title = 'Solo this stem (Ctrl+click to solo several together)';
 
             const refreshMS = () => {
                 muteBtn.classList.toggle('on', st.mute);
                 soloBtn.classList.toggle('on', st.solo);
             };
+            msRefreshers.push(refreshMS);
             refreshMS();
             muteBtn.addEventListener('click', () => {
                 st.mute = !st.mute; refreshMS(); onEdit();
             });
-            soloBtn.addEventListener('click', () => {
-                st.solo = !st.solo; refreshMS(); onEdit();
+            soloBtn.addEventListener('click', (e) => {
+                if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                    // Additive (DAW-style): build a solo group.
+                    st.solo = !st.solo;
+                } else if (st.solo) {
+                    st.solo = false;   // clicking the lit S un-solos
+                } else {
+                    // Exclusive: this stem only; clear any other solos.
+                    for (const k of Object.keys(state.strips)) {
+                        state.strips[k].solo = false;
+                    }
+                    st.solo = true;
+                }
+                msRefreshers.forEach(fn => fn());
+                onEdit();
             });
 
             const gainWrap = document.createElement('div');
@@ -239,8 +289,13 @@ export async function initRemixTab() {
             head.append(name, muteBtn, soloBtn, gainWrap);
             strip.appendChild(head);
 
+            // Effect toggles sit in one fixed 4-across row; each enabled
+            // effect's knobs render full-width in a details area below, so
+            // expanding one never wrecks the grid.
             const fxRow = document.createElement('div');
             fxRow.className = 'remix-fx-row';
+            const fxDetails = document.createElement('div');
+            fxDetails.className = 'remix-fx-details';
             for (const e of EFFECTS) {
                 const fx = st.fx[e.key];
                 const box = document.createElement('div');
@@ -248,6 +303,7 @@ export async function initRemixTab() {
 
                 const toggle = document.createElement('label');
                 toggle.className = 'remix-fx-toggle';
+                toggle.title = e.help || '';
                 const check = document.createElement('input');
                 check.type = 'checkbox';
                 check.checked = fx.enabled;
@@ -255,16 +311,34 @@ export async function initRemixTab() {
                 tname.textContent = e.label;
                 toggle.append(check, tname);
                 box.appendChild(toggle);
+                box.classList.toggle('on', fx.enabled);
 
                 const params = document.createElement('div');
                 params.className = 'remix-fx-params';
                 params.hidden = !fx.enabled;
-                box.classList.toggle('on', fx.enabled);
+                const ptitle = document.createElement('div');
+                ptitle.className = 'remix-fx-params-title';
+                ptitle.textContent = e.label;
+                ptitle.title = e.help || '';
+                if (e.desc) {
+                    const d = document.createElement('span');
+                    d.className = 'remix-fx-desc';
+                    d.textContent = e.desc;
+                    ptitle.appendChild(d);
+                }
+                params.appendChild(ptitle);
                 for (const p of e.params) {
                     const row = document.createElement('label');
                     row.className = 'remix-fx-param';
+                    row.title = p.help || '';
                     const lbl = document.createElement('span');
                     lbl.textContent = p.label;
+                    if (p.hint) {
+                        const h = document.createElement('em');
+                        h.className = 'remix-fx-hint';
+                        h.textContent = p.hint;
+                        lbl.appendChild(h);
+                    }
                     const range = document.createElement('input');
                     range.type = 'range';
                     range.min = String(p.min);
@@ -284,14 +358,113 @@ export async function initRemixTab() {
                     box.classList.toggle('on', check.checked);
                     onEdit();
                 });
-                box.appendChild(params);
                 fxRow.appendChild(box);
+                fxDetails.appendChild(params);
             }
             strip.appendChild(fxRow);
+            strip.appendChild(fxDetails);
             stripsHost.appendChild(strip);
         }
         stripsHost.hidden = false;
     }
+
+    // ── Waveform timeline (click to seek, shaded loop window) ────────
+    const waveCanvas = $('remix-wave');
+    const waveCtx = waveCanvas.getContext('2d');
+    let wavePeaks = null;   // Float32Array of per-column max magnitudes
+    let waveRaf = 0;
+
+    async function decodeWaveform(file) {
+        wavePeaks = null;
+        drawWave();
+        try {
+            const ac = new (window.AudioContext || window.webkitAudioContext)();
+            const buf = await ac.decodeAudioData(await file.arrayBuffer());
+            const cols = 800;
+            const peaks = new Float32Array(cols);
+            const ch0 = buf.getChannelData(0);
+            const step = Math.max(1, Math.floor(ch0.length / cols));
+            for (let c = 0; c < cols; c++) {
+                let m = 0;
+                const base = c * step;
+                for (let i = 0; i < step; i += 16) {
+                    const v = Math.abs(ch0[base + i] || 0);
+                    if (v > m) m = v;
+                }
+                peaks[c] = m;
+            }
+            wavePeaks = peaks;
+            ac.close();
+        } catch (_) { /* waveform is decorative; seeking still works */ }
+        drawWave();
+    }
+
+    function drawWave() {
+        const rect = waveCanvas.getBoundingClientRect();
+        if (rect.width < 10) return;
+        const dpr = window.devicePixelRatio || 1;
+        if (waveCanvas.width !== Math.round(rect.width * dpr)) {
+            waveCanvas.width = Math.round(rect.width * dpr);
+            waveCanvas.height = Math.round(rect.height * dpr);
+        }
+        const W = rect.width, H = rect.height;
+        waveCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        waveCtx.clearRect(0, 0, W, H);
+
+        // Loop window shading
+        if (state.durationS > 0) {
+            const x0 = (state.loopStart / state.durationS) * W;
+            const x1 = (state.loopEnd / state.durationS) * W;
+            waveCtx.fillStyle = 'rgba(108, 92, 231, 0.18)';
+            waveCtx.fillRect(x0, 0, Math.max(2, x1 - x0), H);
+        }
+
+        // Peaks
+        if (wavePeaks) {
+            waveCtx.fillStyle = 'rgba(192, 192, 208, 0.55)';
+            const mid = H / 2;
+            const colW = W / wavePeaks.length;
+            for (let c = 0; c < wavePeaks.length; c++) {
+                const h = Math.max(1, wavePeaks[c] * (H - 4));
+                waveCtx.fillRect(c * colW, mid - h / 2, Math.max(1, colW), h);
+            }
+        }
+
+        // Playhead
+        if (state.durationS > 0) {
+            const x = (positionInTrack() / state.durationS) * W;
+            waveCtx.fillStyle = '#f0a500';
+            waveCtx.fillRect(x - 1, 0, 2, H);
+        }
+    }
+
+    function waveAnimate() {
+        drawWave();
+        waveRaf = state.playing ? requestAnimationFrame(waveAnimate) : 0;
+    }
+
+    waveCanvas.addEventListener('click', (e) => {
+        if (!state.durationS) return;
+        const rect = waveCanvas.getBoundingClientRect();
+        const t = ((e.clientX - rect.left) / rect.width) * state.durationS;
+        // Clicking outside the loop moves the loop window there — for BOTH
+        // tracks. (Seeking Original outside the loop used to get snapped
+        // back by the loop-wrap on the next timeupdate, so clicks past the
+        // window looked dead.)
+        if (t < state.loopStart || t >= state.loopEnd) {
+            state.loopStart = t;
+            clampLoop();
+            if (state.stemsReady) scheduleRender(0);
+        }
+        if (state.active === 'remix') {
+            const off = Math.max(0, t - state.loopStart);
+            if (off < (remixEl.duration || Infinity)) remixEl.currentTime = off;
+        } else {
+            origEl.currentTime = t;
+        }
+        drawWave();
+        updateTime();
+    });
 
     // ── Mini A/B loop player ─────────────────────────────────────────
     function clampLoop() {
@@ -320,8 +493,12 @@ export async function initRemixTab() {
             origEl.currentTime = state.loopStart;
         }
         updateTime();
+        if (!waveRaf) drawWave();
     });
-    remixEl.addEventListener('timeupdate', updateTime);
+    remixEl.addEventListener('timeupdate', () => {
+        updateTime();
+        if (!waveRaf) drawWave();
+    });
     remixEl.loop = true;
 
     function activeEl() {
@@ -331,11 +508,14 @@ export async function initRemixTab() {
     async function play() {
         try { await activeEl().play(); state.playing = true; } catch (_) {}
         playBtn.textContent = state.playing ? '⏸' : '▶';
+        if (state.playing && !waveRaf) waveAnimate();
     }
     function pause() {
         origEl.pause(); remixEl.pause();
         state.playing = false;
         playBtn.textContent = '▶';
+        if (waveRaf) { cancelAnimationFrame(waveRaf); waveRaf = 0; }
+        drawWave();
     }
     playBtn.addEventListener('click', () => {
         if (state.playing) pause();
@@ -401,9 +581,17 @@ export async function initRemixTab() {
             if (state.remixBlobUrl) URL.revokeObjectURL(state.remixBlobUrl);
             state.remixBlobUrl = URL.createObjectURL(
                 new Blob([r.wav], {type: 'audio/wav'}));
-            remixEl.src = state.remixBlobUrl;
-            if (offset != null) remixEl.currentTime = offset;
+            // Seeking before metadata loads is silently dropped, which made
+            // every re-render restart the loop from 0 — wait for it.
+            await new Promise((resolve) => {
+                remixEl.addEventListener('loadedmetadata', resolve, {once: true});
+                remixEl.src = state.remixBlobUrl;
+            });
+            if (offset != null && offset < (remixEl.duration || Infinity)) {
+                remixEl.currentTime = offset;
+            }
             if (wasPlaying) { try { await remixEl.play(); } catch (_) {} }
+            drawWave();
             tabRemix.disabled = false;
             renderBlock.hidden = false;
             setStatus(`Live · loop ${fmtTime(state.loopStart)}–${fmtTime(state.loopEnd)} · ${r.meta.render_ms} ms`, 'live');
@@ -425,7 +613,13 @@ export async function initRemixTab() {
     }
 
     // Every user edit re-renders the loop AND persists the project.
+    // Edits only affect the Remix track, so if the user is monitoring
+    // Original, switch them over — otherwise solo/mute/knob changes are
+    // inaudible and look broken.
     function onEdit() {
+        if (state.active === 'original' && !tabRemix.disabled) {
+            setTrack('remix');
+        }
         saveProject();
         scheduleRender();
     }
@@ -441,12 +635,22 @@ export async function initRemixTab() {
         tabRemix.disabled = true;
         setTrack('original');
         stripsHost.hidden = true;
+        toolbar.hidden = true;
         renderBlock.hidden = true;
         metricsEl.hidden = true;
         if (state.sessionId) { dropSession(state.sessionId); state.sessionId = null; }
         if (state.origBlobUrl) URL.revokeObjectURL(state.origBlobUrl);
         state.origBlobUrl = URL.createObjectURL(file);
         origEl.src = state.origBlobUrl;
+        decodeWaveform(file);
+        origEl.addEventListener('loadedmetadata', () => {
+            if (!state.durationS) {
+                state.durationS = origEl.duration || 0;
+                clampLoop();
+                updateTime();
+                drawWave();
+            }
+        }, {once: true});
         selectedFile.hidden = false;
         selectedFile.textContent = `${file.name}  (${(file.size / 1048576).toFixed(1)} MB)`;
         dropzone.classList.add('has-file');
@@ -525,6 +729,7 @@ export async function initRemixTab() {
             state.stemsReady = true;
             sepStatus.textContent = 'Stems ready — tweak away.';
             buildStrips();
+            toolbar.hidden = false;
             doRender();
         } catch (e) {
             sepStatus.textContent = `Failed: ${e.message}`;
@@ -532,6 +737,13 @@ export async function initRemixTab() {
         } finally {
             sepProgress.hidden = true;
         }
+    });
+
+    resetBtn.addEventListener('click', () => {
+        resetStrips();
+        buildStrips();       // re-render the strip UI from the fresh state
+        saveProject();       // persist the reset like any other edit
+        scheduleRender(0);
     });
 
     // ── Full render + download ───────────────────────────────────────
