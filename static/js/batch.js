@@ -1,6 +1,6 @@
 // batch.js — Orchestrates the Batch tab.
 
-import { fetchPresets, postBatchStream, browseFolder } from './api.js';
+import { fetchPresets, postBatchStream, browseFolder, fetchSettings } from './api.js';
 
 export async function initBatchTab() {
     const $ = (id) => document.getElementById(id);
@@ -13,6 +13,7 @@ export async function initBatchTab() {
     const formatSelect = $('batch-format');
     const preserveVol  = $('batch-preserve-vol');
     const trimSilence  = $('batch-trim-silence');
+    const applyEq      = $('batch-apply-eq');
     const masterEnabled = $('batch-master-enabled');
     const masterTarget = $('batch-master-target');
     const masterIntensity = $('batch-master-intensity');
@@ -92,7 +93,7 @@ export async function initBatchTab() {
     }
 
     // ── Run batch ────────────────────────────────────────────────────
-    runBtn.addEventListener('click', () => {
+    runBtn.addEventListener('click', async () => {
         if (!inputFolder.value.trim()) {
             append('Please provide an input folder.', 'err');
             return;
@@ -104,6 +105,18 @@ export async function initBatchTab() {
 
         const autoDetect = getMode() === 'auto';
         const strength = parseFloat(strengthEl.value);
+
+        // The Single tab persists its EQ on every edit; reuse it here.
+        let eqPayload = null;
+        if (applyEq && applyEq.checked) {
+            const saved = await fetchSettings();
+            if (saved && saved.eq && saved.eq.enabled &&
+                Array.isArray(saved.eq.bands) && saved.eq.bands.length) {
+                eqPayload = saved.eq;
+            } else {
+                append('No EQ bands configured on the Single File tab — EQ skipped.', 'err');
+            }
+        }
 
         const payload = {
             input_folder: inputFolder.value.trim(),
@@ -121,6 +134,7 @@ export async function initBatchTab() {
                 tilt: masterTilt ? masterTilt.value : 'neutral',
             },
         };
+        if (eqPayload) payload.eq = eqPayload;
 
         postBatchStream(payload, {
             onMessage: (msg) => {
@@ -132,6 +146,9 @@ export async function initBatchTab() {
                     append(`Output → ${msg.output_folder}`);
                     if (strength !== 1.0) {
                         append(`Preset strength: ${Math.round(strength * 100)}%`);
+                    }
+                    if (eqPayload) {
+                        append(`EQ: ${eqPayload.bands.length} band(s) from Single File tab`);
                     }
                 } else if (msg.type === 'file_start') {
                     append(`[${msg.index + 1}]  ${msg.name} …`);

@@ -1005,3 +1005,99 @@
     background: rgba(255, 255, 255, 0.9);
     transform: translateX(-1px);
 }
+
+/* ── Parametric EQ card ───────────────────────────────────────────── */
+
+.eq-card {
+    padding: var(--gap-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-2);
+}
+.eq-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap-2);
+    flex-wrap: wrap;
+}
+.eq-header .eq-toggle { margin: 0; flex: 1; min-width: 180px; }
+.eq-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-2);
+}
+.eq-preset-select { font-size: 12px; padding: 4px 8px; }
+.eq-add-btn { white-space: nowrap; }
+
+.eq-body { margin-top: var(--gap-2); }
+.eq-canvas {
+    display: block;
+    width: 100%;
+    height: 190px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    touch-action: none;
+    cursor: crosshair;
+}
+
+.eq-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-1);
+    margin-top: var(--gap-2);
+}
+.eq-chip {
+    --chip-color: var(--purple);
+    font: 500 11px var(--font-ui);
+    color: var(--fg-1);
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--chip-color);
+    border-radius: 10px;
+    padding: 3px 10px;
+    cursor: pointer;
+}
+.eq-chip:hover { background: var(--bg-4); }
+.eq-chip.active {
+    border-color: var(--chip-color);
+    background: var(--bg-4);
+    color: var(--fg-0);
+}
+.eq-chip.off {
+    opacity: 0.45;
+    text-decoration: line-through;
+}
+
+.eq-edit-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--gap-2);
+    margin-top: var(--gap-2);
+}
+.eq-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+    color: var(--fg-2);
+    flex: 1;
+    min-width: 0;
+}
+.eq-field .select, .eq-field .input {
+    width: 100%;
+    font-size: 12px;
+    padding: 4px 6px;
+}
+.eq-field-check {
+    flex: 0 0 auto;
+    align-items: center;
+    padding-bottom: 5px;
+}
+.eq-field-check input { accent-color: var(--purple); }
+.eq-edit-del {
+    flex: 0 0 auto;
+    color: var(--danger);
+    padding: 5px 9px;
+}

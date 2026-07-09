@@ -120,6 +120,8 @@
                     </div>
                 </div>
 
+                <div class="control-block eq-card" id="eq-card"></div>
+
                 <div class="inline-field">
                     <label class="label" for="output-format">Output format</label>
                     <select id="output-format" class="select"
@@ -323,6 +325,12 @@
                        title="Removes silence below −60 dBFS from the start and end of each output file, keeping a short natural pad.">
                     <input type="checkbox" id="batch-trim-silence">
                     <span>Trim leading/trailing silence</span>
+                </label>
+
+                <label class="checkbox-row"
+                       title="Applies the EQ bands configured on the Single File tab to every file in the batch.">
+                    <input type="checkbox" id="batch-apply-eq">
+                    <span>Apply EQ from Single File tab</span>
                 </label>
 
                 <div class="control-block mastering-card batch-mastering">

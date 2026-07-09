@@ -57,6 +57,7 @@ from audio_io import (
 )
 from engine import process, apply_post_filters
 from dsp import as_2d, trim_silence as dsp_trim_silence
+from eq import EqParams, eq_params_from_json
 from jobs import JOB_STORE, Job
 from params import Params, apply_preset_strength, MasterParams
 from mastering import (
@@ -183,11 +184,16 @@ def _master_params_from_request(data: Dict[str, Any]) -> MasterParams:
     return master_params_from_json(data.get("mastering") or {})
 
 
+def _eq_params_from_request(data: Dict[str, Any]) -> EqParams:
+    return eq_params_from_json(data.get("eq") or {})
+
+
 def _run_job_sync(job: Job, upload_path: str, params: Params,
                   preserve_vol: bool, progress_cb,
                   master_params: Optional[MasterParams] = None,
                   mastering_analysis: Optional[Dict[str, Any]] = None,
-                  trim_silence: bool = False) -> None:
+                  trim_silence: bool = False,
+                  eq_params: Optional[EqParams] = None) -> None:
     """CPU-bound worker: runs in a thread executor."""
     x, sr = load_audio(upload_path)
     meas_in = measure(x)
@@ -204,6 +210,7 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         master_params=master_params if use_mastering else None,
         progress_callback=progress_cb,
         raw_analysis=mastering_analysis,
+        eq_params=eq_params,
     )
     mastering_report: Dict[str, Any] = pipe_report.get(
         "mastering", {"enabled": False})
@@ -275,6 +282,7 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         "mastering": mastering_report,
         "loudness": loudness,
         "trim": trim_report,
+        "eq": pipe_report.get("eq", {"enabled": False}),
     }
 
 
@@ -282,7 +290,8 @@ async def _run_job_async(job: Job, upload_path: str, params: Params,
                          preserve_vol: bool,
                          master_params: Optional[MasterParams] = None,
                          mastering_analysis: Optional[Dict[str, Any]] = None,
-                         trim_silence: bool = False) -> None:
+                         trim_silence: bool = False,
+                         eq_params: Optional[EqParams] = None) -> None:
     """Schedule the worker on the default executor; push done sentinel."""
     loop = asyncio.get_running_loop()
     cb = _threadsafe_progress_pusher(job, loop)
@@ -291,7 +300,7 @@ async def _run_job_async(job: Job, upload_path: str, params: Params,
         await loop.run_in_executor(
             None, _run_job_sync,
             job, upload_path, params, preserve_vol, cb,
-            master_params, mastering_analysis, trim_silence)
+            master_params, mastering_analysis, trim_silence, eq_params)
         job.progress = 1.0
         job.status = "done"
         await job.queue.put({"fraction": 1.0, "done": True})
@@ -409,6 +418,7 @@ async def api_process(
         raise HTTPException(400, f"Unknown preset: {e}")
 
     mp = _master_params_from_request(params_data)
+    eqp = _eq_params_from_request(params_data)
     mastering_analysis = params_data.get("mastering_analysis")
 
     output_ext = "." + output_format.lstrip(".").lower()
@@ -437,7 +447,7 @@ async def api_process(
     # Fire-and-forget worker task; progress flows via job.queue → SSE.
     asyncio.create_task(_run_job_async(
         job, job.original_path, p, preserve_volume, mp, mastering_analysis,
-        trim_silence))
+        trim_silence, eqp))
     JOB_STORE.sweep()
     return JSONResponse({"job_id": job.id})
 
@@ -580,6 +590,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     auto_detect = bool(payload.get("auto_detect", False))
     trim_silence = bool(payload.get("trim_silence", False))
     mp = master_params_from_json(payload.get("mastering") or {})
+    eqp = eq_params_from_json(payload.get("eq") or {})
     # Codec-aware ceiling unless the user explicitly chose one.
     if (payload.get("mastering") or {}).get("ceiling_dbtp") is None:
         mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
@@ -635,7 +646,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
             try:
                 r = await loop.run_in_executor(
                     None, _batch_one, src, dst, preset, preserve_vol,
-                    auto_detect, preset_strength, mp, trim_silence)
+                    auto_detect, preset_strength, mp, trim_silence, eqp)
                 yield _sse_event({
                     "type": "file_done", "index": i, "name": name,
                     "duration_s": r["duration_s"],
@@ -659,7 +670,8 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
 def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
                auto_detect: bool = False, preset_strength: float = 1.0,
                master_params: Optional[MasterParams] = None,
-               trim_silence: bool = False):
+               trim_silence: bool = False,
+               eq_params: Optional[EqParams] = None):
     detected_info: Dict[str, Any] = {}
 
     if auto_detect:
@@ -687,6 +699,7 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
         params=params, do_preserve_volume=preserve_vol,
         master_params=master_params,
         trim_silence=trim_silence,
+        eq_params=eq_params,
     )
     result.update(detected_info)
     return result
@@ -827,7 +840,8 @@ def _slice_loudness_db(arr: np.ndarray, sr: int) -> float:
 
 def _render_preview_sync(sess, start_s: float, end_s: float, p: Params,
                          preserve_vol: bool,
-                         master_params: Optional[MasterParams] = None) -> Dict[str, Any]:
+                         master_params: Optional[MasterParams] = None,
+                         eq_params: Optional[EqParams] = None) -> Dict[str, Any]:
     """Render processed + diff slices for the requested window.
 
     The Original player keeps the full file in the browser (so the user
@@ -859,6 +873,7 @@ def _render_preview_sync(sess, start_s: float, end_s: float, p: Params,
         in_slice, sr, p,
         master_params=master_params if use_mastering else None,
         raw_analysis=dict(sess.track_analysis or {}),
+        eq_params=eq_params,
     )
 
     proc_audible = trim_processed_preview(y2, head_pad, audible_len)
@@ -916,6 +931,7 @@ async def api_preview(payload: Dict[str, Any]) -> Response:
 
     preserve_vol = bool(payload.get("preserve_volume", True))
     mp = master_params_from_json(payload.get("mastering") or {})
+    eqp = eq_params_from_json(payload.get("eq") or {})
 
     try:
         p = _params_from_json({
@@ -930,7 +946,8 @@ async def api_preview(payload: Dict[str, Any]) -> Response:
     t0 = time.time()
     try:
         result = await loop.run_in_executor(
-            None, _render_preview_sync, sess, start_s, end_s, p, preserve_vol, mp)
+            None, _render_preview_sync, sess, start_s, end_s, p,
+            preserve_vol, mp, eqp)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, f"Preview render failed: {e}")
     elapsed_ms = int((time.time() - t0) * 1000)

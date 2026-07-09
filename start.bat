@@ -1,12 +1,21 @@
 @echo off
 title Shimmer by The Treq
-color 05
+color 0D
 
+REM Banner: figlet-style wordmark. Pipes/angle brackets are caret-escaped
+REM (^| ^<) so cmd prints them literally — edit with care.
 echo.
-echo  ========================================
-echo       SHIMMER by The Treq
-echo       AI Audio De-Artifact Tool
-echo  ========================================
+echo      *   .        .      *          .          *   .
+echo      ____   _   _  ___  __  __  __  __  _____  ____
+echo     / ___^| ^| ^| ^| ^|^|_ _^|^|  \/  ^|^|  \/  ^|^| ____^|^|  _ \
+echo     \___ \ ^| ^|_^| ^| ^| ^| ^| ^|\/^| ^|^| ^|\/^| ^|^|  _^|  ^| ^|_) ^|
+echo      ___) ^|^|  _  ^| ^| ^| ^| ^|  ^| ^|^| ^|  ^| ^|^| ^|___ ^|  _ ^<
+echo     ^|____/ ^|_^| ^|_^|^|___^|^|_^|  ^|_^|^|_^|  ^|_^|^|_____^|^|_^| \_\
+echo        .          *                        by The Treq
+echo.
+echo     -------------------------------------------------
+echo       de-artifact . restore . master . shine
+echo     -------------------------------------------------
 echo.
 
 cd /d "%~dp0"

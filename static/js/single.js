@@ -9,6 +9,7 @@ import {
 import { makeSettingsSaver, loadSettings } from './settings.js';
 import { openHelp } from './help.js';
 import { createUnifiedPlayer, fmtTime } from './visualizer.js';
+import { initEqPanel } from './eq.js';
 
 
 const PREVIEW_DEBOUNCE_MS = 250;
@@ -168,6 +169,11 @@ export async function initSingleTab() {
         (specKey) => openHelp('controls', specKey),
     );
 
+    const eqPanel = initEqPanel($('eq-card'), {
+        onChange: () => { pushSettings(); schedulePreviewRender(); },
+        getSpectrum: () => (lastAnalysis && lastAnalysis.spectrum) || null,
+    });
+
     player = createUnifiedPlayer({
         els: { original: audioOrig, processed: audioProc, removed: audioDiff },
         canvas: $('player-canvas'),
@@ -234,6 +240,7 @@ export async function initSingleTab() {
     if (saved && typeof saved.ab_loudness_match === 'boolean') {
         abLoudnessMatch.checked = saved.ab_loudness_match;
     }
+    if (saved && saved.eq) eqPanel.setPayload(saved.eq);
     if (saved && saved.mastering) {
         if (typeof saved.mastering.enabled === 'boolean') {
             masterEnabled.checked = saved.mastering.enabled;
@@ -563,6 +570,7 @@ export async function initSingleTab() {
             if (r.analysis) {
                 lastAnalysis = r.analysis;
                 renderAnalysisReadout(r.analysis);
+                eqPanel.refreshSpectrum();
             }
             setWizardStep(1);
         } catch (e) {
@@ -583,6 +591,7 @@ export async function initSingleTab() {
             trim_silence: trimSilence.checked,
             output_format: outputFormat.value,
             mastering: masteringPayload(),
+            eq: eqPanel.getPayload(),
             ab_loudness_match: abLoudnessMatch.checked,
         });
     }
@@ -664,6 +673,7 @@ export async function initSingleTab() {
             if (r.analysis) {
                 lastAnalysis = r.analysis;
                 renderAnalysisReadout(r.analysis);
+                eqPanel.refreshSpectrum();
             }
             return r.session_id;
         } catch (e) {
@@ -730,12 +740,14 @@ export async function initSingleTab() {
             overrides,
             preserve_volume: preserveVol.checked && !masterEnabled.checked,
             mastering: masteringPayload(),
+            eq: eqPanel.getPayload(),
         };
 
         // Decoded-render cache: same window + same params = instant swap.
         const cacheKey = JSON.stringify([
             start, end, payload.preset, payload.preset_strength,
             overrides, payload.preserve_volume, payload.mastering,
+            payload.eq,
         ]);
         const hit = previewCache.get(cacheKey);
         if (hit) {
@@ -864,6 +876,7 @@ export async function initSingleTab() {
                 preset_strength: currentStrength(),
                 overrides,
                 mastering: masteringPayload(),
+                eq: eqPanel.getPayload(),
             };
             if (lastAnalysis) paramsBody.mastering_analysis = lastAnalysis;
 
@@ -905,6 +918,10 @@ export async function initSingleTab() {
                     `RMS ${mm.input.rms_dbfs.toFixed(1)} → ${mm.output.rms_dbfs.toFixed(1)} dBFS`,
                     `${mm.duration_s.toFixed(1)}s · ${mm.sample_rate} Hz · ${mm.channels}ch`,
                 ];
+
+                if (mm.eq && mm.eq.enabled) {
+                    chips.push(`EQ: ${mm.eq.bands} band${mm.eq.bands === 1 ? '' : 's'}`);
+                }
 
                 if (mm.trim && mm.trim.enabled) {
                     const cut = (mm.trim.cut_head_s || 0) + (mm.trim.cut_tail_s || 0);

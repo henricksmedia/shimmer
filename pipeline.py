@@ -41,6 +41,7 @@ from bands import (
 )
 from dsp import as_2d
 from engine import apply_post_filters, process
+from eq import EqParams, apply_eq
 from mastering import (
     apply_tone_curve,
     compute_tone_curve,
@@ -91,6 +92,7 @@ def clean_and_master(
     master_params: Optional[MasterParams] = None,
     progress_callback: Optional[Callable[[float], None]] = None,
     raw_analysis: Optional[Dict[str, Any]] = None,
+    eq_params: Optional[EqParams] = None,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     """Run the full safe pipeline.
 
@@ -103,6 +105,8 @@ def clean_and_master(
         raw_analysis: optional /api/analyze snapshot of the RAW input
             ({'spectrum': ...}); reused for the tone curve so it is
             never recomputed from processed audio.
+        eq_params: optional user parametric EQ, applied post-clean and
+            pre-master so the limiter catches any boosts.
 
     Returns:
         (processed, removed, report)
@@ -194,6 +198,16 @@ def clean_and_master(
         y[:fade, :] *= ramp
         y[-fade:, :] *= ramp[::-1]
     _prog(0.9)
+
+    # ── 7b. User parametric EQ (zero-phase), pre-master ──────────────────
+    if eq_params is not None and eq_params.is_active(sr):
+        y = apply_eq(y, sr, eq_params)
+        report["eq"] = {
+            "enabled": True,
+            "bands": len(eq_params.active_bands(sr)),
+        }
+    else:
+        report["eq"] = {"enabled": False}
 
     # ── 8. Mastering (single-pass, true-peak safe) ───────────────────────
     if use_mastering:

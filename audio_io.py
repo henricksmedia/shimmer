@@ -270,6 +270,7 @@ def process_file(
     mastering_analysis: Optional[Dict[str, Any]] = None,
     use_pipeline: bool = True,
     trim_silence: bool = False,
+    eq_params: Optional["EqParams"] = None,
 ) -> Dict[str, Any]:
     """Read an audio file, process it, write the result.
 
@@ -277,6 +278,9 @@ def process_file(
     the low/mid body bypasses the STFT engine, only the high band is
     cleaned, and mastering is single-pass true-peak safe. Set False to
     fall back to the legacy full-mix engine.
+
+    `eq_params` is the optional user parametric EQ (see eq.py), applied
+    post-clean / pre-master inside the pipeline.
     """
     from engine import apply_post_filters
 
@@ -294,6 +298,7 @@ def process_file(
             master_params=master_params if use_mastering else None,
             progress_callback=progress_callback,
             raw_analysis=mastering_analysis,
+            eq_params=eq_params,
         )
         mastering_report = pipe_report.get("mastering", {"enabled": False})
 
