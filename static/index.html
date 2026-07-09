@@ -22,6 +22,7 @@
     </h1>
     <nav class="tabs" role="tablist">
         <button class="tab active" role="tab" data-tab="single" aria-selected="true">Single File</button>
+        <button class="tab" role="tab" data-tab="remix" aria-selected="false">Remix</button>
         <button class="tab" role="tab" data-tab="batch" aria-selected="false">Batch</button>
     </nav>
     <div class="header-right">
@@ -239,6 +240,84 @@
 
                 <div class="metrics-box" id="metrics-box" hidden></div>
 
+            </div>
+        </div>
+    </section>
+
+    <!-- ───────────── Remix tab ───────────── -->
+    <section id="tab-remix" class="tab-panel" role="tabpanel">
+        <p class="intro">
+            Split a track into <b>vocals · drums · bass · other</b> and reshape each
+            part on its own — deeper voice, grit, doubling, space — then put it back
+            together. First run installs the separation engine (one-time download).
+        </p>
+
+        <div class="two-column">
+            <div class="column controls-column">
+
+                <div class="dropzone" id="remix-dropzone">
+                    <input type="file" id="remix-file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" hidden>
+                    <div class="dropzone-inner">
+                        <div class="dropzone-primary">Drop audio here</div>
+                        <div class="dropzone-secondary">WAV · MP3 · FLAC · OGG · M4A</div>
+                        <button type="button" class="btn btn-ghost" id="remix-pick-btn">Or choose file…</button>
+                        <div class="selected-file" id="remix-selected-file" hidden></div>
+                    </div>
+                </div>
+
+                <div class="control-block remix-sep-block">
+                    <div class="row">
+                        <button type="button" class="btn btn-primary" id="remix-separate-btn" disabled>Separate stems</button>
+                        <span class="remix-sep-status" id="remix-sep-status">Drop a file to start.</span>
+                    </div>
+                    <progress id="remix-sep-progress" value="0" max="1" hidden></progress>
+                </div>
+
+                <div id="remix-strips"></div>
+
+                <div class="control-block remix-render-block" hidden id="remix-render-block">
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="remix-master-enabled" checked>
+                        <span><b>Master the remix</b> — LUFS + true-peak limiter on export</span>
+                    </label>
+                    <div class="row">
+                        <select id="remix-format" class="select">
+                            <option value="wav" selected>WAV (24-bit PCM)</option>
+                            <option value="flac">FLAC</option>
+                            <option value="mp3">MP3 (320 kbps)</option>
+                        </select>
+                        <button type="button" class="btn btn-primary" id="remix-render-btn">Render &amp; Download</button>
+                    </div>
+                    <progress id="remix-render-progress" value="0" max="1" hidden></progress>
+                </div>
+
+            </div>
+
+            <div class="column results-column">
+                <div class="player-card remix-player-card">
+                    <div class="remix-ab-row">
+                        <button type="button" class="track-tab active" id="remix-tab-original">1 Original</button>
+                        <button type="button" class="track-tab" id="remix-tab-remix" disabled>2 Remix</button>
+                        <span class="player-kbd-hint">Loop window follows the playhead</span>
+                    </div>
+                    <div class="remix-loop-row">
+                        <label class="preview-mini-label" for="remix-window">Loop</label>
+                        <select id="remix-window" class="select preview-select">
+                            <option value="10" selected>10 s</option>
+                            <option value="15">15 s</option>
+                            <option value="20">20 s</option>
+                        </select>
+                        <button type="button" class="btn btn-ghost" id="remix-loop-here">Set from playhead</button>
+                        <span class="preview-status" id="remix-status"></span>
+                    </div>
+                    <div class="player-transport">
+                        <button type="button" class="btn btn-primary play-btn" id="remix-play" aria-label="Play">▶</button>
+                        <span class="player-time" id="remix-time">0:00 / 0:00</span>
+                    </div>
+                    <audio id="remix-audio-original" preload="auto" hidden></audio>
+                    <audio id="remix-audio-remix" preload="auto" hidden></audio>
+                </div>
+                <div class="metrics-box" id="remix-metrics" hidden></div>
             </div>
         </div>
     </section>

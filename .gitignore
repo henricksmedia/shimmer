@@ -9,9 +9,13 @@ dist/
 
 # Virtual environments
 .venv/
+.venv-stems/
 venv/
 env/
 ENV/
+
+# Stem separation cache (large WAVs + model checkpoints)
+stem_cache/
 
 # Shimmer.bat first-launch marker
 .deps_installed

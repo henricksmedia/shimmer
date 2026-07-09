@@ -2,6 +2,7 @@
 
 import { initSingleTab } from './single.js';
 import { initBatchTab }  from './batch.js';
+import { initRemixTab } from './remix.js';
 import { initHelp, openHelp } from './help.js';
 
 function wireTabs() {
@@ -27,6 +28,7 @@ async function boot() {
     try {
         await initSingleTab();
         await initBatchTab();
+        await initRemixTab();
         initHelp({ presetSelect: document.getElementById('preset-select') });
 
         // First visit: open the quick-start guide once.

@@ -47,6 +47,9 @@ class PreviewSession:
     last_used: float = field(default_factory=time.time)
     # Full-file analysis for mastering preview parity (LUFS/spectrum).
     track_analysis: Dict[str, Any] = field(default_factory=dict)
+    # Separated stems (vocals/drums/bass/other), populated by
+    # /api/stems/separate. Each is (n, ch) float32 at self.sr.
+    stems: Optional[Dict[str, np.ndarray]] = None
 
     @property
     def duration_s(self) -> float:

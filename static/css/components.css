@@ -1101,3 +1101,103 @@
     color: var(--danger);
     padding: 5px 9px;
 }
+
+/* ── Remix tab: channel strips + mini player ──────────────────────── */
+
+.remix-sep-block .row { align-items: center; gap: var(--gap-2); }
+.remix-sep-status { font-size: 12px; color: var(--fg-2); flex: 1; }
+.remix-sep-block progress,
+.remix-render-block progress { width: 100%; margin-top: var(--gap-2); }
+
+.remix-strip {
+    --strip-color: var(--purple);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--strip-color);
+    border-radius: var(--radius);
+    background: var(--bg-2);
+    padding: var(--gap-2);
+    margin-bottom: var(--gap-2);
+}
+.remix-strip-head {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-2);
+}
+.remix-strip-name {
+    font-weight: 600;
+    color: var(--fg-0);
+    min-width: 56px;
+}
+.remix-ms-btn {
+    font: 600 11px var(--font-ui);
+    width: 24px;
+    height: 22px;
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius-s);
+    background: var(--bg-3);
+    color: var(--fg-2);
+    cursor: pointer;
+}
+.remix-ms-btn.on { background: var(--danger); color: #fff; border-color: var(--danger); }
+.remix-ms-btn.solo.on { background: var(--amber); border-color: var(--amber); color: #1a1a1a; }
+.remix-gain-wrap {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-2);
+    flex: 1;
+}
+.remix-gain-wrap input[type="range"] { flex: 1; accent-color: var(--strip-color); }
+.remix-gain-val {
+    font: 500 11px var(--font-mono);
+    color: var(--fg-2);
+    min-width: 52px;
+    text-align: right;
+}
+
+.remix-fx-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--gap-1);
+    margin-top: var(--gap-2);
+}
+.remix-fx {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    background: var(--bg-1);
+    padding: 5px 7px;
+}
+.remix-fx.on { border-color: var(--strip-color); }
+.remix-fx-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--fg-1);
+    cursor: pointer;
+}
+.remix-fx-toggle input { accent-color: var(--strip-color); }
+.remix-fx-params { margin-top: 4px; }
+.remix-fx-param {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--fg-2);
+}
+.remix-fx-param span { min-width: 64px; }
+.remix-fx-param input[type="range"] { flex: 1; height: 14px; accent-color: var(--strip-color); }
+
+.remix-player-card { padding: var(--gap-3); }
+.remix-ab-row {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-2);
+}
+.remix-ab-row .player-kbd-hint { margin-left: auto; }
+.remix-loop-row {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-2);
+    margin-top: var(--gap-2);
+}
+.remix-loop-row .preview-status { flex: 1; }

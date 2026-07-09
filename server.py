@@ -71,6 +71,11 @@ from presets import (
 )
 from preview_store import PREVIEW_STORE, clamp_samples_for_preview
 from settings_store import load_settings, save_settings
+import stems as stems_mod
+from stem_effects import (
+    STEM_NAMES, remix_settings_from_json, render_remix,
+)
+from projects_store import list_projects, load_project, save_project
 
 
 HERE = Path(__file__).resolve().parent
@@ -807,6 +812,10 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
 
     loop2 = asyncio.get_running_loop()
     track_analysis = await loop2.run_in_executor(None, analyze_track, x, sr)
+    # Content digest: keys both the stem cache and the per-track project
+    # store, so the client can restore prior work for this exact file.
+    digest = await loop2.run_in_executor(
+        None, stems_mod.file_digest, orig_path)
 
     sess = PREVIEW_STORE.create(
         samples=x, sr=sr,
@@ -822,6 +831,9 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
         "duration_s": sess.duration_s,
         "name": orig_name,
         "analysis": track_analysis,
+        "digest": digest,
+        "stems_cached": stems_mod.cache_complete(digest),
+        "project": load_project(digest),
     })
 
 
@@ -974,6 +986,207 @@ async def api_preview(payload: Dict[str, Any]) -> Response:
 async def api_upload_drop(session_id: str) -> JSONResponse:
     PREVIEW_STORE.drop(session_id)
     return JSONResponse({"ok": True})
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Projects — per-track persisted work (keyed by file content digest)
+# ───────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/projects")
+async def api_projects_list() -> JSONResponse:
+    return JSONResponse({"projects": list_projects()})
+
+
+@app.get("/api/project/{digest}")
+async def api_project_get(digest: str) -> JSONResponse:
+    return JSONResponse(load_project(digest))
+
+
+@app.post("/api/project/{digest}")
+async def api_project_save(digest: str,
+                           payload: Dict[str, Any]) -> JSONResponse:
+    if not save_project(digest, payload):
+        raise HTTPException(400, "Invalid project digest")
+    return JSONResponse({"ok": True})
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# Stems / Remix — Demucs separation + per-stem effects
+# ───────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/stems/status/{session_id}")
+async def api_stems_status(session_id: str) -> JSONResponse:
+    sess = PREVIEW_STORE.get(session_id)
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+    cached = False
+    try:
+        cached = stems_mod.cache_complete(
+            stems_mod.file_digest(sess.original_path))
+    except OSError:
+        pass
+    return JSONResponse({
+        "ready": sess.stems is not None,
+        "cached": cached,
+        "env_ready": stems_mod.stems_python() is not None,
+        "cuda": stems_mod.has_cuda(),
+    })
+
+
+@app.post("/api/stems/separate")
+async def api_stems_separate(payload: Dict[str, Any]) -> JSONResponse:
+    """Kick off separation for an upload session. Returns a job_id whose
+    progress streams over the existing /api/progress SSE route. First run
+    may include a one-time engine install (several GB)."""
+    sid = payload.get("session_id") or ""
+    sess = PREVIEW_STORE.get(sid)
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+
+    job = JOB_STORE.create()
+    job.source_stem = Path(sess.original_name).stem or "audio"
+    loop = asyncio.get_running_loop()
+
+    def _progress(frac: float, msg: str) -> None:
+        job.progress = float(frac)
+        asyncio.run_coroutine_threadsafe(
+            job.queue.put({"fraction": float(frac), "message": msg}), loop)
+
+    def _work() -> None:
+        sess.stems = stems_mod.separate(
+            sess.original_path, sess.sr, progress=_progress)
+        # Clamp stems to the preview cap like the main samples.
+        for k in list(sess.stems):
+            sess.stems[k] = clamp_samples_for_preview(sess.stems[k], sess.sr)
+
+    async def _run() -> None:
+        job.status = "running"
+        try:
+            await loop.run_in_executor(None, _work)
+            job.status = "done"
+            job.progress = 1.0
+            await job.queue.put({"fraction": 1.0, "done": True})
+        except Exception as e:  # noqa: BLE001
+            job.status = "error"
+            job.error = str(e)
+            await job.queue.put({"error": str(e), "done": True})
+
+    asyncio.create_task(_run())
+    return JSONResponse({"job_id": job.id})
+
+
+@app.post("/api/remix/preview")
+async def api_remix_preview(payload: Dict[str, Any]) -> Response:
+    """Render a remix slice: per-stem effects + sum over the loop window.
+
+    Response format matches /api/preview but with a single WAV:
+        [u32 json_len][json meta][wav remix]
+    """
+    sid = payload.get("session_id") or ""
+    sess = PREVIEW_STORE.get(sid)
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+    if not sess.stems:
+        raise HTTPException(409, "Stems not separated yet")
+
+    try:
+        start_s = float(payload.get("start_s", 0.0))
+        end_s = float(payload.get("end_s", min(10.0, sess.duration_s)))
+    except (TypeError, ValueError) as e:
+        raise HTTPException(400, f"Invalid start_s/end_s: {e}")
+
+    settings = remix_settings_from_json(payload.get("stems") or {})
+
+    def _render() -> bytes:
+        sr = sess.sr
+        sliced = {}
+        head_pad = audible_len = 0
+        for name, arr in sess.stems.items():
+            block, head_pad, audible_len = extract_preview_block(
+                arr, sr, start_s, end_s,
+                extra_margin_s=0.0)
+            sliced[name] = block
+        y = render_remix(sliced, sr, settings)
+        y = trim_processed_preview(y, head_pad, audible_len)
+        return encode_wav_bytes(y, sr)
+
+    loop = asyncio.get_running_loop()
+    t0 = time.time()
+    try:
+        wav = await loop.run_in_executor(None, _render)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, f"Remix preview failed: {e}")
+
+    meta = json.dumps({
+        "sample_rate": sess.sr,
+        "render_ms": int((time.time() - t0) * 1000),
+        "start_s": start_s,
+        "end_s": end_s,
+    }).encode("utf-8")
+    return Response(
+        content=b"".join([struct.pack("<I", len(meta)), meta, wav]),
+        media_type="application/octet-stream")
+
+
+@app.post("/api/remix/render")
+async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
+    """Render the full-length remix (optionally mastered) as a download job."""
+    sid = payload.get("session_id") or ""
+    sess = PREVIEW_STORE.get(sid)
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+    if not sess.stems:
+        raise HTTPException(409, "Stems not separated yet")
+
+    settings = remix_settings_from_json(payload.get("stems") or {})
+    mp = master_params_from_json(payload.get("mastering") or {})
+    output_format = (payload.get("output_format") or "wav").lstrip(".").lower()
+    output_ext = "." + output_format
+    if output_ext not in {".wav", ".flac", ".mp3", ".ogg", ".m4a"}:
+        raise HTTPException(400, f"Unsupported output format: {output_format}")
+    if (payload.get("mastering") or {}).get("ceiling_dbtp") is None:
+        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
+
+    job = JOB_STORE.create(output_ext=output_ext)
+    job.source_stem = (Path(sess.original_name).stem or "audio") + "_remix"
+    job.preset_name = "remix"
+    loop = asyncio.get_running_loop()
+    cb = _threadsafe_progress_pusher(job, loop)
+
+    def _work() -> None:
+        sr = sess.sr
+        cb(0.1)
+        y = render_remix(sess.stems, sr, settings)
+        cb(0.7)
+        m_report: Dict[str, Any] = {"enabled": False}
+        if mp.enabled:
+            y, m_report = master(y, sr, mp)
+        processed = os.path.join(job.workdir, f"processed{job.output_ext}")
+        save_audio(processed, y, sr)
+        job.processed_path = processed
+        job.metrics = {
+            "sample_rate": sr,
+            "channels": int(y.shape[1]),
+            "duration_s": float(y.shape[0] / sr),
+            "input": measure(sess.samples),
+            "output": measure(y),
+            "mastering": m_report,
+        }
+        cb(1.0)
+
+    async def _run() -> None:
+        job.status = "running"
+        try:
+            await loop.run_in_executor(None, _work)
+            job.status = "done"
+            await job.queue.put({"fraction": 1.0, "done": True})
+        except Exception as e:  # noqa: BLE001
+            job.status = "error"
+            job.error = str(e)
+            await job.queue.put({"error": str(e), "done": True})
+
+    asyncio.create_task(_run())
+    return JSONResponse({"job_id": job.id})
 
 
 # ───────────────────────────────────────────────────────────────────────────
