@@ -1,0 +1,19 @@
+# Normalize line endings so launchers work regardless of who clones where.
+# - Shell scripts must be LF: CRLF breaks bash ("bad interpreter", stray \r).
+# - Batch files must be CRLF: cmd.exe's goto/label scanning has documented
+#   quirks with LF-only files, and this launcher is goto-based.
+* text=auto
+*.sh   text eol=lf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+*.py   text eol=lf
+*.js   text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+*.png  binary
+*.jpg  binary
+*.ico  binary
