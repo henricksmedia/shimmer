@@ -3,6 +3,13 @@
 All notable changes to Shimmer are recorded here.
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] — 2026-07-22
+
+### Fixed
+
+- Corrected the About text and README credits.
+- The app's internal version number now matches the release.
+
 ## [1.0.1] — 2026-07-22
 
 ### Fixed
@@ -88,5 +95,6 @@ First public release.
 - The Batch tab's folder picker needs Tk; without it, type the path
   manually.
 
+[1.0.2]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.2
 [1.0.1]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.1
 [1.0.0]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.0
