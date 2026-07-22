@@ -3,6 +3,18 @@
 All notable changes to Shimmer are recorded here.
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] — 2026-07-22
+
+### Fixed
+
+- The Windows launcher reported *"could not install the audio libraries"*
+  after a **successful** first-time install, then quit. If v1.0.0 told you
+  the install failed, it almost certainly didn't — this release just reads
+  the result correctly.
+- Both launchers now verify the install by importing the libraries, target
+  the app's own Python environment explicitly, and show the real error
+  output when something genuinely goes wrong.
+
 ## [1.0.0] — 2026-07-21
 
 First public release.
@@ -76,4 +88,5 @@ First public release.
 - The Batch tab's folder picker needs Tk; without it, type the path
   manually.
 
+[1.0.1]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.1
 [1.0.0]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.0

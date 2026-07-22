@@ -101,8 +101,8 @@ if [ ! -x "$PY" ]; then
     echo
     if ! uv venv; then
         echo
-        echo " ERROR: could not create the environment."
-        echo " Check your internet connection and try again."
+        echo " ERROR: could not create the Python environment."
+        echo " The reason is in the messages above — please scroll up."
         exit 1
     fi
 fi
