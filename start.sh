@@ -114,10 +114,27 @@ if ! "$PY" -c "import fastapi, uvicorn, numpy, scipy, soundfile, pyloudnorm" >/d
     echo " Installing audio libraries..."
     echo " (first run only - about 200 MB, a few minutes)"
     echo
-    if ! uv pip install -r requirements.txt; then
+    # --python targets this project's venv explicitly; without it uv has to
+    # infer the environment and can pick the wrong one.
+    uv pip install --python "$PY" -r requirements.txt || true
+
+    # Verify by importing rather than trusting the exit code — that is the
+    # only thing that proves the environment is actually usable.
+    if ! "$PY" -c "import fastapi, uvicorn, numpy, scipy, soundfile, pyloudnorm" >/dev/null 2>&1; then
         echo
-        echo " ERROR: could not install the audio libraries."
-        echo " Check your internet connection and try again."
+        echo " ERROR: the audio libraries did not install correctly."
+        echo
+        echo " The real reason is in the messages above — please scroll up."
+        echo " Common causes are no internet connection, a company proxy or"
+        echo " antivirus blocking downloads, or low disk space."
+        echo
+        echo " To save a log for a bug report, run this in the same folder"
+        echo " and attach setup-log.txt to your issue:"
+        echo
+        echo "     uv pip install --python .venv/bin/python -r requirements.txt > setup-log.txt 2>&1"
+        echo
+        echo "     https://github.com/henricksmedia/shimmer/issues"
+        echo
         exit 1
     fi
     echo

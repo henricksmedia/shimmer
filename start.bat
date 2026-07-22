@@ -80,42 +80,74 @@ exit /b 1
 :uv_ready
 
 REM ── Step 2: local environment ─────────────────────────────────────────
-if not exist ".venv\Scripts\python.exe" (
-    echo  Creating a local Python environment...
-    echo  ^(first run only - this may take a few minutes^)
-    echo.
-    uv venv
-    if %errorlevel% neq 0 (
-        echo.
-        echo  ERROR: could not create the environment.
-        echo  Check your internet connection and try again.
-        pause
-        exit /b 1
-    )
-)
-
+REM NOTE: no nested parentheses below. Inside a ( ) block cmd expands
+REM %errorlevel% when the block is PARSED, not when it runs, so a check
+REM inside a block reads a stale value. That bug made this script report
+REM failure after a perfectly good first-time install. goto-based flow
+REM keeps every check reading the live exit code.
 set "PY=.venv\Scripts\python.exe"
+
+if exist "%PY%" goto :venv_ready
+
+echo  Creating a local Python environment...
+echo  ^(first run only - this may take a few minutes^)
+echo.
+uv venv
+if not errorlevel 1 goto :venv_ready
+
+echo.
+echo  ERROR: could not create the Python environment.
+echo  The reason is in the messages above - please scroll up.
+echo.
+pause
+exit /b 1
+
+:venv_ready
 
 REM ── Step 3: dependencies ──────────────────────────────────────────────
 REM Probe imports instead of trusting a sentinel file. A real import test
 REM is the only way to know the venv actually has what we need.
+REM Probe imports instead of trusting a sentinel file. A real import test
+REM is the only way to know the venv actually has what we need.
 "%PY%" -c "import fastapi, uvicorn, numpy, scipy, soundfile, pyloudnorm" 1>nul 2>nul
-if %errorlevel% neq 0 (
-    echo  Installing audio libraries...
-    echo  ^(first run only - about 200 MB, a few minutes^)
-    echo.
-    uv pip install -r requirements.txt
-    if %errorlevel% neq 0 (
-        echo.
-        echo  ERROR: could not install the audio libraries.
-        echo  Check your internet connection and try again.
-        pause
-        exit /b 1
-    )
-    echo.
-    echo  Setup complete. Future launches start in seconds.
-    echo.
-)
+if not errorlevel 1 goto :deps_ready
+
+echo  Installing audio libraries...
+echo  ^(first run only - about 200 MB, a few minutes^)
+echo.
+REM --python targets this project's venv explicitly. Without it uv infers
+REM the environment, which can pick the wrong one (or none) on a machine
+REM with other Pythons installed.
+uv pip install --python "%PY%" -r requirements.txt
+
+REM Verify by importing rather than trusting the exit code — that is the
+REM only thing that proves the environment is actually usable.
+"%PY%" -c "import fastapi, uvicorn, numpy, scipy, soundfile, pyloudnorm" 1>nul 2>nul
+if not errorlevel 1 goto :deps_installed
+
+echo.
+echo  ERROR: the audio libraries did not install correctly.
+echo.
+echo  The real reason is in the messages above this line - please
+echo  scroll up. Common causes are no internet connection, a company
+echo  proxy or antivirus blocking downloads, or low disk space.
+echo.
+echo  To save a log file for a bug report, run this in the same
+echo  folder, then attach setup-log.txt to your issue:
+echo.
+echo      uv pip install --python .venv\Scripts\python.exe -r requirements.txt ^> setup-log.txt 2^>^&1
+echo.
+echo      https://github.com/henricksmedia/shimmer/issues
+echo.
+pause
+exit /b 1
+
+:deps_installed
+echo.
+echo  Setup complete. Future launches start in seconds.
+echo.
+
+:deps_ready
 
 REM ── Step 4: free the port ─────────────────────────────────────────────
 REM Kill any previous Shimmer, then WAIT until the socket is actually
