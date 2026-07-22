@@ -1,0 +1,111 @@
+# .gitignore — organised by category rather than by "files we happened to
+# notice". If you add a new kind of generated/local file, add the CATEGORY
+# here, not the single filename: the gaps that bite are always the second
+# file of a kind nobody wrote a rule for.
+
+# ── Secrets and environment ──────────────────────────────────────────────
+# Shimmer needs no credentials today, but this is the one category where a
+# single mistake is unrecoverable once pushed.
+.env
+.env.*
+!.env.example
+secrets.json
+credentials.json
+*.pem
+*.key
+*.pfx
+*.p12
+
+# ── Audio ────────────────────────────────────────────────────────────────
+# Audio never belongs in this repo — not test tracks, not stems, not your
+# music. Blanket guard so a stray file anywhere (project root, static/,
+# docs/) can never be committed by accident. To ship a sample deliberately:
+# git add -f <file>
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+*.aac
+*.aiff
+*.aif
+*.opus
+*.wma
+
+# ── Shimmer runtime data ─────────────────────────────────────────────────
+# NB: gitignore has no inline comments — a trailing "# ..." becomes part of
+# the pattern and silently matches nothing. Keep comments on their own line.
+# stem_cache/     : separated stems, cached by content hash (large)
+# *_deshimmered/  : default batch output folder name
+# .deps_installed : first-launch marker
+stem_cache/
+*_deshimmered/
+.deps_installed
+
+# ── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+*.whl
+
+# ── Test / type / lint caches ────────────────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# ── Virtual environments ─────────────────────────────────────────────────
+.venv/
+.venv-stems/
+venv/
+env/
+ENV/
+
+# ── Editors and IDEs ─────────────────────────────────────────────────────
+# Local developer config — ignored by directory so nothing slips through
+# because only one specific file was listed.
+.claude/
+.cursor/
+.vscode/
+.idea/
+.zed/
+.fleet/
+*.swp
+*.swo
+*~
+
+# ── OS junk ──────────────────────────────────────────────────────────────
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── Logs, temp, backups ──────────────────────────────────────────────────
+*.log
+*.tmp
+*.bak
+*.orig
+*.rej
+tmp/
+temp/
+
+# ── Local-only working files ─────────────────────────────────────────────
+# Scratch audio, one-off diagnostic scripts, local archives and personal
+# helper scripts. Kept on disk, never shipped.
+testing/
+diag_*.py
+_archive/
+git-push.bat

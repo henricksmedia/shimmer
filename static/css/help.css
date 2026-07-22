@@ -1,0 +1,447 @@
+/* help.css — Inline help icons, slim sidebar additions, and the
+   full-help modal (tabs, quiz, controls reference, troubleshooting). */
+
+/* ── Inline ? icon next to labels ───────────────────────────────── */
+
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid var(--line-2);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--fg-2);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 120ms ease;
+}
+.help-icon:hover,
+.help-icon:focus-visible {
+    color: #fff;
+    background: var(--purple);
+    border-color: var(--purple);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--purple-soft);
+}
+
+.help-icon-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--line-2);
+    color: var(--fg-2);
+    font-size: 9px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+/* ── Label rows that hold the label + ? icon ─────────────────────── */
+
+.label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap-2);
+    margin: var(--gap-2) 0 var(--gap-1);
+}
+.label-row .label {
+    margin: 0;
+}
+
+.slider-label-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+/* ── Quick start panel ──────────────────────────────────────────── */
+
+.workflow-list {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+}
+.workflow-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 6px 0;
+    font-size: 13px;
+    color: var(--fg-1);
+    line-height: 1.5;
+}
+.workflow-list .step {
+    flex: 0 0 18px;
+    display: inline-block;
+    width: 18px; height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--purple);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.help-intro-note {
+    background: var(--purple-soft);
+    border-left: 3px solid var(--purple);
+    padding: 8px 10px;
+    margin: 0 0 14px;
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    color: var(--fg-1);
+    line-height: 1.55;
+}
+
+.help-tip {
+    background: var(--amber-soft);
+    border-left: 3px solid var(--amber);
+    padding: 6px 10px;
+    margin: 10px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    color: var(--fg-1);
+}
+
+/* ── Full-help modal: backdrop + container ───────────────────────── */
+
+.help-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 5, 10, 0.72);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: helpFade 140ms ease-out;
+}
+.help-modal-backdrop[hidden] { display: none; }
+
+@keyframes helpFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.help-modal {
+    width: min(820px, 100%);
+    max-height: 86vh;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: helpRise 160ms ease-out;
+}
+@keyframes helpRise {
+    from { transform: translateY(8px); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+}
+
+body.help-open { overflow: hidden; }
+
+/* ── Modal header ────────────────────────────────────────────────── */
+
+.help-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+}
+.help-modal-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--fg-0);
+    letter-spacing: 0.3px;
+}
+.help-close {
+    width: 28px; height: 28px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--fg-1);
+    border-radius: 6px;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 120ms ease;
+}
+.help-close:hover,
+.help-close:focus-visible {
+    color: #fff;
+    background: var(--purple);
+    border-color: var(--purple);
+    outline: none;
+}
+
+/* ── Modal tabs ──────────────────────────────────────────────────── */
+
+.help-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-1);
+}
+.help-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 12px 14px;
+    color: var(--fg-2);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 120ms ease;
+}
+.help-tab:hover { color: var(--fg-0); }
+.help-tab.active {
+    color: var(--fg-0);
+    border-bottom-color: var(--purple);
+}
+.help-tab:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--purple-soft);
+    border-radius: 4px;
+}
+
+/* ── Modal body / panels ─────────────────────────────────────────── */
+
+.help-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px 28px;
+}
+.help-body::-webkit-scrollbar { width: 8px; }
+.help-body::-webkit-scrollbar-thumb {
+    background: var(--line-2);
+    border-radius: 4px;
+}
+
+.help-panel { display: none; }
+.help-panel.active { display: block; }
+
+.help-panel h3 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--fg-0);
+}
+.help-lede {
+    margin: 0 0 16px;
+    color: var(--fg-2);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+/* ── Help cards ──────────────────────────────────────────────────── */
+
+.help-group {
+    margin-bottom: 20px;
+}
+.help-group-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--fg-2);
+    font-weight: 600;
+    margin: 4px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+}
+.help-group-intro {
+    margin: 0 0 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--fg-1);
+}
+.help-section-head {
+    margin: 24px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--fg-2);
+}
+.help-section-head:first-of-type {
+    margin-top: 8px;
+}
+.help-group-intro-lead {
+    margin: 0 0 8px;
+}
+.help-group-intro-list {
+    margin: 0;
+    padding-left: 18px;
+    list-style: disc;
+}
+.help-group-intro-list li {
+    margin: 3px 0;
+}
+
+.help-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 8px 0;
+    transition: border-color 800ms ease, box-shadow 800ms ease;
+}
+.help-card h4 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fg-0);
+}
+.help-card p {
+    margin: 0 0 6px;
+    color: var(--fg-1);
+    font-size: 13px;
+    line-height: 1.55;
+}
+.help-card-short {
+    color: var(--fg-1);
+}
+.help-card-list {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+}
+.help-card-list li {
+    margin: 4px 0;
+    color: var(--fg-1);
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+.help-card-list b { color: var(--fg-0); font-weight: 600; }
+
+.help-card-typical {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--fg-2);
+}
+.help-card-typical span {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--purple-soft);
+    color: #b8aef0;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    margin-left: 4px;
+}
+
+.help-card-flash {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px var(--purple-soft);
+}
+
+.help-code {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    color: var(--gold);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin: 6px 0;
+    overflow-x: auto;
+}
+
+/* ── Preset quiz ─────────────────────────────────────────────────── */
+
+.quiz-card {
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 18px 16px;
+    margin-top: 4px;
+}
+.quiz-prompt {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fg-0);
+    margin-bottom: 12px;
+}
+.quiz-body {
+    color: var(--fg-1);
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 0 0 12px;
+}
+.quiz-options {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+.quiz-option {
+    text-align: left;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--fg-1);
+    padding: 11px 14px;
+    border-radius: 8px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 120ms ease;
+}
+.quiz-option:hover,
+.quiz-option:focus-visible {
+    color: var(--fg-0);
+    border-color: var(--purple);
+    background: var(--purple-soft);
+    outline: none;
+}
+
+.quiz-result-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.quiz-result-label {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--fg-2);
+}
+.quiz-result-name {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    color: var(--purple);
+}
+.quiz-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+/* ── Small screens ───────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+    .help-modal-backdrop { padding: 8px; }
+    .help-modal { max-height: 94vh; }
+    .help-tabs { overflow-x: auto; }
+    .help-tab { white-space: nowrap; }
+    .help-body { padding: 16px; }
+}

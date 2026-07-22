@@ -1,0 +1,82 @@
+/* tokens.css — design tokens (colours, type, spacing).  Nothing else.
+   Palette: pro dark studio — near-black surfaces, amber primary accent,
+   cyan for analysis, violet for remix/stems.  Var names are stable; the
+   rest of the CSS depends on them. */
+
+:root {
+    /* Neutrals */
+    --bg-0:  #0b0d10;
+    --bg-1:  #0e1116;
+    --bg-2:  #10141a;
+    --bg-3:  #14181e;
+    --bg-4:  #1c222b;
+    --line:  #252c37;
+    --line-2:#313a48;
+
+    --fg-0:  #e9edf3;
+    --fg-1:  #c0c8d2;
+    --fg-2:  #7d8894;
+    --fg-3:  #566171;
+
+    /* Brand / functional accents */
+    --purple:       #a78bfa;   /* remix & stems */
+    --purple-hover: #b8a1fb;
+    --purple-soft:  rgba(167, 139, 250, 0.12);
+    --gold:         #f77450;   /* CTA gradient tail (coral) */
+    --amber:        #f5a524;   /* primary accent */
+    --amber-soft:   rgba(245, 165, 36, 0.14);
+    --cyan:         #38bdf8;   /* analysis / detection */
+    --teal:         #2dd4bf;   /* batch / data */
+
+    /* Semantic */
+    --success: #4ade80;
+    --danger:  #f0526b;
+
+    /* Fonts */
+    --font-ui:   'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', Consolas, Menlo, monospace;
+    --font-brand:'Climate Crisis', cursive;
+    --font-logo: 'Audiowide', 'Inter', sans-serif;
+
+    /* Scale */
+    --radius:   10px;
+    --radius-s: 6px;
+    --gap-1: 4px;
+    --gap-2: 8px;
+    --gap-3: 12px;
+    --gap-4: 16px;
+    --gap-5: 20px;
+    --gap-6: 24px;
+
+    /* Layout constants */
+    --header-h: 52px;
+    --rail-w: 216px;
+    --rail-w-min: 64px;
+    --bridge-h: 104px;
+}
+
+* { box-sizing: border-box; }
+
+/* The hidden attribute must always win, even over display classes. */
+[hidden] { display: none !important; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-0);
+    color: var(--fg-1);
+    font-family: var(--font-ui);
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* Scoped away from .btn so link-buttons (e.g. the download link) keep their
+   button colours — a bare `a:hover` rule outranks `.btn-primary` and was
+   turning the amber Download button's text cyan and underlining it. */
+a:not(.btn) { color: var(--cyan); text-decoration: none; }
+a:not(.btn):hover { color: #6fd0fb; text-decoration: underline; }
+a.btn, a.btn:hover, a.btn:visited { text-decoration: none; }
+code { font-family: var(--font-mono); font-size: 0.85em; }

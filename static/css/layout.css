@@ -1,0 +1,253 @@
+/* layout.css — page structure only.  App shell: left rail navigation,
+   scrolling main area, persistent transport bridge docked at the bottom.
+   Below 1100px the rail collapses to icons and the page scrolls normally. */
+
+html, body { height: 100%; }
+
+body {
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.app {
+    display: grid;
+    grid-template-columns: var(--rail-w) 1fr;
+    grid-template-rows: var(--header-h) minmax(0, 1fr) var(--bridge-h);
+    grid-template-areas:
+        "rail topbar"
+        "rail page"
+        "rail bridge";
+    height: 100dvh;
+}
+
+/* ── Top bar: view title + shortcut hints ───────────────────────────── */
+
+.topbar {
+    grid-area: topbar;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-1);
+}
+.topbar .view-title { font-weight: 600; font-size: 15px; color: var(--fg-0); }
+.topbar .view-sub { color: var(--fg-2); font-size: 12px; }
+.topbar .spacer { flex: 1; }
+.topbar .kbd-hint { color: var(--fg-3); font-size: 11px; }
+.topbar kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: var(--bg-4);
+    border: 1px solid var(--line-2);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--fg-1);
+}
+
+/* ── Left rail: wordmark + navigation + session ─────────────────────── */
+
+.rail {
+    grid-area: rail;
+    background: var(--bg-0);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    padding: 14px 10px;
+    gap: 4px;
+    min-height: 0;
+    overflow-y: auto;      /* short viewports: scroll instead of clipping */
+}
+.rail::-webkit-scrollbar { width: 6px; }
+.rail::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.rail > * { flex-shrink: 0; }
+
+.rail .wordmark {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 6px 8px 16px;
+    background: none;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+    font: inherit;
+    text-align: inherit;
+}
+.rail .wordmark:hover .aurora-wm,
+.rail .wordmark:hover .aurora-s { filter: brightness(1.15); }
+
+/* Aurora wordmark — gradient text with a slow light sweep. */
+.aurora-wm, .aurora-s {
+    font-weight: 750;
+    text-transform: uppercase;
+    background: linear-gradient(100deg,
+        var(--amber) 0%, #ffd97a 18%, var(--gold) 38%,
+        #f472b6 55%, var(--amber) 75%, #ffd97a 100%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: aurora-sweep 7s linear infinite;
+}
+.aurora-lockup { width: 100%; text-align: center; }
+.aurora-wm {
+    display: block;
+    font-size: 25px;
+    letter-spacing: .28em;
+    margin-right: -.28em;      /* cancel trailing tracking */
+}
+.aurora-lockup small {
+    display: block;
+    color: var(--fg-2);
+    font-weight: 500;
+    font-size: 9.5px;
+    letter-spacing: .3em;
+    margin-right: -.3em;
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+.aurora-s { display: none; font-size: 22px; letter-spacing: 0; line-height: 1; }
+@keyframes aurora-sweep { to { background-position: -220% 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .aurora-wm, .aurora-s { animation: none; }
+}
+
+/* Nav buttons double as the tab controls: main.js binds .tab[data-tab]. */
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    width: 100%;
+    padding: 12px 12px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--fg-1);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 550;
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+}
+.nav-btn:hover { background: var(--bg-3); color: var(--fg-0); }
+.nav-btn.active { background: var(--bg-4); color: var(--fg-0); }
+.nav-btn .icon { width: 21px; height: 21px; flex: none; opacity: .9; }
+.nav-btn.active .icon { color: var(--amber); }
+.nav-btn[data-tab="remix"].active .icon { color: var(--purple); }
+.nav-btn[data-tab="batch"].active .icon { color: var(--teal); }
+.nav-btn[data-tab="chain"].active .icon { color: var(--cyan); }
+.nav-btn .txt .sub {
+    display: block;
+    font-size: 12px;
+    color: var(--fg-2);
+    font-weight: 400;
+    margin-top: 1px;
+}
+
+.rail-spacer { flex: 1; }
+
+.rail-kbd-hint {
+    padding: 8px 10px 4px;
+    font-size: 10.5px;
+    color: var(--fg-3);
+    line-height: 1.8;
+}
+
+/* Artist byline — quiet until hovered, then lights up in brand amber. */
+.rail-byline {
+    display: block;
+    padding: 6px 10px 2px;
+    font-size: 10.5px;
+    color: var(--fg-3);
+    text-decoration: none;
+    transition: color 120ms ease;
+}
+.rail-byline span { font-weight: 650; color: var(--fg-2); transition: color 120ms ease; }
+.rail-byline:hover { color: var(--fg-2); text-decoration: none; }
+.rail-byline:hover span { color: var(--amber); }
+@media (max-width: 1100px) { .rail-byline { display: none; } }
+
+/* ── Main area ──────────────────────────────────────────────────────── */
+
+.page {
+    grid-area: page;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--bg-1);
+    padding: var(--gap-4);
+}
+
+.tab-panel { display: none; }
+.tab-panel.active {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.two-column {
+    display: grid;
+    grid-template-columns: minmax(340px, 420px) 1fr;
+    gap: var(--gap-4);
+    align-items: start;
+    min-height: 0;
+}
+
+#tab-single .two-column { flex: 1; }
+#tab-batch  .two-column { flex: 0 0 auto; }
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-3);
+    min-height: 0;
+}
+
+.controls-column { padding-right: 2px; }
+
+/* Main call-to-action: amber→coral gradient. */
+.process-btn.btn-primary,
+.batch-btn.btn-primary {
+    background: linear-gradient(135deg, var(--amber), var(--gold));
+    color: #17130a;
+    font-weight: 650;
+    box-shadow: 0 2px 14px rgba(245, 165, 36, 0.28);
+}
+.process-btn.btn-primary:hover:not(:disabled),
+.batch-btn.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ffb61f, #ff8a66);
+    box-shadow: 0 2px 20px rgba(245, 165, 36, 0.45);
+}
+
+/* ── Transport bridge (container only — internals in chrome.css) ────── */
+
+.bridge {
+    grid-area: bridge;
+    background: var(--bg-0);
+    border-top: 1px solid var(--line);
+    min-width: 0;
+}
+
+/* ── Small screens: collapse rail to icons, page scrolls normally ───── */
+
+@media (max-width: 1100px) {
+    .app {
+        grid-template-columns: var(--rail-w-min) 1fr;
+        grid-template-rows: minmax(0, 1fr) auto;
+    }
+    .aurora-lockup { display: none; }
+    .aurora-s { display: block; }
+    .rail { padding: 14px 8px; }
+    .rail .wordmark { justify-content: center; padding-left: 0; padding-right: 0; }
+    .nav-btn { justify-content: center; padding: 12px 8px; }
+    .nav-btn .txt { display: none; }
+    .rail-kbd-hint { display: none; }
+    .two-column { grid-template-columns: 1fr; }
+    /* Player first on small screens so results stay visible. */
+    #tab-single .results-column { order: -1; }
+    .player-canvas { flex: none; height: 240px; }
+    .batch-log { flex: none; max-height: 480px; }
+}

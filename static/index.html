@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shimmer by The Treq</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Audiowide&family=Climate+Crisis&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/css/tokens.css">
+<link rel="stylesheet" href="/static/css/layout.css">
+<link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/help.css">
+<link rel="stylesheet" href="/static/css/chrome.css">
+</head>
+<body>
+<div class="app">
+
+<aside class="rail">
+    <button type="button" class="wordmark" id="wordmark-home" title="Back to Master">
+        <span class="aurora-s">S</span>
+        <span class="aurora-lockup"><span class="aurora-wm">Shimmer</span><small>AI-track mastering</small></span>
+    </button>
+
+    <button class="tab nav-btn active" role="tab" data-tab="single" aria-selected="true">
+        <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 14v-4M7 16V4M11 13V7M15 15V5M18 12v-2" stroke-linecap="round"/></svg>
+        <span class="txt">Master<span class="sub">clean &amp; finalize</span></span>
+    </button>
+    <button class="tab nav-btn" role="tab" data-tab="remix" aria-selected="false">
+        <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h14M3 10h14M3 15h14" stroke-linecap="round"/><circle cx="7" cy="5" r="1.7" fill="currentColor" stroke="none"/><circle cx="13" cy="10" r="1.7" fill="currentColor" stroke="none"/><circle cx="6" cy="15" r="1.7" fill="currentColor" stroke="none"/></svg>
+        <span class="txt">Remix<span class="sub">stems &amp; effects</span></span>
+    </button>
+    <button class="tab nav-btn" role="tab" data-tab="batch" aria-selected="false">
+        <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6a2 2 0 0 1 2-2h3l2 2h5a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span class="txt">Batch<span class="sub">whole folders</span></span>
+    </button>
+    <button class="tab nav-btn" role="tab" data-tab="chain" aria-selected="false">
+        <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="4.5" height="6" rx="1"/><rect x="13.5" y="7" width="4.5" height="6" rx="1"/><path d="M6.5 10h7" stroke-linecap="round"/></svg>
+        <span class="txt">Signal Chain<span class="sub">under the hood</span></span>
+    </button>
+    <button class="nav-btn" type="button" data-help-tab="quickstart" title="Open help">
+        <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.8a2.2 2.2 0 1 1 3.1 2.6c-.6.4-.9.8-.9 1.6M10 14.6v.01" stroke-linecap="round"/></svg>
+        <span class="txt">Help<span class="sub">guides &amp; fixes</span></span>
+    </button>
+
+    <div class="rail-spacer"></div>
+    <div class="session-card" id="session-card">
+        <div class="fname"></div>
+        <div class="badge-row"></div>
+    </div>
+    <div class="rail-kbd-hint">Space play · 1/2/3 track<br>←/→ seek · Ctrl+K anything</div>
+    <a class="rail-byline" href="https://treqmusic.com/" target="_blank" rel="noopener"
+       title="Music by The Treq">by <span>The Treq</span></a>
+</aside>
+
+<header class="topbar">
+    <span class="view-title" id="view-title">Master</span>
+    <span class="view-sub" id="view-sub">clean AI artifacts · master for release</span>
+    <span class="spacer"></span>
+    <span class="kbd-hint"><kbd>Space</kbd> play · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> A/B · <kbd>Ctrl K</kbd> anything</span>
+</header>
+
+<main class="page">
+
+    <!-- ───────────── Master tab ───────────── -->
+    <section id="tab-single" class="tab-panel active" role="tabpanel">
+
+        <ol class="wizard-steps" aria-label="Workflow">
+            <li class="wizard-step active" id="step-upload"><span class="step-num">1</span> Upload</li>
+            <li class="wizard-step" id="step-analyze"><span class="step-num">2</span> Analyze</li>
+            <li class="wizard-step" id="step-process"><span class="step-num">3</span> Clean &amp; Master</li>
+        </ol>
+
+        <!-- Empty state: hero dropzone, exactly like the demo -->
+        <div class="master-empty" id="master-empty">
+            <div class="dropzone" id="dropzone">
+                <input type="file" id="file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" hidden>
+                <div class="dropzone-inner">
+                    <div class="dropzone-primary">Drop a track to clean &amp; master</div>
+                    <div class="dropzone-secondary">Suno exports welcome — Shimmer removes AI artifacts, then masters for release.</div>
+                    <button type="button" class="btn btn-primary" id="pick-file-btn">Choose file…</button>
+                    <div class="dropzone-formats">.wav · .mp3 · .flac · .ogg · .m4a</div>
+                    <div class="selected-file" id="selected-file" hidden></div>
+                </div>
+            </div>
+            <div class="card" id="recents-card" hidden>
+                <div class="card-head"><span class="title">Recent sessions</span><span class="gloss">click to reload — settings &amp; remix projects come back automatically</span></div>
+                <div class="card-body" id="recents-list"></div>
+            </div>
+        </div>
+
+        <!-- Working state: preset browser | analysis + visualizer | inspector -->
+        <div id="master-work" hidden>
+            <div class="master-3col">
+
+                <div class="mcol" id="master-col-left">
+                    <div id="dropzone-slot"></div>
+                    <div class="card">
+                        <div class="card-head">
+                            <span class="title">Artifact Preset</span><span class="gloss">what to remove</span>
+                            <span class="spacer"></span>
+                            <button type="button" class="help-icon" data-help-tab="presets" title="How do I pick a preset?" aria-label="Help: how do I pick a preset?">?</button>
+                        </div>
+                        <div class="card-body">
+                            <select id="preset-select" class="select" title="Preset" hidden></select>
+                            <div class="preset-browser" id="preset-browser"></div>
+                            <div class="card-divider"></div>
+                            <div class="preset-strength-row">
+                                <label class="preset-strength-label" for="preset-strength">
+                                    Preset strength
+                                    <span id="preset-strength-value" class="preset-strength-value">100%</span>
+                                </label>
+                                <input id="preset-strength" type="range"
+                                       min="0" max="2" step="0.05" value="1"
+                                       title="Scale the preset's amount-style settings (denoise, deharsh, ceilings, flicker tamer, iterations) up or down. 100% = preset as-is. 200% = doubled (clamped).">
+                            </div>
+                            <div class="preset-desc-wrap">
+                                <div id="preset-desc" class="preset-desc" tabindex="0"
+                                     title="Click to expand"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mcol" id="master-col-center">
+                    <div class="card viz-card">
+                        <div class="player-card" id="player-card">
+                            <div class="done-banner" id="done-banner" hidden>
+                                <div class="done-info">
+                                    <div class="done-title">✓ Ready to download</div>
+                                    <div class="done-chips" id="done-chips"></div>
+                                </div>
+                                <a id="download-link" class="btn btn-primary done-download" download>Download</a>
+                            </div>
+
+                            <div class="player-tabs-row">
+                                <div class="player-view-toggle">
+                                    <button type="button" class="viz-mode-btn active" id="viz-mode-wave" title="Waveform view">Waveform</button>
+                                    <button type="button" class="viz-mode-btn" id="viz-mode-overlay" title="Waveform over spectrogram — see when and where artifacts hit at once">Both</button>
+                                    <button type="button" class="viz-mode-btn" id="viz-mode-spec" title="Spectrogram view — artifacts show as bright streaks in the shaded band">Spectrogram</button>
+                                </div>
+                                <span class="player-kbd-hint">Space play · 1/2/3 track · ←/→ seek</span>
+                            </div>
+
+                            <canvas id="player-canvas" class="player-canvas"></canvas>
+
+                            <div class="player-meters" id="player-meters" hidden>
+                                <canvas id="spectrum-live" class="spectrum-live"></canvas>
+                                <div class="viz-lufs-meter" id="viz-lufs-meter">
+                                    <div class="viz-lufs-fill" id="viz-lufs-fill"></div>
+                                    <div class="viz-lufs-target" id="viz-lufs-target"></div>
+                                </div>
+                            </div>
+
+                            <audio id="audio-original" preload="auto" hidden></audio>
+                            <audio id="audio-processed" preload="auto" hidden></audio>
+                            <audio id="audio-diff" preload="auto" hidden></audio>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <span class="title">Analysis</span><span class="gloss">listens for AI noise in your track</span>
+                            <span class="spacer"></span>
+                            <button type="button" class="btn btn-primary btn-sm" id="analyze-btn" title="Listens to your track, picks the best cleanup preset, and finds where the noise is worst">Analyze</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="auto-detect-results" class="auto-detect-results" hidden></div>
+                            <div class="analysis-hint" id="analysis-hint">
+                                Click <b>Analyze</b> and Shimmer listens to your track for the noise AI
+                                music tools leave behind — fizz, hiss, whistles, and metallic sheen.
+                                It checks all 19 cleanup presets against what it hears and picks the
+                                one that fits your track best. It also finds the spot where the noise
+                                is worst, so the preview loop starts right where you need to hear it.
+                                This takes a few seconds and does not change your audio.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metrics-box" id="metrics-box" hidden></div>
+                </div>
+
+                <div class="mcol" id="master-col-right">
+                    <div class="card insp">
+
+                        <details class="acc-sec" open>
+                            <summary><span class="a-title">Mastering</span><span class="a-gloss">loudness &amp; tone for release</span></summary>
+                            <div class="acc-body">
+                                <div class="mastering-card" id="mastering-card">
+                                    <label class="checkbox-row mastering-toggle">
+                                        <input type="checkbox" id="master-enabled" checked>
+                                        <span><b>Master for release</b> — LUFS target, tone match, true-peak limiter</span>
+                                    </label>
+                                    <div id="mastering-options">
+                                        <div class="master-grid-fields">
+                                            <div>
+                                                <label class="label" for="master-target">Loudness target</label>
+                                                <select id="master-target" class="select">
+                                                    <option value="streaming" selected>Streaming (−14 LUFS)</option>
+                                                    <option value="loud">Loud (−11 LUFS)</option>
+                                                    <option value="cd" title="Very loud master — heavy limiting can add audible distortion. Streaming platforms will turn it back down anyway.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="label" for="master-intensity">Tone match</label>
+                                                <select id="master-intensity" class="select"
+                                                        title="How strongly the corrective EQ pulls the track toward a neutral reference curve. Does not change loudness — that's the loudness target.">
+                                                    <option value="low">Low — gentle EQ</option>
+                                                    <option value="med" selected>Medium</option>
+                                                    <option value="high">High — more correction</option>
+                                                </select>
+                                            </div>
+                                            <div class="master-grid-span">
+                                                <label class="label" for="master-tilt">Tone</label>
+                                                <select id="master-tilt" class="select"
+                                                        title="Stylistic warm–bright tilt on top of the tone match. Bounded by the same safety limits: boosts never exceed +2 dB, and the 5–12 kHz harshness band stays capped so AI fizz can't come back.">
+                                                    <option value="brightest">Brightest — max air &amp; sparkle</option>
+                                                    <option value="bright">Bright — crisper, more presence</option>
+                                                    <option value="neutral" selected>Neutral — no tilt</option>
+                                                    <option value="warm">Warm — rounder, softer top</option>
+                                                    <option value="warmer">Warmer — max weight, rolled-off air</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="mastering-readout" id="mastering-readout" hidden></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+
+                        <details class="acc-sec" open>
+                            <summary><span class="a-title">Parametric EQ</span><span class="a-gloss">your tonal moves — zero-phase</span></summary>
+                            <div class="acc-body">
+                                <div class="eq-card" id="eq-card"></div>
+                            </div>
+                        </details>
+
+                        <details class="acc-sec">
+                            <summary><span class="a-title">Output</span><span class="a-gloss">format &amp; export options</span></summary>
+                            <div class="acc-body">
+                                <div class="inline-field">
+                                    <label class="label" for="output-format">Format</label>
+                                    <select id="output-format" class="select"
+                                            title="True-peak ceiling adapts to the format: −1.0 dBTP for lossless (WAV/FLAC), −1.5 dBTP for lossy (MP3/OGG/M4A) so the encoder can't clip on decode.">
+                                        <option value="wav" selected>WAV (24-bit PCM) · −1.0 dBTP</option>
+                                        <option value="flac">FLAC · −1.0 dBTP</option>
+                                        <option value="mp3">MP3 (320 kbps) · −1.5 dBTP</option>
+                                        <option value="ogg">OGG Vorbis · −1.5 dBTP</option>
+                                        <option value="m4a">M4A (AAC) · −1.5 dBTP</option>
+                                    </select>
+                                </div>
+                                <label class="checkbox-row loudness-line" id="preserve-vol-card"
+                                       title="When mastering is enabled, LUFS targeting handles loudness. Use this when mastering is off to A/B fairly.">
+                                    <input type="checkbox" id="preserve-vol" checked>
+                                    <span>Match loudness when mastering is off</span>
+                                </label>
+                                <label class="checkbox-row"
+                                       title="Removes silence below −60 dBFS from the start and end of the downloaded file, keeping a short natural pad. Playback here stays full-length so A/B comparison remains in sync.">
+                                    <input type="checkbox" id="trim-silence">
+                                    <span>Trim leading/trailing silence on export</span>
+                                </label>
+                                <label class="checkbox-row"
+                                       title="When on, preset, strength, mastering, EQ, and other Master choices come back on the next visit. When off, each page load starts from defaults.">
+                                    <input type="checkbox" id="remember-settings">
+                                    <span>Remember settings next time</span>
+                                </label>
+                            </div>
+                        </details>
+
+                        <div class="acc-foot">
+                            <button type="button" class="btn btn-ghost advanced-open-btn" id="advanced-open-btn">
+                                <span>Advanced artifact controls</span>
+                                <span class="advanced-open-arrow" aria-hidden="true">›</span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ───────────── Remix tab ───────────── -->
+    <section id="tab-remix" class="tab-panel" role="tabpanel">
+        <div class="remix-grid">
+            <div class="mcol">
+
+                <div class="card">
+                    <div class="card-head">
+                        <span class="title">Stem Separation</span><span class="gloss">vocals · drums · bass · other</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="dropzone dropzone-compact" id="remix-dropzone">
+                            <input type="file" id="remix-file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" hidden>
+                            <div class="dropzone-inner">
+                                <div class="dropzone-primary">Drop audio here</div>
+                                <div class="dropzone-secondary">WAV · MP3 · FLAC · OGG · M4A</div>
+                                <button type="button" class="btn btn-ghost" id="remix-pick-btn">Or choose file…</button>
+                                <div class="selected-file" id="remix-selected-file" hidden></div>
+                            </div>
+                        </div>
+                        <div class="remix-sep-block">
+                            <div class="row">
+                                <button type="button" class="btn btn-primary" id="remix-separate-btn" disabled>Separate stems</button>
+                                <span class="remix-sep-status" id="remix-sep-status">Drop a file to start.</span>
+                            </div>
+                            <progress id="remix-sep-progress" value="0" max="1" hidden></progress>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="remix-toolbar" id="remix-toolbar" hidden>
+                    <button type="button" class="btn btn-ghost" id="remix-reset"
+                            title="Set every stem back to neutral (no effects, 0 dB, no mute/solo). Stems stay separated — nothing re-runs.">
+                        Reset mix
+                    </button>
+                </div>
+                <div id="remix-strips"></div>
+
+                <div class="card viz-card">
+                    <div class="player-card remix-player-card">
+                        <div class="remix-ab-row">
+                            <button type="button" class="track-tab active" id="remix-tab-original">1 Original</button>
+                            <button type="button" class="track-tab" id="remix-tab-remix" disabled>2 Remix</button>
+                            <span class="player-kbd-hint">Loop window follows the playhead</span>
+                        </div>
+                        <canvas id="remix-wave" class="remix-wave"
+                                title="Click to seek · shaded region is the loop window"></canvas>
+                        <div class="remix-loop-row">
+                            <label class="preview-mini-label" for="remix-window">Loop</label>
+                            <select id="remix-window" class="select preview-select">
+                                <option value="10" selected>10 s</option>
+                                <option value="15">15 s</option>
+                                <option value="20">20 s</option>
+                            </select>
+                            <button type="button" class="btn btn-ghost" id="remix-loop-here">Set from playhead</button>
+                            <span class="preview-status" id="remix-status"></span>
+                        </div>
+                        <div class="player-transport">
+                            <button type="button" class="btn btn-primary play-btn" id="remix-play" aria-label="Play">▶</button>
+                            <span class="player-time" id="remix-time">0:00 / 0:00</span>
+                            <label class="transport-check" title="Attenuate the louder track so you judge the remix, not the volume difference — mastering makes the remix much louder than the original.">
+                                <input type="checkbox" id="remix-ab-match" checked>
+                                <span>Loudness-matched A/B</span>
+                            </label>
+                        </div>
+                        <audio id="remix-audio-original" preload="auto" hidden></audio>
+                        <audio id="remix-audio-remix" preload="auto" hidden></audio>
+                    </div>
+                </div>
+                <div class="metrics-box" id="remix-metrics" hidden></div>
+
+            </div>
+
+            <div class="mcol">
+                <div class="card remix-render-card" hidden id="remix-render-block">
+                    <div class="card-head">
+                        <span class="title">Render</span><span class="gloss">sum · clean · master · export</span>
+                    </div>
+                    <div class="card-body">
+                        <label class="checkbox-row mastering-toggle">
+                            <input type="checkbox" id="remix-master-enabled" checked>
+                            <span><b>Master the remix</b> — LUFS target, tone match, true-peak limiter. Heard live in the loop preview.</span>
+                        </label>
+                        <div class="master-grid-fields" id="remix-master-options">
+                            <div>
+                                <label class="label" for="remix-master-target">Loudness target</label>
+                                <select id="remix-master-target" class="select">
+                                    <option value="streaming" selected>Streaming (−14 LUFS)</option>
+                                    <option value="loud">Loud (−11 LUFS)</option>
+                                    <option value="cd" title="Very loud master — heavy limiting can add audible distortion. Streaming platforms will turn it back down anyway.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label" for="remix-master-intensity">Tone match</label>
+                                <select id="remix-master-intensity" class="select"
+                                        title="How strongly the corrective EQ pulls the remix toward a neutral reference curve. Does not change loudness — that's the loudness target.">
+                                    <option value="low">Low — gentle EQ</option>
+                                    <option value="med" selected>Medium</option>
+                                    <option value="high">High — more correction</option>
+                                </select>
+                            </div>
+                            <div class="master-grid-span">
+                                <label class="label" for="remix-master-tilt">Tone</label>
+                                <select id="remix-master-tilt" class="select"
+                                        title="Stylistic warm–bright tilt on top of the tone match. Bounded by the same safety limits: boosts never exceed +2 dB, and the 5–12 kHz harshness band stays capped so AI fizz can't come back.">
+                                    <option value="brightest">Brightest — max air &amp; sparkle</option>
+                                    <option value="bright">Bright — crisper, more presence</option>
+                                    <option value="neutral" selected>Neutral — no tilt</option>
+                                    <option value="warm">Warm — rounder, softer top</option>
+                                    <option value="warmer">Warmer — max weight, rolled-off air</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-divider"></div>
+                        <div class="inline-field">
+                            <label class="label" for="remix-cleanup">Artifact cleanup on export</label>
+                            <select id="remix-cleanup" class="select"
+                                    title="Run the finished remix through Shimmer's artifact cleaning before mastering. The separation engine spreads the source's AI artifacts into the stems, so the remix inherits them — Auto-detect analyzes the remix itself and picks the best preset. Adds cleaning time to the render; the loop preview stays uncleaned for speed.">
+                                <option value="auto" selected>Auto-detect — analyze the remix, pick a preset</option>
+                                <option value="off">Off — export the mix as-is</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <select id="remix-format" class="select"
+                                    title="True-peak ceiling adapts to the format: −1.0 dBTP for lossless (WAV/FLAC), −1.5 dBTP for lossy (MP3/OGG/M4A) so the encoder can't clip on decode.">
+                                <option value="wav" selected>WAV (24-bit PCM) · −1.0 dBTP</option>
+                                <option value="flac">FLAC · −1.0 dBTP</option>
+                                <option value="mp3">MP3 (320 kbps) · −1.5 dBTP</option>
+                                <option value="ogg">OGG Vorbis · −1.5 dBTP</option>
+                                <option value="m4a">M4A (AAC) · −1.5 dBTP</option>
+                            </select>
+                            <button type="button" class="btn btn-primary" id="remix-render-btn">Render &amp; Download</button>
+                        </div>
+                        <progress id="remix-render-progress" value="0" max="1" hidden></progress>
+                    </div>
+                </div>
+                <div class="card note-card">
+                    <div class="card-body note-body">
+                        <b>Preview vs export:</b> the loop you hear skips cleanup for speed.
+                        The final render sums all stems (peak-protected), runs the full
+                        cleaning pipeline, then masters.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ───────────── Batch tab ───────────── -->
+    <section id="tab-batch" class="tab-panel" role="tabpanel">
+        <div class="batch-grid">
+            <div class="mcol">
+
+                <div class="card">
+                    <div class="card-head"><span class="title">Folders</span><span class="gloss">in · out</span></div>
+                    <div class="card-body">
+                        <label class="label">Input folder</label>
+                        <div class="browse-row">
+                            <input type="text" id="batch-input" class="input" placeholder="C:\Music\Suno Exports">
+                            <button type="button" class="btn btn-ghost browse-btn" id="browse-input-btn"
+                                    title="Open folder picker">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M1.5 3a.5.5 0 0 1 .5-.5h4.172a.5.5 0 0 1 .354.146L7.854 4H14a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                                </svg>
+                                Browse…
+                            </button>
+                        </div>
+                        <label class="label">Output folder (optional)</label>
+                        <div class="browse-row">
+                            <input type="text" id="batch-output" class="input" placeholder="(auto: <input>_deshimmered)">
+                            <button type="button" class="btn btn-ghost browse-btn" id="browse-output-btn"
+                                    title="Open folder picker">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M1.5 3a.5.5 0 0 1 .5-.5h4.172a.5.5 0 0 1 .354.146L7.854 4H14a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                                </svg>
+                                Browse…
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><span class="title">Preset</span><span class="gloss">same for all, or auto per file</span></div>
+                    <div class="card-body">
+                        <div class="batch-mode-toggle">
+                            <label class="batch-mode-option">
+                                <input type="radio" name="batch-mode" value="fixed" checked>
+                                <span class="batch-mode-label">Same preset for all</span>
+                            </label>
+                            <label class="batch-mode-option">
+                                <input type="radio" name="batch-mode" value="auto">
+                                <span class="batch-mode-label">
+                                    <span class="batch-mode-icon">🔍</span>
+                                    Auto-detect each file
+                                </span>
+                            </label>
+                        </div>
+                        <div id="batch-preset-group">
+                            <label class="label">Preset</label>
+                            <select id="batch-preset" class="select"></select>
+                        </div>
+                        <div class="preset-strength-row batch-strength-row">
+                            <label class="preset-strength-label" for="batch-strength">
+                                Preset strength
+                                <span id="batch-strength-value" class="preset-strength-value">100%</span>
+                            </label>
+                            <input id="batch-strength" type="range"
+                                   min="0" max="2" step="0.05" value="1"
+                                   title="Scale the preset's amount-style settings up or down. 100% = preset as-is.">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><span class="title">Processing</span><span class="gloss">applies to every file</span></div>
+                    <div class="card-body">
+                        <label class="label">Output format</label>
+                        <select id="batch-format" class="select">
+                            <option value="wav" selected>WAV (24-bit PCM)</option>
+                            <option value="flac">FLAC</option>
+                            <option value="mp3">MP3 (320 kbps)</option>
+                            <option value="ogg">OGG Vorbis</option>
+                            <option value="m4a">M4A (AAC)</option>
+                        </select>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="batch-preserve-vol" checked>
+                            <span>Match loudness when mastering is off</span>
+                        </label>
+                        <label class="checkbox-row"
+                               title="Removes silence below −60 dBFS from the start and end of each output file, keeping a short natural pad.">
+                            <input type="checkbox" id="batch-trim-silence">
+                            <span>Trim leading/trailing silence</span>
+                        </label>
+                        <label class="checkbox-row"
+                               title="Applies the EQ bands configured on the Master tab to every file in the batch.">
+                            <input type="checkbox" id="batch-apply-eq">
+                            <span>Apply EQ from Master tab</span>
+                        </label>
+                        <div class="card-divider"></div>
+                        <div class="batch-mastering">
+                            <label class="checkbox-row">
+                                <input type="checkbox" id="batch-master-enabled" checked>
+                                <span><b>Master for release</b></span>
+                            </label>
+                            <label class="label" for="batch-master-target">Loudness target</label>
+                            <select id="batch-master-target" class="select">
+                                <option value="streaming" selected>Streaming (−14 LUFS)</option>
+                                <option value="loud">Loud (−11 LUFS)</option>
+                                <option value="cd" title="Very loud master — heavy limiting can add audible distortion.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
+                            </select>
+                            <label class="label" for="batch-master-intensity">Tone match</label>
+                            <select id="batch-master-intensity" class="select">
+                                <option value="low">Low</option>
+                                <option value="med" selected>Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                            <label class="label" for="batch-master-tilt">Tone</label>
+                            <select id="batch-master-tilt" class="select">
+                                <option value="brightest">Brightest</option>
+                                <option value="bright">Bright</option>
+                                <option value="neutral" selected>Neutral</option>
+                                <option value="warm">Warm</option>
+                                <option value="warmer">Warmer</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary batch-btn" id="batch-btn">Process All</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="mcol">
+                <div class="card batch-log-card">
+                    <div class="card-head"><span class="title">Log</span><span class="gloss">one line per file, as it happens</span></div>
+                    <pre class="batch-log" id="batch-log"></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ───────────── Signal Chain tab ───────────── -->
+    <section id="tab-chain" class="tab-panel" role="tabpanel">
+        <div id="chain-host"></div>
+    </section>
+
+</main>
+
+<!-- ───────────── Transport bridge (persistent) ───────────── -->
+<footer class="bridge">
+    <div class="bridge-inner">
+        <div class="bz bz-transport player-transport">
+            <button type="button" class="btn btn-primary play-btn" id="player-play" aria-label="Play">▶</button>
+            <span class="player-time" id="player-time">0:00 / 0:00</span>
+        </div>
+
+        <div class="bz-sep"></div>
+
+        <div class="bz bz-monitor">
+            <div class="bz-label">Monitor</div>
+            <div class="bz-row">
+                <div class="player-tabs" id="track-tabs" role="tablist">
+                    <button type="button" class="track-tab active" data-track="original" title="Hear the untouched upload (key: 1)">
+                        <span class="track-key">1</span> Original
+                    </button>
+                    <button type="button" class="track-tab" data-track="processed" disabled title="Hear the cleaned + mastered result (key: 2)">
+                        <span class="track-key">2</span> Processed
+                    </button>
+                    <button type="button" class="track-tab" data-track="removed" disabled title="Hear only what Shimmer stripped away — boosted for monitoring, never in your export. If you hear vocals, snare snap, or musical detail, reduce the cleaning strength. (key: 3)">
+                        <span class="track-key">3</span> Removed <span class="hint">boosted</span>
+                    </button>
+                </div>
+            </div>
+            <div class="bz-sub">
+                <label class="transport-check" title="Attenuate the louder track so you judge quality, not volume">
+                    <input type="checkbox" id="ab-loudness-match" checked>
+                    <span>Loudness-matched A/B</span>
+                    <span class="ab-match-note" id="ab-match-note"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="bz-sep"></div>
+
+        <div class="bz bz-loop">
+            <div class="bz-label">Preview loop</div>
+            <div class="bz-row player-preview-row" id="preview-bar">
+                <label class="preview-toggle-row" title="Loop a short window and hear preset & slider edits instantly.">
+                    <input type="checkbox" id="preview-toggle">
+                    <span class="preview-toggle-label"><b>Live</b></span>
+                </label>
+                <div class="preview-controls" id="preview-controls" hidden>
+                    <select id="preview-window" class="select preview-select"
+                            title="Length of the looped preview window">
+                        <option value="5">5 s</option>
+                        <option value="10" selected>10 s</option>
+                        <option value="15">15 s</option>
+                        <option value="20">20 s</option>
+                    </select>
+                    <button type="button" class="btn btn-ghost preview-here-btn" id="preview-here-btn"
+                        title="Anchor the loop window at the current playhead">
+                        Set from playhead
+                    </button>
+                </div>
+                <div class="preview-status" id="preview-status">Drop a file to start.</div>
+            </div>
+        </div>
+
+        <div class="process-dock">
+            <progress id="progress" value="0" max="1" hidden></progress>
+            <button type="button" class="btn btn-primary process-btn" id="process-btn" disabled>Clean &amp; Master</button>
+        </div>
+
+    </div>
+</footer>
+
+</div><!-- /.app -->
+
+<!-- ───────────── Advanced controls drawer ───────────── -->
+<div id="advanced-drawer-backdrop" class="drawer-backdrop" hidden></div>
+<aside id="advanced-drawer" class="drawer" hidden role="dialog" aria-modal="true"
+       aria-labelledby="advanced-drawer-title">
+    <header class="drawer-header">
+        <div class="drawer-title" id="advanced-drawer-title">Advanced artifact controls</div>
+        <button type="button" class="help-close" id="advanced-close" aria-label="Close advanced controls">&times;</button>
+    </header>
+    <div class="drawer-body">
+        <div id="sliders-host"></div>
+    </div>
+</aside>
+
+<!-- ───────────── Help modal ───────────── -->
+<div id="help-modal" class="help-modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+    <div class="help-modal" role="document">
+        <header class="help-modal-header">
+            <h2 id="help-modal-title">Shimmer help</h2>
+            <button type="button" class="help-close" id="help-close" aria-label="Close help">&times;</button>
+        </header>
+
+        <nav class="help-tabs" role="tablist">
+            <button type="button" class="help-tab active" role="tab" data-tab="quickstart" aria-selected="true">Quick start</button>
+            <button type="button" class="help-tab" role="tab" data-tab="presets" aria-selected="false">Pick a preset</button>
+            <button type="button" class="help-tab" role="tab" data-tab="controls" aria-selected="false">Controls</button>
+            <button type="button" class="help-tab" role="tab" data-tab="trouble" aria-selected="false">Troubleshoot</button>
+            <button type="button" class="help-tab" role="tab" data-tab="setup" aria-selected="false">Setup</button>
+            <button type="button" class="help-tab" role="tab" data-tab="about" aria-selected="false">About</button>
+        </nav>
+
+        <div class="help-body">
+            <section class="help-panel active" data-panel="quickstart" role="tabpanel">
+                <h3>Quick start</h3>
+                <div class="help-intro-note">
+                    <b>What is shimmer?</b> It is the thin, fizzy, metallic noise
+                    that AI music tools leave in the high end of your track. You
+                    hear it as sizzle on cymbals, a glassy sheen on vocals, or a
+                    busy hiss up top. It is not part of your music &mdash; the
+                    model added it. Shimmer finds that noise, turns it down, and
+                    leaves your song alone.
+                </div>
+
+                <h4 class="help-section-head">Your first master, step by step</h4>
+                <ol class="workflow-list">
+                    <li><span class="step">1</span>
+                        <b>Drop your track in.</b> WAV, MP3, FLAC, OGG, or M4A all work.</li>
+                    <li><span class="step">2</span>
+                        <b>Click Analyze.</b> Shimmer listens to your song, checks it
+                        against all 19 presets, and picks the best match. It tells you
+                        why, and jumps the preview loop to the spot where the noise is
+                        worst.</li>
+                    <li><span class="step">3</span>
+                        <b>Listen.</b> A short section loops on its own. Press
+                        <b>2</b> to hear the cleaned version, <b>1</b> to hear your
+                        original. Switch back and forth &mdash; that is the only way
+                        to really judge it.</li>
+                    <li><span class="step">4</span>
+                        <b>Adjust if you need to.</b> Pick a different preset and you
+                        hear the change in about a second. Use <b>Preset strength</b>
+                        to dial it up or down.</li>
+                    <li><span class="step">5</span>
+                        <b>Click Clean &amp; Master</b>, then download from the green
+                        banner. That is your finished, release-ready file.</li>
+                </ol>
+
+                <div class="help-tip">
+                    <b>The one habit worth building:</b> press <b>3</b> and listen to
+                    the <b>Removed</b> track. That is only the noise Shimmer is taking
+                    out, turned up so you can hear it. It should sound like hiss, fizz,
+                    and sizzle &mdash; nothing else. If you hear vocals, snare hits, or
+                    melody in there, you are cutting into your music. Lower the
+                    <b>Preset strength</b> until the music disappears from it.
+                </div>
+
+                <h4 class="help-section-head">Good to know</h4>
+                <ul class="help-card-list">
+                    <li><b>Volume fools your ears.</b> Louder almost always sounds
+                    better, even when it is not. <b>Loudness-matched A/B</b> is on by
+                    default so you compare the sound, not the level.</li>
+                    <li><b>Your low end is never touched.</b> Kick, bass, and the body
+                    of your vocals bypass the cleaning completely. Shimmer only works
+                    above about 4.5 kHz.</li>
+                    <li><b>Nothing is permanent until you export.</b> Presets, sliders,
+                    and EQ only change what you hear in the preview. Your original file
+                    is never modified.</li>
+                </ul>
+
+                <p class="help-lede">
+                    Tip: click the <span class="help-icon-inline">?</span> next to
+                    any control for help on that one knob.
+                </p>
+            </section>
+
+            <section class="help-panel" data-panel="presets" role="tabpanel">
+                <h3>Which preset should I use?</h3>
+                <p class="help-lede">
+                    Answer a couple of questions and we'll pick one for you.
+                    Or click <b>Auto Detect</b> on the main panel to let
+                    Shimmer listen to your file and decide.
+                </p>
+                <div id="preset-quiz"></div>
+            </section>
+
+            <section class="help-panel" data-panel="controls" role="tabpanel">
+                <h3>What each control does</h3>
+                <p class="help-lede">
+                    The preset already sets these for you. Tweak only if
+                    something sounds off. Each card tells you when to turn
+                    a knob up or down.
+                </p>
+                <div id="controls-help-list"></div>
+            </section>
+
+            <section class="help-panel" data-panel="trouble" role="tabpanel">
+                <h3>Troubleshooting</h3>
+                <p class="help-lede">
+                    Find the problem you can actually hear, then follow the fix.
+                    Always compare against your <b>Original</b> (key <b>1</b>) and
+                    listen to the <b>Removed</b> track (key <b>3</b>). If you hear
+                    real music in Removed, you are cutting too hard &mdash; that is
+                    the single most useful check in the whole app.
+                </p>
+
+                <h4 class="help-section-head">I still hear the noise after cleaning</h4>
+
+                <div class="help-card">
+                    <h4>A "shhhhh" that rides on both the vocals and the cymbals</h4>
+                    <p><b>What is happening:</b> you have two problems at once. There
+                    is a glassy sheen baked into the vocal (2&ndash;8 kHz), and
+                    separately there is fizz up in the top end (5&ndash;12 kHz). A
+                    preset built for one will only clean half of it. This is the most
+                    common complaint about Suno tracks.</p>
+                    <p><b>Fix:</b> use <b>Vocal Glaze + Top End</b>. If some sizzle
+                    survives, raise <b>Preset strength</b> to 150&ndash;200%. Still
+                    there? Open <b>Advanced artifact controls</b> and push
+                    <b>De-harsh</b> up past 85%, then pull <b>Air cut</b> down to
+                    about &minus;3 dB.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>The vocal itself sounds glassy or plastic</h4>
+                    <p><b>What is happening:</b> the shimmer is not sitting around the
+                    voice &mdash; it <i>is</i> the voice. The model rendered the
+                    vocal's overtones too bright, so ordinary noise removal cannot tell
+                    the two apart.</p>
+                    <p><b>Fix:</b> use <b>Vocal Glaze</b>. It reads the clean, low part
+                    of the voice (300&ndash;1500 Hz) to work out what should stay, then
+                    tames everything above it. If the top end is also fizzy, use
+                    <b>Vocal Glaze + Top End</b> instead.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>The noise follows the music and disappears in the gaps</h4>
+                    <p><b>What is happening:</b> the shimmer swells with every note and
+                    dies the moment the music stops. It is not constant, so noise
+                    removal never gets a quiet moment to learn from. It is not
+                    rhythmic either, so flicker tools miss it.</p>
+                    <p><b>Fix:</b> use <b>Echo Sheen</b>. It is the only preset that
+                    reaches into the space right after each note to catch that
+                    lingering tail.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>A smooth, airy wash in the upper mids</h4>
+                    <p><b>What is happening:</b> a haze sitting in the 3&ndash;8 kHz
+                    presence range &mdash; the band where vocals and guitars cut
+                    through a mix. It appears with the music and vanishes in silence.</p>
+                    <p><b>Fix:</b> use <b>Presence Haze</b>. It tracks the noise floor
+                    quickly enough to catch a wash that only exists while the music is
+                    playing.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>A washy, metallic ring behind everything</h4>
+                    <p><b>What is happening:</b> a cymbal-like "shhhh" between 4 and
+                    10 kHz that sounds like a layer nobody played. It hides in the busy
+                    parts of your track, which is exactly where most tools stop
+                    working.</p>
+                    <p><b>Fix:</b> use <b>Phantom Cymbal</b>. It keeps working during
+                    dense, loud sections instead of backing off.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>The whole track sounds harsh and tiring</h4>
+                    <p><b>What is happening:</b> a gritty, distortion-like texture
+                    across 4&ndash;12 kHz. It sounds painful rather than washy, and it
+                    wears your ears out after a minute.</p>
+                    <p><b>Fix:</b> use <b>Harsh Veil</b>. This is the aggressive
+                    option &mdash; heavy harshness control plus fast noise removal.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>I tried a preset at 200% and it still bothers me</h4>
+                    <p><b>What is happening:</b> either it is the wrong preset for what
+                    you actually have, or your track has three or more problems
+                    stacked on top of each other.</p>
+                    <p><b>Fix, in this order:</b></p>
+                    <ol>
+                        <li>Take the <b>Pick a preset</b> quiz again with fresh ears.
+                        What you hear now may point somewhere different.</li>
+                        <li>Click <b>Analyze</b> on the Master screen. If it suggests
+                        something else, try that.</li>
+                        <li>Last resort: <b>Deep Scrub</b>. Every tool at full
+                        strength, run twice. Expect to lose some top-end air &mdash;
+                        it is a trade, and you should A/B carefully before you commit.</li>
+                    </ol>
+                </div>
+
+                <h4 class="help-section-head">I cut too much &mdash; now something sounds wrong</h4>
+
+                <div class="help-card">
+                    <h4>The result sounds dull or lifeless</h4>
+                    <p><b>What is happening:</b> you are cutting too much out of the
+                    top end, or the cleaning is reaching higher than it needs to.</p>
+                    <p><b>Fix:</b> lower <b>Preset strength</b> first &mdash; that
+                    solves it most of the time. If you are in <b>Advanced artifact
+                    controls</b>: raise <b>Threshold</b>, lower <b>Slope</b>, drop
+                    <b>Mix</b> to 70&ndash;80%, or pull <b>End Hz</b> down a couple
+                    thousand.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Vocals sound lispy, or the "s" sounds went missing</h4>
+                    <p><b>What is happening:</b> the harshness control is eating your
+                    consonants along with the noise. The "s", "t", and "ch" sounds are
+                    short bursts of high frequency &mdash; they look a lot like
+                    artifacts to a detector.</p>
+                    <p><b>Fix:</b> turn <b>De-harsh</b> down. If you need it high for
+                    the artifact, try <b>Sibilance Rattle</b> instead, which is built
+                    to target the rattle without flattening the consonant.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>The bass or kick feels thin</h4>
+                    <p><b>What is happening:</b> this should be rare &mdash; the low
+                    end bypasses cleaning entirely. If it is happening, <b>Start Hz</b>
+                    has been pulled too far down into the mids, or <b>Denoise</b> and
+                    <b>De-resonator</b> are turned up high enough to bleed downward.</p>
+                    <p><b>Fix:</b> raise <b>Start Hz</b> &mdash; shimmer never lives
+                    in the bass &mdash; then turn <b>Denoise</b> and
+                    <b>De-resonator</b> back down.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Cymbals lost their sparkle</h4>
+                    <p><b>What is happening:</b> the cleaning is reaching up into the
+                    air band where your cymbals live, or <b>Air cut</b> is pulling the
+                    top down too far.</p>
+                    <p><b>Fix:</b> lower <b>End Hz</b> a little, and move <b>Air cut</b>
+                    back toward 0 dB. Dropping <b>Preset strength</b> to 70&ndash;85%
+                    also works well here.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>A warble, pumping, or "underwater" sound appeared</h4>
+                    <p><b>What is happening:</b> the noise removal is working too hard
+                    or reacting too fast, so it is adding its own artifact on top of
+                    the one you were trying to remove.</p>
+                    <p><b>Fix:</b> turn <b>Denoise</b> down. This is the one control
+                    where less is almost always better &mdash; try halving it and
+                    listen again.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>The Removed track has real music in it</h4>
+                    <p><b>What is happening:</b> the detector is too sensitive and is
+                    treating parts of your song as noise. This is the most important
+                    problem in this list, because you will not always hear the damage
+                    on the Processed track &mdash; but it is there.</p>
+                    <p><b>Fix:</b> lower <b>Preset strength</b> until Removed sounds
+                    like hiss and fizz only. In Advanced, raise <b>Threshold</b> or
+                    lower <b>Slope</b>.</p>
+                </div>
+
+                <h4 class="help-section-head">Common questions</h4>
+
+                <div class="help-card">
+                    <h4>I want more cleanup than 200% strength</h4>
+                    <p>Strength stops at 200% on purpose &mdash; past that, damage to
+                    your music is close to guaranteed. If you truly need more:</p>
+                    <ol>
+                        <li>Open <b>Advanced artifact controls</b> and raise the
+                        individual tools that match what you hear (for example
+                        <b>De-harsh</b> to 95%).</li>
+                        <li>Try <b>Deep Scrub</b>, which already runs everything at
+                        maximum, twice.</li>
+                        <li>Export the cleaned file, then run it through Shimmer a
+                        second time. Two gentle passes usually sound better than one
+                        brutal one.</li>
+                    </ol>
+                </div>
+
+                <div class="help-card">
+                    <h4>Which preset should I start with?</h4>
+                    <p>Two ways to get there:</p>
+                    <ol>
+                        <li>Click <b>Analyze</b> on the Master screen. Shimmer scores
+                        all 19 presets against your track and picks the best fit.</li>
+                        <li>Use the <b>Pick a preset</b> tab and answer a couple of
+                        questions about what you hear.</li>
+                    </ol>
+                    <p>Both are just starting points. Trust your ears over either one.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>My track has two problems at once</h4>
+                    <p>That is normal. Use a preset built for it:</p>
+                    <ul>
+                        <li><b>Vocal Glaze + Top End</b> &mdash; glassy vocals plus
+                        top-end sizzle. The most common pairing by far.</li>
+                        <li><b>Deep Scrub</b> &mdash; for three or more problems
+                        stacked together.</li>
+                    </ul>
+                </div>
+
+                <div class="help-card">
+                    <h4>My export is quieter than other songs</h4>
+                    <p>That is correct behaviour, not a bug. <b>Streaming
+                    (&minus;14 LUFS)</b> is the level Spotify and Apple Music
+                    normalize to. If you master louder, they simply turn you back
+                    down &mdash; and you gave up dynamic range for nothing.</p>
+                    <p>Use <b>Loud (&minus;11)</b> only when you need punch for a
+                    playlist or a club system, and <b>CD / Club (&minus;9)</b> only if
+                    you know exactly why you need it.</p>
+                </div>
+            </section>
+
+            <section class="help-panel" data-panel="setup" role="tabpanel">
+                <h3>Setup</h3>
+                <p class="help-lede">
+                    Shimmer works out of the box for most files. Two features need
+                    a one-time extra install.
+                </p>
+
+                <h4 class="help-section-head">MP3 and M4A files</h4>
+                <p class="help-lede">
+                    WAV, FLAC, and OGG work right away. MP3, M4A, and AAC need a
+                    free helper called <b>ffmpeg</b> &mdash; it is the tool that
+                    reads and writes compressed audio.
+                </p>
+
+                <div class="help-card">
+                    <h4>Windows</h4>
+                    <p>Open a terminal and run:</p>
+                    <pre class="help-code">winget install ffmpeg</pre>
+                    <p>Then restart Shimmer.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>macOS and Linux</h4>
+                    <p>macOS: <code>brew install ffmpeg</code><br>
+                    Linux: <code>apt install ffmpeg</code></p>
+                    <p>Or download from
+                        <a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener">ffmpeg.org</a>
+                        and add it to your <code>PATH</code>.
+                    </p>
+                </div>
+
+                <h4 class="help-section-head">Stem separation (the Remix tab)</h4>
+
+                <div class="help-card">
+                    <h4>First run downloads the separation engine</h4>
+                    <p>Splitting a song into vocals, drums, bass, and other needs a
+                    large one-time download (several GB). Shimmer installs it in its
+                    own separate folder so it never interferes with the rest of the
+                    app.</p>
+                    <p>If you have an NVIDIA graphics card, separation uses it
+                    automatically and runs much faster. Without one it still works,
+                    just slower. Results are saved per track, so you only ever wait
+                    once for a given song.</p>
+                </div>
+            </section>
+
+            <section class="help-panel" data-panel="about" role="tabpanel">
+                <h3>About Shimmer</h3>
+
+                <div class="help-intro-note">
+                    <b>Shimmer by The Treq</b> &mdash; a free, offline tool that
+                    removes AI generation artifacts and masters your track for
+                    release. Built by a musician who got tired of hearing that fizz
+                    on his own songs.
+                </div>
+
+                <div class="help-card">
+                    <h4>Your music stays on your computer</h4>
+                    <p>Everything runs on your own machine. Your tracks are never
+                    uploaded, never sent to a server, and never used to train
+                    anything. No account, no subscription, and no internet needed
+                    once it is installed.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>No AI in the cleanup</h4>
+                    <p>It sounds backwards for a tool aimed at AI music, but the
+                    cleaning engine uses classic signal processing &mdash; the same
+                    kind of math behind an EQ or a compressor. That means the same
+                    settings always give you the same result. Nothing is guessed,
+                    and nothing changes between runs.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Free and open source</h4>
+                    <p>Shimmer is free to download and free to use &mdash; including
+                    on music you sell. Anything you make with it is yours, with no
+                    strings and no royalties.</p>
+                    <p>The full source code is on
+                    <a href="https://github.com/henricksmedia/shimmer" target="_blank" rel="noopener">GitHub</a>
+                    under the GNU Affero General Public License v3. In short: use it
+                    freely, and if you share a modified version or host it as a
+                    service, share your changes too. Issues and pull requests are
+                    welcome.</p>
+                    <p class="help-card-short">Building something commercial? A
+                    separate commercial licence is available &mdash; contact
+                    <a href="https://henricksmedia.com/" target="_blank" rel="noopener">Henricks Media</a>.
+                    The Shimmer and The Treq names and logos are not covered by the
+                    licence.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Built on great open-source work</h4>
+                    <p>
+                        <a href="https://numpy.org/" target="_blank" rel="noopener">NumPy</a> and
+                        <a href="https://scipy.org/" target="_blank" rel="noopener">SciPy</a> for the audio math,
+                        <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noopener">FastAPI</a> for the app,
+                        <a href="https://github.com/csteinmetz1/pyloudnorm" target="_blank" rel="noopener">pyloudnorm</a> for loudness measurement,
+                        <a href="https://github.com/bastibe/python-soundfile" target="_blank" rel="noopener">soundfile</a> for reading and writing audio, and
+                        <a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noopener">Demucs</a> for stem separation.
+                        Each keeps its own license.
+                    </p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Made by The Treq</h4>
+                    <p>I make music with these tools too. If Shimmer helped your
+                    track, I would love to hear it.</p>
+                    <p>
+                        <a href="https://treqmusic.com/" target="_blank" rel="noopener">treqmusic.com</a>
+                        &nbsp;·&nbsp;
+                        <a href="https://henricksmedia.com/" target="_blank" rel="noopener">henricksmedia.com</a>
+                    </p>
+                    <p class="help-card-short">&copy; 2026 Jeremy Henricks / Henricks Media &mdash; AGPL-3.0</p>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

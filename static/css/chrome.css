@@ -1,0 +1,477 @@
+/* chrome.css — new shell chrome: transport bridge internals, rail session
+   card, Signal Chain view, command palette.  Everything here is additive;
+   existing component classes keep their components.css styling. */
+
+/* ── Transport bridge internals ─────────────────────────────────────── */
+
+.bridge-inner {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    gap: var(--gap-4);
+    padding: 8px var(--gap-4);
+    min-width: 0;
+}
+
+/* Console-style zones: label on top, primary row, secondary row. */
+.bz {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+}
+.bz-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--fg-3);
+    font-weight: 700;
+}
+.bz-row { display: flex; align-items: center; gap: 8px; }
+.bz-sub { display: flex; align-items: center; gap: 8px; min-height: 18px; }
+.bz-sub .transport-check { font-size: 11px; color: var(--fg-2); }
+.bz-sep {
+    width: 1px;
+    align-self: center;
+    height: 64%;
+    background: var(--line);
+    flex: none;
+}
+.bz-transport { flex-direction: row; align-items: center; gap: 12px; }
+
+.bridge .player-transport { flex: 0 0 auto; flex-wrap: nowrap; }
+.bridge .play-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    background: var(--bg-4);
+    border: 1px solid var(--line-2);
+    color: var(--fg-0);
+    box-shadow: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.bridge .play-btn:hover:not(:disabled) {
+    background: var(--bg-4);
+    border-color: var(--amber);
+    box-shadow: 0 0 0 1px rgba(245,165,36,.35), 0 0 18px rgba(245,165,36,.18);
+}
+.bridge .player-time {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    min-width: 92px;
+}
+.bridge .player-tabs { flex: 0 0 auto; }
+.bridge .player-preview-row {
+    border-top: none;
+    padding-top: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+.bridge .preview-toggle-row { font-size: 12px; }
+.bridge .preview-select { padding: 4px 6px; }
+.bridge .preview-here-btn { padding: 4px 10px; }
+/* Idle instruction text is redundant (Live preview auto-enables on file
+   load) and collides with the toggle at some widths — show the status
+   only when it carries state (rendering / live / error). */
+.bridge .preview-status:not(.busy):not(.live):not(.error) { display: none; }
+/* Sits inline to the right of the loop controls. nowrap keeps the pill on a
+   single line — without it the longer "…(hottest region) · rendered in Nms"
+   wraps to two lines and grows the whole bridge. */
+.bridge .preview-status {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 440px;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+.bridge .ab-match-note {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.bridge .transport-check { white-space: nowrap; }
+
+/* Primary CTA docked in the bridge — always visible on the Master view. */
+.process-dock {
+    margin-left: auto;
+    align-self: center;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: min(300px, 26vw);
+    flex: none;
+}
+.app:has(#tab-single.active) .process-dock { display: flex; }
+.process-dock progress { height: 4px; }
+.process-dock .process-btn { width: 100%; padding: 10px 16px; font-size: 14px; }
+.bridge .player-kbd-hint { display: none; }   /* lives in the rail now */
+
+@media (max-width: 1400px) {
+    .bridge .transport-check .ab-match-note { display: none; }
+}
+@media (max-width: 1100px) {
+    .bridge-inner { flex-wrap: wrap; padding: 8px var(--gap-3); gap: var(--gap-2); }
+    .bridge { min-height: var(--bridge-h); }
+    /* Keep .preview-status visible: it carries the rendering/live state. */
+    .bridge .preview-status:not(.busy):not(.live):not(.error) { display: none; }
+    .process-dock { width: 100%; margin-left: 0; }
+}
+
+/* Bridge A/B: the monitor-source selector — the core interaction of the
+   app, styled like one.  Three chunky color-coded buttons with keycaps
+   and track-color underlines. */
+.bridge .player-tabs {
+    flex-direction: row;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+.bridge .track-tab {
+    position: relative;
+    justify-content: center;
+    gap: 8px;
+    padding: 7px 14px 9px;
+    font-size: 12.5px;
+    font-weight: 650;
+    color: var(--fg-2);
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    transition: all 120ms ease;
+}
+.bridge .track-tab::after {
+    content: "";
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: 4px;
+    height: 3px;
+    border-radius: 2px;
+    opacity: .3;
+    transition: opacity 120ms ease, box-shadow 120ms ease;
+}
+.bridge .track-tab[data-track="original"]::after  { background: var(--fg-2); }
+.bridge .track-tab[data-track="processed"]::after { background: var(--amber); }
+.bridge .track-tab[data-track="removed"]::after   { background: var(--danger); }
+.bridge .track-tab:hover:not(:disabled) { color: var(--fg-0); border-color: #3d4756; }
+.bridge .track-tab.active { color: var(--fg-0); }
+.bridge .track-tab.active::after { opacity: 1; }
+.bridge .track-tab.active[data-track="original"] {
+    background: #232a35;
+    border-color: #4a5462;
+}
+.bridge .track-tab.active[data-track="processed"] {
+    background: var(--amber-soft);
+    border-color: rgba(245, 165, 36, .55);
+}
+.bridge .track-tab.active[data-track="processed"]::after { box-shadow: 0 0 8px rgba(245, 165, 36, .7); }
+.bridge .track-tab.active[data-track="removed"] {
+    background: rgba(240, 82, 107, .1);
+    border-color: rgba(240, 82, 107, .5);
+}
+.bridge .track-tab.active[data-track="removed"]::after { box-shadow: 0 0 8px rgba(240, 82, 107, .7); }
+.bridge .track-tab .track-key {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid var(--line-2);
+    border-bottom-width: 2px;
+    font-size: 10.5px;
+}
+.bridge .track-tab.active .track-key { border-color: rgba(255, 255, 255, .25); }
+.bridge .track-tab .hint { font-size: 9px; opacity: .55; }
+
+@media (max-width: 1500px) {
+    .bridge .track-tab { padding: 8px 11px 11px; font-size: 12px; gap: 6px; }
+    .bridge .track-tab .hint { display: none; }
+}
+
+/* ── Rail session card ──────────────────────────────────────────────── */
+
+.session-card {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px 11px;
+    font-size: 11px;
+    margin: 0 2px 8px;
+    display: none;
+}
+.session-card.visible { display: block; }
+.session-card .fname {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--fg-0);
+    word-break: break-all;
+}
+.session-card .badge-row { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--bg-4);
+    border: 1px solid var(--line);
+    font-size: 10.5px;
+    color: var(--fg-1);
+    font-weight: 500;
+}
+.chip.ok { color: var(--success); border-color: rgba(74,222,128,.3); background: rgba(74,222,128,.08); }
+.chip.cyan { color: var(--cyan); border-color: rgba(56,189,248,.3); background: rgba(56,189,248,.08); }
+.chip.violet { color: var(--purple); border-color: rgba(167,139,250,.3); background: var(--purple-soft); }
+@media (max-width: 1100px) { .session-card, .session-card.visible { display: none; } }
+
+/* ── Signal Chain view ──────────────────────────────────────────────── */
+
+.chain-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+.chain-head h2 { margin: 0; font-size: 16px; color: var(--fg-0); }
+.chain-head .lede { color: var(--fg-2); font-size: 12.5px; }
+
+.chain-scroll { overflow-x: auto; padding: 8px 2px 14px; }
+.chain-scroll::-webkit-scrollbar { height: 8px; }
+.chain-scroll::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+.chain-lane { display: flex; align-items: stretch; min-width: max-content; }
+
+.mod {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    min-width: 122px;
+    max-width: 155px;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: border-color 120ms ease, background 120ms ease;
+    position: relative;
+    flex: none;
+}
+.mod:hover { border-color: var(--line-2); background: var(--bg-4); }
+.mod.selected {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 1px rgba(56,189,248,.4), 0 0 16px rgba(56,189,248,.15);
+}
+.mod.bypass-lane { opacity: .55; border-style: dashed; }
+.mod .m-cat {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--fg-3);
+    font-weight: 650;
+}
+.mod .m-name { font-weight: 600; font-size: 12.5px; margin-top: 2px; color: var(--fg-0); }
+.mod .m-gloss { color: var(--fg-2); font-size: 10.5px; margin-top: 2px; line-height: 1.35; }
+.mod .m-badges { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.mod .m-badges .b {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--bg-4);
+    color: var(--fg-2);
+    border: 1px solid var(--line);
+}
+.chain-wire { width: 22px; align-self: center; height: 2px; background: var(--line-2); flex: none; position: relative; }
+.chain-wire::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: -3px;
+    border: 4px solid transparent;
+    border-left-color: var(--line-2);
+}
+.chain-gates { display: flex; gap: 8px; margin: 2px 0 14px; flex-wrap: wrap; }
+
+.chain-detail {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    max-width: 720px;
+}
+.chain-detail h3 { margin: 0 0 4px; font-size: 14px; color: var(--fg-0); }
+.chain-detail p { margin: 0 0 8px; color: var(--fg-2); font-size: 12.5px; }
+
+/* ── Preset browser ─────────────────────────────────────────────────── */
+
+.pb-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    margin-bottom: 8px;
+}
+.pb-search input {
+    background: none;
+    border: none;
+    outline: none;
+    flex: 1;
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--fg-0);
+    min-width: 0;
+}
+.pb-list { max-height: 264px; overflow-y: auto; padding-right: 2px; }
+.pb-list::-webkit-scrollbar { width: 6px; }
+.pb-list::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+.pb-group > .g-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--fg-3);
+    font-weight: 650;
+    padding: 8px 4px 4px;
+}
+.preset-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-s);
+    background: transparent;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--fg-1);
+    cursor: pointer;
+    transition: background 100ms ease, border-color 100ms ease;
+}
+.preset-item:hover { background: var(--bg-3); }
+.preset-item.selected {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--amber-soft);
+    border-color: rgba(245, 165, 36, .4);
+    color: var(--fg-0);
+}
+.preset-item.selected::after {
+    content: "ACTIVE";
+    margin-left: auto;
+    flex: none;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: var(--amber);
+    border: 1px solid rgba(245, 165, 36, .5);
+    border-radius: 4px;
+    padding: 1px 5px;
+}
+.pb-empty { color: var(--fg-3); font-size: 12px; padding: 8px 4px; }
+.analyze-wide { width: 100%; }
+
+/* "This preset sets" readout — visible feedback on every preset change.
+   Raised panel with an amber accent edge so it reads as the selected
+   preset's output, not background noise. */
+.pb-effect {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 10px;
+    padding: 9px 11px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--amber);
+    border-radius: var(--radius-s);
+}
+.pb-effect:empty { display: none; }
+.pb-effect-label {
+    width: 100%;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--amber);
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+.pb-effect .chip {
+    animation: chip-in 200ms ease;
+    background: var(--bg-4);
+    border-color: var(--line-2);
+    color: var(--fg-0);
+}
+.pb-effect-note {
+    width: 100%;
+    margin-top: 6px;
+    font-size: 10.5px;
+    color: var(--fg-3);
+    line-height: 1.45;
+}
+.chip.mono { font-family: var(--font-mono); }
+@keyframes chip-in { from { opacity: 0; transform: translateY(2px); } }
+
+/* ── Command palette ────────────────────────────────────────────────── */
+
+.palette-veil {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 6, 9, .6);
+    backdrop-filter: blur(3px);
+    display: none;
+    z-index: 300;
+    padding-top: 12vh;
+}
+.palette-veil.open { display: block; }
+.palette {
+    width: min(560px, 92vw);
+    margin: 0 auto;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.55);
+    overflow: hidden;
+}
+.palette input {
+    width: 100%;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 14px 16px;
+    font: inherit;
+    font-size: 15px;
+    color: var(--fg-0);
+    border-bottom: 1px solid var(--line);
+}
+.palette .p-list { max-height: 320px; overflow-y: auto; padding: 6px; }
+.palette .p-item {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 11px;
+    border: none;
+    background: none;
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--fg-1);
+    cursor: pointer;
+}
+.palette .p-item .p-cat {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--fg-3);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+.palette .p-item.sel,
+.palette .p-item:hover { background: var(--bg-4); color: var(--fg-0); }
