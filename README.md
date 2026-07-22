@@ -415,10 +415,11 @@ separation. Each keeps its own license.
 
 <div align="center">
 
-### Built by a musician, for musicians
+### Built by an AI music creator, for AI music creators
 
-I make music with these tools too — Shimmer exists because I got tired of
-hearing that fizz on my own tracks.
+I'm not a trained musician — I make music with these same AI tools. Shimmer
+exists because I got tired of hearing that fizz on my own tracks, and you
+shouldn't need an audio engineering background to fix it.
 
 **[🎵 Hear my music — The Treq](https://treqmusic.com/)**
 
