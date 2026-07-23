@@ -109,6 +109,7 @@ testing/
 diag_*.py
 _archive/
 git-push.bat
+git-release.bat
 
 # Demo video: too large for the repo. Distribute as a release asset or LFS.
 assets/demo/
