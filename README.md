@@ -185,14 +185,16 @@ WAV, FLAC, and OGG work right away. MP3 and M4A also need
 **2. Click Analyze.** Shimmer listens to your song and checks it against all
 19 cleanup presets. It picks the one that fits best and tells you *why* — for
 example, *"Metallic cymbal-like wash in 4–10 kHz."* It also finds the spot
-where the noise is worst and starts the preview loop right there.
+where the noise is worst and points Live preview there.
 
-**3. Click Clean & Master.** You get a finished file, plus the numbers behind
-it: loudness before and after, true peak, and how hard the limiter worked.
+**3. Click Clean & Master.** A progress window shows each step, then closes
+when your finished file is ready — along with the numbers behind it: loudness
+before and after, true peak, and how hard the limiter worked.
 
-While you work, a short section of your song loops in the background. Pick a
-different preset and you hear the change in about a second. No waiting for
-full renders to compare options.
+Want to hear your edits instantly? Turn on **Live** in the bottom bar. It
+loops a short section of your song and re-renders it in about a second, so
+picking a different preset or nudging a slider is audible right away — no
+waiting for a full render to compare options.
 
 ---
 

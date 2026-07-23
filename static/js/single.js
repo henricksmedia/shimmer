@@ -109,6 +109,53 @@ export async function initSingleTab() {
     const previewWindow  = $('preview-window');
     const previewHereBtn = $('preview-here-btn');
     const previewStatus  = $('preview-status');
+    const previewExplainer = $('preview-explainer');
+    const previewToggleRow = $('preview-toggle-row');
+
+    // One-time discoverability nudge: the first time the user edits a
+    // setting with Live off, point them at the toggle. Persisted so it
+    // never fires again on any later visit.
+    const NUDGE_KEY = 'shimmer.previewNudgeSeen';
+    let previewNudged = false;  // this session, avoid repeat pulses
+    const nudgeSeen = () => {
+        try { return !!localStorage.getItem(NUDGE_KEY); } catch (_) { return false; }
+    };
+    const markNudgeSeen = () => {
+        try { localStorage.setItem(NUDGE_KEY, '1'); } catch (_) {}
+    };
+    const DEFAULT_EXPLAINER =
+        'Turn on Live to loop the worst section and hear edits instantly.';
+
+    // Explainer shows only while Live is off; when Live is on the status
+    // pill (rendering / live / error) carries the state instead.
+    function showPreviewExplainer(text, nudge) {
+        if (!previewExplainer) return;
+        previewExplainer.textContent = text;
+        previewExplainer.classList.toggle('nudge', !!nudge);
+        previewExplainer.hidden = false;
+    }
+    function syncPreviewExplainer() {
+        if (!previewExplainer) return;
+        if (previewState.active) {
+            previewExplainer.hidden = true;          // status pill owns the row
+        } else if (!previewExplainer.classList.contains('nudge')) {
+            showPreviewExplainer(DEFAULT_EXPLAINER, false);
+        } else {
+            previewExplainer.hidden = false;         // keep the active nudge
+        }
+    }
+
+    function maybePreviewNudge() {
+        if (!currentFile || previewNudged || nudgeSeen()) return;
+        previewNudged = true;
+        markNudgeSeen();
+        showPreviewExplainer('Hear that change instantly — turn on Live ↑', true);
+        if (previewToggleRow) {
+            previewToggleRow.classList.remove('nudge-pulse');
+            void previewToggleRow.offsetWidth;       // restart the animation
+            previewToggleRow.classList.add('nudge-pulse');
+        }
+    }
 
     let lastAnalysis = null;
     let lastMasteringReport = null;
@@ -132,7 +179,7 @@ export async function initSingleTab() {
         active: false,
         anchorS: 0,        // start of the loop window in source time
         anchorMode: 'auto',  // 'auto' = artifact-hot region; 'manual' = playhead
-        windowS: 10,
+        windowS: 20,
         renderInflight: null,  // AbortController for the in-flight render
         renderPending: false,
         debounceTimer: null,
@@ -206,7 +253,17 @@ export async function initSingleTab() {
             abMatchNote.textContent =
                 abLoudnessMatch.checked && d == null ? '(waiting for render)' : '';
         }
-        const dd = d == null ? 0 : d;
+        // Clamp the match attenuation. A short preview slice can report a
+        // LUFS delta far larger than the whole track's — e.g. when Analyze
+        // re-anchors the loop onto an atypically quiet or loud region — which
+        // would drop the monitored track to a fraction of its level ("volume
+        // way down after applying a match"). Loudness differences that matter
+        // for A/B sit within a few dB; past ~6 dB the slice estimate is
+        // unreliable and a near-silent track defeats the point of matching.
+        // Cap so playback is never attenuated by more than half.
+        const MATCH_MAX_DB = 6;
+        const raw = d == null ? 0 : d;
+        const dd = Math.max(-MATCH_MAX_DB, Math.min(MATCH_MAX_DB, raw));
         // Attenuate whichever side is louder so the comparison is fair.
         // Removed is an audition track and stays out of the match.
         player.setLoudnessMatch(abLoudnessMatch.checked, {
@@ -696,6 +753,10 @@ export async function initSingleTab() {
     // Install a render (fresh or cached) into the player and refresh the
     // match gains from the slice loudness in its metadata.
     function applyPreviewResult(entry, start, end, region, note) {
+        // Toggled off mid-render: don't re-enter the loop (see the abort
+        // note in applyPreviewToggle). Abort rejects the fetch, but a render
+        // resolving during decode can still land here after Live went off.
+        if (!previewState.active) return;
         player.setPreviewBuffers({
             processedBuf: entry.processedBuf,
             removedBuf: entry.removedBuf,
@@ -800,7 +861,11 @@ export async function initSingleTab() {
     }
 
     function schedulePreviewRender() {
-        if (!previewState.active) return;
+        if (!previewState.active) {
+            // An edit with Live off is the teachable moment — nudge once.
+            maybePreviewNudge();
+            return;
+        }
         if (previewState.debounceTimer) {
             clearTimeout(previewState.debounceTimer);
         }
@@ -820,10 +885,16 @@ export async function initSingleTab() {
         previewControls.hidden = !on;
 
         if (on) {
+            // Turning Live on satisfies the nudge — retire it for good and
+            // drop the actionable hint so the explainer can revert later.
+            markNudgeSeen();
+            if (previewExplainer) previewExplainer.classList.remove('nudge');
+            if (previewToggleRow) previewToggleRow.classList.remove('nudge-pulse');
+            syncPreviewExplainer();
             // Auto mode resolves to the artifact-hot region inside
             // doPreviewRender; the playhead is the fallback anchor.
             previewState.anchorS = capturePlayheadTime();
-            previewState.windowS = parseFloat(previewWindow.value) || 10;
+            previewState.windowS = parseFloat(previewWindow.value) || 20;
             if (!currentFile) {
                 setPreviewStatus('Drop a file first.');
                 return;
@@ -831,6 +902,20 @@ export async function initSingleTab() {
             applyLoudnessMatch();  // switch match source to preview LUFS
             doPreviewRender();
         } else {
+            // Cancel any render requested while Live was on. Without this
+            // an in-flight (or debounced) render resolves *after* we exit
+            // and calls setPreviewBuffers, silently re-entering the loop —
+            // the "sometimes locked into loop timing" glitch. The guard in
+            // applyPreviewResult covers the decode window abort can't reach.
+            if (previewState.renderInflight) {
+                try { previewState.renderInflight.abort(); } catch (_) {}
+                previewState.renderInflight = null;
+            }
+            if (previewState.debounceTimer) {
+                clearTimeout(previewState.debounceTimer);
+                previewState.debounceTimer = null;
+            }
+            previewState.renderPending = false;
             player.exitPreview();
             player.setSource('processed', null);
             player.setSource('removed', null);
@@ -838,6 +923,7 @@ export async function initSingleTab() {
             setPreviewStatus(currentFile
                 ? 'Live preview off — playhead runs the full track.'
                 : 'Drop a file to start.');
+            syncPreviewExplainer();  // status pill is hidden while off → show explainer
         }
     }
 
@@ -845,7 +931,7 @@ export async function initSingleTab() {
         applyPreviewToggle(previewToggle.checked);
     });
     previewWindow.addEventListener('change', () => {
-        previewState.windowS = parseFloat(previewWindow.value) || 10;
+        previewState.windowS = parseFloat(previewWindow.value) || 20;
         schedulePreviewRender();
     });
     previewHereBtn.addEventListener('click', () => {
@@ -864,6 +950,53 @@ export async function initSingleTab() {
         if (previewState.sessionId) dropSession(previewState.sessionId);
     });
 
+    // ── Clean & Master progress modal ─────────────────────────────────
+    const processModal      = $('process-modal');
+    const processModalStage = $('process-modal-stage');
+    const processModalFill  = $('process-modal-fill');
+    const processModalPct   = $('process-modal-pct');
+    const processModalError = $('process-modal-error');
+    const processModalClose = $('process-modal-close');
+
+    // Stage caption from the pipeline's known fraction boundaries
+    // (tone ~0–5%, cleaning ~5–85%, master/limiter/encode ~85–100%).
+    function processStageLabel(frac) {
+        if (frac < 0.05) return 'Preparing…';
+        if (frac < 0.85) return 'Cleaning AI artifacts…';
+        return masterEnabled.checked ? 'Mastering & finalizing…' : 'Finalizing…';
+    }
+    function updateProcessModal(frac) {
+        const pct = Math.max(0, Math.min(100, Math.round(frac * 100)));
+        processModalFill.style.width = `${pct}%`;
+        processModalPct.textContent = `${pct}%`;
+        processModalStage.textContent = processStageLabel(frac);
+    }
+    function openProcessModal() {
+        processModalError.hidden = true;
+        processModalError.textContent = '';
+        processModalClose.hidden = true;
+        processModalFill.style.width = '0%';
+        processModalPct.textContent = '0%';
+        processModalStage.textContent = 'Uploading…';
+        processModal.hidden = false;
+    }
+    function closeProcessModal() { processModal.hidden = true; }
+    function failProcessModal(message) {
+        processModalStage.textContent = 'Processing failed';
+        processModalError.textContent = message;
+        processModalError.hidden = false;
+        processModalClose.hidden = false;
+        processModalClose.focus();
+    }
+    processModalClose.addEventListener('click', closeProcessModal);
+    document.addEventListener('keydown', (e) => {
+        // Not dismissable while running (no cancel support); Esc closes only
+        // once the error Close button is offered.
+        if (e.key === 'Escape' && !processModal.hidden && !processModalClose.hidden) {
+            closeProcessModal();
+        }
+    });
+
     // ── Process ───────────────────────────────────────────────────────
     processBtn.addEventListener('click', async () => {
         if (!currentFile) return;
@@ -876,8 +1009,8 @@ export async function initSingleTab() {
         processBtn.disabled = true;
         const originalLabel = processBtn.textContent;
         processBtn.textContent = 'Processing…';
-        progressEl.hidden = false;
         progressEl.value = 0;
+        openProcessModal();
         setMetrics('Uploading…');
 
         try {
@@ -905,6 +1038,7 @@ export async function initSingleTab() {
                     onMessage: (msg) => {
                         if (typeof msg.fraction === 'number') {
                             progressEl.value = msg.fraction;
+                            updateProcessModal(msg.fraction);
                         }
                         if (msg.error) reject(new Error(msg.error));
                     },
@@ -1008,8 +1142,10 @@ export async function initSingleTab() {
             downloadLink.textContent =
                 `Download ${outputFormat.value.toUpperCase()}`;
             showDoneBanner(bannerChips);
+            closeProcessModal();  // success: reveal the done banner
         } catch (e) {
             setMetrics(`Error: ${e.message}`);
+            failProcessModal(e.message);  // keep modal open with a Close
         } finally {
             processBtn.disabled = false;
             processBtn.textContent = originalLabel;

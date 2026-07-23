@@ -3,6 +3,43 @@
 All notable changes to Shimmer are recorded here.
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-07-23
+
+### Added
+
+- **Progress window for Clean & Master.** A pop-up shows a percent bar and
+  the current step — cleaning, mastering, then finalizing — and closes on its
+  own when your file is ready.
+- **Live preview now explains itself.** A short note sits next to the toggle,
+  and the first time you change a setting with it off, a one-time hint points
+  you to it.
+
+### Changed
+
+- **Loading a track now plays the whole song by default.** Live preview — the
+  short looping section for hearing edits quickly — is now something you turn
+  on when you want it, instead of starting on its own.
+- **Longer preview loops.** Loop lengths are now 10, 20, and 30 seconds
+  (previously 5–20) and default to 20, so you hear more of the song.
+- **Clean & Master moved to the top of the right panel,** next to the
+  mastering settings. This frees space in the bottom bar so buttons no longer
+  overlap on smaller or resized windows.
+- **Preset strength moved above the preset list,** so it is visible without
+  scrolling.
+- The Monitor and Preview loop sections now match in width and line up.
+
+### Fixed
+
+- Playback could get stuck looping a short window even after Live preview was
+  turned off. It now returns to full-song playback every time.
+- After Analyze, matching levels could cut playback volume by more than half.
+  The match is now capped so it can never make a track too quiet. This only
+  changed what you heard in the app — your exported file was never affected.
+- The waveform now recolors correctly — gray for Original, amber for
+  Processed, red for Removed — when you switch tracks while Live preview is on.
+- Cleaned up alignment and spacing in the file bar and the bottom transport
+  bar across window sizes.
+
 ## [1.0.2] — 2026-07-22
 
 ### Fixed
@@ -95,6 +132,7 @@ First public release.
 - The Batch tab's folder picker needs Tk; without it, type the path
   manually.
 
+[1.1.0]: https://github.com/henricksmedia/shimmer/releases/tag/v1.1.0
 [1.0.2]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.2
 [1.0.1]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.1
 [1.0.0]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.0

@@ -19,19 +19,6 @@ export function initMasterView() {
     if (!emptyEl || !workEl || !processBtn) return;
 
     let loaded = false;
-    let lastFileName = '';
-
-    // Presets should be instantly audible: when a new file arrives, turn
-    // Live preview on automatically (single.js handles upload + render).
-    // The user can still switch it off; we only auto-enable per new file.
-    function autoPreview(name) {
-        if (!name || name === lastFileName) return;
-        lastFileName = name;
-        setTimeout(() => {
-            const t = document.getElementById('preview-toggle');
-            if (t && !t.checked) t.click();
-        }, 800);
-    }
 
     function sync() {
         const hasFile = !processBtn.disabled || (banner && !banner.hidden);
@@ -45,7 +32,6 @@ export function initMasterView() {
             workEl.hidden = false;
         }
         if (hint && results) hint.hidden = !results.hidden;
-        if (hasFile) autoPreview((selected?.textContent || '').trim());
         syncSession();
     }
 

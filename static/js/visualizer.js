@@ -519,6 +519,10 @@ export function createUnifiedPlayer({
             state.active = key;
             applyPreviewGains();
             updateTabs();
+            // The base layer is colored by state.active; without this the
+            // cached layer keeps the prior track's color while Live is on,
+            // so the waveform wouldn't recolor on tab switch.
+            invalidateBase();
             drawFrame();
             return;
         }

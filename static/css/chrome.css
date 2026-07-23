@@ -39,6 +39,17 @@
     flex: none;
 }
 .bz-transport { flex-direction: row; align-items: center; gap: 12px; }
+/* Top-align the two stacked zones so "Monitor" and "Preview loop" sit on
+   the same baseline; both now carry label / row / sub, so they also share a
+   bottom edge. The transport zone stays vertically centred. An equal flex
+   share (basis 0, grow 1) keeps the two zones the same width regardless of
+   content or Live state; the cap stops them sprawling on wide screens. */
+.bz-monitor, .bz-loop {
+    justify-content: flex-start;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 460px;
+}
 
 .bridge .player-transport { flex: 0 0 auto; flex-wrap: nowrap; }
 .bridge .play-btn {
@@ -81,17 +92,46 @@
    load) and collides with the toggle at some widths — show the status
    only when it carries state (rendering / live / error). */
 .bridge .preview-status:not(.busy):not(.live):not(.error) { display: none; }
-/* Sits inline to the right of the loop controls. nowrap keeps the pill on a
-   single line — without it the longer "…(hottest region) · rendered in Nms"
-   wraps to two lines and grows the whole bridge. */
+/* Lives on its own sub-row under the loop controls (mirrors the Monitor
+   zone's loudness-match line). Its own line means the render/live status no
+   longer collides with the Live toggle, so it can't shove the controls
+   around at narrow widths. nowrap + ellipsis keeps it to one line so a
+   completed render never grows the bridge height. */
 .bridge .preview-status {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 440px;
-    flex: 0 1 auto;
+    max-width: 360px;
     min-width: 0;
 }
+/* Always-on orientation line: explains what Live does while it's off.
+   Hidden by JS once Live is on, where the status pill takes over the row. */
+.bridge .preview-explainer {
+    font-size: 11px;
+    color: var(--fg-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 360px;
+    min-width: 0;
+}
+/* The one-time just-in-time nudge: same line, promoted to amber. */
+.bridge .preview-explainer.nudge { color: var(--amber); font-weight: 600; }
+
+/* One-time pulse on the Live toggle when the nudge fires. The ring draws
+   outside the box (spread shadow) so it never clips the label text. */
+.preview-toggle-row.nudge-pulse {
+    border-radius: 6px;
+    animation: nudgePulse 0.62s ease-out 3;
+}
+@keyframes nudgePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 165, 36, 0); }
+    50%      { box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.5); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .preview-toggle-row.nudge-pulse { animation: none; }
+}
+
 .bridge .ab-match-note {
     max-width: 150px;
     overflow: hidden;
@@ -100,20 +140,25 @@
 }
 .bridge .transport-check { white-space: nowrap; }
 
-/* Primary CTA docked in the bridge — always visible on the Master view. */
+/* Primary CTA — sits at the top of the right pane, beside the mastering
+   settings it commits. Sticky so it never scrolls out of view. It used to
+   dock in the bridge, but four zones plus a 300px button collided at laptop
+   widths once Live expanded the loop controls; the bridge is now monitoring
+   only. Lives inside #tab-single, so it shows only on the Master view. */
 .process-dock {
-    margin-left: auto;
-    align-self: center;
-    display: none;
+    display: flex;
     flex-direction: column;
-    justify-content: center;
     gap: 4px;
-    width: min(300px, 26vw);
-    flex: none;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    /* Opaque backing so inspector cards scroll cleanly behind the sticky
+       CTA instead of showing through the gaps around it. */
+    background: var(--bg-1);
+    padding-bottom: 10px;
 }
-.app:has(#tab-single.active) .process-dock { display: flex; }
-.process-dock progress { height: 4px; }
-.process-dock .process-btn { width: 100%; padding: 10px 16px; font-size: 14px; }
+.process-dock progress { height: 4px; width: 100%; }
+.process-dock .process-btn { width: 100%; padding: 12px 16px; font-size: 14px; }
 .bridge .player-kbd-hint { display: none; }   /* lives in the rail now */
 
 @media (max-width: 1400px) {
@@ -124,7 +169,101 @@
     .bridge { min-height: var(--bridge-h); }
     /* Keep .preview-status visible: it carries the rendering/live state. */
     .bridge .preview-status:not(.busy):not(.live):not(.error) { display: none; }
-    .process-dock { width: 100%; margin-left: 0; }
+}
+
+/* ── Clean & Master progress modal ──────────────────────────────────── */
+/* Blocking is intentional: processing a full track is a commit step where
+   there is nothing useful to do until the result lands, so a focused modal
+   with real (determinate) progress beats a peripheral bar. Auto-closes on
+   success to reveal the done banner; stays open with a Close on error. */
+.process-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    overflow: hidden;                    /* contain the shimmer wash */
+    background: rgba(6, 8, 11, 0.82);    /* fade the page further out */
+    backdrop-filter: blur(3px);
+    animation: process-backdrop-in 280ms ease both;   /* soft fade-in */
+}
+.process-modal-backdrop[hidden] { display: none; }
+/* Shimmer wash — the logomark's aurora gradient, blurred into a soft glow
+   and slow-swept behind the card. Purely decorative; the card is z-indexed
+   above it. Reuses the wordmark's own `aurora-sweep` keyframe. */
+.process-modal-backdrop::before {
+    content: "";
+    position: absolute;
+    inset: -25%;
+    background: linear-gradient(100deg,
+        var(--amber) 0%, #ffd97a 18%, var(--gold) 38%,
+        #f472b6 55%, var(--amber) 75%, #ffd97a 100%);
+    background-size: 220% 100%;
+    opacity: 0.20;
+    filter: blur(40px);
+    animation: aurora-sweep 7s linear infinite;
+    pointer-events: none;
+}
+@keyframes process-backdrop-in { from { opacity: 0; } }
+.process-modal {
+    position: relative;
+    z-index: 1;                          /* above the shimmer wash */
+    width: min(420px, 92vw);
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+}
+/* Title carries the logomark aurora treatment for brand cohesion. */
+.process-modal-title {
+    font-size: 16px;
+    font-weight: 700;
+    background: linear-gradient(100deg,
+        var(--amber) 0%, #ffd97a 18%, var(--gold) 38%,
+        #f472b6 55%, var(--amber) 75%, #ffd97a 100%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: aurora-sweep 7s linear infinite;
+}
+.process-modal-stage { font-size: 12.5px; color: var(--fg-2); min-height: 16px; }
+.process-modal-track {
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--bg-4);
+    border: 1px solid var(--line);
+}
+.process-modal-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--amber), var(--gold));
+    transition: width 180ms ease;
+}
+.process-modal-pct { font-family: var(--font-mono); font-size: 12px; color: var(--fg-1); }
+.process-modal-error {
+    font-size: 12.5px;
+    color: var(--danger);
+    background: rgba(240, 82, 107, 0.08);
+    border: 1px solid rgba(240, 82, 107, 0.3);
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: left;
+}
+.process-modal-error[hidden] { display: none; }
+.process-modal-close[hidden] { display: none; }
+.process-modal-close { align-self: center; margin-top: 2px; }
+@media (prefers-reduced-motion: reduce) {
+    .process-modal-fill { transition: none; }
+    .process-modal-backdrop { backdrop-filter: none; animation: none; }
+    /* Keep the color, drop the motion. */
+    .process-modal-backdrop::before,
+    .process-modal-title { animation: none; }
 }
 
 /* Bridge A/B: the monitor-source selector — the core interaction of the

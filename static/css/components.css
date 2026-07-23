@@ -219,11 +219,21 @@
 }
 
 .dropzone-compact { padding: 12px 14px; background: none; }
-.dropzone-compact .dropzone-primary { font-size: 12.5px; margin-bottom: 2px; }
+/* Center the label on its own line, then keep the Change button and the
+   filename pill on a shared, vertically-centered row that wraps cleanly at
+   any width instead of drifting out of alignment. */
+.dropzone-compact .dropzone-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 10px;
+}
+.dropzone-compact .dropzone-primary { flex-basis: 100%; font-size: 12.5px; margin-bottom: 0; }
 .dropzone-compact .dropzone-secondary,
 .dropzone-compact .dropzone-formats { display: none; }
-.dropzone-compact .btn { padding: 3px 10px; font-size: 11.5px; }
-.dropzone-compact .selected-file { margin-top: 8px; }
+.dropzone-compact .btn { flex: none; padding: 4px 12px; font-size: 11.5px; }
+.dropzone-compact .selected-file { margin-top: 0; }
 
 /* ── Forms ──────────────────────────────────────────────────────────── */
 
