@@ -3,6 +3,19 @@
 All notable changes to Shimmer are recorded here.
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] — 2026-07-23
+
+### Fixed
+
+- Status messages no longer say "Uploading." Shimmer runs fully offline and
+  never uploads your audio, so the preview and Clean & Master steps now say
+  "Preparing."
+- The Processed and Removed monitor buttons now show a hover tip explaining
+  how to turn them on — start Live preview or run Clean & Master — instead of
+  a description you cannot use yet.
+- Fixed the Removed button's hover tip, which named the wrong control
+  ("cleaning strength"); it now points to "Preset strength."
+
 ## [1.1.0] — 2026-07-23
 
 ### Added
@@ -39,14 +52,6 @@ Versions follow [Semantic Versioning](https://semver.org/).
   Processed, red for Removed — when you switch tracks while Live preview is on.
 - Cleaned up alignment and spacing in the file bar and the bottom transport
   bar across window sizes.
-- Status messages no longer say "Uploading." Shimmer runs fully offline and
-  never uploads your audio, so the preview and Clean & Master steps now say
-  "Preparing."
-- The Processed and Removed monitor buttons now show a hover tip explaining
-  how to turn them on — start Live preview or run Clean & Master — instead of
-  a description you cannot use yet.
-- Fixed the Removed button's hover tip, which named the wrong control
-  ("cleaning strength"); it now points to "Preset strength."
 
 ## [1.0.2] — 2026-07-22
 
@@ -140,6 +145,7 @@ First public release.
 - The Batch tab's folder picker needs Tk; without it, type the path
   manually.
 
+[1.1.1]: https://github.com/henricksmedia/shimmer/releases/tag/v1.1.1
 [1.1.0]: https://github.com/henricksmedia/shimmer/releases/tag/v1.1.0
 [1.0.2]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.2
 [1.0.1]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.1
