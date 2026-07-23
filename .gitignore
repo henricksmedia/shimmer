@@ -110,6 +110,7 @@ diag_*.py
 _archive/
 git-push.bat
 git-release.bat
+git-release.ps1
 
 # Demo video: too large for the repo. Distribute as a release asset or LFS.
 assets/demo/
