@@ -303,7 +303,10 @@
 .bridge .track-tab[data-track="original"]::after  { background: var(--fg-2); }
 .bridge .track-tab[data-track="processed"]::after { background: var(--amber); }
 .bridge .track-tab[data-track="removed"]::after   { background: var(--danger); }
-.bridge .track-tab:hover:not(:disabled) { color: var(--fg-0); border-color: #3d4756; }
+.bridge .track-tab:hover:not([aria-disabled="true"]) { color: var(--fg-0); border-color: #3d4756; }
+/* Unavailable until Live preview is on or a full run has produced the track.
+   aria-disabled (not the disabled attribute) so the tooltip still shows. */
+.bridge .track-tab[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
 .bridge .track-tab.active { color: var(--fg-0); }
 .bridge .track-tab.active::after { opacity: 1; }
 .bridge .track-tab.active[data-track="original"] {

@@ -733,7 +733,7 @@ export async function initSingleTab() {
     async function ensurePreviewSession() {
         if (previewState.sessionId) return previewState.sessionId;
         if (!currentFile) return null;
-        setPreviewStatus('Uploading for preview…', 'busy');
+        setPreviewStatus('Preparing preview…', 'busy');
         try {
             const r = await uploadFile(currentFile);
             previewState.sessionId = r.session_id;
@@ -745,7 +745,7 @@ export async function initSingleTab() {
             }
             return r.session_id;
         } catch (e) {
-            setPreviewStatus(`Preview upload failed: ${e.message}`, 'error');
+            setPreviewStatus(`Preview failed: ${e.message}`, 'error');
             return null;
         }
     }
@@ -977,7 +977,7 @@ export async function initSingleTab() {
         processModalClose.hidden = true;
         processModalFill.style.width = '0%';
         processModalPct.textContent = '0%';
-        processModalStage.textContent = 'Uploading…';
+        processModalStage.textContent = 'Preparing…';
         processModal.hidden = false;
     }
     function closeProcessModal() { processModal.hidden = true; }
@@ -1011,7 +1011,7 @@ export async function initSingleTab() {
         processBtn.textContent = 'Processing…';
         progressEl.value = 0;
         openProcessModal();
-        setMetrics('Uploading…');
+        setMetrics('Preparing…');
 
         try {
             const overrides = controls.getValues();

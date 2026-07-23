@@ -539,8 +539,14 @@ export function createUnifiedPlayer({
 
     function updateTabs() {
         for (const [key, btn] of tabBtns) {
+            const avail = !!state.available[key];
             btn.classList.toggle('active', key === state.active);
-            btn.disabled = !state.available[key];
+            // aria-disabled (not the `disabled` attribute) keeps the button
+            // hoverable so its tooltip can explain how to enable the track;
+            // setTrack ignores clicks on unavailable tracks either way.
+            btn.setAttribute('aria-disabled', String(!avail));
+            const ready = btn.dataset.titleReady;
+            if (ready) btn.title = avail ? ready : (btn.dataset.titleDisabled || ready);
         }
     }
 

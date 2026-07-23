@@ -588,10 +588,16 @@
                     <button type="button" class="track-tab active" data-track="original" title="Hear the untouched upload (key: 1)">
                         <span class="track-key">1</span> Original
                     </button>
-                    <button type="button" class="track-tab" data-track="processed" disabled title="Hear the cleaned + mastered result (key: 2)">
+                    <button type="button" class="track-tab" data-track="processed" aria-disabled="true"
+                            data-title-ready="Hear the cleaned + mastered result (key: 2)"
+                            data-title-disabled="Turn on Live preview, or run Clean & Master, to hear the result (key: 2)"
+                            title="Turn on Live preview, or run Clean & Master, to hear the result (key: 2)">
                         <span class="track-key">2</span> Processed
                     </button>
-                    <button type="button" class="track-tab" data-track="removed" disabled title="Hear only what Shimmer stripped away — boosted for monitoring, never in your export. If you hear vocals, snare snap, or musical detail, reduce the cleaning strength. (key: 3)">
+                    <button type="button" class="track-tab" data-track="removed" aria-disabled="true"
+                            data-title-ready="Hear only what Shimmer stripped away — boosted for monitoring, never in your export. If you hear vocals, snare snap, or musical detail, reduce the Preset strength. (key: 3)"
+                            data-title-disabled="Turn on Live preview, or run Clean & Master, to hear what Shimmer removed (key: 3)"
+                            title="Turn on Live preview, or run Clean & Master, to hear what Shimmer removed (key: 3)">
                         <span class="track-key">3</span> Removed <span class="hint">boosted</span>
                     </button>
                 </div>
