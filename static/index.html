@@ -250,6 +250,25 @@
                         </div>
                     </div>
 
+                    <!-- Report stage: proof of what the pass did, then the numbers. -->
+                    <div class="card spectrum-card" id="spectrum-card" hidden>
+                        <div class="card-head">
+                            <span class="title">What changed</span>
+                            <span class="gloss">whole-file spectrum, before and after this pass</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="sc-headline" id="spectrum-headline"></div>
+                            <canvas id="spectrum-compare" class="sc-canvas"
+                                    aria-label="Long-term spectrum before and after, with the removed signal and the level-matched difference"></canvas>
+                            <div class="sc-legend">
+                                <span><i class="sw before"></i>Before</span>
+                                <span><i class="sw after"></i>After</span>
+                                <span><i class="sw removed"></i>Removed</span>
+                                <span><i class="sw delta"></i>After minus before, level-matched</span>
+                                <span class="sc-readout" id="spectrum-readout">Hover for the numbers at any frequency.</span>
+                            </div>
+                        </div>
+                    </div>
                     <div class="metrics-box" id="metrics-box" hidden></div>
                 </div>
 
@@ -260,6 +279,8 @@
                             <span class="adb-step">2</span><span class="adb-text">Analyze</span>
                         </button>
                         <button type="button" class="btn btn-primary process-btn step-btn" data-step="3" id="process-btn" disabled>Clean &amp; Master</button>
+                        <!-- Plain status, not a button: what stage 3 will do, read from the live controls. -->
+                        <div class="dock-status" id="dock-status" hidden></div>
                         <progress id="progress" value="0" max="1" hidden></progress>
                     </div>
                     <div class="card insp">
@@ -331,9 +352,9 @@
                                     </select>
                                 </div>
                                 <label class="checkbox-row loudness-line" id="preserve-vol-card"
-                                       title="When mastering is enabled, LUFS targeting handles loudness. Use this when mastering is off to A/B fairly.">
+                                       title="Keeps the cleaned file at the same level as the original, so a cleaning-only pass is not quieter and A/B is fair. Only applies when mastering is off; with mastering on, the loudness target sets the level.">
                                     <input type="checkbox" id="preserve-vol" checked>
-                                    <span>Match loudness when mastering is off</span>
+                                    <span>Preserve volume <small class="pv-note">keeps the level the same on a cleaning-only pass</small></span>
                                 </label>
                                 <label class="checkbox-row"
                                        title="Removes silence below −60 dBFS from the start and end of the downloaded file, keeping a short natural pad. Playback here stays full-length so A/B comparison remains in sync.">
@@ -586,7 +607,7 @@
                         </select>
                         <label class="checkbox-row">
                             <input type="checkbox" id="batch-preserve-vol" checked>
-                            <span>Match loudness when mastering is off</span>
+                            <span>Preserve volume <small class="pv-note">keeps each file at its own level on a cleaning-only pass</small></span>
                         </label>
                         <label class="checkbox-row"
                                title="Removes silence below −60 dBFS from the start and end of each output file, keeping a short natural pad.">

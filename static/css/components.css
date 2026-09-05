@@ -747,6 +747,12 @@ input[type=range]::-moz-range-thumb {
     min-width: 62px;
 }
 
+/* Preserve volume row: stays visible while mastering is on, but greyed
+   and locked, with its note saying why. */
+.checkbox-row .pv-note { display: block; font-size: 11px; color: var(--fg-3); font-weight: 400; margin-top: 1px; }
+.checkbox-row.is-off { opacity: .55; }
+.checkbox-row.is-off input { cursor: not-allowed; }
+
 /* ── Progress bars ──────────────────────────────────────────────────── */
 
 progress {
@@ -855,9 +861,32 @@ progress::-moz-progress-bar { background: var(--amber); }
 .ad-next-kicker { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--amber); font-weight: 700; }
 .ad-next-title { font-size: 14px; font-weight: 650; color: var(--fg-0); margin-top: 2px; }
 .ad-next-reason { font-size: 12px; color: var(--fg-1); line-height: 1.5; margin-top: 5px; }
-.ad-next-status { font-size: 11.5px; line-height: 1.45; margin-top: 7px; }
-.ad-next-status.warn { color: var(--amber); }
-.ad-next-status.ok { color: var(--success); }
+/* The two settings the pass needs, as state rows: amber dot and "On"/"Off"
+   while wrong, green dot and a check once right. */
+.ad-next-checks { margin-top: 9px; display: flex; flex-direction: column; gap: 4px; }
+.ad-check {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--fg-1);
+}
+.ad-check-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 3px rgba(245,165,36,.18); }
+.ad-check-state {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    color: var(--amber);
+    border: 1px solid rgba(245,165,36,.45);
+    background: rgba(245,165,36,.08);
+}
+.ad-check.ok .ad-check-dot { background: var(--success); box-shadow: 0 0 0 3px rgba(74,222,128,.16); }
+.ad-check.ok .ad-check-state { color: var(--success); border-color: rgba(74,222,128,.45); background: rgba(74,222,128,.08); }
+.ad-next-why { font-size: 11.5px; color: var(--fg-3); line-height: 1.45; margin-top: 8px; }
+.ad-next-after { font-size: 11.5px; color: var(--fg-1); line-height: 1.45; margin-top: 7px; }
+.btn.ad-next-btn.ready { background: var(--stage-3); border-color: var(--stage-3); }
 .btn.ad-next-btn {
     margin-top: 9px;
     background: var(--amber);
@@ -884,6 +913,28 @@ progress::-moz-progress-bar { background: var(--amber); }
     background: var(--cyan);
     opacity: .7;
 }
+
+/* Fixed tones list (static repair plan): one row per notch, tick to keep. */
+.repair-list { margin-top: 12px; }
+.repair-empty { font-size: 11.5px; color: var(--fg-3); }
+.repair-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 4px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--fg-1);
+    cursor: pointer;
+}
+.repair-row:first-of-type { border-top: none; }
+.repair-row input { accent-color: var(--cyan); margin: 0; }
+.repair-row .r-hz { font-weight: 600; color: var(--fg-0); }
+.repair-row .r-depth { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); }
+.repair-row .r-kind { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-3); }
+.repair-row.off { opacity: .5; }
+.repair-row.off .r-depth { text-decoration: line-through; }
 
 /* Status tiles: rendered always, shown only in the workspace (chrome.css). */
 .ad-tiles { display: none; }

@@ -601,15 +601,16 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   quiet ranked table (rank, name, match bar, strength, Apply; reason on
   hover). Apply also moves the Preset strength slider. When a runner-up
   still finds residue on the winner's output, a "Next step" callout names
-  the second pass and offers "Set up second pass" (mastering off, Preserve
-  volume on) with what to do after this pass. Tonal-balance and cutoff
+  the second pass, shows the two settings it needs as state rows
+  (mastering off, Preserve volume on) and offers one button: "Set up
+  second pass" flips them, then "Run this pass: Clean" starts the run. Tonal-balance and cutoff
   notes sit in a Details list. Below: the "Noise over time" strip, one bar
   per second of top-end noise, amber for the worst stretches, with a time
   axis; click it to jump there (moves the loop window while Live is on,
   seeks the player otherwise). Takes roughly ten seconds.
 - Analyze also lives in the dock above Clean & Master (cyan, step 2). It
-  runs the analysis and jumps to the card; once done it becomes a green
-  "Analysis ready" status. Clicking it then, or the card's Expand button,
+  runs the analysis and jumps to the card; once done it becomes "View
+  analysis" (still cyan, outlined, with a check). Clicking it then, or the card's Expand button,
   opens the Analysis workspace: a sheet that slides up over the page
   (four status tiles on top: Applied, Second pass, Fixed tones, Top end;
   then the timeline, the hero and table left, next step, details and
@@ -628,8 +629,9 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   Loud −11 / CD & Club −9 LUFS), tone match (Low/Medium/High), and tone
   tilt (Brightest/Bright/Neutral/Warm/Warmer).
 - After Analyze, a readout shows input LUFS, true peak, and LRA.
-- "Match loudness when mastering is off" (preserve volume) appears only when
-  mastering is disabled.
+- "Preserve volume" (in Output; also in Batch) keeps a cleaning-only pass
+  at the original's level. It stays in view while mastering is on, greyed
+  and locked, since the loudness target sets the level then.
 - Trim leading/trailing silence on export (below −60 dBFS, keeps a short
   natural pad; playback stays full-length so A/B stays in sync).
 
@@ -644,12 +646,21 @@ Sources: [static/index.html](static/index.html) and the ES modules in
 - A green "Ready to download" banner appears with metric chips and the
   download link. Download filenames follow
   `{stem}_{preset}_{processed|removed}_{jobid8}{ext}`.
+- "What changed" card ([report.py](report.py) measures,
+  `static/js/report.js` draws): whole-file 1/6-octave spectra before and
+  after the pass plus the removed signal, and a level-matched "after
+  minus before" strip (level match = median change from 100 Hz to
+  2 kHz). A one-line verdict names the deepest cut and its range, the
+  largest change under 2 kHz and the level change; hover gives the
+  numbers per band.
 - Stat readout in three labeled rows. Loudness: LUFS in→out against the
-  target, true peak, LRA, limiter max gain reduction, peak and RMS in→out.
-  Cleaning: 5–8 kHz energy, flicker depth (AM depth as a percentage),
-  narrow peaks left, clicks fixed, fixed tones notched, top-end cutoff.
-  Job: edge trim, export trim, EQ bands, length (m:ss), sample rate,
-  channels. Warnings (limiter pumping) get their own row.
+  target, true peak, LRA, limiter max gain reduction, peak and RMS in→out,
+  peak-to-loudness ratio in→out, stereo correlation in→out. Cleaning:
+  5–8 kHz energy, flicker depth (AM depth as a percentage), narrow peaks
+  left, clicks fixed, fixed tones notched, top-end cutoff. Job: edge
+  trim, export trim, EQ bands, length (m:ss), sample rate, channels, and
+  the export (format, bit depth, dither). Warnings (limiter pumping) get
+  their own row.
 
 **Advanced controls drawer**
 - Right-side modal drawer (closes via ×, backdrop click, or Escape) rendered

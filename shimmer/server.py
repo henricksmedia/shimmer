@@ -72,6 +72,7 @@ from .presets import (
     PRESETS, PRESET_NAMES, VISIBLE_PRESETS,
     get_preset, describe_preset, label_for, is_visible,
 )
+from .report import plr_db, spectra_report, stereo_correlation
 from .preview_store import PREVIEW_STORE, clamp_samples_for_preview
 from .settings_store import load_settings, save_settings
 from . import stems as stems_mod
@@ -315,9 +316,35 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
             "cut_tail_s": round(cut_tail, 3),
         }
 
+    # Report-stage numbers: band spectra before / after / removed, the
+    # peak-to-loudness ratio and the stereo correlation, plus what the
+    # export actually is. Measurement only.
+    try:
+        spectra = spectra_report(x, y2, removed, sr)
+    except Exception:  # noqa: BLE001
+        spectra = None
+    try:
+        loudness = dict(loudness)
+        loudness["input_plr_db"] = plr_db(x, sr, loudness.get("input_lufs_i"))
+        loudness["output_plr_db"] = plr_db(y2, sr, loudness.get("output_lufs_i"))
+        loudness["input_correlation"] = stereo_correlation(x)
+        loudness["output_correlation"] = stereo_correlation(y2)
+    except Exception:  # noqa: BLE001
+        pass
+    ext = job.output_ext.lower()
+    export = {
+        "format": ext.lstrip("."),
+        "subtype": "PCM_24" if ext in (".wav", ".flac") else None,
+        "bit_depth": 24 if ext in (".wav", ".flac") else None,
+        "dither": False,
+        "bitrate": "320k" if ext == ".mp3" else None,
+    }
+
     job.processed_path = processed_path
     job.diff_path = diff_path
     job.metrics = {
+        "spectra": spectra,
+        "export": export,
         "sample_rate": sr,
         "channels": int(x.shape[1]),
         "duration_s": float(x.shape[0] / sr),

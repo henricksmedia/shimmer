@@ -191,6 +191,7 @@ shimmer/            The Python package (all application code)
   dsp.py            Primitive DSP helpers
   trim_silence.py   Export-time silence trimming
   edges.py          Head/tail render-glitch scan (reported, never applied)
+  report.py         Report-stage numbers: band spectra, PLR, stereo correlation
   audio_io.py       File I/O, measurement, format dispatch
   stems.py          Demucs separation + cache
   stem_effects.py   Per-stem effect chain
@@ -200,6 +201,7 @@ shimmer/            The Python package (all application code)
   settings_store.py UI settings persistence
   _winfix.py        Windows WMI hang workaround (imported by __init__)
 static/             Frontend: HTML, split CSS, ES-module JS
+  js/report.js      "What changed" spectrum card (draws what report.py measures)
 scripts/            Launcher helpers (browser open-when-ready)
 tests/              pytest suite
 ```

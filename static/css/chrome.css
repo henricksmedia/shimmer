@@ -204,18 +204,19 @@
     filter: none;
     box-shadow: none;
 }
-/* Done: a green status, with the stage-2 badge kept in its own colour. */
+/* Done: still stage-2 cyan, as an outline so it reads apart from the
+   solid idle button; the badge shows the check. */
 .analyze-dock-btn.done {
-    color: var(--success);
-    background: rgba(74, 222, 128, 0.08);
-    border-color: rgba(74, 222, 128, 0.45);
+    color: var(--stage);
+    background: rgba(56, 189, 248, 0.10);
+    border-color: rgba(56, 189, 248, 0.55);
     filter: none;
     box-shadow: none;
 }
 .analyze-dock-btn.done:hover:not(:disabled) {
-    background: rgba(74, 222, 128, 0.14);
-    border-color: var(--success);
-    color: #e6ffef;
+    background: rgba(56, 189, 248, 0.18);
+    border-color: var(--stage);
+    color: #dff4ff;
     filter: none;
     box-shadow: none;
 }
@@ -224,6 +225,18 @@
     background: var(--stage);
     border-color: rgba(0, 0, 0, .38);
     color: #0b0d10;
+}
+
+/* Status line under the dock buttons: what stage 3 will do. Text, not a
+   control, read from the live settings so it cannot go stale. */
+.dock-status {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--fg-2);
+    padding: 2px 4px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Status pill in the Analysis card header, mirrors the dock button. */
@@ -237,6 +250,53 @@
     background: rgba(74, 222, 128, 0.08);
     border: 1px solid rgba(74, 222, 128, 0.35);
     white-space: nowrap;
+}
+
+/* ── Report stage: "What changed" spectrum card ───────────────────── */
+/* Verdict first (one sentence with the key number in amber), then the
+   plot, then a legend with the hover readout. */
+.spectrum-card .card-body { padding: 12px 14px; }
+.sc-headline { font-size: 13px; color: var(--fg-0); line-height: 1.5; margin-bottom: 9px; }
+.sc-headline b { color: var(--amber); font-weight: 650; }
+.sc-canvas {
+    display: block;
+    width: 100%;
+    height: 250px;
+    background: #0c0f13;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    cursor: crosshair;
+}
+.sc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--fg-2);
+}
+.sc-legend .sw {
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+    margin-right: 6px;
+    vertical-align: 2px;
+}
+.sc-legend .sw.before { background: rgba(233, 237, 243, 0.62); }
+.sc-legend .sw.after { background: var(--amber); }
+.sc-legend .sw.removed { background: #f472b6; }
+.sc-legend .sw.delta { background: var(--cyan); }
+.sc-readout {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--fg-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 /* ── Analysis workspace: slides up over the page, transport stays below ── */

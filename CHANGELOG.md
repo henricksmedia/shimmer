@@ -7,6 +7,34 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The fixed-tones list under the analysis had lost its row layout (the
+  frequency, depth and kind ran together) when the results styles were
+  rewritten; its styles are back.
+
+- **The dock no longer shows a stale preset, and no longer uses a button
+  to show state.** After Analyze the dock button read "Analysis ready ·
+  Sibilance Rattle 125%" and kept saying so after you applied a
+  different match. A button names an action, so it now reads "View
+  analysis" (it opens the workspace), and the state moved to a plain
+  line under the two buttons that reads the live controls: "Vocal Glaze
+  + Top End · 100% · master to Streaming (−14 LUFS)" or "· cleaning
+  only". It updates on every change, including Apply. The Analysis card
+  pill follows the applied match too.
+
+- **Stage 3 is named by what it will do.** With mastering off, the big
+  button and the stepper's third step said "Clean & Master" while the run
+  only cleaned. Both now read "Clean" when mastering is off and "Clean &
+  Master" when it is on, and switch as you toggle mastering.
+
+- **"Preserve volume" could not be found.** Tips and the second-pass
+  callout told you to keep Preserve volume on, but the option was labeled
+  "Match loudness when mastering is off", sat inside the collapsed Output
+  section, and was hidden entirely whenever mastering was on, which is
+  when the tip appears. It is now called Preserve volume everywhere
+  (Master and Batch), with a one-line note under it, and it stays in view
+  while mastering is on, greyed and locked with the note saying the
+  loudness target sets the level meanwhile. The tip now says where it is.
+
 - **The suggested head cut no longer leaves a blip behind.** The cut
   used to land a hair past the tick, on its decay, and the "detected"
   box in the Trim view ended there too. The tick now ends where its slope
@@ -78,10 +106,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
   reason in full. It is whichever match is applied, so it moves when you
   click Apply on another; the other five sit in a quiet ranked table
   (rank, name, match bar, strength, Apply; the reason on hover). The
-  second pass is a "Next step" callout with an amber rule and one button,
-  "Set up second pass", that turns mastering off and Preserve volume on
-  and then says what to do after this pass. Notes are a small Details
-  list. In the workspace, four tiles run across the top: Applied, Second
+  second pass is a "Next step" callout with an amber rule: the two
+  settings the pass needs shown as state rows ("Mastering off for this
+  pass: On/Off", "Preserve volume on: On/Off", amber until right, green
+  with a check once right) and one button. "Set up second pass" flips
+  both; it then reads "Run this pass: Clean" and starts the run, with a
+  line saying to upload the result and run the suggested preset next.
+  Notes are a small Details list. In the workspace, four tiles run across the top: Applied, Second
   pass, Fixed tones, Top end. Amber now marks exactly two things: the
   applied choice and the next action.
 
@@ -162,12 +193,29 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **"What changed": a spectrum comparison after every run.** A new card
+  above the stat readout shows the whole-file spectrum before and after
+  the pass, the removed signal, and a level-matched "after minus before"
+  strip (cuts in cyan, additions in amber), on a 1/6-octave grid with the
+  same display tilt as the live analyzer. One sentence on top gives the
+  verdict: the deepest cut and where, how much the region below 2 kHz
+  moved, and the overall level change. Hover for the numbers at any
+  frequency. The level match uses the 100 Hz to 2 kHz region, where the
+  cleaning does not act, so a top-end cut reads as a cut, not as a level
+  change. Measured in `shimmer/report.py`, drawn by `static/js/report.js`.
+- **Two release-check numbers in the Loudness row.** Peak-to-loudness
+  ratio (true peak minus integrated LUFS) in and out, and stereo
+  correlation in and out, energy-weighted over the file.
+- **The Job row says what the download is.** "Export 24-bit WAV · no
+  dither needed", "Export MP3 320 kbps", and so on.
+
 - **Analyze in the dock, and an Analysis workspace.** Step 2 now has a
   cyan Analyze button above Clean & Master, so the next action is always
   in view. It runs Analyze and jumps to the Analysis card with a brief
-  ring. When the analysis is done it turns into a green "Analysis ready"
-  status naming the preset and strength, and the card header shows the
-  same. Clicking it then, or the card's Expand button, slides the analysis
+  ring. When the analysis is done it becomes "View analysis", a cyan
+  outline with a check in its badge, and the card header shows a "Ready"
+  pill naming the applied match. Clicking it then, or the card's Expand
+  button, slides the analysis
   up over the page as a workspace: the noise timeline across the top,
   ranked matches on the left, second pass, notes and fixed tones on the
   right, with "Loop the worst part" and Close in its header. The

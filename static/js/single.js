@@ -11,6 +11,7 @@ import { openHelp } from './help.js';
 import { createUnifiedPlayer, fmtTime } from './visualizer.js';
 import { initEqPanel } from './eq.js';
 import { initTrim } from './trim.js';
+import { initReport } from './report.js';
 
 
 const PREVIEW_DEBOUNCE_MS = 250;
@@ -98,10 +99,10 @@ export async function initSingleTab() {
         const label = analyzeDockBtn.querySelector('.adb-text');
         const step = analyzeDockBtn.querySelector('.adb-step');
         if (label) label.textContent = state === 'busy' ? 'Analyzing…'
-            : state === 'done' ? `Analysis ready · ${text}` : 'Analyze';
+            : state === 'done' ? 'View analysis' : 'Analyze';
         if (step) step.textContent = state === 'done' ? '✓' : '2';
         analyzeDockBtn.title = state === 'done'
-            ? 'Analysis is done. Click to see the results.'
+            ? 'Analysis is done. Opens the results in the workspace.'
             : 'Listens to your track and picks the best cleanup preset. Jumps to the Analysis card.';
         if (analysisStatus) {
             analysisStatus.hidden = state !== 'done';
@@ -110,6 +111,25 @@ export async function initSingleTab() {
         if (analysisExpandBtn) analysisExpandBtn.hidden = state !== 'done';
         syncSheetStatus();
     }
+    // What stage 3 will do, from the live controls (never a stale copy):
+    // preset, strength, and master target or cleaning only.
+    const dockStatus = $('dock-status');
+    function syncDockStatus() {
+        if (!dockStatus) return;
+        if (!currentFile) { dockStatus.hidden = true; return; }
+        const preset = labelOf(presetSelect.value) || presetSelect.value || '';
+        const pct = Math.round(currentStrength() * 100);
+        let tail = 'cleaning only';
+        if (masterEnabled.checked) {
+            const opt = masterTarget.options[masterTarget.selectedIndex];
+            const t = opt ? opt.text : '';
+            const short = t.includes(')') ? t.slice(0, t.indexOf(')') + 1) : t;
+            tail = `master to ${short}`;
+        }
+        dockStatus.textContent = `${preset} · ${pct}% · ${tail}`;
+        dockStatus.hidden = false;
+    }
+
     function jumpToAnalysis() {
         if (!analysisCard) return;
         analysisCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -362,6 +382,14 @@ export async function initSingleTab() {
     // Top & tail. Detection is reported here, never applied on its own —
     // the trim only reaches the export because the user armed it.
     const trimPanel = initTrim({});
+    // Report stage: the "What changed" spectrum card (report.js draws,
+    // shimmer/report.py measures).
+    const report = initReport({
+        card: $('spectrum-card'),
+        canvas: $('spectrum-compare'),
+        headline: $('spectrum-headline'),
+        readout: $('spectrum-readout'),
+    });
 
     player = createUnifiedPlayer({
         els: { original: audioOrig, processed: audioProc, removed: audioDiff },
@@ -493,11 +521,33 @@ export async function initSingleTab() {
         };
     }
 
+    // Stage 3 is named by what it will do: "Clean & Master" with
+    // mastering on, "Clean" with it off. Button and stepper together.
+    function processLabel() {
+        return masterEnabled.checked ? 'Clean & Master' : 'Clean';
+    }
+    function syncProcessLabel() {
+        if (processBtn.textContent !== 'Processing…') processBtn.textContent = processLabel();
+        const step = stepProcess && stepProcess.querySelector('.step-label');
+        if (step) step.textContent = processLabel();
+    }
+
     function updateMasteringUI() {
         const on = masterEnabled.checked;
         $('mastering-options').style.opacity = on ? '1' : '0.5';
-        preserveVolCard.hidden = on;
+        syncProcessLabel();
+        // Preserve volume only matters with mastering off. Keep the row in
+        // view but greyed while mastering is on, so it can be found when a
+        // tip mentions it; the loudness target sets the level meanwhile.
+        preserveVolCard.classList.toggle('is-off', on);
+        preserveVol.disabled = on;
         if (on) preserveVol.checked = false;
+        const note = preserveVolCard.querySelector('.pv-note');
+        if (note) {
+            note.textContent = on
+                ? 'not used while mastering is on; the loudness target sets the level'
+                : 'keeps the level the same on a cleaning-only pass';
+        }
     }
 
     function setWizardStep(step) {
@@ -578,6 +628,7 @@ export async function initSingleTab() {
         if (analyzeDockBtn) analyzeDockBtn.disabled = false;
         closeAnalysisSheet(true);
         setAnalyzeDock('idle');
+        syncDockStatus();
         setWizardStep(0);
         lastAnalysis = null;
         lastTimeline = null;
@@ -590,6 +641,7 @@ export async function initSingleTab() {
         previewCache.clear();
         masteringReadout.hidden = true;
         setMetrics('');
+        report.clear();
         hideDoneBanner();
 
         // Tear down any prior preview session and reset preview UI.
@@ -795,11 +847,6 @@ export async function initSingleTab() {
     // Plain-language advice shown whenever Analyze suggests a second pass
     // and mastering is on. Mastering limits the sound and sets its
     // loudness; cleaning a mastered file and mastering it again hurts it.
-    function secondPassMasteringTip() {
-        return 'Mastering is on. Master only once, at the end. ' +
-            'Turn mastering off for this pass, keep Preserve volume on, ' +
-            'then master on the last pass.';
-    }
 
     function showAutoDetectError(msg) {
         autoDetectResults.hidden = false;
@@ -817,6 +864,7 @@ export async function initSingleTab() {
     // applied choice and the next action.
     let syncNextStep = null;   // re-checks the second-pass callout when mastering toggles
     masterEnabled.addEventListener('change', () => { if (syncNextStep) syncNextStep(); });
+    preserveVol.addEventListener('change', () => { if (syncNextStep) syncNextStep(); });
 
     function renderAutoDetect(r) {
         autoDetectResults.hidden = false;
@@ -909,6 +957,8 @@ export async function initSingleTab() {
                     applyDetectedPreset(entry.name,
                         Number.isFinite(entry.strength) ? entry.strength : 1.0);
                     renderMain();
+                    setAnalyzeDock('done', `${nameOf(entry)} ${pctOf(entry.strength)}`);
+                    syncDockStatus();
                 });
                 row.append(el('span', 'ad-row-rank', String(i + 1)),
                            el('span', 'ad-row-name', nameOf(entry)),
@@ -928,18 +978,45 @@ export async function initSingleTab() {
             next.append(el('div', 'ad-next-kicker', 'Next step'),
                         el('div', 'ad-next-title', `Second pass with ${nameOf(followUp)}`));
             if (followUp.reason) next.append(el('div', 'ad-next-reason', followUp.reason));
-            const status = el('div', 'ad-next-status');
-            const btn = el('button', 'btn ad-next-btn', 'Set up second pass');
+            // The two settings this pass needs, as state rows rather than
+            // prose, plus one button that sets them and then runs the pass.
+            const checks = el('div', 'ad-next-checks');
+            const mkCheck = (label) => {
+                const row = el('div', 'ad-check');
+                const state = el('span', 'ad-check-state');
+                row.append(el('span', 'ad-check-dot'), el('span', 'ad-check-label', label), state);
+                checks.appendChild(row);
+                return { row, state };
+            };
+            const cMaster = mkCheck('Mastering off for this pass');
+            const cPreserve = mkCheck('Preserve volume on');
+            const why = el('div', 'ad-next-why',
+                'Master only once, at the end. Cleaning a mastered file and ' +
+                'mastering it again hurts the sound.');
+            const btn = el('button', 'btn ad-next-btn');
             btn.type = 'button';
-            const readyText = 'Mastering is off and Preserve volume is on for this pass. ' +
-                `Run Clean & Master, then upload the result and run ${nameOf(followUp)}.`;
+            const after = el('div', 'ad-next-after',
+                `Then upload the result and run ${nameOf(followUp)}.`);
+            const setState = (c, ok, text) => {
+                c.row.classList.toggle('ok', ok);
+                c.state.textContent = ok ? `✓ ${text}` : text;
+            };
             const syncNext = () => {
-                const on = masterEnabled.checked;
-                status.className = `ad-next-status ${on ? 'warn' : 'ok'}`;
-                status.textContent = on ? secondPassMasteringTip() : readyText;
-                btn.hidden = !on;
+                const masterOff = !masterEnabled.checked;
+                const preserveOn = !!preserveVol.checked;
+                setState(cMaster, masterOff, masterOff ? 'Off' : 'On');
+                setState(cPreserve, preserveOn, preserveOn ? 'On' : 'Off');
+                const ready = masterOff && preserveOn;
+                btn.textContent = ready ? 'Run this pass: Clean' : 'Set up second pass';
+                btn.classList.toggle('ready', ready);
+                after.hidden = !ready;
             };
             btn.addEventListener('click', () => {
+                if (btn.classList.contains('ready')) {
+                    closeAnalysisSheet(true);
+                    processBtn.click();
+                    return;
+                }
                 masterEnabled.checked = false;
                 masterEnabled.dispatchEvent(new Event('change'));
                 preserveVol.checked = true;
@@ -948,7 +1025,7 @@ export async function initSingleTab() {
             });
             syncNextStep = syncNext;
             syncNext();
-            next.append(status, btn);
+            next.append(checks, why, btn, after);
             side.appendChild(next);
         }
         const notes = Array.isArray(r.notes) ? r.notes : [];
@@ -1098,6 +1175,7 @@ export async function initSingleTab() {
     function pushSettings() {
         // The Signal Chain view re-renders from live settings on this.
         document.dispatchEvent(new CustomEvent('shimmer:settings-changed'));
+        syncDockStatus();
         saveSettings({
             remember_settings: !!(rememberSettings && rememberSettings.checked),
             preset: presetSelect.value,
@@ -1536,7 +1614,6 @@ export async function initSingleTab() {
             applyPreviewToggle(false);
         }
         processBtn.disabled = true;
-        const originalLabel = processBtn.textContent;
         processBtn.textContent = 'Processing…';
         progressEl.value = 0;
         openProcessModal();
@@ -1647,6 +1724,17 @@ export async function initSingleTab() {
                     fullMatchDb = loud.output_lufs_i - loud.input_lufs_i;
                 }
                 applyLoudnessMatch();
+                // Release-check extras: peak-to-loudness ratio and stereo
+                // correlation, in and out.
+                if (loud && loud.input_plr_db != null && loud.output_plr_db != null) {
+                    loudness.push(
+                        `PLR ${loud.input_plr_db.toFixed(1)} → ${loud.output_plr_db.toFixed(1)} dB`);
+                }
+                if (loud && (loud.output_correlation != null || loud.input_correlation != null)) {
+                    const fc = (v) => (v == null ? 'mono' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}`);
+                    loudness.push(
+                        `Stereo correlation ${fc(loud.input_correlation)} → ${fc(loud.output_correlation)}`);
+                }
 
                 const diag = mm.diagnostic;
                 if (diag && diag.before && diag.after) {
@@ -1698,6 +1786,18 @@ export async function initSingleTab() {
                 }
                 const chStr = mm.channels === 1 ? 'mono' : (mm.channels === 2 ? 'stereo' : `${mm.channels} ch`);
                 job.push(`${fmtTime(mm.duration_s)} · ${(mm.sample_rate / 1000).toFixed(1)} kHz · ${chStr}`);
+                // What the download actually is: format, bit depth, dither.
+                if (mm.export && mm.export.format) {
+                    const ex = mm.export;
+                    const fmt = ex.format.toUpperCase();
+                    let line = ex.bit_depth ? `${ex.bit_depth}-bit ${fmt}` : fmt;
+                    if (ex.bitrate) line += ` ${ex.bitrate.replace('k', ' kbps')}`;
+                    if (ex.bit_depth) {
+                        line += ex.dither ? ' · TPDF dither'
+                            : (ex.bit_depth >= 24 ? ' · no dither needed' : ' · no dither');
+                    }
+                    job.push(`Export ${line}`);
+                }
 
                 setMetrics([
                     { label: 'Loudness', chips: loudness },
@@ -1705,6 +1805,7 @@ export async function initSingleTab() {
                     { label: 'Job', chips: job },
                     { label: '', chips: warnings },
                 ]);
+                report.show(mm.spectra);
             }
 
             if (bannerChips.length === 0) bannerChips.push('Cleaned');
@@ -1718,7 +1819,7 @@ export async function initSingleTab() {
             failProcessModal(e.message);  // keep modal open with a Close
         } finally {
             processBtn.disabled = false;
-            processBtn.textContent = originalLabel;
+            processBtn.textContent = processLabel();
             progressEl.hidden = true;
         }
     });
