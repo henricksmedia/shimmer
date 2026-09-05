@@ -2341,6 +2341,11 @@ export async function initSingleTab() {
             const r = await uploadFile(currentFile);
             previewState.sessionId = r.session_id;
             previewState.durationS = r.duration_s;
+            // The recents list keys its "stems ready" badge on the digest.
+            document.dispatchEvent(new CustomEvent('shimmer:uploaded', { detail: {
+                name: currentFile.name, size: currentFile.size,
+                digest: r.digest || null, stems_tiers: r.stems_tiers || [],
+            } }));
             lastEdges = r.edges || null;
             if (r.repair && r.repair.plan) setRepairPlan(r.repair.plan);
             if (r.analysis) {

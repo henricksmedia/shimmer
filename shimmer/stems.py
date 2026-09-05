@@ -72,13 +72,18 @@ ProgressCb = Optional[Callable[..., None]]
 class Tier:
     key: str
     label: str
-    model: str
+    model: str           # a Demucs model name, or several joined with '+' (ensemble)
     shifts: int          # Demucs shift passes (each is a full pass over the track)
     stems: int
     blurb: str
     download_mb: int     # checkpoint download on first use
     gpu_s_per_min: float  # rough separation time per minute of audio
     cpu_s_per_min: float
+    overlap: float = 0.25  # segment overlap; more = fewer seams, slower
+
+    @property
+    def models(self) -> List[str]:
+        return [m for m in self.model.split("+") if m]
 
 
 # Time estimates measured on an RTX 4070 SUPER with a 4:32 track: Fast
@@ -96,6 +101,14 @@ TIERS: Dict[str, Tier] = {
     "six": Tier("six", "6 stems", "htdemucs_6s", 1, 6,
                 "adds guitar and piano · experimental",
                 80, 1.4, 20.0),
+    # Everything the installed engine can still give, the MDX23 recipe:
+    # the fine-tuned specialists averaged with the base model and Hybrid
+    # Demucs v3 (different training and architecture, so their errors
+    # differ), two shift passes, and 50 % segment overlap. Six models ×
+    # 2 shifts × the wider overlap is about 4.5× Best.
+    "ultra": Tier("ultra", "Ultra", "htdemucs_ft+htdemucs+hdemucs_mmi", 2, 4,
+                  "Best averaged with htdemucs and Hybrid Demucs v3 · 2 shift passes · 50 % overlap",
+                  570, 19.0, 250.0, overlap=0.5),
 }
 
 
@@ -229,7 +242,14 @@ def _demucs_remote_dir() -> Optional[Path]:
 
 
 def model_downloaded(model: str) -> Optional[bool]:
-    """True/False when the checkpoint state is knowable, None otherwise."""
+    """True/False when the checkpoint state is knowable, None otherwise.
+    An ensemble ('a+b') is downloaded when every member is."""
+    names = [m for m in str(model).split("+") if m]
+    if len(names) > 1:
+        states = [model_downloaded(n) for n in names]
+        if any(s is False for s in states):
+            return False
+        return None if any(s is None for s in states) else True
     remote = _demucs_remote_dir()
     if remote is None:
         return None
@@ -542,6 +562,7 @@ def separate(input_path: str, target_sr: int,
             done = _run_runner(py, [
                 "separate", str(input_path),
                 "--model", t.model, "--shifts", str(t.shifts),
+                "--overlap", str(t.overlap),
                 "--device", "auto", "--out", str(work),
             ], on_event)
         except Exception:
@@ -557,6 +578,7 @@ def separate(input_path: str, target_sr: int,
         os.replace(str(work), str(out_dir))
         meta = {
             "model": t.model, "tier": t.key, "shifts": t.shifts,
+            "overlap": t.overlap,
             "sources": sources, "sr": int(done.get("sr") or 44100),
             "input_sr": int(done.get("input_sr") or 0),
             "source": os.path.basename(input_path),

@@ -133,8 +133,32 @@ def _load_audio(path: str, want_sr: int, want_ch: int):
     return wav, sr
 
 
+def _load_models(names, get_model, BagOfModels):
+    """One model, or an ensemble of several averaged per stem.
+
+    An ensemble is one flat BagOfModels: a named model that is itself a
+    bag (htdemucs_ft) contributes its leaf models with their own rows,
+    so each stem still comes from that bag's specialist. The first name
+    is the strongest model and counts double against every later one.
+    """
+    loaded = [get_model(n) for n in names]
+    if len(loaded) == 1:
+        return loaded[0]
+    models, weights = [], []
+    for i, m in enumerate(loaded):
+        scale = 1.0 if i == 0 else 0.5
+        if isinstance(m, BagOfModels):
+            for sub, w in zip(m.models, m.weights):
+                models.append(sub)
+                weights.append([scale * float(x) for x in w])
+        else:
+            models.append(m)
+            weights.append([scale] * len(m.sources))
+    return BagOfModels(models, weights=weights)
+
+
 def _separate_once(model, wav, device: str, shifts: int, segment,
-                   passes: int):
+                   passes: int, overlap: float = 0.25):
     import demucs.apply as apply_mod
     from demucs.apply import apply_model
 
@@ -145,7 +169,7 @@ def _separate_once(model, wav, device: str, shifts: int, segment,
     apply_mod.tqdm = types.SimpleNamespace(tqdm=reporter)
     try:
         return apply_model(model, wav[None], device=device, shifts=shifts,
-                           split=True, overlap=0.25, progress=True,
+                           split=True, overlap=overlap, progress=True,
                            segment=segment)[0]
     finally:
         apply_mod.tqdm = real_tqdm
@@ -171,9 +195,10 @@ def cmd_separate(args: argparse.Namespace) -> int:
         status("CUDA not available in this environment — using the CPU")
         device = "cpu"
 
-    status(f"Loading the {args.model} model…")
+    names = [n.strip() for n in str(args.model).split("+") if n.strip()]
+    status(f"Loading the {' + '.join(names)} model{'s' if len(names) > 1 else ''}…")
     try:
-        model = get_model(args.model)
+        model = _load_models(names, get_model, BagOfModels)
     except Exception as e:  # noqa: BLE001
         emit({"event": "error", "message": f"Could not load model '{args.model}': {e}"})
         return 3
@@ -181,6 +206,7 @@ def cmd_separate(args: argparse.Namespace) -> int:
     n_models = len(model.models) if isinstance(model, BagOfModels) else 1
     shifts = max(0, int(args.shifts))
     passes = n_models * max(1, shifts)
+    overlap = min(0.9, max(0.05, float(args.overlap)))
 
     status("Reading the track…")
     try:
@@ -206,7 +232,7 @@ def cmd_separate(args: argparse.Namespace) -> int:
     last_err: Exception | None = None
     for dev, seg in attempts:
         try:
-            sources = _separate_once(model, wav, dev, shifts, seg, passes)
+            sources = _separate_once(model, wav, dev, shifts, seg, passes, overlap)
             device = dev
             break
         except RuntimeError as e:
@@ -228,15 +254,16 @@ def cmd_separate(args: argparse.Namespace) -> int:
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     status("Writing the stems…")
-    names = list(model.sources)
-    for src, name in zip(sources, names):
+    stem_names = list(model.sources)
+    for src, name in zip(sources, stem_names):
         arr = np.ascontiguousarray(src.cpu().numpy().T).astype(np.float32)  # (n, ch)
         sf.write(str(out_dir / f"{name}.wav"), arr, model.samplerate, subtype="FLOAT")
+    names = stem_names
 
     emit({"event": "done", "sources": names, "sr": int(model.samplerate),
           "input_sr": int(in_sr), "elapsed_s": round(time.time() - t0, 2),
           "device": device, "passes": passes, "shifts": shifts,
-          "model": args.model})
+          "overlap": overlap, "model": args.model})
     return 0
 
 
@@ -246,8 +273,11 @@ def main(argv=None) -> int:
     sub.add_parser("check", help="report torch/demucs/CUDA availability as JSON")
     s = sub.add_parser("separate", help="separate one file into stems")
     s.add_argument("input")
-    s.add_argument("--model", default="htdemucs")
+    s.add_argument("--model", default="htdemucs",
+                   help="a Demucs model name, or several joined with '+' for an ensemble")
     s.add_argument("--shifts", type=int, default=1)
+    s.add_argument("--overlap", type=float, default=0.25,
+                   help="segment overlap 0.05–0.9; more = fewer seams, slower")
     s.add_argument("--device", default="auto", choices=("auto", "cuda", "cpu"))
     s.add_argument("--out", required=True)
     args = p.parse_args(argv)

@@ -291,6 +291,25 @@ def test_remix_preview_and_render_use_every_lane(six_stem_session):
     assert os.path.isfile(job.processed_path)
 
 
+def test_pan_is_a_balance_control():
+    from shimmer.stem_effects import apply_gain_mute, pan_gains, stem_settings_from_json
+    assert pan_gains(0.0) == (1.0, 1.0)
+    assert pan_gains(-1.0) == (1.0, 0.0)
+    assert pan_gains(0.5) == (0.5, 1.0)
+    x = _tone(440, 0.5, 0.2)
+    s = stem_settings_from_json({"pan": 0.5})
+    assert s.pan == 0.5 and not s.is_identity()
+    y = apply_gain_mute(x, s)
+    np.testing.assert_allclose(y[:, 0], x[:, 0] * 0.5, atol=1e-6)   # left attenuated
+    np.testing.assert_allclose(y[:, 1], x[:, 1], atol=1e-6)         # right untouched
+    # Out-of-range and junk values clamp / default.
+    assert stem_settings_from_json({"pan": 9}).pan == 1.0
+    assert stem_settings_from_json({"pan": "x"}).pan == 0.0
+    # Centre pan is the identity, so the untouched mix still nulls.
+    centred = apply_gain_mute(x, stem_settings_from_json({"pan": 0.0}))
+    assert centred is x
+
+
 def test_stem_effects_accept_any_lane_names():
     stems_ = {"vocals": _tone(440, 1.0, 0.1), "guitar": _tone(330, 1.0, 0.1),
               "residual": _tone(220, 1.0, 0.01)}

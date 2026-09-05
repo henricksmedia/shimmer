@@ -1612,7 +1612,8 @@ async def api_stems_separate(payload: Dict[str, Any]) -> JSONResponse:
         "setup": "one-time install of the separation engine",
         "separate": f"{tier.label} · {tier.model} · {tier.stems} stems",
         "load": "reading the stems back at the session's sample rate",
-        "null": "residual = mix − stems · what the separator dropped",
+        "null": "whatever the separator dropped becomes the Residual lane, "
+                "so stems + residual = the original",
     }
 
     def _progress(frac: float, msg: str, stage: Optional[str] = None) -> None:
@@ -1634,7 +1635,7 @@ async def api_stems_separate(payload: Dict[str, Any]) -> JSONResponse:
             stems[k] = clamp_samples_for_preview(stems[k], sess.sr)
         # The residual is a stem of its own, so the unchanged mix nulls
         # against the original exactly (docs/PLAN.md, decision 2).
-        _progress(0.95, "Null test · residual = mix − stems", "null")
+        _progress(0.95, "Checking the split", "null")
         residual, null_db = stems_mod.add_residual(stems, sess.samples)
         stems[stems_mod.RESIDUAL] = residual
         info.update(stems_mod.measure_stems(

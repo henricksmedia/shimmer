@@ -1387,36 +1387,223 @@ progress::-moz-progress-bar { background: var(--amber); }
 .eq-preset-select { width: auto; font-size: 11.5px; }
 .eq-add-btn { padding: 3px 9px; font-size: 11.5px; }
 
-/* ════ COMPAT: remix strips + FX racks (remix.js-generated) ═════════ */
+/* ════ Remix: stepper, hero, dock, the lane mixer (remix.js-generated) ═ */
 
-.remix-sep-block { margin-top: 10px; }
-.remix-sep-status { font-size: 12px; color: var(--fg-2); }
-.remix-toolbar { display: flex; justify-content: flex-end; }
+/* Stage 2 on this tab is Separate, in the remix accent; 1 and 3 keep
+   the shared teal and amber so the two tabs read as one system. */
+#rstep-upload   { --stage: var(--stage-1); }
+#rstep-separate { --stage: var(--purple); }
+#rstep-mix      { --stage: var(--stage-3); }
+.remix-dropzone { background: radial-gradient(700px 240px at 50% 0%, rgba(167,139,250,.07), transparent); }
+.remix-dropzone.drag-over { border-color: var(--purple); background: rgba(167,139,250,.08); }
 
-#remix-strips {
+.remix-engine-line {
+    text-align: center;
+    font-size: 12px;
+    color: var(--fg-2);
+    line-height: 1.6;
+    padding: 0 12px;
+}
+.remix-engine-line b { color: var(--fg-1); font-weight: 600; }
+.remix-engine-line .sep { color: var(--fg-3); padding: 0 2px; }
+
+/* The dock's Separate button: the analyze-dock look in purple. The
+   base rules live in chrome.css (loaded later), so these carry the dock
+   in the selector to outrank them. */
+.remix-dock .remix-sep-btn { --stage: var(--purple); }
+.remix-dock .remix-sep-btn:hover:not(:disabled) {
+    box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 0 18px rgba(167, 139, 250, .3);
+}
+.remix-dock .remix-sep-btn.done {
+    background: rgba(167, 139, 250, 0.10);
+    border-color: rgba(167, 139, 250, 0.55);
+}
+.remix-dock .remix-sep-btn.done:hover:not(:disabled) {
+    background: rgba(167, 139, 250, 0.18);
+    border-color: var(--purple);
+    color: #efe9ff;
+}
+.remix-tier-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 12px;
-}
-.remix-strip {
-    background: var(--bg-3);
-    border: 1px solid var(--line);
-    border-top: 3px solid var(--strip-color, var(--amber));
-    border-radius: 14px;
-    overflow: hidden;
-    padding: 0 0 10px;
-}
-.remix-strip-head {
-    display: flex;
+    grid-template-columns: auto 1fr;
     align-items: center;
     gap: 8px;
-    padding: 9px 12px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 8px;
+    margin-top: 2px;
 }
-.remix-strip-name { font-weight: 650; font-size: 13px; color: var(--fg-0); }
+.remix-tier-row .label { margin: 0; white-space: nowrap; }
+.remix-tier-status { white-space: normal; line-height: 1.4; }
+.remix-dock .process-btn { margin-top: 4px; }
+
+.remix-stems-export { display: flex; flex-direction: column; gap: 8px; }
+.remix-stems-export .btn { width: 100%; }
+.remix-export-note { font-size: 11px; color: var(--fg-3); line-height: 1.45; }
+
+/* Mixer card header */
+.remix-mixer-card .card-head { flex-wrap: wrap; row-gap: 6px; }
+.remix-mixer-card .card-head .gloss b { color: var(--fg-0); font-weight: 600; }
+.remix-sep-pill {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--purple);
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--purple-soft);
+    border: 1px solid rgba(167, 139, 250, .4);
+    white-space: nowrap;
+}
+.remix-quick { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.remix-quick .rq-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-3); margin-right: 4px; }
+.remix-quick .btn-sm { padding: 3px 9px; font-size: 11.5px; }
+.remix-mixer-empty { padding: 14px 14px 4px; background: var(--bg-3); }
+.remix-mixer-hint { margin: 0; border-top: 1px solid var(--line); padding-top: 10px; }
+
+/* Stage 2 chooser: one card per split. */
+.remix-choose { display: flex; flex-direction: column; gap: 10px; }
+.rc-lead { font-size: 13px; color: var(--fg-2); line-height: 1.5; }
+.rc-lead b { color: var(--fg-0); font-size: 14px; margin-right: 4px; }
+.rc-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.rc-card {
+    --stage: var(--purple);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    text-align: left;
+    padding: 12px 13px 11px;
+    border-radius: 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    color: var(--fg-1);
+    font: inherit;
+    cursor: pointer;
+    transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+.rc-card:hover {
+    border-color: var(--purple);
+    background: color-mix(in srgb, var(--purple) 8%, var(--bg-2));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--purple) 35%, transparent), 0 6px 18px rgba(0,0,0,.25);
+    transform: translateY(-1px);
+}
+.rc-card.last { border-color: color-mix(in srgb, var(--purple) 55%, var(--line-2)); }
+.rc-head { display: flex; align-items: center; gap: 8px; }
+.rc-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--purple); color: #0b0d10;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 700; flex: none;
+}
+.rc-title { font-weight: 700; font-size: 14px; color: var(--fg-0); }
+.rc-count { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--purple); white-space: nowrap; }
+.rc-desc { font-size: 11.5px; color: var(--fg-2); line-height: 1.45; }
+.rc-meta { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3); }
+.rc-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+.rc-chips .chip { font-size: 10px; }
+.rc-chips .rc-chip-cached { color: var(--success); border-color: rgba(74,222,128,.4); background: rgba(74,222,128,.08); }
+.rc-foot { font-size: 11.5px; color: var(--fg-3); }
+@media (max-width: 1100px) { .rc-cards { grid-template-columns: 1fr; } }
+
+/* ── The lane mixer ──────────────────────────────────────────────── */
+/* Each stem is one row: a fixed-width head (name, share, M/S, fader,
+   FX, a level bar) beside its own waveform lane. Rows share the time
+   axis through the ruler on top. */
+.remix-mixer {
+    --rm-head-w: 318px;
+    display: flex;
+    flex-direction: column;
+    background: #0c0f13;
+    border-top: 1px solid var(--line);
+}
+/* The row's height comes from --lane-h (or the head's content when that
+   is taller); the canvas is absolutely positioned inside the lane so its
+   own pixel buffer can never feed back into the layout. */
+.rm-row {
+    display: grid;
+    grid-template-columns: var(--rm-head-w) minmax(0, 1fr);
+    min-height: var(--lane-h, 60px);
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    transition: background 120ms ease;
+}
+.rm-row:last-child { border-bottom: none; }
+.rm-row.listening { background: rgba(255,255,255,.025); }
+.rm-row.rm-ruler { min-height: 24px; border-bottom: 1px solid var(--line); background: var(--bg-2); }
+.rm-row.rm-ruler .rm-head { border-right-color: var(--line); border-left-color: transparent; padding: 0; }
+/* Monitor switch in the ruler's corner: which side you are hearing. */
+.rm-head.rm-corner { flex-direction: row; align-items: center; gap: 4px; padding: 0 8px 0 12px; }
+.rm-mon {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 18px; padding: 0 8px; border-radius: 999px;
+    background: var(--bg-4); border: 1px solid var(--line-2); color: var(--fg-2);
+    font: inherit; font-size: 10.5px; font-weight: 600; cursor: pointer;
+    transition: all 120ms ease;
+}
+.rm-mon b { font-family: var(--font-mono); font-size: 9.5px; font-weight: 700; color: var(--fg-3); }
+.rm-mon:hover:not(:disabled) { color: var(--fg-0); border-color: var(--fg-3); }
+.rm-mon.on { background: var(--purple-soft); border-color: var(--purple); color: var(--fg-0); }
+.rm-mon.on b { color: var(--purple); }
+.rm-mon:disabled { opacity: .45; cursor: not-allowed; }
+/* The Original lane's one control. */
+.rm-listen {
+    height: 22px; padding: 0 10px; border-radius: 6px;
+    background: var(--bg-4); border: 1px solid var(--line-2); color: var(--fg-0);
+    font: inherit; font-size: 11.5px; font-weight: 650; cursor: pointer; white-space: nowrap;
+    transition: all 120ms ease;
+}
+.rm-listen:hover { border-color: var(--fg-3); }
+.rm-listen.on { background: var(--purple-soft); border-color: var(--purple); color: var(--fg-0); box-shadow: 0 0 0 1px color-mix(in srgb, var(--purple) 35%, transparent); }
+.rm-listen-hint { font-size: 10.5px; color: var(--fg-3); white-space: nowrap; }
+.rm-row.rm-mix.listening .rm-head { background: color-mix(in srgb, var(--purple) 6%, var(--bg-2)); }
+.rm-head {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 5px 10px 5px 12px;
+    border-right: 1px solid var(--line);
+    border-left: 3px solid var(--lane, var(--fg-3));
+    background: var(--bg-2);
+    min-width: 0;
+}
+.rm-row.rm-mix .rm-head { border-left-color: transparent; }
+.rm-title { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.rm-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lane); flex: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--lane) 25%, transparent); }
+.rm-name { font-weight: 650; font-size: 12.5px; color: var(--fg-0); white-space: nowrap; flex: none; }
+.rm-share {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--fg-2);
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--bg-4);
+    border: 1px solid var(--line);
+    flex: none;
+}
+/* One line: the sub sits after the name and gives way first. */
+.rm-sub { font-size: 10.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
+.rm-ctl { display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+.rm-gain { flex: 1; min-width: 56px; accent-color: var(--lane); height: 18px; margin: 0; }
+.rm-gain-val { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-1); min-width: 50px; text-align: right; }
+.rm-pan { width: 54px; flex: none; accent-color: var(--fg-2); height: 18px; margin: 0 0 0 2px; }
+.rm-pan-val { font-family: var(--font-mono); font-size: 10px; color: var(--fg-2); min-width: 24px; }
+.rm-title .rm-fx-btn { height: 18px; padding: 0 6px; font-size: 10px; margin-left: 2px; }
+.rm-fx-btn {
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    background: var(--bg-4);
+    border: 1px solid var(--line-2);
+    color: var(--fg-2);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 120ms ease;
+}
+.rm-fx-btn:hover { color: var(--fg-0); border-color: var(--fg-3); }
+.rm-fx-btn.lit { color: var(--lane); border-color: color-mix(in srgb, var(--lane) 60%, transparent); background: color-mix(in srgb, var(--lane) 14%, transparent); }
+.rm-fx-btn.open { box-shadow: 0 0 0 1px color-mix(in srgb, var(--lane) 60%, transparent); }
 .remix-ms-btn {
-    width: 26px;
+    width: 24px;
     height: 22px;
     border-radius: 5px;
     font-size: 11px;
@@ -1425,53 +1612,93 @@ progress::-moz-progress-bar { background: var(--amber); }
     border: 1px solid var(--line-2);
     color: var(--fg-2);
     cursor: pointer;
+    flex: none;
     transition: all 120ms ease;
 }
-.remix-ms-btn.active, .remix-ms-btn.on { background: var(--danger); border-color: transparent; color: #fff; }
-.remix-ms-btn.solo.active, .remix-ms-btn.solo.on { background: #fbbf24; color: #201a05; }
-.remix-gain-wrap { display: flex; align-items: center; gap: 8px; padding: 0 12px; }
-.remix-gain-val { font-family: var(--font-mono); font-size: 11px; color: var(--fg-1); min-width: 58px; text-align: right; }
-.remix-fx-row { padding: 6px 12px 0; }
-.remix-fx-details { display: flex; flex-direction: column; gap: 7px; }
-.remix-fx {
-    background: var(--bg-4);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 7px 9px;
+.remix-ms-btn:hover { color: var(--fg-0); border-color: var(--fg-3); }
+.remix-ms-btn.on { background: var(--danger); border-color: transparent; color: #fff; }
+.remix-ms-btn.solo.on { background: #fbbf24; color: #201a05; }
+/* Whole-file level bar under the controls: RMS fill, peak tick. */
+.rm-meter {
+    position: relative;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,.07);
+    overflow: visible;
+    margin-top: 2px;
 }
-.remix-fx-toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--fg-0); cursor: pointer; }
-.remix-fx-toggle input { accent-color: var(--amber); }
-.remix-fx-desc, .remix-fx-hint { font-size: 10.5px; color: var(--fg-3); margin-top: 2px; }
-.remix-fx-params { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
-.remix-fx-params-title { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-3); }
-.remix-fx-param { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--fg-1); }
-.remix-fx-param input[type=range] { flex: 1; }
+.rm-meter i { display: block; height: 100%; border-radius: 2px; background: var(--lane); opacity: .75; }
+.rm-meter b { position: absolute; top: -2px; width: 2px; height: 7px; background: var(--fg-1); border-radius: 1px; margin-left: -1px; }
+.rm-row.silent .rm-meter i { opacity: .25; }
+.rm-row.silent .rm-name { color: var(--fg-2); }
+.rm-row.silent .rm-dot { opacity: .4; }
+.rm-lane { position: relative; min-width: 0; min-height: var(--lane-h, 60px); }
+.rm-row.rm-ruler .rm-lane { min-height: 18px; }
+.rm-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: pointer; }
 
-.remix-ab-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 14px;
-    border-bottom: 1px solid var(--line);
+/* Effects rack under a lane: four chips, then the enabled effects' sliders. */
+.rm-fx {
+    display: grid;
+    grid-template-columns: var(--rm-head-w) minmax(0, 1fr);
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    background: var(--bg-2);
+    border-left: 3px solid var(--lane);
 }
-.remix-wave {
-    display: block;
-    width: 100%;
-    height: 110px;
-    background: #0c0f13;
+.rm-fx-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px 8px 12px;
+    border-right: 1px solid var(--line);
+}
+.rm-fx-chip {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    text-align: left;
+    padding: 4px 9px;
+    border-radius: var(--radius-s);
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    color: var(--fg-1);
+    font: inherit;
+    font-size: 11.5px;
     cursor: pointer;
+    transition: all 120ms ease;
 }
-.remix-loop-row {
+.rm-fx-chip b { font-weight: 650; color: var(--fg-0); }
+.rm-fx-chip small { font-size: 10px; color: var(--fg-3); }
+.rm-fx-chip:hover { border-color: var(--fg-3); }
+.rm-fx-chip.on { border-color: color-mix(in srgb, var(--lane) 60%, transparent); background: color-mix(in srgb, var(--lane) 14%, transparent); }
+.rm-fx-chip.on b { color: var(--lane); }
+.rm-fx-params {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border-bottom: 1px solid var(--line);
     flex-wrap: wrap;
+    gap: 8px 22px;
+    padding: 8px 14px;
+    align-content: flex-start;
 }
-.remix-player-card .player-transport { padding: 9px 14px; }
-.remix-render-card .row { margin-top: 8px; }
-.remix-render-card progress { margin-top: 8px; }
+.rm-fx-params:empty::before,
+.rm-fx-params:not(:has(.rm-fx-group:not([hidden])))::before {
+    content: 'Turn an effect on to see its controls.';
+    font-size: 11px;
+    color: var(--fg-3);
+    align-self: center;
+}
+.rm-fx-group { display: flex; flex-direction: column; gap: 3px; min-width: 240px; flex: 1 1 240px; }
+.rm-fx-group-title { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--lane); font-weight: 700; }
+.rm-fx-param { display: grid; grid-template-columns: 96px 1fr 44px; align-items: center; gap: 8px; font-size: 11px; color: var(--fg-1); }
+.rm-fx-param input[type=range] { width: 100%; margin: 0; accent-color: var(--lane); height: 16px; }
+.rm-fx-label { display: flex; flex-direction: column; line-height: 1.2; }
+.rm-fx-hint { font-size: 9.5px; color: var(--fg-3); font-style: normal; }
+.rm-fx-val { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-2); text-align: right; }
+
+.remix-metrics { border-radius: 0 0 14px 14px; border-top: none; }
+
+@media (max-width: 1100px) {
+    .remix-mixer { --rm-head-w: 220px; }
+    .rm-sub { display: none; }
+}
 
 /* ════ COMPAT: batch (batch.js log + mode toggle) ═══════════════════ */
 
@@ -1552,6 +1779,17 @@ progress::-moz-progress-bar { background: var(--amber); }
 }
 .recent-item .r-err { color: var(--danger); font-size: 10.5px; }
 .recent-item .r-hint { margin-left: auto; flex: none; font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3); }
+/* Stems already separated for this file (server stem library). */
+.recent-item .r-stems {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    color: var(--purple);
+    background: var(--purple-soft);
+    border: 1px solid rgba(167, 139, 250, .4);
+}
 
 /* ── Trim (top & tail) ──────────────────────────────────────────────── */
 

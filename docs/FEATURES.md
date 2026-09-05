@@ -889,57 +889,130 @@ Sources: [chain.py](chain.py), [static/js/chain.js](static/js/chain.js),
 
 ### Remix tab
 
-Sources: [stems.py](stems.py), [stem_effects.py](stem_effects.py),
-[projects_store.py](projects_store.py), [static/js/remix.js](static/js/remix.js)
+Sources: [stems.py](stems.py), [stems_runner.py](stems_runner.py),
+[stem_effects.py](stem_effects.py), [projects_store.py](projects_store.py),
+[static/js/remix.js](static/js/remix.js)
 
-Split a track into **vocals / drums / bass / other** and reshape each part,
-then export a cleaned, mastered remix.
+Split a track into stems, rebalance and reshape each part in a lane
+mixer, then render a cleaned, mastered remix or export the parts. The
+tab walks the same three stages as Master (1 Upload, 2 Separate,
+3 Mix & Render): a hero dropzone with a Recent sessions list (rows whose
+stems are already separated carry a "stems ready" badge, from
+`GET /api/stems/library`) and an engine line (installed, importable,
+GPU name, time estimates from `GET /api/stems/engine`); then a two-column
+working layout: the mixer on the left, the dock (2 Separate stems with
+the quality tier, 3 Render & Download) and the render options on the
+right.
 
-**Stem separation** ([stems.py](stems.py))
-- Demucs (`htdemucs`) in a dedicated side venv (`.venv-stems`, ~6 GB with
-  torch — never installed into the app venv). Env resolution:
+**Stem separation** ([stems.py](stems.py), [stems_runner.py](stems_runner.py))
+- Demucs in a dedicated side venv (`.venv-stems`, ~6 GB with torch —
+  never installed into the app venv). Env resolution:
   `$SHIMMER_STEMS_PYTHON` override, else `.venv-stems` created on demand
-  with uv (or venv+pip). CUDA is used when `nvidia-smi` is present.
-- Results cached by file content hash at `stem_cache/<sha1>/` as WAVs at
-  the original sample rate; re-dropping a cached file separates instantly.
+  with uv (or venv+pip). CUDA is installed when `nvidia-smi` is present;
+  the worker picks the GPU when torch can see it.
+- The worker, `stems_runner.py`, runs with the side venv's Python and
+  streams JSON events (status, progress, done, error) on stdout. Progress
+  comes from Demucs' own segment loop across models and shift passes, so
+  the processing window moves with the real work. Model checkpoints
+  download on first use (torch hub, under `stem_cache/torch-home`). A
+  CUDA out-of-memory error retries with shorter segments, then the CPU.
+- Quality tiers (`stems.TIERS`): **fast** = `htdemucs` (one pass),
+  **best** = `htdemucs_ft` (fine-tuned, one specialist model per stem,
+  four passes, 330 MB download the first time), **six** = `htdemucs_6s`
+  (adds guitar and piano), **ultra** = `htdemucs_ft+htdemucs+hdemucs_mmi`
+  averaged per stem (the first model counts double), 2 shift passes,
+  0.5 overlap: the MDX23 recipe, about 4.5× Best. A tier's `model` may
+  join several names with `+`; the worker builds one flat BagOfModels
+  from their leaf models. Default: best with a GPU, fast without.
+  Measured on an RTX 4070 SUPER with a 4:32 track: Fast 9 s, Best 22 s.
+- Stems are written as 32-bit float WAVs at Demucs' 44.1 kHz exactly as
+  the model produced them (no clipping, rescaling or 16-bit
+  truncation), cached at `stem_cache/<sha1>/<model>/` (content hash and
+  model), and resampled to the session's rate on load. The pre-tier
+  layout (`<sha1>/vocals.wav`, 16-bit) is migrated into `<sha1>/htdemucs/`
+  the first time it is touched.
+- **Residual and null test.** After loading, the server keeps
+  `residual = mix − Σ stems` as a lane of its own (docs/PLAN.md,
+  decision 2): reverb tails, room, and most of the generator's junk.
+  With it in the mix the untouched remix nulls against the original
+  exactly. `measure_stems` reports the residual's RMS relative to the
+  mix (`null_db`; about −29 dB for Fast, −20 dB for Best on the test
+  clip, since four specialists agree less about the sum than one
+  model), per-stem RMS, peak and share of the mix's energy, per-lane
+  peaks for the waveforms, and `suggested_loop_s`: the 10 s window
+  where every stem is playing, scored by summed log energy.
+- `GET /api/stems/info/{sid}` returns those measurements; the SSE job
+  reports stages `setup` (first run only), `separate`, `load`, `null`.
 
-**Channel strips** (one per stem)
-- Mute / solo (exclusive click, Ctrl+click for additive DAW-style solo
-  groups), gain −24…+12 dB.
-- Per-stem effects rack, fixed order: **Formant** (spectral-envelope shift,
-  voice character without pitch change) → **Saturation** (RMS-compensated
-  tanh drive) → **Doubler** (two detuned, delayed copies) → **Reverb**
-  (stereo Schroeder, room→hall). Each effect has industry-term labels with
-  plain-language hints.
+**The mixer** (one row per lane, built by remix.js from `/api/stems/info`)
+- Original on top as the reference (the monitor's key 1), then the
+  stems in canonical order (vocals, drums, bass, guitar, piano, other),
+  the residual last. Each row: the lane's waveform in its colour on a
+  shared time ruler (click any lane to seek; the loop window and the
+  playhead are drawn across all lanes), mute, solo (exclusive click,
+  Ctrl+click for additive DAW-style groups), fader −24…+12 dB, pan (a
+  balance control: turning toward one side only attenuates the other),
+  an FX button that opens the rack under the row, a whole-file level
+  bar with a peak tick, and the lane's share of the mix. Other is
+  labelled for what it holds (synths, keys, strings, FX). Comparing:
+  the Original lane carries a Listen button, the ruler's corner a
+  1 Original / 2 Remix switch, and clicking a lane's name plays that
+  side inside the loop (`listenTo()`, which also drives keys 1 and 2).
+- Effects rack, fixed order: **Formant** (spectral-envelope shift,
+  voice character without pitch change) → **Saturation**
+  (RMS-compensated tanh drive) → **Doubler** (two detuned, delayed
+  copies) → **Reverb** (stereo Schroeder, room→hall); then gain, pan
+  and mute (`stem_effects.apply_gain_mute`, the cheap uncached stage).
+  Each effect has industry-term labels with plain-language hints; the
+  enabled effects' sliders show inline beside the chips.
+- Quick mixes: Instrumental (mute vocals), Acapella (solo vocals),
+  Vocal lift (vocals +2 dB, the rest −1 dB), Reset (every lane back to
+  neutral, in place, so the rows and racks stay bound to their state).
+- The loop parks on `suggested_loop_s` when the stems arrive; the
+  mixer header shows the null-test figure and a pill with the stem
+  count, tier, device and time (or "cached").
 
 **Looped A/B preview** (`POST /api/remix/preview`)
 - Loop window (10/15/20 s) follows the playhead; per-stem fx renders are
-  cached server-side so mute/solo/gain edits re-render only what changed.
+  cached server-side keyed by window, stem and effect settings, so
+  mute/solo/gain/pan edits re-render only what changed. Any lane names
+  are accepted, including the residual and the 6-stem extras.
 - The summed slice runs through the **mastering chain** when "Master the
   remix" is on, with the whole-file gain reference (see Live preview), so
   the preview loop sits at the level the export will have.
 - Per-slice LUFS of original vs remix comes back in the meta and drives a
-  **loudness-matched A/B** checkbox (attenuates the louder side).
+  **loudness-matched A/B** checkbox: the louder side is attenuated, capped
+  at 6 dB like Master's and skipped while the remix is silent, with the
+  bar saying what it does ("Remix −3.1 dB").
 
 **Render & Download** (`POST /api/remix/render`)
 - Full mastering controls matching the other tabs: loudness target, tone
-  match, tone tilt, plus format (WAV/FLAC/MP3/OGG/M4A, codec-aware
-  ceiling).
+  match, tilt, plus format (WAV/FLAC/MP3/OGG/M4A, codec-aware ceiling).
 - **Artifact cleanup on export**: Off, a specific preset, or Auto-detect
   (default) — the summed remix runs through the full safe pipeline
   (tone curve → band split → M/S cleaning → mastering). Auto-detect
-  analyzes the remix itself, since Demucs redistributes the source's
-  artifacts into the stems and the effects rack can reshape them. The
+  analyzes the remix itself, since the separator spreads the source's
+  artifacts across the lanes and the effects rack can reshape them. The
   loop preview stays uncleaned for speed; cleanup runs at export only.
-- After render: metric chips with cleaning preset (+ detection
-  confidence), LUFS before→after vs target, true peak, and limiter max
-  gain reduction.
+- The render ends in a green banner (cleaning preset, LUFS, format) with
+  a Download button that stays, plus a Loudness / Cleaning / Job readout
+  (LUFS before → after vs target, true peak, limiter gain reduction,
+  preset with detection confidence and strength, notched tones, lanes
+  used, length, format). The file also downloads at once.
+
+**Stems export** (`POST /api/stems/export`)
+- A ZIP of 24-bit WAVs at the session's rate, one per lane, named
+  `{track}_{lane}.wav`: as separated (`processed: false`, residual
+  included, so the files sum back to the original) or through the mix
+  (`processed: true`: each lane's gain, pan and effects; muted or
+  un-soloed lanes left out). A job like the others; the ZIP comes from
+  `/api/result` as `{track}_stems_{model|mixed}_{id}.zip`.
 
 **Per-track projects** ([projects_store.py](projects_store.py))
-- Every edit (strips, mastering settings, cleanup choice) autosaves to
-  `%APPDATA%/Shimmer/projects/<sha1>.json`, keyed by the same content
-  digest as the stem cache — re-dropping the file restores the whole mix.
-
+- Every edit (lanes, mastering settings, cleanup, format, tier)
+  autosaves to `%APPDATA%/Shimmer/projects/<sha1>.json`, keyed by the
+  same content digest as the stem cache — re-dropping the file restores
+  the whole mix, and a cached tier separates instantly on drop.
 
 **Player in the bridge.** The bottom bar (transport, monitor, preview
 loop) belongs to whichever tab owns the player: `<body data-tab>` picks
@@ -947,9 +1020,9 @@ the Master set or the Remix set of controls in each zone (`.bz-owner`).
 On Remix it drives the A/B loop player: start / back 5 s / play /
 forward 5 s, a scrubber whose amber band is the loop window (seeking
 outside the loop moves it), 1 Original / 2 Remix, loudness-matched
-A/B, loop length, Set from playhead, and the live status. Only the
-waveform stays in the page. Space, 1, 2 and the arrow keys apply to
-the active tab's player.
+A/B, loop length, Set from playhead, and the live status. The mixer
+stays in the page. Space, 1, 2 and the arrow keys apply to the active
+tab's player.
 
 ### Batch tab
 
@@ -1041,9 +1114,14 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
 | GET | `/api/envelope/{session_id}?start_s=&end_s=&points=` | Peak envelope in dBFS over a range of the resident session (drawing data for the Trim view) |
 | DELETE | `/api/upload/{session_id}` | Release a preview session |
 | POST | `/api/preview` | Render a loop slice → single binary payload |
-| POST | `/api/stems/separate` | Demucs stem separation for an upload session → `{job_id}` |
-| POST | `/api/remix/preview` | Remix loop slice: per-stem fx + sum, optionally mastered (`mastering: {...}`); meta carries per-slice LUFS for A/B matching |
-| POST | `/api/remix/render` | Full-length remix job: stem fx + sum → optional artifact cleanup (`cleaning: {preset: "auto"\|key\|"off"}`, runs the full safe pipeline) → mastering; metrics include cleaning + mastering reports |
+| GET | `/api/stems/engine` | Separation engine state: installed/importable, GPU, per-tier model, checkpoint state and time estimates (`?check=false` skips the import check) |
+| GET | `/api/stems/library` | Cached stem sets on disk (digest, source name, models, tiers) |
+| GET | `/api/stems/status/{sid}` | Session's separation state: ready, cached tiers, engine |
+| POST | `/api/stems/separate` | Demucs stem separation for an upload session at a `tier` (fast/best/six) → `{job_id}`; the session then holds stems + residual |
+| GET | `/api/stems/info/{sid}` | Per-stem measurements: order, RMS/peak/share, lane peaks, null test, suggested loop |
+| POST | `/api/stems/export` | ZIP of 24-bit WAV stems (`processed: false` as separated, `true` through the mix) → `{job_id}` |
+| POST | `/api/remix/preview` | Remix loop slice: per-lane fx + gain/pan/mute + sum, optionally mastered (`mastering: {...}`); meta carries per-slice LUFS for A/B matching |
+| POST | `/api/remix/render` | Full-length remix job: lane fx + sum → optional artifact cleanup (`cleaning: {preset: "auto"\|key\|"off"}`, runs the full safe pipeline) → mastering; metrics include cleaning + mastering reports |
 
 ### Request shapes
 
@@ -1196,8 +1274,9 @@ Source: `api_batch` and `_batch_one` in [server.py](server.py)
 | [mastering.py](mastering.py) | LUFS / tone-match EQ / true-peak limiter chain and analysis |
 | [pipeline.py](pipeline.py) | Safe-pipeline orchestrator: tone curve → band split → M/S clean → EQ → master |
 | [eq.py](eq.py) | User parametric EQ (zero-phase biquad cascade) |
-| [stems.py](stems.py) | Demucs stem separation: side-venv bootstrap, runner, content-hash cache |
-| [stem_effects.py](stem_effects.py) | Per-stem effects rack (formant/saturation/doubler/reverb) + remix sum |
+| [stems.py](stems.py) | Stem separation: quality tiers, side-venv bootstrap, worker subprocess, per-model content-hash cache, residual/null test and per-stem measurements |
+| [stems_runner.py](stems_runner.py) | The separation worker (runs in `.venv-stems`): Demucs with real progress, float32 stems, JSON events on stdout |
+| [stem_effects.py](stem_effects.py) | Per-stem effects rack (formant/saturation/doubler/reverb), gain/pan/mute, remix sum and per-stem renders |
 | [projects_store.py](projects_store.py) | Per-track project persistence (remix state, keyed by file digest) |
 | [probe.py](probe.py) | Auto-detect scoring, region analysis, diagnostics CLI |
 | [preview_store.py](preview_store.py) | In-memory live-preview sessions |

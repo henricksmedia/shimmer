@@ -41,6 +41,7 @@ def _mix_order(stems: Dict[str, np.ndarray]) -> List[str]:
 class StemSettings:
     gain_db: float = 0.0
     mute: bool = False
+    pan: float = 0.0                     # -1 (left) .. 0 (centre) .. +1 (right)
     formant_enabled: bool = False
     formant_ratio: float = 0.88          # <1 deeper, >1 thinner (0.7..1.4)
     saturation_enabled: bool = False
@@ -54,6 +55,7 @@ class StemSettings:
 
     def is_identity(self) -> bool:
         return (not self.mute and abs(self.gain_db) < 0.05 and
+                abs(self.pan) < 0.005 and
                 not self.formant_enabled and not self.saturation_enabled and
                 not self.doubler_enabled and not self.reverb_enabled)
 
@@ -77,10 +79,15 @@ def stem_settings_from_json(data: Optional[Dict[str, Any]]) -> StemSettings:
         gain = float(np.clip(float(data.get("gain_db", 0.0)), -24.0, 12.0))
     except (TypeError, ValueError):
         gain = 0.0
+    try:
+        pan = float(np.clip(float(data.get("pan", 0.0)), -1.0, 1.0))
+    except (TypeError, ValueError):
+        pan = 0.0
 
     return StemSettings(
         gain_db=gain,
         mute=bool(data.get("mute", False)),
+        pan=pan,
         formant_enabled=_on("formant"),
         formant_ratio=_f("formant", "ratio", 0.88, 0.7, 1.4),
         saturation_enabled=_on("saturation"),
@@ -267,12 +274,27 @@ def apply_fx_only(x: np.ndarray, sr: int, s: StemSettings) -> np.ndarray:
     return x
 
 
+def pan_gains(pan: float) -> tuple:
+    """Balance law for a stereo stem: centre leaves both sides alone,
+    turning toward one side only attenuates the other, so a centred
+    mix never gets louder by panning."""
+    pan = float(np.clip(pan, -1.0, 1.0))
+    left = 1.0 if pan <= 0 else 1.0 - pan
+    right = 1.0 if pan >= 0 else 1.0 + pan
+    return left, right
+
+
 def apply_gain_mute(x: np.ndarray, s: StemSettings) -> np.ndarray:
+    """The cheap stage after the cached effects: mute, level, pan."""
     if s.mute:
         return np.zeros_like(x)
+    out = x
     if abs(s.gain_db) >= 0.05:
-        return (x * (10.0 ** (s.gain_db / 20.0))).astype(np.float32)
-    return x
+        out = out * (10.0 ** (s.gain_db / 20.0))
+    if abs(s.pan) >= 0.005 and out.ndim == 2 and out.shape[1] == 2:
+        left, right = pan_gains(s.pan)
+        out = out * np.array([left, right], dtype=np.float32)[None, :]
+    return out.astype(np.float32) if out is not x else x
 
 
 def apply_stem_effects(x: np.ndarray, sr: int,

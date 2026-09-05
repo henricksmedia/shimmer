@@ -325,20 +325,30 @@ it. Set your artist name once in the Tags section and every export has it.
 
 ### Remix: split the song into stems
 
-Break a finished track into **vocals, drums, bass, and other**, then treat
-each part on its own:
+Break a finished track into **vocals, drums, bass, and other** (or six
+stems with guitar and piano), then mix the parts in a lane mixer, one
+row per stem with its own waveform:
 
+- **Mute, solo, fader and pan** on every lane
 - **Formant** — shift vocal character without changing the pitch
 - **Saturation** — warmth and drive
 - **Doubler** — thickens a part like double-tracking it
 - **Reverb** — room and depth
-- Plus mute, solo, and a fader for each stem
+- A **Residual** lane holding whatever the separator dropped, so the
+  untouched mix is your original, with a null-test figure that says how
+  much lives there
+- Quick mixes: instrumental, acapella, vocal lift
 
-Mix it, loop it, then render. Stems are cached per track, so you only wait
-for the split once. Your mix saves itself automatically.
+Pick a quality: **Fast** (about 10 seconds for a four-minute song on a
+GPU), **Best** (the fine-tuned model, about 25 seconds), **6 stems**, or
+**Ultra** (three models averaged with extra passes, about 4× Best).
+Loop it, render a cleaned and mastered remix, or download the stems
+themselves as a ZIP of 24-bit WAVs. Stems are kept per track and quality,
+so you only wait for a split once. Your mix saves itself automatically.
 
 Separation uses your GPU when you have one. The first run downloads the
-separation engine, which is a large one-time install.
+separation engine, which is a large one-time install; the Best model
+fetches another 330 MB the first time you pick it.
 
 ### Batch: a whole folder at once
 

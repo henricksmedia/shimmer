@@ -5,7 +5,75 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **The Remix tab is a lane mixer, and separation has quality tiers.**
+  The tab now walks the same three stages as Master (1 Upload,
+  2 Separate, 3 Mix & Render) with the same hero dropzone, a Recent
+  sessions list that badges tracks whose stems are already done, and a
+  line saying which engine and graphics card it found. Separation runs
+  at a chosen quality: **Fast** (htdemucs, about 10 s for a four-minute
+  song on the GPU), **Best** (htdemucs_ft, the fine-tuned model with one
+  specialist per stem, about 25 s; fetches 330 MB the first time),
+  **6 stems** (adds guitar and piano) or **Ultra** (the MDX23 recipe:
+  Best averaged with htdemucs and Hybrid Demucs v3, two shift passes,
+  50 % segment overlap; about 4× Best, for less bleed and fewer seams
+  when time does not matter). Stems are written as 32-bit float
+  WAVs exactly as the model produced them (no clipping, rescaling or
+  16-bit truncation) and cached per track *and* model, so switching
+  tiers never re-runs what is done; the old cache layout is migrated in
+  place. The processing window shows the engine's real progress (the
+  segment loop inside Demucs, across models and shift passes) instead
+  of sitting at 30 % for a minute, and a model download or a GPU
+  out-of-memory fallback is reported as it happens.
+- **A Residual lane and a null test.** After the split, Shimmer keeps
+  `mix − stems` as a lane of its own: reverb tails, room, and most of
+  the AI fizz the separator dropped. With it in the mix an untouched
+  remix is identical to the original, and the mixer header says how
+  much lives there ("Residual −29 dB"). The Best tier's four
+  specialists leave more in it than Fast's single model; the lane makes
+  both faithful.
+- **The split is a question, not a default.** After the upload the
+  mixer asks "How many stems?" with one card per split (Fast 4, Best 4,
+  6 stems), each with its time on this machine, its model, a "cached ·
+  instant" badge when that split is already done for the track, and a
+  download note the first time. Clicking a card separates. Nothing runs
+  on its own, and a cached split never overrides the one you picked; the
+  dock's Separate button re-runs at another quality later.
+- **The mixer.** One row per lane, Original on top as the reference:
+  the lane's waveform in its own colour on a shared time ruler, a
+  mute, solo (Ctrl+click for groups), fader, pan (a balance control),
+  an FX button that opens the rack under the row (formant, saturation,
+  doubler, reverb, with the enabled effects' sliders inline), a
+  whole-file level bar with a peak tick, and the lane's share of the
+  mix. Other is labelled for what it holds (synths, keys, strings, FX).
+  Comparing is one click: the Original lane has a **Listen** button,
+  the mixer's corner has a 1 Original / 2 Remix switch, and clicking
+  any lane's name plays that side inside the loop (keys 1 and 2 do the
+  same); clicking a waveform seeks. The loop parks on the busiest section
+  (every stem playing) when the stems arrive. Quick mixes:
+  Instrumental, Acapella, Vocal lift, Reset.
+- **Stems export.** The Stems section downloads the parts themselves
+  as a ZIP of 24-bit WAVs at the track's rate: as separated (residual
+  included, so the files sum back to the original) or through the mix
+  (each lane with its fader, pan and effects; muted lanes left out).
+- **Render result like Master's.** The render ends in a green banner
+  with the key figures and a Download button that stays, plus a
+  Loudness / Cleaning / Job readout, instead of a bare list of chips.
+- New routes: `GET /api/stems/engine` (engine and tier state),
+  `GET /api/stems/library` (cached stem sets), `GET /api/stems/info/{sid}`
+  (per-stem measurements and the loop hint), `POST /api/stems/export`.
+  `POST /api/stems/separate` takes `tier`; the remix preview, render and
+  export accept any lane names, including the residual and the 6-stem
+  model's guitar and piano. Tests: `tests/test_stems.py`.
+
 ### Fixed
+
+- **The Remix tab's loudness match could silence the Original.** It
+  attenuated whichever side was louder with no cap, so a muted or
+  soloed-down remix reading 100 dB quieter turned the Original monitor
+  to nothing. It is now capped at 6 dB like Master's, skipped while the
+  remix is silent, and the bar says what it is doing ("Remix −3.1 dB").
 
 - **The mastering tone match was a fixed 3 dB brightening, not a match.**
   `compute_tone_curve` compared a reference written in relative dB with

@@ -469,122 +469,204 @@
 
     <!-- ───────────── Remix tab ───────────── -->
     <section id="tab-remix" class="tab-panel" role="tabpanel">
-        <div class="remix-grid">
-            <div class="mcol">
 
-                <div class="card">
-                    <div class="card-head">
-                        <span class="title">Stem Separation</span><span class="gloss">vocals · drums · bass · other</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="dropzone dropzone-compact" id="remix-dropzone">
-                            <input type="file" id="remix-file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" hidden>
-                            <div class="dropzone-inner">
-                                <div class="dropzone-primary">Drop audio here</div>
-                                <div class="dropzone-secondary">WAV · MP3 · FLAC · OGG · M4A</div>
-                                <button type="button" class="btn btn-ghost" id="remix-pick-btn">Or choose file…</button>
-                                <div class="selected-file" id="remix-selected-file" hidden></div>
+        <ol class="wizard-steps remix-steps" aria-label="Remix workflow">
+            <li class="wizard-step active" id="rstep-upload"><span class="step-num">1</span><span class="step-label">Upload</span></li>
+            <li class="wizard-step" id="rstep-separate"><span class="step-num">2</span><span class="step-label">Separate</span></li>
+            <li class="wizard-step" id="rstep-mix"><span class="step-num">3</span><span class="step-label">Mix &amp; Render</span></li>
+        </ol>
+
+        <!-- Empty state: hero dropzone, like Master's, in the remix accent. -->
+        <div class="master-empty remix-empty" id="remix-empty">
+            <div class="dropzone remix-dropzone" id="remix-dropzone">
+                <input type="file" id="remix-file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" hidden>
+                <div class="dropzone-inner">
+                    <div class="dropzone-primary">Drop a track to split into stems</div>
+                    <div class="dropzone-secondary">Vocals, drums, bass and other, separated on this machine. Rebalance the lanes, add effects, then render a mastered remix or export the parts.</div>
+                    <button type="button" class="btn btn-primary step-btn" data-step="1" id="remix-pick-btn">Choose file…</button>
+                    <div class="dropzone-formats">.wav · .mp3 · .flac · .ogg · .m4a</div>
+                    <div class="selected-file" id="remix-selected-file" hidden></div>
+                </div>
+            </div>
+            <div class="card" id="remix-recents-card" hidden>
+                <div class="card-head"><span class="title">Recent sessions</span><span class="gloss">click to reload — finished stems come back instantly</span></div>
+                <div class="card-body" id="remix-recents-list"></div>
+            </div>
+            <div class="remix-engine-line" id="remix-engine-line" hidden></div>
+        </div>
+
+        <!-- Working state: mixer | dock + render options -->
+        <div id="remix-work" hidden>
+            <div class="remix-grid">
+                <div class="mcol">
+                    <div id="remix-dropzone-slot"></div>
+
+                    <div class="card remix-mixer-card" id="remix-mixer-card">
+                        <div class="card-head">
+                            <span class="title">Mixer</span>
+                            <span class="gloss" id="remix-mixer-gloss">one lane per stem · the residual is what the separator dropped</span>
+                            <span class="remix-sep-pill" id="remix-sep-pill" hidden></span>
+                            <span class="spacer"></span>
+                            <div class="remix-quick" id="remix-quick" hidden>
+                                <span class="rq-label">Quick</span>
+                                <button type="button" class="btn btn-ghost btn-sm" data-quick="instrumental" title="Mute the vocals; every other lane as it was">Instrumental</button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-quick="acapella" title="Solo the vocals">Acapella</button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-quick="vocal-up" title="Vocals +2 dB, the other lanes −1 dB">Vocal lift</button>
+                                <button type="button" class="btn btn-ghost btn-sm" id="remix-reset" title="Every lane back to neutral: no effects, 0 dB, no mute or solo. Stems stay separated; nothing re-runs.">Reset</button>
                             </div>
                         </div>
-                        <div class="remix-sep-block">
-                            <div class="row">
-                                <button type="button" class="btn btn-primary" id="remix-separate-btn" disabled>Separate stems</button>
-                                <span class="remix-sep-status" id="remix-sep-status">Drop a file to start.</span>
+                        <div class="remix-mixer" id="remix-mixer">
+                            <!-- Stage 2 lives here: pick how many stems, and that click
+                                 separates. The dock's Separate button re-runs at another
+                                 quality later. -->
+                            <div class="remix-mixer-empty" id="remix-mixer-empty">
+                                <div class="remix-choose" id="remix-choose">
+                                    <div class="rc-lead"><b>How many stems?</b> <span>Pick a split and Shimmer separates
+                                        the track right here, on this machine. Kept per track and split, so a song only
+                                        ever waits once.</span></div>
+                                    <div class="rc-cards" id="remix-choose-cards"></div>
+                                    <div class="rc-foot" id="remix-mixer-foot">Uploading the track…</div>
+                                </div>
+                                <div class="analysis-hint remix-mixer-hint">
+                                    <div class="ah-grid">
+                                        <div class="ah-item">
+                                            <span class="ah-num">1</span>
+                                            <div><b>One lane per stem</b><span>Each with its own waveform, mute, solo,
+                                                fader, pan and effects. Original stays on top as the reference.</span></div>
+                                        </div>
+                                        <div class="ah-item">
+                                            <span class="ah-num">2</span>
+                                            <div><b>Faithful, not regenerated</b><span>A Residual lane holds whatever
+                                                the separator dropped, so the untouched mix is your original. The
+                                                header says how much lives there.</span></div>
+                                        </div>
+                                        <div class="ah-item">
+                                            <span class="ah-num">3</span>
+                                            <div><b>Live loop</b><span>Every move re-renders the loop in the bar below;
+                                                press 1 for the original and 2 for the remix.</span></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div class="remix-toolbar" id="remix-toolbar" hidden>
-                    <button type="button" class="btn btn-ghost" id="remix-reset"
-                            title="Set every stem back to neutral (no effects, 0 dB, no mute/solo). Stems stay separated — nothing re-runs.">
-                        Reset mix
-                    </button>
-                </div>
-                <div id="remix-strips"></div>
-
-                <div class="card viz-card">
-                    <div class="player-card remix-player-card">
-                        <div class="remix-ab-row">
-                            <span class="player-kbd-hint">Loop window follows the playhead · transport, A/B and loop controls are in the bar below</span>
-                        </div>
-                        <canvas id="remix-wave" class="remix-wave"
-                                title="Click to seek · shaded region is the loop window"></canvas>
                         <audio id="remix-audio-original" preload="auto" hidden></audio>
                         <audio id="remix-audio-remix" preload="auto" hidden></audio>
                     </div>
-                </div>
-                <div class="metrics-box" id="remix-metrics" hidden></div>
 
-            </div>
-
-            <div class="mcol">
-                <div class="card remix-render-card" hidden id="remix-render-block">
-                    <div class="card-head">
-                        <span class="title">Render</span><span class="gloss">sum · clean · master · export</span>
-                    </div>
-                    <div class="card-body">
-                        <label class="checkbox-row mastering-toggle">
-                            <input type="checkbox" id="remix-master-enabled" checked>
-                            <span><b>Master the remix</b> — LUFS target, tone match, true-peak limiter. Heard live in the loop preview.</span>
-                        </label>
-                        <div class="master-grid-fields" id="remix-master-options">
-                            <div>
-                                <label class="label" for="remix-master-target">Loudness target</label>
-                                <select id="remix-master-target" class="select">
-                                    <option value="streaming" selected>Streaming (−14 LUFS)</option>
-                                    <option value="loud">Loud (−11 LUFS)</option>
-                                    <option value="cd" title="Very loud master — heavy limiting can add audible distortion. Streaming platforms will turn it back down anyway.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
-                                </select>
+                    <div class="card" id="remix-result-card" hidden>
+                        <div class="done-banner" id="remix-done-banner">
+                            <div class="done-info">
+                                <div class="done-title">✓ Remix rendered</div>
+                                <div class="done-chips" id="remix-done-chips"></div>
                             </div>
-                            <div>
-                                <label class="label" for="remix-master-intensity">Tone match</label>
-                                <select id="remix-master-intensity" class="select"
-                                        title="How strongly the corrective EQ pulls the remix toward a neutral reference curve. Does not change loudness — that's the loudness target.">
-                                    <option value="low">Low — gentle EQ</option>
-                                    <option value="med" selected>Medium</option>
-                                    <option value="high">High — more correction</option>
-                                </select>
-                            </div>
-                            <div class="master-grid-span">
-                                <label class="label" for="remix-master-tilt">Tone</label>
-                                <select id="remix-master-tilt" class="select"
-                                        title="Stylistic warm–bright tilt on top of the tone match. Bounded by the same safety limits: boosts never exceed +2 dB, and the 5–12 kHz harshness band stays capped so AI fizz can't come back.">
-                                    <option value="brightest">Brightest — max air &amp; sparkle</option>
-                                    <option value="bright">Bright — crisper, more presence</option>
-                                    <option value="neutral" selected>Neutral — no tilt</option>
-                                    <option value="warm">Warm — rounder, softer top</option>
-                                    <option value="warmer">Warmer — max weight, rolled-off air</option>
-                                </select>
-                            </div>
+                            <a id="remix-download-link" class="btn btn-primary done-download" download>Download</a>
                         </div>
-                        <div class="card-divider"></div>
-                        <div class="inline-field">
-                            <label class="label" for="remix-cleanup">Artifact cleanup on export</label>
-                            <select id="remix-cleanup" class="select"
-                                    title="Run the finished remix through Shimmer's artifact cleaning before mastering. The separation engine spreads the source's AI artifacts into the stems, so the remix inherits them — Auto-detect analyzes the remix itself and picks the best preset. Adds cleaning time to the render; the loop preview stays uncleaned for speed.">
-                                <option value="auto" selected>Auto-detect — analyze the remix, pick a preset</option>
-                                <option value="off">Off — export the mix as-is</option>
-                            </select>
-                        </div>
-                        <div class="row">
-                            <select id="remix-format" class="select"
-                                    title="True-peak ceiling adapts to the format: −1.0 dBTP for lossless (WAV/FLAC), −1.5 dBTP for lossy (MP3/OGG/M4A) so the encoder can't clip on decode.">
-                                <option value="wav" selected>WAV (24-bit PCM) · −1.0 dBTP</option>
-                                <option value="flac">FLAC · −1.0 dBTP</option>
-                                <option value="mp3">MP3 (320 kbps) · −1.5 dBTP</option>
-                                <option value="ogg">OGG Vorbis · −1.5 dBTP</option>
-                                <option value="m4a">M4A (AAC) · −1.5 dBTP</option>
-                            </select>
-                            <button type="button" class="btn btn-primary" id="remix-render-btn">Render &amp; Download</button>
-                        </div>
+                        <div class="metrics-box remix-metrics" id="remix-metrics" hidden></div>
                     </div>
                 </div>
-                <div class="card note-card">
-                    <div class="card-body note-body">
-                        <b>Preview vs export:</b> the loop you hear skips cleanup for speed.
-                        The final render sums all stems (peak-protected), runs the full
-                        cleaning pipeline, then masters.
+
+                <div class="mcol">
+                    <div class="process-dock remix-dock" id="remix-dock">
+                        <button type="button" class="btn analyze-dock-btn remix-sep-btn" id="remix-separate-btn" disabled
+                                title="Split the track into stems on this machine. Kept per track and quality, so a song only ever waits once.">
+                            <span class="adb-step">2</span><span class="adb-text">Separate stems</span>
+                        </button>
+                        <div class="remix-tier-row">
+                            <label class="label" for="remix-tier">Quality</label>
+                            <select id="remix-tier" class="select" title="Fast: one pass of Hybrid Transformer Demucs. Best: the fine-tuned model, one specialist per stem, about 2.5× slower. 6 stems: adds guitar and piano lanes (experimental)."></select>
+                        </div>
+                        <div class="dock-status remix-tier-status" id="remix-tier-status"></div>
+                        <button type="button" class="btn btn-primary process-btn step-btn" data-step="3" id="remix-render-btn" disabled
+                                title="Sum the lanes with their effects, clean the artifacts, master, and write the file.">Render &amp; Download</button>
+                        <div class="dock-status" id="remix-dock-status" hidden></div>
+                    </div>
+
+                    <div class="card insp">
+                        <details class="acc-sec" open>
+                            <summary><span class="a-title">Mastering</span><span class="a-gloss">loudness &amp; tone for release</span><span class="a-state" id="state-remix-master"></span></summary>
+                            <div class="acc-body">
+                                <div class="mastering-card">
+                                    <label class="checkbox-row mastering-toggle">
+                                        <input type="checkbox" id="remix-master-enabled" checked>
+                                        <span><b>Master the remix</b> — LUFS target, tone match, true-peak limiter. Heard live in the loop.</span>
+                                    </label>
+                                    <div class="master-grid-fields" id="remix-master-options">
+                                        <div>
+                                            <label class="label" for="remix-master-target">Loudness target</label>
+                                            <select id="remix-master-target" class="select">
+                                                <option value="streaming" selected>Streaming (−14 LUFS)</option>
+                                                <option value="loud">Loud (−11 LUFS)</option>
+                                                <option value="cd" title="Very loud master — heavy limiting can add audible distortion. Streaming platforms will turn it back down anyway.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="label" for="remix-master-intensity">Tone match</label>
+                                            <select id="remix-master-intensity" class="select"
+                                                    title="How strongly the corrective EQ pulls the remix toward a neutral reference curve. Does not change loudness — that's the loudness target.">
+                                                <option value="low">Low — gentle EQ</option>
+                                                <option value="med" selected>Medium</option>
+                                                <option value="high">High — more correction</option>
+                                            </select>
+                                        </div>
+                                        <div class="master-grid-span">
+                                            <label class="label" for="remix-master-tilt">Tilt</label>
+                                            <select id="remix-master-tilt" class="select"
+                                                    title="Stylistic warm–bright tilt on top of the tone match. Bounded by the same safety limits: boosts never exceed +2 dB, and the 5–12 kHz harshness band stays capped so AI fizz can't come back.">
+                                                <option value="brightest">Brightest — max air &amp; sparkle</option>
+                                                <option value="bright">Bright — crisper, more presence</option>
+                                                <option value="neutral" selected>Neutral — no tilt</option>
+                                                <option value="warm">Warm — rounder, softer top</option>
+                                                <option value="warmer">Warmer — max weight, rolled-off air</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+
+                        <details class="acc-sec" open>
+                            <summary><span class="a-title">Output</span><span class="a-gloss">cleanup &amp; format</span><span class="a-state" id="state-remix-output"></span></summary>
+                            <div class="acc-body">
+                                <div class="inline-field">
+                                    <label class="label" for="remix-cleanup">Artifact cleanup on export</label>
+                                    <select id="remix-cleanup" class="select"
+                                            title="Run the finished remix through Shimmer's artifact cleaning before mastering. The separator spreads the source's AI artifacts across the lanes (most land in the residual), so the remix inherits them — Auto-detect analyzes the remix itself and picks the best preset. Adds cleaning time to the render; the loop preview stays uncleaned for speed.">
+                                        <option value="auto" selected>Auto-detect — analyze the remix, pick a preset</option>
+                                        <option value="off">Off — export the mix as-is</option>
+                                    </select>
+                                </div>
+                                <div class="inline-field">
+                                    <label class="label" for="remix-format">Format</label>
+                                    <select id="remix-format" class="select"
+                                            title="True-peak ceiling adapts to the format: −1.0 dBTP for lossless (WAV/FLAC), −1.5 dBTP for lossy (MP3/OGG/M4A) so the encoder can't clip on decode.">
+                                        <option value="wav" selected>WAV (24-bit PCM) · −1.0 dBTP</option>
+                                        <option value="flac">FLAC · −1.0 dBTP</option>
+                                        <option value="mp3">MP3 (320 kbps) · −1.5 dBTP</option>
+                                        <option value="ogg">OGG Vorbis · −1.5 dBTP</option>
+                                        <option value="m4a">M4A (AAC) · −1.5 dBTP</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </details>
+
+                        <details class="acc-sec" id="remix-stems-sec">
+                            <summary><span class="a-title">Stems</span><span class="a-gloss">download the parts themselves</span><span class="a-state" id="state-remix-stems"></span></summary>
+                            <div class="acc-body remix-stems-export">
+                                <button type="button" class="btn btn-ghost" id="remix-export-dry" disabled
+                                        title="Every lane exactly as separated, residual included, so the files sum back to the original.">Download stems as separated</button>
+                                <button type="button" class="btn btn-ghost" id="remix-export-mixed" disabled
+                                        title="Each lane through its fader and effects; muted or un-soloed lanes are left out.">Download stems with this mix</button>
+                                <div class="remix-export-note">24-bit WAV at the track's sample rate, one file per lane, in a ZIP.</div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="card note-card">
+                        <div class="card-body note-body">
+                            <b>Preview vs export:</b> the loop you hear skips cleanup for speed.
+                            The final render sums every lane (peak-protected), runs the full
+                            cleaning pipeline, then masters.
+                        </div>
                     </div>
                 </div>
             </div>
@@ -857,6 +939,7 @@
                 <label class="transport-check" title="Attenuate the louder track so you judge the remix, not the volume difference — mastering makes the remix much louder than the original.">
                     <input type="checkbox" id="remix-ab-match" checked>
                     <span>Loudness-matched A/B</span>
+                    <span class="ab-match-note" id="remix-ab-match-note"></span>
                 </label>
             </div>
             </div>
@@ -1072,11 +1155,13 @@
                         <b>Drop the track on the Remix tab.</b> Recent sessions with
                         finished stems say so and reload in a second.</li>
                     <li><span class="step">2</span>
-                        <b>Pick a quality and click Separate stems.</b> <b>Fast</b> is
-                        about 10 seconds on a GPU, <b>Best</b> is the fine-tuned model
-                        (about 25 seconds), <b>6 stems</b> adds guitar and piano. The
-                        window shows the engine's real progress. Stems are kept per
-                        track and quality, so the second time is instant.</li>
+                        <b>Pick how many stems.</b> The mixer asks first: <b>Fast</b>
+                        (4 stems, about 10 seconds on a GPU), <b>Best</b> (4 stems from
+                        the fine-tuned model, about 25 seconds) or <b>6 stems</b> (adds
+                        guitar and piano). Clicking a card separates; the window shows
+                        the engine's real progress. Stems are kept per track and split,
+                        so a card marked "cached" loads instantly, and the dock's
+                        Separate button re-runs at another quality any time.</li>
                     <li><span class="step">3</span>
                         <b>Mix in the lanes.</b> One lane per stem with its own
                         waveform, mute, solo, fader and an <b>FX</b> rack (formant,
@@ -1419,8 +1504,8 @@
                     <p>Shimmer keeps a <b>Residual</b> lane instead: the mix minus
                     every stem, which is whatever the separator dropped (reverb tails,
                     room, most of the AI fizz). With it in the mix, an untouched remix
-                    is identical to your original; the null-test figure in the mixer
-                    says how much lives there.</p>
+                    is identical to your original; the Residual figure in the mixer
+                    header says how much lives there.</p>
                 </div>
             </section>
 
