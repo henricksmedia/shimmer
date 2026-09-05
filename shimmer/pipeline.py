@@ -93,6 +93,8 @@ def clean_and_master(
     progress_callback: Optional[Callable[[float], None]] = None,
     raw_analysis: Optional[Dict[str, Any]] = None,
     eq_params: Optional[EqParams] = None,
+    master_loudness_ref: Optional[Dict[str, float]] = None,
+    repair: Optional["NotchPlan"] = None,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     """Run the full safe pipeline.
 
@@ -107,6 +109,14 @@ def clean_and_master(
             never recomputed from processed audio.
         eq_params: optional user parametric EQ, applied post-clean and
             pre-master so the limiter catches any boosts.
+        master_loudness_ref: preview slices only — whole-file loudness
+            reference forwarded to `master()` so the slice gets the
+            full run's static gain rather than its own (see master()).
+        repair: optional static-repair plan (repair.NotchPlan) from the
+            whole-file scan: fixed generator lines notched zero-phase on
+            both channels before anything adaptive runs. De-click runs
+            just before it when `p.declick` > 0. Both diffs are folded
+            into `removed`.
 
     Returns:
         (processed, removed, report)
@@ -123,15 +133,36 @@ def clean_and_master(
 
     report: Dict[str, Any] = {}
 
+    # ── 0. Deterministic repairs, first (docs/PLAN.md Section 2) ────────
+    # De-click on the high band, then the whole-file fixed-line notches.
+    # Both are deterministic and full-band, so every adaptive detector
+    # below (tone curve analysis, crossover, noise trackers) sees a
+    # signal without clicks or generator lines.
+    from .repair import apply_static_repair, declick
+    x_src = x_in
+    if float(p.declick) > 1e-6:
+        x_in, dc_report = declick(
+            x_in, sr, float(p.declick), min_hz=float(p.dc_min_hz),
+            order=int(p.dc_order), max_ms=float(p.dc_max_ms), pad=int(p.dc_pad))
+    else:
+        dc_report = {"enabled": False}
+    x_in, sr_report = apply_static_repair(x_in, sr, repair)
+    report["declick"] = dc_report
+    report["static_repair"] = sr_report
+    pre_diff = (x_src - x_in).astype(np.float32)
+
     # ── 1. Bounded static tone curve from RAW analysis, applied pre-clean ──
     tone_delta = [0.0]
     use_mastering = master_params is not None and master_params.enabled
     if use_mastering:
         eq_strength = resolve_eq_strength(master_params)
         raw_spectrum = (raw_analysis or {}).get("spectrum")
+        cutoff = (raw_analysis or {}).get("cutoff_hz") if raw_analysis else None
+        if cutoff is None and float(p.cutoff_hz) > 0:
+            cutoff = float(p.cutoff_hz)
         tone_delta = compute_tone_curve(
             x_in, sr, strength=eq_strength, raw_spectrum=raw_spectrum,
-            tilt=master_params.tilt)
+            tilt=master_params.tilt, cutoff_hz=cutoff)
         x_toned = apply_tone_curve(x_in, sr, tone_delta)
     else:
         x_toned = x_in
@@ -188,6 +219,8 @@ def clean_and_master(
         removed = removed[:, :1]
     n = min(n_in, y.shape[0])
     y, removed = y[:n, :], removed[:n, :]
+    # What the deterministic repairs took out belongs in Removed too.
+    removed = (removed + pre_diff[:n, :removed.shape[1]]).astype(np.float32)
 
     # ── 7. Post filters + fade on the full-range signal, once ────────────
     y = apply_post_filters(y, sr, p)
@@ -213,7 +246,8 @@ def clean_and_master(
     if use_mastering:
         y, m_report = master(
             y, sr, master_params, analysis=raw_analysis,
-            eq_bands_db=tone_delta)
+            eq_bands_db=tone_delta,
+            loudness_ref=master_loudness_ref)
         report["mastering"] = m_report
     else:
         report["mastering"] = {"enabled": False}

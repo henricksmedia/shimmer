@@ -271,8 +271,16 @@ def process_file(
     use_pipeline: bool = True,
     trim_silence: bool = False,
     eq_params: Optional["EqParams"] = None,
+    static_repair: bool = True,
+    repair_plan: Optional["NotchPlan"] = None,
 ) -> Dict[str, Any]:
     """Read an audio file, process it, write the result.
+
+    `static_repair=True` scans the whole file for the generator's fixed
+    tonal lines and notches them first in the chain (see repair.py);
+    pass `repair_plan` to use a plan the caller already built. The
+    source's bandwidth cutoff is measured here too so shelves and the
+    tone curve never boost the empty band above it.
 
     `use_pipeline=True` (default) runs the safe band-split/M-S pipeline:
     the low/mid body bypasses the STFT engine, only the high band is
@@ -292,6 +300,17 @@ def process_file(
 
     if use_pipeline:
         from .pipeline import clean_and_master
+        from .repair import estimate_cutoff_hz, plan_from_lines
+
+        plan = repair_plan
+        if plan is None and static_repair:
+            from .detect import scan_fixed_lines
+            plan = plan_from_lines(scan_fixed_lines(x, sr), sr)
+        if float(params.cutoff_hz) <= 0:
+            cut = (mastering_analysis or {}).get("cutoff_hz") if mastering_analysis else None
+            if cut is None:
+                cut = estimate_cutoff_hz(x, sr).get("cutoff_hz")
+            params.cutoff_hz = float(cut or 0.0)
 
         y2, removed, pipe_report = clean_and_master(
             x, sr, params,
@@ -299,6 +318,7 @@ def process_file(
             progress_callback=progress_callback,
             raw_analysis=mastering_analysis,
             eq_params=eq_params,
+            repair=plan,
         )
         mastering_report = pipe_report.get("mastering", {"enabled": False})
 
@@ -327,6 +347,9 @@ def process_file(
 
         meas_out = measure(y2)
         return {
+            "repair": pipe_report.get("static_repair", {"enabled": False}),
+            "declick": pipe_report.get("declick", {"enabled": False}),
+            "cutoff_hz": float(params.cutoff_hz or 0.0),
             "sr": sr,
             "channels": x.shape[1],
             "duration_s": float(x.shape[0] / sr),

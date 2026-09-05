@@ -46,6 +46,7 @@ export async function initPresetSelect(selectEl, {onChange, descEl} = {}) {
 // params.apply_preset_strength on the backend so visible sliders move
 // in lockstep with the hidden keys the server scales.
 const STRENGTH_SCALE = {
+    declick:        { neutral: 0.0, lo: 0.0, hi: 1.0 },
     denoise:        { neutral: 0.0, lo: 0.0, hi: 1.0 },
     deres:          { neutral: 0.0, lo: 0.0, hi: 1.0 },
     deharsh:        { neutral: 0.0, lo: 0.0, hi: 1.0 },

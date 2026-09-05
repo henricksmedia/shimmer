@@ -94,6 +94,19 @@ export const CONTROL_SPEC = [
     },
 
     {
+        key: 'declick', label: 'De-click',
+        min: 0.0, max: 1.0, step: 0.02, group: 'Processing', isPct: true,
+        help: {
+            short: 'Removes clicks, pops and crackle from the high end. ' +
+                   'Runs first in the chain, before anything else looks ' +
+                   'at the audio; the low end is never touched.',
+            when_up: 'You hear crackle or static on "s" sounds and cymbals, ' +
+                     'or small pops.',
+            when_down: 'Consonants or hi-hat ticks start to sound softened.',
+            typical: '0% - 60%',
+        },
+    },
+    {
         key: 'denoise', label: 'Denoise',
         min: 0.0, max: 1.0, step: 0.02, group: 'Processing', isPct: true,
         help: {

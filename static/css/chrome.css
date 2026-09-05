@@ -408,6 +408,12 @@
     box-shadow: 0 0 0 1px rgba(56,189,248,.4), 0 0 16px rgba(56,189,248,.15);
 }
 .mod.bypass-lane { opacity: .55; border-style: dashed; }
+/* In the chain but doing nothing for the current preset / options. */
+.mod.inactive { opacity: .5; border-style: dashed; }
+.mod.inactive:hover { opacity: .8; }
+.mod .m-badges .b.off { color: var(--fg-3); border-style: dashed; }
+.chain-error { color: var(--fg-2); font-size: 12px; padding: 12px; }
+.chain-detail .chain-off { color: var(--amber); font-size: 12px; margin: 2px 0 6px; }
 .mod .m-cat {
     font-size: 9px;
     text-transform: uppercase;

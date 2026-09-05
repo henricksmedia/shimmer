@@ -863,7 +863,10 @@ export async function initRemixTab() {
         if (clean.enabled && clean.label) {
             const conf = Number.isFinite(clean.detected_confidence)
                 ? ` (${Math.round(clean.detected_confidence * 100)}%)` : '';
-            chips.push(metricChip(`Cleaned · ${clean.label}${conf}`));
+            const str = Number.isFinite(clean.detected_strength)
+                && Math.abs(clean.detected_strength - 1) > 1e-6
+                ? ` @ ${Math.round(clean.detected_strength * 100)}%` : '';
+            chips.push(metricChip(`Cleaned · ${clean.label}${conf}${str}`));
         }
         const mast = m.mastering || {};
         if (mast.enabled) {

@@ -235,6 +235,12 @@ def sibilance_rattle() -> Params:
         density_hi=0.16,
         noise_resynth=0.15,
 
+        # Consonant crackle (the v5.5 complaint) is click-type noise; the
+        # de-clicker runs first in the chain, on the high band only. 0.4
+        # keeps the threshold high enough that hi-hat ticks are not
+        # mistaken for clicks (raise it by ear on crackly renders).
+        declick=0.4,
+
         deharsh=0.65,
         dh_start_hz=5500.0,
         dh_end_hz=10500.0,
@@ -755,6 +761,9 @@ def deep_scrub() -> Params:
         deq_density_floor=0.60,
         density_lo=0.02,
         density_hi=0.30,
+
+        # Clicks and crackle first (high band only), then everything else.
+        declick=0.4,
 
         denoise=0.60,
         dn_start_hz=3000.0,

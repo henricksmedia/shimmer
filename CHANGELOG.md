@@ -3,6 +3,117 @@
 All notable changes to Shimmer are recorded here.
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Processed monitor no longer drops by half in Live preview.** Mastering
+  normalised each loop slice on its own, so a quiet section previewed at
+  the full target level even though the full run leaves it quiet. The
+  Original-vs-Processed delta ballooned, and Loudness-matched A/B turned
+  the Processed tab down by up to 6 dB with nothing on screen to say so.
+  Preview slices now receive the same static mastering gain the whole
+  file gets (Remix preview included), and the transport bar shows what the
+  match is doing, e.g. "Processed −2.2 dB". The export was never affected.
+- The progress window said "Cleaning & mastering" even with mastering off.
+  It now says "Cleaning" when that is all the run does.
+- **"Download WAV" could save a JSON file.** Results live in the server's
+  memory. If the server had restarted since the run, the link answered
+  with an error message and the browser saved that message as the
+  "WAV". The button now checks the result first and shows the error in
+  the metrics strip instead ("The server was restarted since this run.
+  Run Clean & Master again.").
+
+### Changed
+
+- **The Signal Chain view is now drawn from the real settings.** It used
+  to be a fixed list: right about the order, wrong about the numbers
+  whenever a preset moved the crossover or the center-channel scale, and
+  missing Trim at the start and Preserve volume / Export at the end. The
+  server now describes the chain from the same preset, strength, sliders,
+  mastering, EQ and export choices a Clean & Master click would use.
+  Badges show live values, stages that do nothing for the current preset
+  are dashed with the reason, and the view refreshes as you change
+  settings. (Phase 0 of docs/PLAN.md.)
+- **Analyze now tests presets instead of guessing.** The old auto-detect
+  scored every preset from a few spectral rules that pass on almost any
+  music, so the same three or four presence-band presets came back for
+  every track, and cleaning a track with its own "best match" did not
+  change its score at all. Analyze now scans the whole file for calibrated
+  evidence (steady tones, flicker, comb spacing, sibilance, tilt, tail
+  residue), then runs every artifact preset through the real cleaning
+  pipeline on the hottest few seconds and measures what each one actually
+  removed — artifact-like residue versus body, transients and musical
+  partials. The ranking is what worked, not what looked plausible.
+- **Analyze sets Preset strength.** Each match now carries the strength the
+  trial found best: the gentlest setting that reaches the top net benefit
+  without adding collateral. Applying a match moves the Preset strength
+  slider; Batch auto-detect and Remix auto-clean apply it per file (the
+  batch strength slider now multiplies the detected value).
+- **Six matches instead of three.** With verified numbers behind each card,
+  the runner-ups are meaningful alternatives rather than noise.
+- **Second-pass and balance hints.** When a different preset still finds
+  residue on the winner's cleaned output, Analyze says so. Low-mid mud and
+  a dull top end are flagged with the EQ-style preset to consider.
+- **Steady tones are tested, not assumed.** Suno's fixed 16–20 kHz tones
+  are found across the whole file, re-measured after each trial clean, and
+  count toward the ranking. When the best preset still leaves a tone mostly
+  intact, Analyze names the frequency, says whether it sits in the center
+  of the mix (where cleaning runs at 20% by design) and points you to a
+  Parametric EQ notch instead of a stronger preset.
+- `shimmer --suggest` prints the verified table (score, confidence,
+  strength, residue, collateral, purity) and the reasons.
+
+### Added
+
+- **Fixed tones are cut first, on both channels, at full depth.** AI
+  generators leave thin fixed-pitch lines (16–20 kHz on Suno, sometimes
+  comb-spaced teeth) that never move for the whole song. Shimmer scans
+  the whole file for them once and removes them with narrow zero-phase
+  notches before the tone curve and the crossover, so the center-channel
+  protection that limited them to a 20–25% cut no longer applies.
+  Analyze and the upload list the lines with checkboxes; Batch, Remix and
+  the CLI apply the scan automatically (`--no-static-repair` to skip).
+  (Phase 1 of docs/PLAN.md.)
+- **De-click / de-crackle, first in the chain.** Clicks and crackle on
+  the high end (the v5.5 consonant complaint) are found with a
+  linear-prediction detector that only accepts short, isolated runs, so
+  drum hits and consonant onsets are left alone, and are re-synthesised
+  from their neighbours. On in Sibilance Rattle and Deep Scrub; a
+  De-click slider in Advanced and `--declick` expose it everywhere.
+- **Bandwidth-aware boosts.** Many renders end at 12–15 kHz. Analyze now
+  reports where the top end stops, the tone curve never boosts above it,
+  and a lifting shelf (Dark Mix Rescue, Reverb Flutter) is capped there
+  so it cannot lift pure residue.
+- **A reminder to master once.** When Analyze suggests a second pass and
+  mastering is still on, the second-pass card says so in plain words, and
+  Clean & Master asks before it runs: OK turns mastering off for this pass
+  and keeps Preserve volume on; Cancel masters now anyway. Cleaning a
+  mastered file and mastering it again hurts the sound, so master on the
+  last pass only.
+- **Trim — see and fix the blip at the start of a track.** Every file you
+  load is now checked at both ends for the short glitch AI generators leave
+  behind: usually 15–35 ms of noise at the very top of the render, before
+  the music starts. Shimmer tells you when it finds one — how long it is,
+  how loud, and how much silence follows it — and offers a suggested cut.
+  Nothing is changed until you say so.
+- **A view that actually shows the glitch.** The Trim view draws level in
+  decibels instead of a normal waveform. These blips are quiet enough to be
+  a flat line on a waveform, which is why they are so easy to miss. Zoom in
+  to 250 ms, drag the marker, nudge it a millisecond at a time with the
+  arrow keys, and hit Audition to hear the track as it will export.
+- **You always know the scan happened.** A track with nothing wrong says
+  "edges clean" in green. A track with a pending cut shows it in the card
+  header, and the finished download says what was removed —
+  "Trimmed 40 ms head".
+
+### Why this is separate from "Trim leading/trailing silence"
+
+The existing silence trim cuts everything below −60 dBFS. These glitches
+are louder than that — around −50 dBFS — so the silence trim reads them as
+the start of the song and leaves them alone. That is why they survived
+until now, and why fixing one used to mean a trip to Suno Studio.
+
 ## [1.1.1] — 2026-07-23
 
 ### Fixed

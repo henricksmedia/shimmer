@@ -75,7 +75,9 @@ melody in there, you're cutting too hard. Back the strength off.
 
 Because volume fools your ears, **Loudness-matched A/B** is on by default. It
 evens out the levels between versions, so you judge the *sound* instead of
-just picking whichever is louder.
+just picking whichever is louder. The bar tells you what it is doing, for
+example "Processed −2.2 dB". That is a monitoring level only. Your export is
+never touched.
 
 ---
 
@@ -182,10 +184,13 @@ WAV, FLAC, and OGG work right away. MP3 and M4A also need
 
 **1. Drop your track in.** WAV, MP3, FLAC, OGG, or M4A.
 
-**2. Click Analyze.** Shimmer listens to your song and checks it against all
-19 cleanup presets. It picks the one that fits best and tells you *why* — for
-example, *"Metallic cymbal-like wash in 4–10 kHz."* It also finds the spot
-where the noise is worst and points Live preview there.
+**2. Click Analyze.** Shimmer scans your whole song for the tell-tale signs
+of AI noise, then *tries* every cleanup preset on the busiest few seconds
+and measures what each one really took out: noise, or your music. It shows
+the six best fits with a plain reason for each, sets the **Preset strength**
+to the gentlest setting that did the job, and points Live preview at the
+spot where the noise is worst. It takes about ten seconds. If a second pass
+with another preset would still help, Analyze says so.
 
 **3. Click Clean & Master.** A progress window shows each step, then closes
 when your finished file is ready — along with the numbers behind it: loudness
@@ -199,6 +204,16 @@ waiting for a full render to compare options.
 ---
 
 ## What's inside
+
+### Fixed tones and clicks are fixed first
+
+Every AI generator leaves a few thin, fixed-pitch whistles high up
+(around 16–20 kHz on Suno) that never move for the whole song. Shimmer now
+finds them once across the whole file and cuts them out with narrow,
+zero-phase notches before any other stage runs, on both channels, at full
+depth. Analyze lists them; untick any you want kept. A de-click stage runs
+first too, on the high end only, for crackle on "s" sounds and cymbals. And
+if a render's top end simply stops at 13 kHz, nothing will boost above it.
 
 ### 19 artifact presets, grouped by what you hear
 
@@ -214,9 +229,17 @@ complaint, or just hit **Analyze** and let Shimmer choose.
 | Harsh and fatiguing all over | **Harsh Veil**, **Deep Scrub** |
 | Muddy, boxy, or just dull | **Muddy / Boxy**, **Dark Mix Rescue** |
 
-Every preset has a **strength** control from 0% to 200%. Start at 100%. If a
+Every preset has a **strength** control from 0% to 200%. Analyze sets it for
+the preset it picks; if you choose your own preset, start at 100%. If a
 little sizzle survives, push it up. If your cymbals lose their sparkle, pull
 it down.
+
+**Two passes? Master once.** When Analyze suggests a second pass, run the
+first pass with mastering off and Preserve volume on, load the result, and
+master on the last pass only. Mastering limits the sound and sets its final
+loudness, so cleaning a mastered file and mastering it again hurts it.
+Shimmer reminds you of this if mastering is still on when you click
+Clean & Master.
 
 ### Mastering that respects your dynamics
 
@@ -266,13 +289,18 @@ separation engine, which is a large one-time install.
 ### Batch: a whole folder at once
 
 Point Shimmer at a folder and let it work. Use one preset for everything, or
-let it auto-detect the right preset for each track. Results stream in file by
-file as it goes.
+let it auto-detect the right preset *and* strength for each track (the
+strength slider then scales what it found; 100% means trust the analysis).
+Results stream in file by file as it goes.
 
 ### Signal Chain: see what's actually happening
 
-A map of every stage your audio passes through, in order, in plain language.
-Click any stage to read what it does and jump to its controls. No black box.
+A map of every stage your audio passes through, in order, in plain language,
+drawn from the preset and options you have set right now: the crossover
+point, how hard the center is cleaned, each stage's band and depth, and
+whether mastering, EQ or a Trim cut are in play. Stages that do nothing for
+the current preset are shown dashed. Click any stage to read what it does
+and jump to its controls. No black box.
 
 ---
 

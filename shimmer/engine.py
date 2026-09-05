@@ -33,7 +33,8 @@ from scipy.ndimage import median_filter, uniform_filter1d
 
 from .dsp import (
     as_2d, edge_taper, freq_bin_indices, frame_coeff,
-    spectral_flatness, apply_high_shelf, apply_highpass, apply_peaking,
+    spectral_flatness, apply_high_shelf, apply_highpass, apply_lowpass,
+    apply_peaking,
 )
 from .params import Params
 
@@ -880,10 +881,17 @@ def apply_post_filters(y: np.ndarray, sr: int, p: Params) -> np.ndarray:
     """
     if p.subsonic_hz > 0:
         y = apply_highpass(y, sr, p.subsonic_hz)
+    boosted = False
     if abs(p.high_shelf_db) > 0.1 and p.high_shelf_hz > 0:
         y = apply_high_shelf(y, sr, p.high_shelf_hz, p.high_shelf_db)
+        boosted = boosted or p.high_shelf_db > 0.1
     if abs(p.presence_db) > 0.1 and p.presence_hz > 0:
         y = apply_high_shelf(y, sr, p.presence_hz, p.presence_db)
+        boosted = boosted or p.presence_db > 0.1
+    # Bandwidth-aware lift: a shelf boost must not reach above the
+    # source's cutoff, where there is no music to lift, only residue.
+    if boosted and p.cutoff_hz > 0:
+        y = apply_lowpass(y, sr, p.cutoff_hz)
     if abs(p.lowmid_db) > 0.1 and p.lowmid_hz > 0:
         y = apply_peaking(y, sr, p.lowmid_hz, p.lowmid_db, p.lowmid_q)
     return y

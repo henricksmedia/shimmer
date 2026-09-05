@@ -126,6 +126,8 @@ export async function initBatchTab() {
             preserve_volume: preserveVol.checked && !(masterEnabled && masterEnabled.checked),
             trim_silence: trimSilence.checked,
             auto_detect: autoDetect,
+            // Fixed-line repair scans each file and notches its lines first.
+            static_repair: true,
             preset_strength: Number.isFinite(strength) ? strength : 1.0,
             mastering: {
                 enabled: masterEnabled ? masterEnabled.checked : false,
@@ -162,6 +164,9 @@ export async function initBatchTab() {
                             ? ` (${Math.round(msg.detected_confidence * 100)}%)`
                             : '';
                         line += `   preset: ${msg.detected_label || msg.detected_preset}${pct}`;
+                        if (Number.isFinite(msg.effective_strength)) {
+                            line += ` @ ${Math.round(msg.effective_strength * 100)}%`;
+                        }
                     }
 
                     if (msg.trim && msg.trim.enabled) {

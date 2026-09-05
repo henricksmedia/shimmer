@@ -124,6 +124,68 @@
                 </div>
 
                 <div class="mcol" id="master-col-center">
+
+                    <!-- Trim: shown for every track, so a clean scan is as
+                         visible as a detection. Never edits on its own. -->
+                    <div class="card trim-card" id="trim-card" hidden>
+                        <div class="card-head">
+                            <span class="title">Trim</span><span class="gloss">top &amp; tail — where the track starts and ends</span>
+                            <span class="spacer"></span>
+                            <span class="trim-state" id="trim-state">scanning…</span>
+                            <button type="button" class="btn btn-ghost btn-sm" id="trim-toggle"
+                                    aria-expanded="false" aria-controls="trim-body">Open</button>
+                        </div>
+
+                        <div class="edge-notice" id="edge-notice" hidden>
+                            <div class="edge-notice-text">
+                                <div class="edge-notice-title" id="edge-notice-title"></div>
+                                <div class="edge-notice-detail" id="edge-notice-detail"></div>
+                            </div>
+                            <div class="edge-notice-actions">
+                                <button type="button" class="btn btn-primary btn-sm" id="edge-fix-btn"
+                                        title="Set the in/out point to the suggested cut. Nothing is written until you process.">Use suggested cut</button>
+                                <button type="button" class="btn btn-ghost btn-sm" id="edge-review-btn"
+                                        title="Open the Trim view and look at it first">Review</button>
+                            </div>
+                        </div>
+
+                        <div class="card-body" id="trim-body" hidden>
+                            <div class="trim-toolbar">
+                                <div class="player-view-toggle trim-edge-toggle">
+                                    <button type="button" class="viz-mode-btn active" id="trim-edge-head"
+                                            title="Set the in point">Head</button>
+                                    <button type="button" class="viz-mode-btn" id="trim-edge-tail"
+                                            title="Set the out point">Tail</button>
+                                </div>
+                                <select id="trim-zoom" class="select trim-zoom" title="Zoom">
+                                    <option value="0.25">250 ms</option>
+                                    <option value="1">1 s</option>
+                                    <option value="3" selected>3 s</option>
+                                    <option value="10">10 s</option>
+                                </select>
+                                <span class="spacer"></span>
+                                <button type="button" class="btn btn-sm" id="trim-audition"
+                                        title="Play from the marker so you hear the track as it will export">Audition</button>
+                                <button type="button" class="btn btn-ghost btn-sm" id="trim-clear"
+                                        title="Remove the trim — export the full file">Clear</button>
+                            </div>
+
+                            <canvas id="trim-canvas" class="trim-canvas" tabindex="0"
+                                    aria-label="Level over time in dBFS. Click to place the marker, arrow keys to nudge."></canvas>
+
+                            <div class="trim-foot">
+                                <span class="trim-hint">Click to place · ←/→ nudge 1 ms · Shift 10 ms</span>
+                                <span class="spacer"></span>
+                                <label class="trim-num">in
+                                    <input type="number" id="trim-in-ms" step="1" min="0" value="0"> ms
+                                </label>
+                                <label class="trim-num">out
+                                    <input type="number" id="trim-out-ms" step="1" min="0" placeholder="end"> ms
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card viz-card">
                         <div class="player-card" id="player-card">
                             <div class="done-banner" id="done-banner" hidden>
@@ -167,6 +229,7 @@
                         </div>
                         <div class="card-body">
                             <div id="auto-detect-results" class="auto-detect-results" hidden></div>
+                            <div id="repair-list" class="repair-list" hidden></div>
                             <div class="analysis-hint" id="analysis-hint">
                                 Click <b>Analyze</b> and Shimmer listens to your track for the noise AI
                                 music tools leave behind — fizz, hiss, whistles, and metallic sheen.
@@ -492,7 +555,7 @@
                             </label>
                             <input id="batch-strength" type="range"
                                    min="0" max="2" step="0.05" value="1"
-                                   title="Scale the preset's amount-style settings up or down. 100% = preset as-is.">
+                                   title="Scale the preset's amount-style settings up or down. 100% = preset as-is. With Auto-detect, the analysis picks a strength per file and this slider multiplies it (100% = trust the analysis).">
                         </div>
                     </div>
                 </div>

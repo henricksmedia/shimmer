@@ -132,6 +132,16 @@ def apply_highpass(x: np.ndarray, sr: int,
     return sosfiltfilt(sos, x, axis=0).astype(np.float32)
 
 
+def apply_lowpass(x: np.ndarray, sr: int,
+                  cutoff_hz: float, order: int = 2) -> np.ndarray:
+    """Apply a Butterworth lowpass filter (zero-phase)."""
+    if cutoff_hz <= 0 or cutoff_hz >= 0.49 * sr:
+        return x
+    wn = float(np.clip(cutoff_hz / (0.5 * sr), 1e-6, 0.999999))
+    sos = butter(order, wn, btype="lowpass", output="sos")
+    return sosfiltfilt(sos, x, axis=0).astype(np.float32)
+
+
 def apply_peaking(x: np.ndarray, sr: int, center_hz: float,
                   gain_db: float, q: float = 1.0) -> np.ndarray:
     """Apply an RBJ peaking (bell) EQ, zero-phase.

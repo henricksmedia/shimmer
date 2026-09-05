@@ -6,11 +6,17 @@ music models.
 
 For the user-facing introduction, see the [root README](../README.md).
 For the exhaustive parameter and API reference, see [FEATURES.md](FEATURES.md).
+For remote access / hosting options (and why Cloudflare Pages isn't a fit),
+see [DEPLOYMENT.md](DEPLOYMENT.md). For a research-backed review of every
+preset against the causes of AI-music artifacts, see
+[PRESET_REVIEW.md](PRESET_REVIEW.md), and for the proposed presets /
+stems / signal-chain roadmap that follows from it, see [PLAN.md](PLAN.md).
 
 ## Architecture
 
 ```
-Input → [tone curve] → linear-phase crossover @ 4.5 kHz
+Input → [trim] → de-click → static repair (fixed-line notches)
+      → [tone curve] → linear-phase crossover @ 4.5 kHz (preset-dependent)
                               ├── low band ─────────────── (bypassed)
                               └── high band → M/S split
                                      ├── mid  (0.2× strength)
@@ -19,6 +25,15 @@ Input → [tone curve] → linear-phase crossover @ 4.5 kHz
         → side-width compensation → recombine → wet/dry mix
         → post filters → user EQ → mastering → export
 ```
+
+**Deterministic repairs** (`repair.py`) run first, before anything
+adaptive: a high-band de-clicker (linear-prediction detection, isolated
+short runs only, AR re-synthesis) and static zero-phase notches on the
+generator's fixed tonal lines and comb teeth found by a whole-file scan
+(`detect.scan_fixed_lines`). The notches apply to L and R at full depth:
+a fixed 17.7 kHz line gets none of the Mid protection the engine gives
+vocals. The source's bandwidth cutoff is measured too; shelves and the
+tone curve never boost above it.
 
 **Cleaning engine** (`engine.py`, STFT domain, 4096-pt FFT / 1024 hop). Nine
 stages run in registry order: Expander → Denoise → De-resonator → Shimmer
@@ -57,12 +72,17 @@ track the hidden keys.
 
 ## Features
 
-- **Auto-detect** (`probe.py`) — analyses the first 30 s, ranks all presets
-  with confidence scores and human-readable reasons, and returns a
-  per-second shimmer-intensity timeline used to anchor the preview loop.
+- **Auto-detect** (`detect.py`, `probe.suggest_preset`) — scans the whole
+  file for calibrated artifact evidence, then *verifies* every artifact
+  preset by running it through the real cleaning pipeline on the hottest
+  window and measuring what it removed (artifact-like vs. protected
+  material). Returns up to 6 ranked matches, each with a recommended
+  preset strength, an optional second-pass suggestion, and a per-second
+  intensity timeline used to anchor the preview loop.
 - **Live preview** — loops a 5–20 s window, re-rendered server-side on every
   parameter change with an LRU cache; A/B is gapless via Web Audio gain
-  crossfades.
+  crossfades. Slices are mastered with the whole-file static gain so the
+  loop sits at the level the export will have.
 - **Parametric EQ** (`eq.py`) — up to 12 bands, RBJ biquads, applied
   zero-phase (`sosfiltfilt`) after cleaning and before mastering.
 - **Remix** (`stems.py`, `stem_effects.py`) — Demucs `htdemucs` 4-stem
@@ -75,6 +95,10 @@ track the hidden keys.
   Input and output formats are independent.
 - **Settings persistence** — last-used preset, sliders, mastering, and EQ
   restore on launch when "Remember settings" is enabled.
+- **Signal Chain** (`chain.py`, `POST /api/chain`) — the chain view is
+  generated from the same Params / MasterParams / options a run would
+  use, in pipeline order, with live badges and active/inactive state per
+  module, so it cannot drift from the sound path.
 
 ## Running
 
@@ -153,11 +177,15 @@ shimmer/            The Python package (all application code)
   mastering.py      Loudness analysis, tone curve, limiter
   params.py         Params / MasterParams dataclasses (source of truth)
   presets.py        Artifact-shape preset factories
-  probe.py          Analysis, preset suggestion, spectrograms
+  detect.py         Auto-detect: evidence scan + pipeline verification
+  chain.py          Signal Chain description generated from Params
+  repair.py         Deterministic repairs: de-click, static notches, cutoff
+  probe.py          Region diagnostics, suggest_preset wrapper
   eq.py             Parametric EQ (RBJ biquads, zero-phase)
   bands.py          Linear-phase crossover
   dsp.py            Primitive DSP helpers
   trim_silence.py   Export-time silence trimming
+  edges.py          Head/tail render-glitch scan (reported, never applied)
   audio_io.py       File I/O, measurement, format dispatch
   stems.py          Demucs separation + cache
   stem_effects.py   Per-stem effect chain

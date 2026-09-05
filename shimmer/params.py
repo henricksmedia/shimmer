@@ -14,6 +14,20 @@ from dataclasses import dataclass
 class Params:
     """All processing parameters. Defaults target typical Suno shimmer."""
 
+    # ── Deterministic repairs (run first, before the tone curve) ─────────
+    # De-click / de-crackle on the high band (>= dc_min_hz). 0 = off;
+    # 1 = most sensitive. See repair.py. Placed first because every
+    # adaptive detector downstream reads a click as a transient.
+    declick: float = 0.0
+    dc_min_hz: float = 2000.0      # only the band above this is inspected/repaired
+    dc_order: int = 32             # linear-prediction order
+    dc_max_ms: float = 2.0         # longer runs are hits, not clicks
+    dc_pad: int = 8                # samples added each side of a flagged run
+    # Bandwidth cutoff of the source (0 = none / full). Set per file by
+    # the server from analysis; positive shelves and tone-curve boosts
+    # never reach above it (the band is empty there, only hash).
+    cutoff_hz: float = 0.0
+
     # ── Shimmer suppression band ──────────────────────────────────────────
     start_hz: float = 5100.0       # low edge of target band
     end_hz: float = 7200.0         # high edge of target band
@@ -267,6 +281,7 @@ class Params:
 # dry/wet slider keeps separate semantics from "preset strength."
 _STRENGTH_AMOUNT_KEYS = (
     # 0..1 amount-style strengths
+    ("declick",       0.0, 1.0),
     ("denoise",       0.0, 1.0),
     ("deres",         0.0, 1.0),
     ("deharsh",       0.0, 1.0),

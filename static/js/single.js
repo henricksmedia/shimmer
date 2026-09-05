@@ -10,6 +10,7 @@ import { makeSettingsSaver, loadSettings } from './settings.js';
 import { openHelp } from './help.js';
 import { createUnifiedPlayer, fmtTime } from './visualizer.js';
 import { initEqPanel } from './eq.js';
+import { initTrim } from './trim.js';
 
 
 const PREVIEW_DEBOUNCE_MS = 250;
@@ -158,6 +159,13 @@ export async function initSingleTab() {
     }
 
     let lastAnalysis = null;
+    let lastFollowUp = null; // Analyze's second-pass suggestion, if any
+    // Static-repair plan for the current file: the generator's fixed
+    // tonal lines the server found, each with an `on` flag the user can
+    // untick. Sent with every preview / process request; null = let the
+    // server scan and decide.
+    let lastRepair = null;
+    let lastEdges = null;    // head/tail scan from the last upload
     let lastMasteringReport = null;
     // Match deltas (processed LUFS minus original LUFS). Preview uses
     // per-render slice loudness; full uses whole-file metrics. `null`
@@ -222,6 +230,10 @@ export async function initSingleTab() {
         getSpectrum: () => (lastAnalysis && lastAnalysis.spectrum) || null,
     });
 
+    // Top & tail. Detection is reported here, never applied on its own —
+    // the trim only reaches the export because the user armed it.
+    const trimPanel = initTrim({});
+
     player = createUnifiedPlayer({
         els: { original: audioOrig, processed: audioProc, removed: audioDiff },
         canvas: $('player-canvas'),
@@ -249,10 +261,6 @@ export async function initSingleTab() {
         // are actually auditioning: per-render slice loudness while the
         // preview loop is live, whole-file metrics after a full run.
         const d = previewState.active ? previewMatchDb : fullMatchDb;
-        if (abMatchNote) {
-            abMatchNote.textContent =
-                abLoudnessMatch.checked && d == null ? '(waiting for render)' : '';
-        }
         // Clamp the match attenuation. A short preview slice can report a
         // LUFS delta far larger than the whole track's — e.g. when Analyze
         // re-anchors the loop onto an atypically quiet or loud region — which
@@ -264,6 +272,25 @@ export async function initSingleTab() {
         const MATCH_MAX_DB = 6;
         const raw = d == null ? 0 : d;
         const dd = Math.max(-MATCH_MAX_DB, Math.min(MATCH_MAX_DB, raw));
+        // Say what the match is doing. A silent 6 dB cut on the Processed
+        // monitor reads as "processed got quieter and won't come back".
+        if (abMatchNote) {
+            let txt = '';
+            if (abLoudnessMatch.checked) {
+                if (d == null) {
+                    txt = '(waiting for render)';
+                } else if (Math.abs(dd) >= 0.1) {
+                    const side = dd > 0 ? 'Processed' : 'Original';
+                    txt = `${side} −${Math.abs(dd).toFixed(1)} dB`;
+                    if (Math.abs(raw) > MATCH_MAX_DB + 1e-6) txt += ' (capped)';
+                }
+            }
+            abMatchNote.textContent = txt;
+            abMatchNote.title = txt
+                ? 'Monitoring gain only — the louder side is turned down so ' +
+                  'you compare sound, not level. Never applied to your export.'
+                : '';
+        }
         // Attenuate whichever side is louder so the comparison is fair.
         // Removed is an audition track and stays out of the match.
         player.setLoudnessMatch(abLoudnessMatch.checked, {
@@ -424,6 +451,9 @@ export async function initSingleTab() {
         lastTimeline = null;
         fullMatchDb = null;
         previewMatchDb = null;
+        lastFollowUp = null;
+        lastRepair = null;
+        renderRepairList();
         previewState.anchorMode = 'auto';
         previewCache.clear();
         masteringReadout.hidden = true;
@@ -442,6 +472,16 @@ export async function initSingleTab() {
         player.resetTracks();
         player.setSource('original', previewState.originalBlobUrl);
         setPreviewStatus('Tick "Live preview" to loop edits around the playhead.');
+
+        // Scan the edges now rather than when preview is first switched on.
+        // A head glitch has to surface while the user is still deciding what
+        // to do with the track, not after they have exported it.
+        trimPanel?.reset(previewState.originalBlobUrl);
+        ensurePreviewSession({quiet: true}).then((sid) => {
+            if (currentFile !== file) return;      // superseded by a newer drop
+            if (sid) trimPanel?.setSession(sid, previewState.durationS, lastEdges);
+            else trimPanel?.setScanFailed();
+        });
     }
 
     pickBtn.addEventListener('click', () => fileInput.click());
@@ -486,10 +526,106 @@ export async function initSingleTab() {
         return (p && p.label) || key;
     };
 
-    function applyDetectedPreset(presetName) {
+    // Apply a detected preset together with the strength the analysis
+    // verified for it.  Strength is set first so the preset's change
+    // handler builds the visible sliders at that strength; the server
+    // scales the hidden keys from the same `preset_strength` value.
+    function applyDetectedPreset(presetName, strength) {
         if (!presetName || !byName.has(presetName)) return;
+        if (Number.isFinite(strength)) {
+            const s = Math.max(0, Math.min(2, strength));
+            strengthEl.value = String(s);
+            renderStrengthBadge();
+        }
         presetSelect.value = presetName;
         presetSelect.dispatchEvent(new Event('change'));
+    }
+
+    // ── Static repair (fixed lines) ─────────────────────────────────────
+    const repairListEl = $('repair-list');
+
+    function setRepairPlan(plan) {
+        const notches = Array.isArray(plan && plan.notches) ? plan.notches : [];
+        // Keep the user's unticks when the same line comes back from a
+        // later scan (upload, then Analyze).
+        const prev = new Map((lastRepair ? lastRepair.notches : [])
+            .map(n => [Math.round(n.hz), n.on]));
+        lastRepair = {
+            enabled: true,
+            notches: notches.map(n => ({
+                hz: n.hz, depth_db: n.depth_db, bw_hz: n.bw_hz, kind: n.kind || 'line',
+                excess_db: n.excess_db, duty: n.duty,
+                on: prev.has(Math.round(n.hz)) ? prev.get(Math.round(n.hz)) : true,
+            })),
+        };
+        renderRepairList();
+    }
+
+    // What the server should notch: an explicit list once we have one
+    // (so unticks are honoured), otherwise null = scan and decide.
+    function repairPayload() {
+        if (!lastRepair) return { enabled: true, notches: null };
+        return {
+            enabled: true,
+            notches: lastRepair.notches.filter(n => n.on).map(n => ({
+                hz: n.hz, depth_db: n.depth_db, bw_hz: n.bw_hz, kind: n.kind,
+                excess_db: n.excess_db, duty: n.duty,
+            })),
+        };
+    }
+
+    function renderRepairList() {
+        if (!repairListEl) return;
+        repairListEl.innerHTML = '';
+        if (!lastRepair) { repairListEl.hidden = true; return; }
+        repairListEl.hidden = false;
+        const head = document.createElement('div');
+        head.className = 'ad-cards-label';
+        head.textContent = lastRepair.notches.length
+            ? 'Fixed tones notched first in the chain'
+            : 'Fixed tones';
+        repairListEl.appendChild(head);
+        if (!lastRepair.notches.length) {
+            const e = document.createElement('div');
+            e.className = 'repair-empty';
+            e.textContent = 'No fixed generator tones found in this file.';
+            repairListEl.appendChild(e);
+            return;
+        }
+        lastRepair.notches.forEach((n, i) => {
+            const row = document.createElement('label');
+            row.className = 'repair-row' + (n.on ? '' : ' off');
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = !!n.on;
+            cb.title = 'Untick to keep this tone';
+            cb.addEventListener('change', () => {
+                lastRepair.notches[i].on = cb.checked;
+                row.classList.toggle('off', !cb.checked);
+                pushSettings();
+                schedulePreviewRender();
+            });
+            const hz = document.createElement('span');
+            hz.className = 'r-hz';
+            hz.textContent = `${(n.hz / 1000).toFixed(2)} kHz`;
+            const depth = document.createElement('span');
+            depth.className = 'r-depth';
+            depth.textContent = `−${Math.round(n.depth_db)} dB`;
+            const kind = document.createElement('span');
+            kind.className = 'r-kind';
+            kind.textContent = n.kind === 'comb' ? 'comb tooth' : 'line';
+            row.append(cb, hz, depth, kind);
+            repairListEl.appendChild(row);
+        });
+    }
+
+    // Plain-language advice shown whenever Analyze suggests a second pass
+    // and mastering is on. Mastering limits the sound and sets its
+    // loudness; cleaning a mastered file and mastering it again hurts it.
+    function secondPassMasteringTip() {
+        return 'Mastering is on. Master only once, at the end. ' +
+            'Turn mastering off for this pass, keep Preserve volume on, ' +
+            'then master on the last pass.';
     }
 
     function showAutoDetectError(msg) {
@@ -531,9 +667,9 @@ export async function initSingleTab() {
             });
         };
 
-        ranked.slice(0, 3).forEach((entry, i) => {
+        ranked.slice(0, 6).forEach((entry, i) => {
             const card = document.createElement('div');
-            card.className = 'ad-card';
+            card.className = 'ad-card' + (i >= 3 ? ' ad-card-more' : '');
 
             const head = document.createElement('div');
             head.className = 'ad-card-head';
@@ -562,17 +698,25 @@ export async function initSingleTab() {
             confWrap.appendChild(conf);
             confWrap.appendChild(pctText);
 
+            const strengthVal = Number.isFinite(entry.strength) ? entry.strength : 1.0;
+            const strengthChip = document.createElement('span');
+            strengthChip.className = 'ad-strength'
+                + (strengthVal > 1.01 ? ' boost' : strengthVal < 0.99 ? ' gentle' : '');
+            strengthChip.textContent = `${Math.round(strengthVal * 100)}%`;
+            strengthChip.title = 'Recommended preset strength for this match';
+
             const apply = document.createElement('button');
             apply.type = 'button';
             apply.className = 'btn btn-ghost ad-apply-btn';
             apply.addEventListener('click', () => {
-                applyDetectedPreset(entry.name);
+                applyDetectedPreset(entry.name, strengthVal);
                 setActive(i);
             });
 
             head.appendChild(rank);
             head.appendChild(name);
             head.appendChild(confWrap);
+            head.appendChild(strengthChip);
             head.appendChild(apply);
             card.appendChild(head);
 
@@ -590,6 +734,28 @@ export async function initSingleTab() {
 
         autoDetectResults.appendChild(list);
         setActive(0);  // top pick is auto-applied by the caller
+
+        if (r.follow_up && r.follow_up.name) {
+            const fu = document.createElement('div');
+            fu.className = 'ad-followup';
+            const b = document.createElement('b');
+            b.textContent = `Second pass: ${r.follow_up.label || labelOf(r.follow_up.name)}. `;
+            fu.appendChild(b);
+            fu.appendChild(document.createTextNode(r.follow_up.reason || ''));
+            if (masterEnabled.checked) {
+                const tip = document.createElement('div');
+                tip.className = 'ad-followup-tip';
+                tip.textContent = secondPassMasteringTip();
+                fu.appendChild(tip);
+            }
+            autoDetectResults.appendChild(fu);
+        }
+        (Array.isArray(r.notes) ? r.notes : []).forEach((text) => {
+            const n = document.createElement('div');
+            n.className = 'ad-note';
+            n.textContent = text;
+            autoDetectResults.appendChild(n);
+        });
 
         const tl = r.timeline && Array.isArray(r.timeline.intensity)
             ? r.timeline.intensity : [];
@@ -619,7 +785,9 @@ export async function initSingleTab() {
         autoBtn.disabled = true;
         try {
             const r = await runAutoDetect(currentFile);
-            applyDetectedPreset(r.preset);
+            lastFollowUp = (r.follow_up && r.follow_up.name) ? r.follow_up : null;
+            if (r.repair_plan) setRepairPlan(r.repair_plan);
+            applyDetectedPreset(r.preset, r.strength);
             renderAutoDetect(r);
             if (r.timeline && Array.isArray(r.timeline.intensity) &&
                 r.timeline.intensity.length > 0) {
@@ -646,7 +814,28 @@ export async function initSingleTab() {
     // ── Persistence wiring ────────────────────────────────────────────
     // Always write the current UI (Batch reuses EQ in-session). Restore
     // on next visit only when remember_settings is true.
+    // Signal Chain bridge: the chain view asks for the exact state a
+    // Clean & Master click would send, so the server renders the chain
+    // from real Params instead of a hand-written list.
+    window.shimmerChainState = () => {
+        const t = trimPanel ? trimPanel.getTrim() : null;
+        return {
+            preset: presetSelect.value,
+            preset_strength: currentStrength(),
+            overrides: controls.getValues(),
+            mastering: masteringPayload(),
+            eq: eqPanel.getPayload(),
+            preserve_volume: preserveVol.checked && !masterEnabled.checked,
+            trim_silence: trimSilence.checked,
+            output_format: outputFormat.value,
+            trim_armed: !!(t && (t.inS > 0 || t.outS != null)),
+            repair: repairPayload(),
+        };
+    };
+
     function pushSettings() {
+        // The Signal Chain view re-renders from live settings on this.
+        document.dispatchEvent(new CustomEvent('shimmer:settings-changed'));
         saveSettings({
             remember_settings: !!(rememberSettings && rememberSettings.checked),
             preset: presetSelect.value,
@@ -730,14 +919,20 @@ export async function initSingleTab() {
         return bestIdx * binS;
     }
 
-    async function ensurePreviewSession() {
+    // `quiet` suppresses the preview status line. The edge scan at file-drop
+    // needs a session but is not a preview render, and "Preparing preview…"
+    // is only ever cleared by a render completing — so a quiet caller must
+    // not set it, or it stays on screen forever.
+    async function ensurePreviewSession({quiet = false} = {}) {
         if (previewState.sessionId) return previewState.sessionId;
         if (!currentFile) return null;
-        setPreviewStatus('Preparing preview…', 'busy');
+        if (!quiet) setPreviewStatus('Preparing preview…', 'busy');
         try {
             const r = await uploadFile(currentFile);
             previewState.sessionId = r.session_id;
             previewState.durationS = r.duration_s;
+            lastEdges = r.edges || null;
+            if (r.repair && r.repair.plan) setRepairPlan(r.repair.plan);
             if (r.analysis) {
                 lastAnalysis = r.analysis;
                 renderAnalysisReadout(r.analysis);
@@ -745,7 +940,7 @@ export async function initSingleTab() {
             }
             return r.session_id;
         } catch (e) {
-            setPreviewStatus(`Preview failed: ${e.message}`, 'error');
+            if (!quiet) setPreviewStatus(`Preview failed: ${e.message}`, 'error');
             return null;
         }
     }
@@ -813,12 +1008,13 @@ export async function initSingleTab() {
             preserve_volume: preserveVol.checked && !masterEnabled.checked,
             mastering: masteringPayload(),
             eq: eqPanel.getPayload(),
+            repair: repairPayload(),
         };
 
         // Decoded-render cache: same window + same params = instant swap.
         const cacheKey = JSON.stringify([
             start, end, payload.preset, payload.preset_strength,
-            overrides, payload.preserve_volume, payload.mastering,
+            overrides, payload.preserve_volume, payload.mastering, payload.repair,
             payload.eq,
         ]);
         const hit = previewCache.get(cacheKey);
@@ -952,6 +1148,7 @@ export async function initSingleTab() {
 
     // ── Clean & Master progress modal ─────────────────────────────────
     const processModal      = $('process-modal');
+    const processModalTitle = $('process-modal-title');
     const processModalStage = $('process-modal-stage');
     const processModalFill  = $('process-modal-fill');
     const processModalPct   = $('process-modal-pct');
@@ -972,6 +1169,11 @@ export async function initSingleTab() {
         processModalStage.textContent = processStageLabel(frac);
     }
     function openProcessModal() {
+        // The title must say what this run actually does.
+        if (processModalTitle) {
+            processModalTitle.textContent = masterEnabled.checked
+                ? 'Cleaning & mastering' : 'Cleaning';
+        }
         processModalError.hidden = true;
         processModalError.textContent = '';
         processModalClose.hidden = true;
@@ -998,8 +1200,64 @@ export async function initSingleTab() {
     });
 
     // ── Process ───────────────────────────────────────────────────────
+    // Never save an error message as a file. The result lives in the
+    // server's memory; if the server restarted since the run, the link
+    // answers with a JSON error and a plain <a download> would save that
+    // JSON as the "WAV". Check first, then download for real.
+    downloadLink.addEventListener('click', async (e) => {
+        const href = downloadLink.getAttribute('href');
+        if (!href) return;
+        e.preventDefault();
+        try {
+            // Probe with a GET and drop the body: the route has no HEAD.
+            const probe = await fetch(href);
+            const ct = probe.headers.get('content-type') || '';
+            if (!probe.ok || ct.startsWith('application/json')) {
+                let msg = `Download failed (${probe.status}).`;
+                try {
+                    const body = await probe.json();
+                    if (body && body.detail) msg = `Download failed: ${body.detail}.`;
+                } catch (_) { /* no JSON body */ }
+                if (/unknown job/i.test(msg)) {
+                    msg += ' The server was restarted since this run, so the ' +
+                           'result is gone. Run Clean & Master again.';
+                }
+                setMetrics(msg);
+                return;
+            }
+            try { await probe.body?.cancel(); } catch (_) { /* already drained */ }
+            const a = document.createElement('a');
+            a.href = href;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } catch (err) {
+            setMetrics(`Download failed: ${err.message}`);
+        }
+    });
+
     processBtn.addEventListener('click', async () => {
         if (!currentFile) return;
+        // Analyze found a second pass and mastering is on: ask before we
+        // master a file that still needs another cleaning pass.
+        if (lastFollowUp && masterEnabled.checked) {
+            const label = lastFollowUp.label || labelOf(lastFollowUp.name);
+            const turnOff = window.confirm(
+                `Analyze found a second pass worth running: ${label}.\n\n` +
+                'Mastering is on. If you master now, the second pass will ' +
+                'clean a file that is already limited and set to its final ' +
+                'loudness, and then master it again. That can hurt the sound.\n\n' +
+                'Best plan: master only once, at the end.\n\n' +
+                'OK = turn mastering off for this pass and keep Preserve volume on.\n' +
+                'Cancel = master now anyway.');
+            if (turnOff) {
+                masterEnabled.checked = false;
+                masterEnabled.dispatchEvent(new Event('change'));
+                preserveVol.checked = true;
+                preserveVol.dispatchEvent(new Event('change'));
+            }
+        }
         // Full-file processing replaces the slice players; turn live
         // preview off so the loop state doesn't fight the new sources.
         if (previewState.active) {
@@ -1021,16 +1279,19 @@ export async function initSingleTab() {
                 overrides,
                 mastering: masteringPayload(),
                 eq: eqPanel.getPayload(),
+                repair: repairPayload(),
             };
             if (lastAnalysis) paramsBody.mastering_analysis = lastAnalysis;
 
             const wantTrim = trimSilence.checked;
+            const edit = trimPanel ? trimPanel.getTrim() : null;
             const job = await submitProcess(
                 currentFile,
                 paramsBody,
                 outputFormat.value,
                 preserveVol.checked && !masterEnabled.checked,
                 wantTrim,
+                edit,
             );
 
             await new Promise((resolve, reject) => {
@@ -1066,6 +1327,17 @@ export async function initSingleTab() {
 
                 if (mm.eq && mm.eq.enabled) {
                     chips.push(`EQ: ${mm.eq.bands} band${mm.eq.bands === 1 ? '' : 's'}`);
+                }
+
+                // State the applied cut on the result, not just in the panel:
+                // the user should never wonder whether the trim went through.
+                if (mm.edge_trim && mm.edge_trim.applied) {
+                    const et = mm.edge_trim;
+                    const parts = [];
+                    if (et.cut_head_s > 0) parts.push(`${(et.cut_head_s * 1000).toFixed(0)} ms head`);
+                    if (et.cut_tail_s > 0) parts.push(`${(et.cut_tail_s * 1000).toFixed(0)} ms tail`);
+                    chips.push(`Trimmed ${parts.join(' + ')}`);
+                    bannerChips.push(`Trimmed ${parts.join(' + ')}`);
                 }
 
                 if (mm.trim && mm.trim.enabled) {

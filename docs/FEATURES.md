@@ -97,8 +97,9 @@ python -m uvicorn server:app --host 127.0.0.1 --port 7860
   output format inferred from the extension.
 - Inline 40-character progress bar during processing.
 - `--list-presets` prints all visible presets with descriptions.
-- `--suggest INPUT` analyzes a file and prints the recommended preset plus
-  per-band shimmer-density scores.
+- `--suggest INPUT` analyzes a file and prints the recommended preset and
+  strength, the verified ranking (score, confidence, strength, residue,
+  collateral, purity) with reasons, any second-pass suggestion and notes.
 - Nearly every processing parameter is overridable via flags (see
   [Section 10](#10-cli-reference); a few advanced params are preset/API-only).
 
@@ -199,6 +200,49 @@ filters, **before** mastering — so the limiter always catches user boosts.
 - Participates in live preview, full processing, and batch (via the
   "Apply EQ from Single File tab" checkbox, which reuses the persisted
   EQ settings).
+
+### Deterministic repairs (run first) — [repair.py](repair.py)
+
+Placed after Trim and before the tone curve and crossover, so every
+adaptive detector downstream sees a signal without clicks or generator
+lines (docs/PLAN.md Section 2, approved 2026-09-04).
+
+- **De-click / de-crackle** (`declick` 0..1, `dc_min_hz` 2000,
+  `dc_order` 32, `dc_max_ms` 2.0, `dc_pad` 8). The band above `dc_min_hz`
+  is whitened with a per-second linear predictor; samples whose residual
+  exceeds a robust threshold (9σ at 0 down to 4σ at 1) are flagged;
+  padded runs are kept only if short and *isolated* (the level after the
+  run is within 6 dB of the level before, and the run peaks 10 dB above
+  both), which rejects drum hits and consonant onsets; kept runs are
+  re-synthesised from the predictor forwards and backwards and
+  cross-faded. Regions dense with accepted clicks (> 40/s) get a second,
+  lower-threshold pass (crackle). Only the high-band component changes.
+  On in Sibilance Rattle (0.6) and Deep Scrub (0.5); an Advanced slider
+  and `--declick` expose it everywhere. `declick` is on the
+  preset-strength whitelist.
+- **Static repair** (`repair.NotchPlan`, `apply_static_repair`). The
+  whole-file scan (`detect.scan_fixed_lines`: 25th-percentile excess over
+  a 51-bin envelope, plus comb teeth by frequency-axis autocorrelation
+  with a neighbour test) yields fixed lines; `plan_from_lines` keeps
+  those with ≥ 6 dB persistent excess (below 3 kHz: ≥ 10 dB and ≥ 90 %
+  duty), never below 2 kHz, at most 24. Line frequencies are refined to
+  sub-bin accuracy. Each becomes a four-bin-wide (about 43 Hz) RBJ
+  peaking cut applied zero-phase to both channels; depth follows the
+  line's 90th-percentile excess (how strong it gets in the loud parts of
+  the song), capped at 30 dB. The upload endpoint scans once per session, Analyze
+  returns the plan (`repair_plan`) and the Master tab lists the lines
+  with checkboxes; the request's `repair` block carries the choice
+  (`{"enabled": false}` skips the stage, an explicit `notches` list is
+  validated and used, otherwise the server scans). Batch (`static_repair`,
+  default on), Remix cleaning and the CLI (`--no-static-repair` to skip)
+  scan automatically. Both repair diffs are folded into the Removed
+  signal.
+- **Bandwidth cutoff** (`estimate_cutoff_hz`, `Params.cutoff_hz`). Welch
+  spectrum, trend fitted on 4–10 kHz; the cutoff is the lowest frequency
+  above 8 kHz sitting ≥ 30 dB under trend for the rest of the band with
+  real content in the octave below. `analyze_track` reports it, the tone
+  curve never boosts at or above 0.9× cutoff, and a positive shelf in the
+  post filters is followed by a zero-phase low-pass at the cutoff.
 
 ### Pipeline-level controls
 
@@ -344,18 +388,57 @@ load ([settings_store.py](settings_store.py)).
 
 Source: [probe.py](probe.py)
 
-- `suggest_preset(path)` analyzes the first **30 seconds** of a file and
-  returns the best-matching preset plus a ranked top 3 with confidence scores
-  and human-readable reasons.
-- Per-artifact feature scoring includes: shimmer density, tonality,
-  persistence, periodicity, comb structure, top-end concentration, sibilance
-  bursts, tail flutter, vocal glaze, echo sheen, presence wash, metallic wash,
-  and harsh grit.
-- A per-second shimmer-intensity timeline (8–16 kHz) is returned; the UI uses
-  it to draw the sparkline and anchor the live-preview loop at the hottest
-  region.
-- Falls back to `generic` when the top score is below 0.05 ("no artifact
-  detected").
+Source: [detect.py](detect.py) (scorer), [probe.py](probe.py) (`suggest_preset`
+wrapper, region diagnostics)
+
+- `suggest_preset(path)` returns the best-matching artifact preset **with a
+  recommended preset strength**, a ranked list of up to 6 matches (each with
+  its own strength, confidence, reason and verification numbers), an optional
+  second-pass suggestion, tonal-balance notes, and the intensity timeline.
+- **Stage 1 — evidence scan** (whole file, up to 300 s, non-overlapping
+  4096-pt frames, power summed over L/R so side-only artifacts cannot cancel
+  as they would in a mono mix). Calibrated measurements in dB or fractions:
+  steady narrow tones (25th-percentile excess over a 51-bin envelope, plus
+  duty cycle; flicker is measured on its own 1024/256 grid so 10–50 Hz hash
+  modulation is visible),
+  spectral balance (top tilt, presence, upper-mid, mud, dullness), and on the
+  hottest 5 s window at 1024 hop: sub-band amplitude flicker vs. the body,
+  comb spacing, sibilance bursts, high-band periodicity beyond the beat,
+  decay-tail residue, intermittent ringing, presence/body correlation and
+  band flatness. These give each preset a *prior* and its evidence phrase.
+- **Stage 2 — verification** (hottest window). Every artifact preset is run
+  through the real cleaning pipeline (`clean_and_master`, no mastering / EQ)
+  and the *removed* signal is split into artifact-like energy (cells ≥ 2 kHz
+  that are neither transient hold windows nor sustained musical partials
+  below 10 kHz) and protected energy (body < 2 kHz ×3, transients, partials).
+  Verified score = benefit × quality: benefit ramps the artifact-like removal
+  from −45 to −20 dB re. the top-end energy but is penalised 1.5 dB per dB
+  past −18 dB (removing more than a plausible share of the top end is
+  over-processing, not residue); quality ramps purity (artifact share of
+  what was removed) from 0.5 to 0.95. Blended 80/20 with the prior.
+- **Strength** — the top picks are re-run at 50/100/150/200 % (top pick also
+  ±25 % around its choice) and the *gentlest* strength within 0.75 dB of the
+  best net benefit wins, guarded so collateral may not rise more than 3 dB or
+  purity fall more than 0.1 versus 100 %. Batch auto-detect applies it through
+  `apply_preset_strength` (the batch strength slider multiplies it), Remix
+  auto-clean applies it, and the Single File tab sets the Preset strength
+  slider when a match is applied.
+- **Tone kill** — steady tones found by the scan (≥ 6 dB excess) are
+  re-measured in the processed output; the share of their excess removed
+  carries up to 40 % of the verified score. When the winner still leaves a
+  tone more than half intact, a note names the frequency, says whether it
+  sits in the center (Mid is cleaned at 20 %, so it is largely out of reach)
+  and points to a Parametric EQ notch.
+- **Second pass** — the runner-ups are tried on the winner's cleaned output;
+  if one still removes ≥ 40 % as much residue at ≥ 80 % purity and at least
+  −26 dB re. the top end, it is reported as `follow_up`.
+- A per-second top-end intensity timeline (3–16 kHz level against the body,
+  normalised per track) is returned; the UI draws the sparkline, anchors the
+  live-preview loop at the hottest region, and the verification window is
+  chosen from it.
+- Falls back to `generic` when the top score is below 0.05 or the best trial
+  clean removes less than −48 dB re. the top end.
+- Cost: roughly 25–30 short pipeline runs, about 8–15 s per track.
 - `analyze_track()` ([mastering.py](mastering.py)) adds a loudness/spectrum
   snapshot: integrated LUFS, LRA, true peak, and a 1/3-octave long-term
   spectrum.
@@ -408,7 +491,7 @@ limiter max gain reduction) flows into job metrics and the UI metrics strip.
 
 Sources: [static/index.html](static/index.html) and the ES modules in
 [static/js/](static/js/) (`main.js`, `single.js`, `batch.js`, `visualizer.js`,
-`controls.js`, `preset.js`, `help.js`, `settings.js`, `api.js`).
+`trim.js`, `controls.js`, `preset.js`, `help.js`, `settings.js`, `api.js`).
 
 ### Application shell
 
@@ -431,15 +514,48 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   chip and the whole window becomes a drop target.
 - The Clean & Master button stays disabled until a file is selected.
 
+**Trim (top & tail)**
+- Every upload is scanned at both ends for render artifacts — the short
+  burst generators leave at the very top of a track, typically 15–35 ms
+  around −50 dBFS. These sit *above* the −60 dBFS silence gate, so the
+  "trim silence" option keeps them, and they are invisible on a linear
+  waveform.
+- A finding is always surfaced: an amber notice names what was found
+  (length, peak level, gap before the music) and offers "Use suggested cut"
+  or "Review". A clean scan is surfaced too, as a green "edges clean" chip
+  in the card header. Detection **never** edits audio on its own.
+- The Trim view draws a dB envelope (floor −100 dBFS) rather than a
+  waveform, so quiet artifacts are actually visible. The detected region is
+  shaded, and the discarded region is dimmed behind the marker.
+- Head/Tail toggle, zoom presets (250 ms / 1 s / 3 s / 10 s), click or drag
+  to place the marker, ←/→ nudge 1 ms (Shift 10 ms), numeric ms fields, and
+  Audition to play the original from the marker.
+- Suggested cuts land in the silent gap after the artifact and snap to the
+  nearest zero crossing; a 5 ms fade is applied at each new edge so the cut
+  itself cannot click.
+- An armed cut shows in the card header while the panel is closed, and the
+  applied cut is reported on the done banner ("Trimmed 40 ms head").
+- The cut is applied to the source *before* cleaning and mastering, so a
+  head click never drives the limiter or skews loudness measurement.
+
 **Preset and analysis**
 - Preset dropdown populated from `/api/presets` (visible presets only), with
   an expandable description under it.
-- Analyze button runs auto-detect plus loudness analysis, applies the top
-  preset, and shows a results row: suggested preset, confidence bar, and a
-  Details popover with the reason text, an intensity-timeline sparkline, and
-  rank-2/3 alternates with one-click Apply.
+- Analyze button runs the verified auto-detect (Section 6) plus loudness
+  analysis, applies the top preset *and its recommended strength*, and
+  shows up to six match cards: rank, name, confidence bar, a strength chip
+  (amber above 100%, cyan below), one-click Apply (which also moves the
+  Preset strength slider), and the reason text (evidence phrase plus the
+  trial-clean numbers). Below the cards: a second-pass suggestion when a
+  runner-up still finds residue on the winner's output (with a
+  master-once reminder when mastering is on), tonal-balance notes, and the
+  intensity-timeline sparkline. Takes roughly ten seconds.
 - Preset strength slider 0–200% (step 5%): visible sliders re-scale live in
   the client, hidden amount keys scale server-side via the same whitelist.
+- Clean & Master with a pending second-pass suggestion and mastering on
+  asks first (OK: mastering off for this pass, Preserve volume on; Cancel:
+  master now). The progress window is titled "Cleaning" or
+  "Cleaning & mastering" to match the run.
 
 **Mastering controls**
 - Master for release toggle (default on), loudness target (Streaming −14 /
@@ -489,7 +605,10 @@ Sources: [static/index.html](static/index.html) and the ES modules in
 - While playing: a live log-frequency spectrum with shimmer-band shading and
   an LUFS meter with a target marker tied to the mastering target.
 - Loudness-matched A/B toggle attenuates the louder track using the measured
-  LUFS values.
+  LUFS values (per-slice during Live preview, whole-file after a run),
+  capped at 6 dB. The applied monitoring gain is shown next to the toggle
+  ("Processed −2.2 dB", "(capped)" when the cap engaged); it never reaches
+  the export.
 - Keyboard shortcuts (suppressed while focus is in a form control): Space
   play/pause, 1/2/3 select track, Left/Right seek ±5 s.
 
@@ -503,9 +622,42 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   track swaps use a ~15 ms Web Audio crossfade for gapless A/B.
 - The Removed track gets a ~14 dB client-side audition boost, capped against
   the slice's own peak to avoid clipping.
+- Mastering level parity: a slice is mastered with the static gain the
+  whole file receives (`master(..., loudness_ref=...)`: whole-file raw LUFS
+  plus the slice's own pre/post-clean offset), not normalised on its own.
+  Without this a quiet verse previewed at the full target level, the
+  Original/Processed delta ballooned, and the A/B match silently cut the
+  Processed monitor by up to 6 dB.
 - Status line shows idle / uploading / rendering / live / error. Preview
   exits when a full Clean & Master runs; the session is released on page
   unload.
+
+### Signal Chain tab
+
+Sources: [chain.py](chain.py), [static/js/chain.js](static/js/chain.js),
+`POST /api/chain`.
+
+- The view is generated, not hand-written. The Master tab exposes the
+  exact state a Clean & Master click would send (preset, strength, slider
+  overrides, mastering, EQ, preserve volume, trim silence, output format,
+  whether a Trim cut is armed); `build_chain()` resolves it with the same
+  functions as `/api/process` and returns the modules in the order
+  `pipeline.py`, `engine.py` and `server.py` apply them.
+- Modules: Trim → De-click → Static repair → Tone curve → Crossover →
+  M/S → Pre-analyze mask → the nine STFT stages in registry order → Side
+  width comp → Recombine + wet/dry → Post filters + fades → Parametric
+  EQ → Preserve volume / clip protect → HP/DC → LUFS gain → Soft clip →
+  True-peak limiter → Export. The repair modules show the de-click
+  amount and threshold and the notch list the request carries ("3 lines",
+  deepest line), and the tone curve / post filters show the cutoff cap. Each carries live badges (crossover in Hz, Mid/Side scale,
+  stage bands, ceilings, strengths after preset-strength scaling) and an
+  `active` flag; inactive modules are drawn dashed with the reason
+  ("mastering is off", "this preset leaves it at zero").
+- The gates row shows the flatness gate range, transient hold and
+  release, the low-band bypass point, the STFT grid and pass count, and
+  how many modules are active.
+- Re-renders on every settings change while the tab is visible and on
+  opening the tab after a change.
 
 ### Remix tab
 
@@ -536,7 +688,8 @@ then export a cleaned, mastered remix.
 - Loop window (10/15/20 s) follows the playhead; per-stem fx renders are
   cached server-side so mute/solo/gain edits re-render only what changed.
 - The summed slice runs through the **mastering chain** when "Master the
-  remix" is on, so the preview loop sounds like the export.
+  remix" is on, with the whole-file gain reference (see Live preview), so
+  the preview loop sits at the level the export will have.
 - Per-slice LUFS of original vs remix comes back in the meta and drives a
   **loudness-matched A/B** checkbox (attenuates the louder side).
 
@@ -623,6 +776,7 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
 | GET | `/` | Serves `static/index.html` |
 | GET | `/static/*` | Static assets with `Cache-Control: no-cache` |
 | GET | `/api/presets` | Every resolvable preset: `name`, `label`, `description`, full `values` (Params dict), `visible` flag; plus `default` |
+| POST | `/api/chain` | Signal Chain description for a settings payload (same shape as `/api/process` JSON plus `eq`, `preserve_volume`, `trim_silence`, `output_format`, `trim_armed`) → `{modules[], gates, summary}` |
 | GET | `/api/settings` | Load persisted UI settings |
 | POST | `/api/settings` | Save UI settings JSON |
 | POST | `/api/browse-folder` | Open the native (tkinter) folder picker; `{initial_dir?, title?}` → `{path}` or `{path: null}` |
@@ -630,10 +784,11 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
 | GET | `/api/progress/{job_id}` | SSE stream of `{fraction, status?, done?, error?}` with 15 s keepalives |
 | GET | `/api/metrics/{job_id}` | Job metrics; 202 while running, 500 on job error |
 | GET | `/api/result/{job_id}?kind=` | Stream the file: `processed` \| `diff` \| `original` |
-| POST | `/api/suggest` | Multipart upload → preset suggestion + track analysis |
+| POST | `/api/suggest` | Multipart upload → `{preset, strength, ranked[≤6], follow_up, notes, timeline, scores, evidence, verification, metrics, analysis}` (see Section 6; ~10 s) |
 | POST | `/api/analyze` | Alias of `/api/suggest` |
 | POST | `/api/batch` | JSON body → SSE stream of per-file batch status |
-| POST | `/api/upload` | Upload once → preview session `{session_id, sample_rate, channels, duration_s, name, analysis}` |
+| POST | `/api/upload` | Upload once → preview session `{session_id, sample_rate, channels, duration_s, name, analysis, edges, repair: {lines, plan}}` |
+| GET | `/api/envelope/{session_id}?start_s=&end_s=&points=` | Peak envelope in dBFS over a range of the resident session (drawing data for the Trim view) |
 | DELETE | `/api/upload/{session_id}` | Release a preview session |
 | POST | `/api/preview` | Render a loop slice → single binary payload |
 | POST | `/api/stems/separate` | Demucs stem separation for an upload session → `{job_id}` |
@@ -648,6 +803,9 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
 - `params` — JSON string:
   `{preset, preset_strength (0..2), overrides: {param: value, ...}, mastering: {...}, mastering_analysis: {...}}`.
   Order of application: preset → strength scaling → explicit overrides.
+- `trim_in_s`, `trim_out_s` — optional explicit in/out points from the Trim
+  view. Applied to the source before cleaning and mastering, with a 5 ms
+  fade at each new edge. Omitted entirely when no trim is armed.
 - `preserve_volume` — bool, default true
 - `output_format` — `wav` | `flac` | `mp3` | `ogg` | `m4a`
 
@@ -725,7 +883,10 @@ Source: `api_batch` and `_batch_one` in [server.py](server.py)
 - Each file runs through `process_file()` on a thread executor with the
   shared preset (strength-scaled) or, with `auto_detect: true`, a per-file
   `suggest_preset()` pick reported back as `detected_preset`,
-  `detected_label`, and `detected_confidence`.
+  `detected_label`, `detected_confidence`, `detected_strength` and
+  `effective_strength`. In auto mode the request's `preset_strength`
+  multiplies the detected strength (1.0 = trust the analysis) and the
+  product goes through `apply_preset_strength`.
 - Optional mastering applies to every file.
 - SSE event stream: `start` (total count, output folder, preset or
   "auto-detect"), `file_start`, `file_done` (duration, peak in/out, detection

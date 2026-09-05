@@ -21,13 +21,18 @@ export async function saveSettings(payload) {
     });
 }
 
-export async function submitProcess(file, paramsBody, outputFormat, preserveVolume, trimSilence) {
+export async function submitProcess(file, paramsBody, outputFormat, preserveVolume,
+                                    trimSilence, trim) {
     const form = new FormData();
     form.append('file', file);
     form.append('params', JSON.stringify(paramsBody));
     form.append('output_format', outputFormat);
     form.append('preserve_volume', preserveVolume ? 'true' : 'false');
     form.append('trim_silence', trimSilence ? 'true' : 'false');
+    // Explicit in/out points from the Trim view. Sent only when set, so an
+    // untouched track keeps the exact request it sent before this existed.
+    if (trim && trim.inS > 0) form.append('trim_in_s', String(trim.inS));
+    if (trim && trim.outS != null) form.append('trim_out_s', String(trim.outS));
     const res = await fetch('/api/process', {method: 'POST', body: form});
     if (!res.ok) {
         const text = await res.text();
@@ -60,6 +65,18 @@ export async function uploadFile(file) {
         throw new Error(text || `Upload failed (${res.status})`);
     }
     return res.json();  // { session_id, sample_rate, channels, duration_s, name }
+}
+
+// Peak envelope in dBFS over a time range of the resident session — the
+// Trim view's drawing data. dB, not linear: the head artifacts this view
+// exists to show sit near -50 dBFS and are invisible on a linear waveform.
+export async function fetchEnvelope(sessionId, startS, endS, points = 600) {
+    const q = new URLSearchParams({
+        start_s: String(startS), end_s: String(endS), points: String(points),
+    });
+    const res = await fetch(`/api/envelope/${sessionId}?${q}`);
+    if (!res.ok) throw new Error(`Envelope fetch failed (${res.status})`);
+    return res.json();  // { start_s, end_s, sample_rate, db: [...] }
 }
 
 export async function dropSession(sessionId) {

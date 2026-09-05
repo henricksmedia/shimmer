@@ -99,6 +99,15 @@ def _build_parser() -> argparse.ArgumentParser:
     creative.add_argument("--mix", type=float, default=None,
                           help="0..1 wet/dry (1.0 = full processing)")
 
+    # --- Deterministic repairs (run first in the chain) ---
+    rp = ap.add_argument_group("repairs (run first)")
+    rp.add_argument("--declick", type=float, default=None,
+                    help="0..1 de-click / de-crackle on the high band "
+                         "(0 = off; presets set their own)")
+    rp.add_argument("--no-static-repair", action="store_true",
+                    help="Skip the whole-file scan that notches the "
+                         "generator's fixed tonal lines first")
+
     # --- Denoise ---
     dn = ap.add_argument_group("spectral denoise")
     dn.add_argument("--denoise", type=float, default=None,
@@ -252,6 +261,7 @@ def _resolve_params(args) -> Params:
         "noise_resynth": "noise_resynth",
         "mix": "mix",
         "fade_ms": "fade_ms",
+        "declick": "declick",
         "denoise": "denoise",
         "dn_start_hz": "dn_start_hz",
         "dn_end_hz": "dn_end_hz",
@@ -380,14 +390,34 @@ def main() -> int:
     if args.suggest:
         from .probe import suggest_preset
         result = suggest_preset(args.suggest)
-        print(f"Suggested preset: {result['preset']}\n")
-        print("Shimmer-density scores per candidate band:")
-        for name, score in sorted(
-                result["scores"].items(), key=lambda kv: -kv[1]):
-            print(f"  {name:14s} {score:.4f}")
+        m = result["metrics"]
+        print(f"Suggested preset:   {result['preset']} "
+              f"at {result.get('strength', 1.0) * 100:.0f}% strength\n")
+        print("Ranked matches (verified through the cleaning pipeline):")
+        print(f"  {'preset':18s} {'score':>5s} {'conf':>5s} {'str':>5s} "
+              f"{'residue':>8s} {'collat':>7s} {'purity':>6s}")
+        for e in result["ranked"]:
+            art = e.get("artifact_db")
+            col = e.get("collateral_db")
+            pur = e.get("purity")
+            print(f"  {e['name']:18s} {e['score']:5.2f} {e['confidence']:5.2f} "
+                  f"{e.get('strength', 1.0) * 100:4.0f}% "
+                  f"{(f'{art:7.1f}dB' if art is not None else '      -'):>8s} "
+                  f"{(f'{col:6.1f}dB' if col is not None else '     -'):>7s} "
+                  f"{(f'{pur:5.0%}' if pur is not None else '    -'):>6s}")
+            print(f"    {e.get('reason', '')}")
+        fu = result.get("follow_up")
+        if fu:
+            print(f"\nSecond pass worth trying: {fu['name']} — {fu['reason']}")
+        for note in result.get("notes") or []:
+            print(f"\nNote: {note}")
         print(f"\nCheckerboard score: {result['checkerboard_score']:.4f}")
-        print(f"Analyzed:           {result['metrics']['analyzed_seconds']:.1f} s "
-              f"@ {result['metrics']['sample_rate']} Hz")
+        print(f"Analyzed:           {m['analyzed_seconds']:.1f} s "
+              f"@ {m['sample_rate']} Hz; verified on "
+              f"{m.get('window_s', 0):.0f} s window at "
+              f"{m.get('window_start_s', 0):.0f} s "
+              f"({m.get('verify_runs', 0)} pipeline runs, "
+              f"{m.get('elapsed_ms', 0) / 1000:.1f} s)")
         return 0
 
     if not args.input or not args.output:
@@ -434,9 +464,20 @@ def main() -> int:
         progress_callback=_progress_bar,
         master_params=master_params,
         use_pipeline=not args.legacy_engine,
+        static_repair=not args.no_static_repair,
     )
 
     elapsed = time.time() - t_start
+    rep = result.get("repair") or {}
+    if rep.get("enabled"):
+        print(f"  Repair:    {rep.get('notches', 0)} fixed line(s) notched, "
+              f"deepest {rep.get('deepest_db', 0):.0f} dB")
+    dc = result.get("declick") or {}
+    if dc.get("enabled"):
+        print(f"  De-click:  {dc.get('clicks', 0)} click(s) repaired")
+    if result.get("cutoff_hz"):
+        print(f"  Cutoff:    top end stops at {result['cutoff_hz'] / 1000:.1f} kHz "
+              f"(no boosts above it)")
 
     print(f"\n  Duration:  {result['duration_s']:.1f}s @ {result['sr']} Hz, {result['channels']}ch")
     print(f"  Input:     peak {result['input']['peak_dbfs']:.1f} dBFS, rms {result['input']['rms_dbfs']:.1f} dBFS")

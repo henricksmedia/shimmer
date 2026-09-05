@@ -189,7 +189,8 @@ def tilt_offsets_db(tilt: str) -> np.ndarray:
 
 def compute_tone_curve(x_raw: np.ndarray, sr: int, strength: float = 1.0,
                        raw_spectrum: Dict[str, Any] | None = None,
-                       tilt: str = "neutral") -> List[float]:
+                       tilt: str = "neutral",
+                       cutoff_hz: float | None = None) -> List[float]:
     """Compute the bounded static tone curve from the RAW input analysis.
 
     Must be called on the unprocessed input, before any artifact
@@ -227,6 +228,11 @@ def compute_tone_curve(x_raw: np.ndarray, sr: int, strength: float = 1.0,
     # where AI fizz/shimmer lives (cuts remain allowed).
     harsh = (_REF_FREQS >= _HARSH_LO_HZ) & (_REF_FREQS <= _HARSH_HI_HZ)
     delta[harsh] = np.minimum(delta[harsh], _HARSH_MAX_BOOST_DB)
+    # Bandwidth guard: never boost above the source's cutoff. There is
+    # nothing there to match a reference against, only residue.
+    if cutoff_hz is not None and cutoff_hz > 0:
+        above = _REF_FREQS >= 0.9 * float(cutoff_hz)
+        delta[above] = np.minimum(delta[above], 0.0)
     # Re-clip after smoothing so bounds are hard guarantees.
     delta = np.clip(delta, -_MAX_EQ_CUT_DB, _MAX_EQ_BOOST_DB)
     return delta.tolist()
@@ -434,7 +440,8 @@ def tpdf_dither(x: np.ndarray, bits: int = 16) -> np.ndarray:
 
 def master(x: np.ndarray, sr: int, mp: MasterParams,
            analysis: Dict[str, Any] | None = None,
-           eq_bands_db: List[float] | None = None
+           eq_bands_db: List[float] | None = None,
+           loudness_ref: Dict[str, float] | None = None
            ) -> Tuple[np.ndarray, Dict[str, Any]]:
     """Run the single-pass mastering chain. Returns (audio, report dict).
 
@@ -445,6 +452,14 @@ def master(x: np.ndarray, sr: int, mp: MasterParams,
     BEFORE artifact cleaning (see compute_tone_curve / apply_tone_curve).
     Pass `eq_bands_db` (the curve applied upstream) so it lands in the
     report for the UI.
+
+    `loudness_ref` is for preview slices: ``{"whole_lufs": <raw LUFS of
+    the whole track>, "slice_lufs": <raw LUFS of this block>}``.  With it,
+    the static gain is the one the *whole file* will receive (the block's
+    own pre/post-clean offset estimates how cleaning and the tone curve
+    moved the whole-file level) instead of normalising the block on its
+    own.  Without it a quiet section previews far louder than the export
+    and the A/B loudness match turns the Processed monitor down.
     """
     if not mp.enabled:
         return as_2d(np.asarray(x, dtype=np.float32)), {"enabled": False}
@@ -465,7 +480,19 @@ def master(x: np.ndarray, sr: int, mp: MasterParams,
     # small shortfall is the price of not crushing the mix with
     # iterative gain/limit passes.
     target = float(mp.target_lufs)
-    y, gain_db = apply_gain_to_lufs(y, sr, target)
+    ref = loudness_ref or {}
+    whole = ref.get("whole_lufs")
+    sl = ref.get("slice_lufs")
+    if (whole is not None and sl is not None
+            and math.isfinite(float(whole)) and math.isfinite(float(sl))
+            and math.isfinite(before["lufs_i"])):
+        est_whole = float(whole) + (before["lufs_i"] - float(sl))
+        gain_db = float(target - est_whole)
+        y = (y * float(db_to_lin(gain_db))).astype(np.float32)
+        gain_source = "whole_file"
+    else:
+        y, gain_db = apply_gain_to_lufs(y, sr, target)
+        gain_source = "measured"
 
     # Dual-stage peak control: shaper takes the top ~2 dB, limiter
     # trims true peaks to the ceiling in a single pass.
@@ -484,6 +511,7 @@ def master(x: np.ndarray, sr: int, mp: MasterParams,
         "target_lufs": target,
         "current_lufs": before["lufs_i"],
         "gain_db": float(gain_db),
+        "gain_source": gain_source,
         "ceiling_dbtp": float(mp.ceiling_dbtp),
         "estimated_true_peak": after["true_peak_dbtp"],
         "limiter_gain_reduction": limiter_stats.get("max_gain_reduction_db", 0.0),
@@ -531,10 +559,15 @@ def master_params_from_json(data: Dict[str, Any] | None) -> MasterParams:
 
 
 def analyze_track(x: np.ndarray, sr: int) -> Dict[str, Any]:
-    """Full analysis snapshot for /api/analyze."""
+    """Full analysis snapshot for /api/analyze: loudness, 1/3-octave
+    spectrum, and the source's bandwidth cutoff (None = full)."""
+    from .repair import estimate_cutoff_hz
     loud = measure_loudness(x, sr)
     spec = analyze_spectrum(x, sr)
+    cut = estimate_cutoff_hz(x, sr)
     return {
         "loudness": loud,
         "spectrum": spec,
+        "cutoff_hz": cut.get("cutoff_hz"),
+        "above_cutoff_db": cut.get("above_db"),
     }

@@ -57,6 +57,9 @@ from .audio_io import (
 )
 from .engine import process, apply_post_filters
 from .dsp import as_2d, trim_silence as dsp_trim_silence
+from .edges import apply_trim, detect_edge_artifacts
+from .repair import NotchPlan, estimate_cutoff_hz, plan_from_lines
+from .detect import scan_fixed_lines
 from .eq import EqParams, eq_params_from_json
 from .jobs import JOB_STORE, Job
 from .params import Params, apply_preset_strength, MasterParams
@@ -194,14 +197,45 @@ def _eq_params_from_request(data: Dict[str, Any]) -> EqParams:
     return eq_params_from_json(data.get("eq") or {})
 
 
+def _repair_plan_for(x: Optional[np.ndarray], sr: int,
+                     req: Optional[Dict[str, Any]],
+                     lines: Optional[list] = None) -> Optional[NotchPlan]:
+    """Resolve the static-repair plan for a request.
+
+    `req` is the client's `repair` block: `{"enabled": false}` turns the
+    stage off; an explicit `notches` list (from Analyze, possibly with
+    lines unticked) is validated and used as-is; otherwise the file is
+    scanned (or the session's cached scan is used)."""
+    req = req or {}
+    if req.get("enabled") is False:
+        return None
+    if isinstance(req.get("notches"), list):
+        return NotchPlan.from_dict(req, sr)
+    if lines is None:
+        if x is None:
+            return None
+        lines = scan_fixed_lines(x, sr)
+    return plan_from_lines(lines, sr)
+
+
 def _run_job_sync(job: Job, upload_path: str, params: Params,
                   preserve_vol: bool, progress_cb,
                   master_params: Optional[MasterParams] = None,
                   mastering_analysis: Optional[Dict[str, Any]] = None,
                   trim_silence: bool = False,
-                  eq_params: Optional[EqParams] = None) -> None:
+                  eq_params: Optional[EqParams] = None,
+                  trim_in_s: float = 0.0,
+                  trim_out_s: Optional[float] = None,
+                  repair_req: Optional[Dict[str, Any]] = None) -> None:
     """CPU-bound worker: runs in a thread executor."""
     x, sr = load_audio(upload_path)
+
+    # Explicit in/out points are applied to the SOURCE, before anything
+    # else runs. A head click is a transient the limiter would otherwise
+    # duck the whole intro for, and cutting first keeps every downstream
+    # measurement (loudness, tone curve) describing the real music.
+    x, edge_trim_report = apply_trim(x, sr, trim_in_s, trim_out_s)
+
     meas_in = measure(x)
     use_mastering = master_params is not None and master_params.enabled
 
@@ -211,12 +245,21 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
     if use_mastering and mastering_analysis is None:
         mastering_analysis = analyze_track(x, sr)
 
+    # Deterministic repairs come from the whole file: the fixed-line plan
+    # and the bandwidth cutoff (shelves / tone curve never boost above it).
+    repair_plan = _repair_plan_for(x, sr, repair_req)
+    cut = (mastering_analysis or {}).get("cutoff_hz") if mastering_analysis else None
+    if cut is None:
+        cut = estimate_cutoff_hz(x, sr).get("cutoff_hz")
+    params.cutoff_hz = float(cut or 0.0)
+
     y2, removed, pipe_report = clean_and_master(
         x, sr, params,
         master_params=master_params if use_mastering else None,
         progress_callback=progress_cb,
         raw_analysis=mastering_analysis,
         eq_params=eq_params,
+        repair=repair_plan,
     )
     mastering_report: Dict[str, Any] = pipe_report.get(
         "mastering", {"enabled": False})
@@ -288,6 +331,10 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         "mastering": mastering_report,
         "loudness": loudness,
         "trim": trim_report,
+        "edge_trim": edge_trim_report,
+        "repair": pipe_report.get("static_repair", {"enabled": False}),
+        "declick": pipe_report.get("declick", {"enabled": False}),
+        "cutoff_hz": float(params.cutoff_hz or 0.0),
         "eq": pipe_report.get("eq", {"enabled": False}),
     }
 
@@ -297,7 +344,10 @@ async def _run_job_async(job: Job, upload_path: str, params: Params,
                          master_params: Optional[MasterParams] = None,
                          mastering_analysis: Optional[Dict[str, Any]] = None,
                          trim_silence: bool = False,
-                         eq_params: Optional[EqParams] = None) -> None:
+                         eq_params: Optional[EqParams] = None,
+                         trim_in_s: float = 0.0,
+                         trim_out_s: Optional[float] = None,
+                         repair_req: Optional[Dict[str, Any]] = None) -> None:
     """Schedule the worker on the default executor; push done sentinel."""
     loop = asyncio.get_running_loop()
     cb = _threadsafe_progress_pusher(job, loop)
@@ -306,7 +356,8 @@ async def _run_job_async(job: Job, upload_path: str, params: Params,
         await loop.run_in_executor(
             None, _run_job_sync,
             job, upload_path, params, preserve_vol, cb,
-            master_params, mastering_analysis, trim_silence, eq_params)
+            master_params, mastering_analysis, trim_silence, eq_params,
+            trim_in_s, trim_out_s, repair_req)
         job.progress = 1.0
         job.status = "done"
         await job.queue.put({"fraction": 1.0, "done": True})
@@ -346,6 +397,32 @@ async def api_presets() -> JSONResponse:
             "visible": is_visible(name),
         })
     return JSONResponse({"presets": items, "default": "generic"})
+
+
+@app.post("/api/chain")
+async def api_chain(payload: Dict[str, Any]) -> JSONResponse:
+    """Describe the processing chain for the given settings (Signal Chain
+    tab). Uses the same resolvers as /api/process — preset, strength,
+    overrides, mastering, EQ, export format — so the view shows exactly
+    what a run would do. Reads settings only; touches no audio."""
+    from .chain import build_chain
+    data = payload or {}
+    p = _params_from_json(data)
+    mp = _master_params_from_request(data)
+    output_format = str(data.get("output_format") or "wav")
+    if (data.get("mastering") or {}).get("ceiling_dbtp") is None:
+        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
+    eqp = _eq_params_from_request(data)
+    eq_bands = len(eqp.active_bands(44100)) if eqp.is_active(44100) else 0
+    return JSONResponse(build_chain(
+        p, mp,
+        eq_bands=eq_bands,
+        preserve_volume=bool(data.get("preserve_volume", True)),
+        trim_silence=bool(data.get("trim_silence", False)),
+        output_format=output_format,
+        trim_armed=bool(data.get("trim_armed", False)),
+        repair=data.get("repair"),
+    ))
 
 
 @app.get("/api/settings")
@@ -412,6 +489,8 @@ async def api_process(
     preserve_volume: bool = Form(True),
     output_format: str = Form("wav"),
     trim_silence: bool = Form(False),
+    trim_in_s: float = Form(0.0),
+    trim_out_s: Optional[float] = Form(None),
 ) -> JSONResponse:
     try:
         params_data = json.loads(params)
@@ -453,7 +532,8 @@ async def api_process(
     # Fire-and-forget worker task; progress flows via job.queue → SSE.
     asyncio.create_task(_run_job_async(
         job, job.original_path, p, preserve_volume, mp, mastering_analysis,
-        trim_silence, eqp))
+        trim_silence, eqp, trim_in_s, trim_out_s,
+        params_data.get("repair")))
     JOB_STORE.sweep()
     return JSONResponse({"job_id": job.id})
 
@@ -595,6 +675,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     output_format = (payload.get("output_format") or "wav").lstrip(".").lower()
     auto_detect = bool(payload.get("auto_detect", False))
     trim_silence = bool(payload.get("trim_silence", False))
+    static_repair = bool(payload.get("static_repair", True))
     mp = master_params_from_json(payload.get("mastering") or {})
     eqp = eq_params_from_json(payload.get("eq") or {})
     # Codec-aware ceiling unless the user explicitly chose one.
@@ -652,7 +733,8 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
             try:
                 r = await loop.run_in_executor(
                     None, _batch_one, src, dst, preset, preserve_vol,
-                    auto_detect, preset_strength, mp, trim_silence, eqp)
+                    auto_detect, preset_strength, mp, trim_silence, eqp,
+                    static_repair)
                 yield _sse_event({
                     "type": "file_done", "index": i, "name": name,
                     "duration_s": r["duration_s"],
@@ -662,6 +744,8 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
                     "detected_preset": r.get("detected_preset"),
                     "detected_label": r.get("detected_label"),
                     "detected_confidence": r.get("detected_confidence"),
+                    "detected_strength": r.get("detected_strength"),
+                    "effective_strength": r.get("effective_strength"),
                 })
             except Exception as e:  # noqa: BLE001
                 yield _sse_event({
@@ -677,7 +761,8 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
                auto_detect: bool = False, preset_strength: float = 1.0,
                master_params: Optional[MasterParams] = None,
                trim_silence: bool = False,
-               eq_params: Optional[EqParams] = None):
+               eq_params: Optional[EqParams] = None,
+               static_repair: bool = True):
     detected_info: Dict[str, Any] = {}
 
     if auto_detect:
@@ -687,12 +772,21 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
         chosen = suggestion.get("preset") or "generic"
         ranked = suggestion.get("ranked") or []
         confidence = ranked[0]["confidence"] if ranked else 0.0
+        # The analysis recommends a strength for its pick.  In auto mode
+        # the batch strength slider multiplies it (100% = trust the
+        # analysis), and the product goes through the same
+        # apply_preset_strength hook as a manual strength choice.
+        detected_strength = float(suggestion.get("strength") or 1.0)
+        effective_strength = max(0.0, min(2.0, detected_strength * preset_strength))
         detected_info = {
             "detected_preset": chosen,
             "detected_label": label_for(chosen),
             "detected_confidence": round(float(confidence), 2),
+            "detected_strength": round(detected_strength, 2),
+            "effective_strength": round(effective_strength, 2),
         }
         params = get_preset(chosen)
+        preset_strength = effective_strength
     else:
         params = get_preset(preset_name)
 
@@ -706,6 +800,7 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
         master_params=master_params,
         trim_silence=trim_silence,
         eq_params=eq_params,
+        static_repair=static_repair,
     )
     result.update(detected_info)
     return result
@@ -813,6 +908,9 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
 
     loop2 = asyncio.get_running_loop()
     track_analysis = await loop2.run_in_executor(None, analyze_track, x, sr)
+    # Scan both edges for render glitches. Reported, never auto-applied —
+    # the UI raises it and the user decides.
+    edges = await loop2.run_in_executor(None, detect_edge_artifacts, x, sr)
     # Content digest: keys both the stem cache and the per-track project
     # store, so the client can restore prior work for this exact file.
     digest = await loop2.run_in_executor(
@@ -824,6 +922,10 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
         original_name=orig_name,
     )
     sess.track_analysis = track_analysis
+    # Whole-file scan for the generator's fixed lines: the static-repair
+    # plan every preview slice and run for this session starts from.
+    lines = await loop2.run_in_executor(None, scan_fixed_lines, x, sr)
+    sess.repair_lines = lines
     PREVIEW_STORE.sweep()
     return JSONResponse({
         "session_id": sess.id,
@@ -832,6 +934,8 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
         "duration_s": sess.duration_s,
         "name": orig_name,
         "analysis": track_analysis,
+        "edges": edges,
+        "repair": {"lines": lines, "plan": plan_from_lines(lines, sr).as_dict()},
         "digest": digest,
         "stems_cached": stems_mod.cache_complete(digest),
         "project": load_project(digest),
@@ -851,10 +955,53 @@ def _slice_loudness_db(arr: np.ndarray, sr: int) -> float:
     return float(20.0 * np.log10(rms + 1e-9))
 
 
+def _whole_file_lufs(sess) -> Optional[float]:
+    """Integrated LUFS of the whole uploaded track, cached on the session."""
+    loud = (sess.track_analysis or {}).get("loudness") or {}
+    v = loud.get("lufs_i")
+    if v is not None and np.isfinite(float(v)):
+        return float(v)
+    try:
+        v = measure_loudness(sess.samples, sess.sr).get("lufs_i")
+    except Exception:  # noqa: BLE001
+        return None
+    if v is None or not np.isfinite(float(v)):
+        return None
+    ta = dict(sess.track_analysis or {})
+    ta.setdefault("loudness", {})
+    ta["loudness"] = dict(ta["loudness"], lufs_i=float(v))
+    sess.track_analysis = ta
+    return float(v)
+
+
+def _master_loudness_ref(sess, block: np.ndarray, sr: int
+                         ) -> Optional[Dict[str, float]]:
+    """Whole-file loudness reference for mastering a preview slice.
+
+    Mastering normalises whatever it is given to the target.  Given a
+    slice on its own, a quiet verse is boosted to the target while the
+    full run leaves it quiet, so the preview plays a level the export
+    never has — and the A/B loudness match then turns the Processed
+    monitor down by that difference.  With this reference `master()`
+    applies the gain the whole file will get.
+    """
+    whole = _whole_file_lufs(sess)
+    if whole is None:
+        return None
+    try:
+        sl = measure_loudness(block, sr).get("lufs_i")
+    except Exception:  # noqa: BLE001
+        return None
+    if sl is None or not np.isfinite(float(sl)):
+        return None
+    return {"whole_lufs": float(whole), "slice_lufs": float(sl)}
+
+
 def _render_preview_sync(sess, start_s: float, end_s: float, p: Params,
                          preserve_vol: bool,
                          master_params: Optional[MasterParams] = None,
-                         eq_params: Optional[EqParams] = None) -> Dict[str, Any]:
+                         eq_params: Optional[EqParams] = None,
+                         repair: Optional[NotchPlan] = None) -> Dict[str, Any]:
     """Render processed + diff slices for the requested window.
 
     The Original player keeps the full file in the browser (so the user
@@ -887,6 +1034,9 @@ def _render_preview_sync(sess, start_s: float, end_s: float, p: Params,
         master_params=master_params if use_mastering else None,
         raw_analysis=dict(sess.track_analysis or {}),
         eq_params=eq_params,
+        master_loudness_ref=(
+            _master_loudness_ref(sess, in_slice, sr) if use_mastering else None),
+        repair=repair,
     )
 
     proc_audible = trim_processed_preview(y2, head_pad, audible_len)
@@ -945,6 +1095,10 @@ async def api_preview(payload: Dict[str, Any]) -> Response:
     preserve_vol = bool(payload.get("preserve_volume", True))
     mp = master_params_from_json(payload.get("mastering") or {})
     eqp = eq_params_from_json(payload.get("eq") or {})
+    # Static repair from the session's whole-file scan (or the client's
+    # explicit list), so a preview slice gets the same notches the run will.
+    repair_plan = _repair_plan_for(
+        None, sess.sr, payload.get("repair"), lines=sess.repair_lines)
 
     try:
         p = _params_from_json({
@@ -954,13 +1108,14 @@ async def api_preview(payload: Dict[str, Any]) -> Response:
         })
     except KeyError as e:
         raise HTTPException(400, f"Unknown preset: {e}")
+    p.cutoff_hz = float((sess.track_analysis or {}).get("cutoff_hz") or 0.0)
 
     loop = asyncio.get_running_loop()
     t0 = time.time()
     try:
         result = await loop.run_in_executor(
             None, _render_preview_sync, sess, start_s, end_s, p,
-            preserve_vol, mp, eqp)
+            preserve_vol, mp, eqp, repair_plan)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, f"Preview render failed: {e}")
     elapsed_ms = int((time.time() - t0) * 1000)
@@ -981,6 +1136,43 @@ async def api_preview(payload: Dict[str, Any]) -> Response:
         result["wav_removed"],
     ])
     return Response(content=body, media_type="application/octet-stream")
+
+
+@app.get("/api/envelope/{session_id}")
+async def api_envelope(session_id: str, start_s: float = 0.0,
+                       end_s: float = 1.0, points: int = 600) -> JSONResponse:
+    """Peak envelope in dBFS over a time range, for the Trim view.
+
+    Returned in dB rather than linear amplitude on purpose: the artifacts
+    this view exists to show sit near -50 dBFS, which is a flat line on a
+    linear waveform. Served from the resident session, so scrubbing zoom
+    levels costs no upload and no decode.
+    """
+    sess = PREVIEW_STORE.get(session_id)
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+
+    sr = sess.sr
+    n = sess.samples.shape[0]
+    a = int(np.clip(round(start_s * sr), 0, n))
+    b = int(np.clip(round(end_s * sr), a + 1, n))
+    points = int(np.clip(points, 16, 4000))
+
+    seg = np.max(np.abs(sess.samples[a:b]), axis=1)
+    # One bucket per output point; peak within each so a single-sample
+    # click survives downsampling instead of averaging away.
+    idx = np.linspace(0, seg.shape[0], points + 1).astype(np.int64)
+    peaks = np.array([
+        seg[idx[i]:max(idx[i] + 1, idx[i + 1])].max() for i in range(points)
+    ], dtype=np.float64)
+    db = 20.0 * np.log10(peaks + 1e-9)
+
+    return JSONResponse({
+        "start_s": a / sr,
+        "end_s": b / sr,
+        "sample_rate": sr,
+        "db": [round(float(v), 2) for v in db],
+    })
 
 
 @app.delete("/api/upload/{session_id}")
@@ -1157,8 +1349,11 @@ async def api_remix_preview(payload: Dict[str, Any]) -> Response:
 
         if use_master:
             # Master the padded block (limiter/HP warm up in the
-            # discarded preroll), then trim to the audible window.
-            out, _ = master(out, sr, mp)
+            # discarded preroll), then trim to the audible window. The
+            # whole-file reference keeps the slice at the level the full
+            # render will have instead of normalising it on its own.
+            out, _ = master(out, sr, mp,
+                            loudness_ref=_master_loudness_ref(sess, orig_block, sr))
         else:
             peak = float(np.max(np.abs(out)))
             if peak > 0.999:
@@ -1256,12 +1451,25 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
                 ranked = sug.get("ranked") or []
                 cleaning_info["detected_confidence"] = float(
                     ranked[0].get("confidence", 0.0)) if ranked else 0.0
+                cleaning_info["detected_strength"] = float(
+                    sug.get("strength") or 1.0)
             cleaning_info["preset"] = preset_name
             cleaning_info["label"] = label_for(preset_name)
             p = get_preset(preset_name)
+            # Auto mode: the analysis chose the strength too; scale the
+            # preset through the standard hook before cleaning.
+            auto_strength = cleaning_info.get("detected_strength")
+            if auto_strength is not None and abs(auto_strength - 1.0) > 1e-6:
+                apply_preset_strength(p, float(auto_strength))
+            # Deterministic repairs on the summed remix: fixed lines and
+            # the bandwidth cutoff, measured on what is about to be cleaned.
+            remix_plan = plan_from_lines(scan_fixed_lines(y, sr), sr)
+            p.cutoff_hz = float(estimate_cutoff_hz(y, sr).get("cutoff_hz") or 0.0)
+            cleaning_info["repair_notches"] = len(remix_plan.notches)
             cb(0.2)
             y, _removed, rep = clean_and_master(
                 y, sr, p,
+                repair=remix_plan,
                 master_params=mp if mp.enabled else None,
                 progress_callback=lambda f: cb(0.2 + 0.7 * f),
             )
