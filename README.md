@@ -508,8 +508,18 @@ Built on excellent open-source work: [NumPy](https://numpy.org/) and
 [FastAPI](https://fastapi.tiangolo.com/) for the server,
 [pyloudnorm](https://github.com/csteinmetz1/pyloudnorm) for loudness
 measurement, [soundfile](https://github.com/bastibe/python-soundfile) for
-audio I/O, and [Demucs](https://github.com/facebookresearch/demucs) for stem
-separation. Each keeps its own license.
+audio I/O, and [Demucs](https://github.com/facebookresearch/demucs) (Meta,
+MIT) with [audio-separator](https://github.com/nomadkaraoke/python-audio-separator)
+(MIT, carrying [RoFormer model code](https://github.com/lucidrains/BS-RoFormer)
+by lucidrains) on [PyTorch](https://pytorch.org/) for stem separation. Each
+keeps its own license.
+
+The separation models download on first use from their authors' releases
+and stay on your machine: the Demucs models by Meta (MIT) and the Mel-Band
+RoFormer vocal model by
+[Kimberley Jensen](https://github.com/KimberleyJensen/Mel-Band-Roformer-Vocal-Model)
+(MIT). Shimmer only offers models whose license allows use on music you
+release and sell; the full list, with each license, is in [NOTICE](NOTICE).
 
 ---
 

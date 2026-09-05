@@ -923,8 +923,25 @@ right.
   averaged per stem (the first model counts double), 2 shift passes,
   0.5 overlap: the MDX23 recipe, about 4.5× Best. A tier's `model` may
   join several names with `+`; the worker builds one flat BagOfModels
-  from their leaf models. Default: best with a GPU, fast without.
-  Measured on an RTX 4070 SUPER with a 4:32 track: Fast 9 s, Best 22 s.
+  from their leaf models. **studio** = `kim_melroformer+htdemucs_ft`
+  with `engine="hybrid"`: the worker first runs Kimberley Jensen's
+  Mel-Band RoFormer vocal model (`vocals_mel_band_roformer.ckpt`, MIT,
+  913 MB, through audio-separator with normalisation off so
+  instrumental = mix − vocals exactly), then `htdemucs_ft` on the
+  instrumental; Demucs' vocal output (bleed) is added to the RoFormer
+  vocal so the four lanes still sum to the mix. audio-separator is
+  installed into `.venv-stems` on first use (`install_roformer`); its
+  checkpoints live in `stem_cache/models/`. No weights ship with
+  Shimmer: audio-separator fetches the checkpoint on first use from the
+  UVR project's public model mirror on GitHub
+  (`TRvlvr/model_repo` releases) and its config from
+  `TRvlvr/application_data`; Demucs fetches Meta's from
+  `dl.fbaipublicfiles.com`. Once downloaded everything runs offline. A
+  checkpoint placed by hand in `stem_cache/models/` (same file name) is
+  used without a download. Default: best with a GPU,
+  fast without. Measured on an RTX 4070 SUPER with a 4:32 track: Fast
+  9 s, Best 22 s; Studio on a 20 s clip 12 s (8 s of it the vocal
+  stage), so roughly 2× Best.
 - Stems are written as 32-bit float WAVs at Demucs' 44.1 kHz exactly as
   the model produced them (no clipping, rescaling or 16-bit
   truncation), cached at `stem_cache/<sha1>/<model>/` (content hash and

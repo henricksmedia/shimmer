@@ -15,10 +15,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
   at a chosen quality: **Fast** (htdemucs, about 10 s for a four-minute
   song on the GPU), **Best** (htdemucs_ft, the fine-tuned model with one
   specialist per stem, about 25 s; fetches 330 MB the first time),
-  **6 stems** (adds guitar and piano) or **Ultra** (the MDX23 recipe:
+  **6 stems** (adds guitar and piano), **Ultra** (the MDX23 recipe:
   Best averaged with htdemucs and Hybrid Demucs v3, two shift passes,
   50 % segment overlap; about 4× Best, for less bleed and fewer seams
-  when time does not matter). Stems are written as 32-bit float
+  when time does not matter) or **Studio**, the step past Demucs for
+  the stem that matters most: Kimberley Jensen's Mel-Band RoFormer
+  (MIT; 12.6 dB vocal SDR against htdemucs_ft's 10.8) takes the vocal
+  out first and Best splits only what is left, so its own vocal output
+  is bleed that folds back into the vocal lane. Studio installs the
+  RoFormer runner (audio-separator, MIT) into the side venv and fetches
+  the 915 MB model the first time; about 2× Best afterwards. Every
+  shipped model and its license is listed in NOTICE and the About tab;
+  models without published terms are not offered. Stems are written as 32-bit float
   WAVs exactly as the model produced them (no clipping, rescaling or
   16-bit truncation) and cached per track *and* model, so switching
   tiers never re-runs what is done; the old cache layout is migrated in

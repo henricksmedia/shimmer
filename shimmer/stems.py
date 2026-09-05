@@ -80,10 +80,21 @@ class Tier:
     gpu_s_per_min: float  # rough separation time per minute of audio
     cpu_s_per_min: float
     overlap: float = 0.25  # segment overlap; more = fewer seams, slower
+    engine: str = "demucs"  # demucs | hybrid: a RoFormer vocal model, then Demucs on the rest
+    vocal_model: str = ""   # audio-separator checkpoint for the hybrid engine
 
     @property
     def models(self) -> List[str]:
         return [m for m in self.model.split("+") if m]
+
+    @property
+    def demucs_model(self) -> str:
+        """The Demucs part of the spec: all of it, or what follows the
+        vocal model's tag in a hybrid ('kim_melroformer+htdemucs_ft')."""
+        if self.engine == "hybrid":
+            parts = self.models
+            return "+".join(parts[1:]) if len(parts) > 1 else DEMUCS_MODEL
+        return self.model
 
 
 # Time estimates measured on an RTX 4070 SUPER with a 4:32 track: Fast
@@ -109,7 +120,63 @@ TIERS: Dict[str, Tier] = {
     "ultra": Tier("ultra", "Ultra", "htdemucs_ft+htdemucs+hdemucs_mmi", 2, 4,
                   "Best averaged with htdemucs and Hybrid Demucs v3 · 2 shift passes · 50 % overlap",
                   570, 19.0, 250.0, overlap=0.5),
+    # The step past Demucs for the stem that matters most: Kimberley
+    # Jensen's Mel-Band RoFormer (MIT since 2026-04, 12.6 dB vocal SDR
+    # against htdemucs_ft's 10.8) takes the vocal out first; Demucs Best
+    # then splits only the instrumental, so its vocal output is bleed
+    # that folds back into the vocal lane. Needs the RoFormer runner
+    # (audio-separator, MIT) in the side venv; installed on first use.
+    "studio": Tier("studio", "Studio", "kim_melroformer+htdemucs_ft", 1, 4,
+                   "Mel-Band RoFormer vocals (Kimberley Jensen, MIT) · Best splits the rest",
+                   915, 18.0, 200.0, engine="hybrid",
+                   vocal_model="vocals_mel_band_roformer.ckpt"),
 }
+
+
+def models_dir() -> Path:
+    """Where the RoFormer runner keeps its checkpoints (next to the
+    Demucs ones, off the system drive)."""
+    return STEM_CACHE / "models"
+
+
+def roformer_ready() -> Optional[bool]:
+    """Whether audio-separator imports in the side venv: None until the
+    engine check has run."""
+    if not _ENV_STATE["checked"]:
+        return None
+    return bool((_ENV_STATE.get("info") or {}).get("roformer"))
+
+
+def install_roformer(progress: ProgressCb = None) -> None:
+    """Add audio-separator[gpu] (MIT) to the side venv. One-time, about
+    300 MB; torch stays as it is (the resolver keeps the installed one)."""
+    py = stems_python()
+    if not py:
+        raise RuntimeError("Separation engine is not installed")
+    _report(progress, 0.06, "Installing the RoFormer runner… one-time, about 300 MB",
+            stage="setup")
+    uv = shutil.which("uv")
+    if uv:
+        cmd = [uv, "pip", "install", "--python", py, "audio-separator[gpu]"]
+    else:
+        cmd = [py, "-m", "pip", "install", "audio-separator[gpu]"]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"RoFormer runner install failed: {(r.stderr or r.stdout)[-500:]}")
+    if not env_ready(force=True) or not roformer_ready():
+        raise RuntimeError("RoFormer runner installed but failed to import")
+
+
+def tier_downloaded(t: Tier) -> Optional[bool]:
+    """Checkpoint state for a whole tier: every Demucs member, and the
+    vocal model file for a hybrid."""
+    demucs_state = model_downloaded(t.demucs_model)
+    if t.engine != "hybrid":
+        return demucs_state
+    vocal = (models_dir() / t.vocal_model).is_file() if t.vocal_model else False
+    if not vocal or demucs_state is False:
+        return False
+    return None if demucs_state is None else True
 
 
 def resolve_tier(key: Optional[str]) -> Tier:
@@ -287,11 +354,13 @@ def engine_info(check: bool = True) -> Dict[str, Any]:
         "cache_dir": str(STEM_CACHE),
         "load_overhead_s": LOAD_OVERHEAD_S,
     }
+    info["roformer"] = None
     if py and check:
         info["ready"] = env_ready()
         st = _ENV_STATE.get("info") or {}
         info["torch"] = st.get("torch", "")
         info["demucs"] = st.get("demucs", "")
+        info["roformer"] = bool(st.get("roformer"))
         if st.get("gpu"):
             info["gpu"] = st["gpu"]
         if "cuda" in st:
@@ -299,7 +368,7 @@ def engine_info(check: bool = True) -> Dict[str, Any]:
     tiers = []
     for t in TIERS.values():
         d = asdict(t)
-        d["downloaded"] = model_downloaded(t.model) if py else False
+        d["downloaded"] = tier_downloaded(t) if py else False
         tiers.append(d)
     info["tiers"] = tiers
     return info
@@ -536,10 +605,14 @@ def separate(input_path: str, target_sr: int,
         py = stems_python()
         if not py or not env_ready():
             py = install_env(progress)
-        dl = model_downloaded(t.model)
+        if t.engine == "hybrid" and not roformer_ready():
+            install_roformer(progress)
+        dl = tier_downloaded(t)
         note = (f" · downloading it first (one time, about {t.download_mb} MB)"
                 if dl is False else "")
-        _report(progress, 0.22, f"Loading the {t.label} model ({t.model}){note}",
+        what = (f"{t.vocal_model} + {t.demucs_model}" if t.engine == "hybrid"
+                else t.model)
+        _report(progress, 0.22, f"Loading the {t.label} model ({what}){note}",
                 stage="separate")
 
         STEM_CACHE.mkdir(exist_ok=True)
@@ -558,13 +631,18 @@ def separate(input_path: str, target_sr: int,
                 _report(progress, state["frac"], str(ev.get("message") or ""),
                         stage="separate")
 
+        args = [
+            "separate", str(input_path),
+            "--model", t.demucs_model, "--shifts", str(t.shifts),
+            "--overlap", str(t.overlap),
+            "--device", "auto", "--out", str(work),
+        ]
+        if t.engine == "hybrid":
+            models_dir().mkdir(parents=True, exist_ok=True)
+            args += ["--engine", "hybrid", "--vocal-model", t.vocal_model,
+                     "--models-dir", str(models_dir())]
         try:
-            done = _run_runner(py, [
-                "separate", str(input_path),
-                "--model", t.model, "--shifts", str(t.shifts),
-                "--overlap", str(t.overlap),
-                "--device", "auto", "--out", str(work),
-            ], on_event)
+            done = _run_runner(py, args, on_event)
         except Exception:
             shutil.rmtree(work, ignore_errors=True)
             raise
@@ -578,7 +656,9 @@ def separate(input_path: str, target_sr: int,
         os.replace(str(work), str(out_dir))
         meta = {
             "model": t.model, "tier": t.key, "shifts": t.shifts,
-            "overlap": t.overlap,
+            "overlap": t.overlap, "engine": t.engine,
+            "vocal_model": t.vocal_model,
+            "vocal_s": float(done.get("vocal_s") or 0.0),
             "sources": sources, "sr": int(done.get("sr") or 44100),
             "input_sr": int(done.get("input_sr") or 0),
             "source": os.path.basename(input_path),

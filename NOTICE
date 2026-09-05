@@ -48,13 +48,36 @@ retains its own license:
   python-multipart Apache-2.0       https://github.com/Kludex/python-multipart
   pyloudnorm       MIT              https://github.com/csteinmetz1/pyloudnorm
 
-Optional, used by the Remix (stem separation) feature:
+Optional, used by the Remix (stem separation) feature. These are
+installed on demand into an isolated virtual environment (.venv-stems)
+and invoked as a separate process; none of them is bundled with or
+linked into Shimmer:
 
   Demucs           MIT              https://github.com/facebookresearch/demucs
+  PyTorch          BSD-3-Clause     https://pytorch.org/
+  torchaudio       BSD-2-Clause     https://github.com/pytorch/audio
+  audio-separator  MIT              https://github.com/nomadkaraoke/python-audio-separator
+                   (the RoFormer runner; includes BS-RoFormer / Mel-Band
+                    RoFormer model code by lucidrains, MIT,
+                    https://github.com/lucidrains/BS-RoFormer)
+  onnxruntime      MIT              https://onnxruntime.ai/
 
-Demucs is installed on demand into an isolated virtual environment and is
-invoked as a separate process. It is neither bundled with nor linked into
-Shimmer.
+MODEL WEIGHTS
+-------------
+Trained model weights are downloaded on first use from their authors'
+own releases, are stored under stem_cache/, and are not distributed with
+Shimmer. Each remains under its author's license:
+
+  htdemucs, htdemucs_ft, htdemucs_6s, hdemucs_mmi
+                   Meta Platforms, Inc., released with Demucs (MIT)
+                   https://github.com/facebookresearch/demucs
+  Mel-Band RoFormer vocal model (vocals_mel_band_roformer.ckpt)
+                   Kimberley Jensen, MIT (relicensed from GPL-3.0 on
+                   2026-04-22)
+                   https://github.com/KimberleyJensen/Mel-Band-Roformer-Vocal-Model
+
+Shimmer only offers models whose license permits use on music that is
+released and sold. Models without a published license are not offered.
 
 Optional, used for MP3 / M4A / AAC support:
 

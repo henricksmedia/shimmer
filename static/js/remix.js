@@ -27,12 +27,14 @@ const TIER_FALLBACK = [
     { key: 'best', label: 'Best', model: 'htdemucs_ft', stems: 4, download_mb: 330, gpu_s_per_min: 4.2, cpu_s_per_min: 55 },
     { key: 'six', label: '6 stems', model: 'htdemucs_6s', stems: 6, download_mb: 80, gpu_s_per_min: 1.4, cpu_s_per_min: 20 },
     { key: 'ultra', label: 'Ultra', model: 'htdemucs_ft+htdemucs+hdemucs_mmi', stems: 4, download_mb: 570, gpu_s_per_min: 19, cpu_s_per_min: 250 },
+    { key: 'studio', label: 'Studio', model: 'kim_melroformer+htdemucs_ft', stems: 4, download_mb: 915, gpu_s_per_min: 18, cpu_s_per_min: 200, engine: 'hybrid' },
 ];
 const TIER_DESC = {
     fast: 'vocals · drums · bass · other — one pass, the quickest split',
     best: 'vocals · drums · bass · other — fine-tuned, one specialist model per stem',
     six: 'vocals · drums · bass · guitar · piano · other — experimental; guitar and piano can be thin',
     ultra: 'vocals · drums · bass · other — Best averaged with two more models, two shift passes, wider overlap: less bleed and fewer seams, about 4× slower',
+    studio: 'vocals · drums · bass · other — the best open vocal model (Mel-Band RoFormer, 12.6 dB) takes the vocal out, then Best splits the rest: the cleanest vocal lane',
 };
 const RENDER_PHASES = [
     ['mix', 'Mix', '#2dd4bf'],
@@ -376,6 +378,9 @@ export async function initRemixTab() {
             const meta = [t.model];
             if (cached) meta.push('cached for this track · instant');
             else if (est) meta.push(`${state.engine && !state.engine.cuda ? 'CPU' : 'GPU'} · ${fmtSecs(est)}`);
+            if (!cached && t.engine === 'hybrid' && state.engine && state.engine.roformer === false) {
+                meta.push('installs the RoFormer runner first (about 300 MB)');
+            }
             if (!cached && t.downloaded === false) meta.push(`downloads ${t.download_mb} MB first`);
             card.appendChild(el('div', 'rc-meta', meta.join(' · ')));
             const chips = el('div', 'rc-chips');

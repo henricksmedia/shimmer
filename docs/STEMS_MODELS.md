@@ -1,7 +1,19 @@
 # Stems engine: model shortlist (Phase 4 prep)
 
-Research notes for Workstream B in [PLAN.md](PLAN.md). Nothing here is
-installed yet. Written 2026-09-05.
+Research notes for Workstream B in [PLAN.md](PLAN.md). Written
+2026-09-05.
+
+**Status, 2026-09-05 (later the same day):** `audio-separator[gpu]`
+(MIT) is installed in `.venv-stems` beside Demucs (torch unchanged at
+2.5.1+cu121). The **Studio** tier in `stems.py` runs Kimberley Jensen's
+Mel-Band RoFormer vocal model (MIT since 2026-04-22; 12.6 dB vocal SDR
+in audio-separator's table against 10.8 for htdemucs_ft) for the vocal,
+then `htdemucs_ft` on the instrumental. The **Ultra** tier is the
+Demucs-only MDX23 recipe (htdemucs_ft + htdemucs + hdemucs_mmi averaged,
+2 shifts, 0.5 overlap). Every shipped weight is MIT and listed in
+`NOTICE`. Still not offered: the ZFTurbo 4-stem Roformer/SCNet weights
+(no published terms; e-mail the author), viperx BS-Roformer (no license),
+and the unwa fine-tunes of Kim's model (license not stated).
 
 Decision 3 in the plan says: use the best open models as they are, in
 our own side venv, and check the licence of every checkpoint before it

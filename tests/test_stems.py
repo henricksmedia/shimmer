@@ -58,6 +58,30 @@ def test_tiers_name_real_models_and_default_is_valid():
     assert stems.resolve_tier("SIX").model == "htdemucs_6s"
 
 
+def test_hybrid_tier_plumbing(tmp_path, monkeypatch):
+    studio = stems.TIERS["studio"]
+    assert studio.engine == "hybrid" and studio.vocal_model.endswith(".ckpt")
+    assert studio.demucs_model == "htdemucs_ft"
+    assert stems.TIERS["ultra"].demucs_model == "htdemucs_ft+htdemucs+hdemucs_mmi"
+    assert stems.TIERS["best"].models == ["htdemucs_ft"]
+    # Downloaded means the vocal checkpoint file AND the Demucs part.
+    monkeypatch.setattr(stems, "STEM_CACHE", tmp_path)
+    monkeypatch.setattr(stems, "model_downloaded", lambda m: True)
+    assert stems.tier_downloaded(studio) is False
+    stems.models_dir().mkdir(parents=True)
+    (stems.models_dir() / studio.vocal_model).write_bytes(b"x")
+    assert stems.tier_downloaded(studio) is True
+    monkeypatch.setattr(stems, "model_downloaded", lambda m: None)
+    assert stems.tier_downloaded(studio) is None
+    assert stems.tier_downloaded(stems.TIERS["fast"]) is None
+    # Engine info carries the runner flag and the per-tier engine.
+    monkeypatch.setattr(stems, "stems_python", lambda: None)
+    info = stems.engine_info(check=True)
+    assert info["roformer"] is None
+    by = {t["key"]: t for t in info["tiers"]}
+    assert by["studio"]["engine"] == "hybrid" and by["fast"]["engine"] == "demucs"
+
+
 def test_cache_layout_migrates_legacy_entries(tmp_path, monkeypatch):
     monkeypatch.setattr(stems, "STEM_CACHE", tmp_path)
     digest = "a" * 40

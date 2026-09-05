@@ -1484,7 +1484,9 @@
                     separate folder so it never interferes with the rest of the app.
                     The <b>Best</b> quality tier fetches its own model the first time
                     you pick it (about 330 MB); <b>Fast</b> and <b>6 stems</b> are
-                    about 80 MB each.</p>
+                    about 80 MB each, <b>Ultra</b> adds 160 MB, and <b>Studio</b>
+                    installs the RoFormer runner (about 300 MB) plus its 915 MB
+                    vocal model.</p>
                     <p>If you have an NVIDIA graphics card, separation uses it
                     automatically: a four-minute song takes about 10 seconds at Fast
                     and 25 at Best. Without one it still works, just several times
@@ -1561,10 +1563,21 @@
                         <a href="https://scipy.org/" target="_blank" rel="noopener">SciPy</a> for the audio math,
                         <a href="https://fastapi.tiangolo.com/" target="_blank" rel="noopener">FastAPI</a> for the app,
                         <a href="https://github.com/csteinmetz1/pyloudnorm" target="_blank" rel="noopener">pyloudnorm</a> for loudness measurement,
-                        <a href="https://github.com/bastibe/python-soundfile" target="_blank" rel="noopener">soundfile</a> for reading and writing audio, and
-                        <a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noopener">Demucs</a> for stem separation.
+                        <a href="https://github.com/bastibe/python-soundfile" target="_blank" rel="noopener">soundfile</a> for reading and writing audio,
+                        <a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noopener">Demucs</a> (Meta, MIT) and
+                        <a href="https://github.com/nomadkaraoke/python-audio-separator" target="_blank" rel="noopener">audio-separator</a> (MIT, with
+                        <a href="https://github.com/lucidrains/BS-RoFormer" target="_blank" rel="noopener">RoFormer model code</a> by lucidrains)
+                        for stem separation, running on
+                        <a href="https://pytorch.org/" target="_blank" rel="noopener">PyTorch</a>.
                         Each keeps its own license.
                     </p>
+                    <p>The separation models are downloaded on first use from their
+                        authors' own releases and stay on your machine: the Demucs
+                        models by Meta (MIT), and the Mel-Band RoFormer vocal model by
+                        <a href="https://github.com/KimberleyJensen/Mel-Band-Roformer-Vocal-Model" target="_blank" rel="noopener">Kimberley Jensen</a>
+                        (MIT). Shimmer only offers models whose license allows use on
+                        music you release and sell; the full list is in the
+                        <a href="https://github.com/henricksmedia/shimmer/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a> file.</p>
                 </div>
 
                 <div class="help-card">

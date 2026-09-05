@@ -58,7 +58,7 @@ def status(message: str) -> None:
 # ── check ────────────────────────────────────────────────────────────────
 
 def cmd_check() -> int:
-    out: dict = {"ok": False}
+    out: dict = {"ok": False, "roformer": False}
     try:
         import torch  # noqa: WPS433
         import demucs  # noqa: WPS433
@@ -72,6 +72,11 @@ def cmd_check() -> int:
         })
     except Exception as e:  # noqa: BLE001
         out["error"] = f"{type(e).__name__}: {e}"
+    try:
+        import audio_separator  # noqa: F401,WPS433
+        out["roformer"] = True
+    except Exception:  # noqa: BLE001
+        out["roformer"] = False
     emit(out)
     return 0 if out["ok"] else 1
 
@@ -84,12 +89,16 @@ class _Progress:
     apply_model recurses bag → shifts → split; only the split level
     iterates segments through tqdm. One tqdm call is therefore one pass
     over the track, and the run has models × shifts passes in total.
+    `base` and `span` map this stage into the run's overall progress
+    (the hybrid engine spends its first part on the vocal model).
     """
 
-    def __init__(self, passes: int) -> None:
+    def __init__(self, passes: int, base: float = 0.0, span: float = 1.0) -> None:
         self.passes = max(1, int(passes))
         self.started = 0
         self._last = -1.0
+        self.base = float(base)
+        self.span = float(span)
 
     def report(self, frac: float) -> None:
         frac = max(0.0, min(1.0, float(frac)))
@@ -97,7 +106,7 @@ class _Progress:
         if frac - self._last < 0.005 and frac < 1.0:
             return
         self._last = frac
-        emit({"event": "progress", "fraction": frac})
+        emit({"event": "progress", "fraction": self.base + self.span * frac})
 
     def __call__(self, iterable, **_kw):  # tqdm.tqdm(iterable, ...) shape
         items = list(iterable)
@@ -157,12 +166,72 @@ def _load_models(names, get_model, BagOfModels):
     return BagOfModels(models, weights=weights)
 
 
+def _roformer_vocals(input_path: str, model_name: str, models_dir: str,
+                     work_dir: str):
+    """Vocals through audio-separator's RoFormer runner (Mel-Band /
+    BS-RoFormer checkpoints). Returns (vocals, instrumental, sr) as
+    (n, ch) float32 at the runner's 44.1 kHz.
+
+    Normalisation and amplification are off, so instrumental stays
+    exactly mix − vocals and the lanes still add back up to the track.
+    """
+    import logging
+
+    import numpy as np
+    import soundfile as sf
+    from audio_separator.separator import Separator
+
+    sep = Separator(
+        log_level=logging.WARNING,
+        model_file_dir=models_dir,
+        output_dir=work_dir,
+        output_format="WAV",
+        normalization_threshold=1.0,
+        amplification_threshold=0.0,
+        use_soundfile=True,
+        sample_rate=44100,
+    )
+    sep.load_model(model_filename=model_name)
+    # Vocal models name their second stem Instrumental or Other depending
+    # on the checkpoint; either way it is mix − vocals.
+    names = {"Vocals": "rf_vocals", "Instrumental": "rf_instrumental",
+             "Other": "rf_instrumental"}
+    files = sep.separate(input_path, custom_output_names=names)
+    found = {}
+    for f in files or []:
+        p = f if Path(f).is_absolute() else str(Path(work_dir) / f)
+        low = Path(p).name.lower()
+        if "rf_vocals" in low:
+            found["vocals"] = p
+        elif "rf_instrumental" in low:
+            found["instrumental"] = p
+    if "vocals" not in found:
+        raise RuntimeError(f"the vocal model wrote no vocal stem ({files})")
+    voc, sr = sf.read(found["vocals"], dtype="float32", always_2d=True)
+    if "instrumental" in found:
+        inst, sr2 = sf.read(found["instrumental"], dtype="float32", always_2d=True)
+    else:
+        mix, sr2 = sf.read(input_path, dtype="float32", always_2d=True)
+        if sr2 != sr:
+            raise RuntimeError("the vocal model's rate differs from the mix and no instrumental was written")
+        n = min(len(mix), len(voc))
+        inst = (mix[:n] - voc[:n]).astype(np.float32)
+    n = min(len(voc), len(inst))
+    for p in found.values():
+        try:
+            Path(p).unlink()
+        except OSError:
+            pass
+    return voc[:n], inst[:n], int(sr)
+
+
 def _separate_once(model, wav, device: str, shifts: int, segment,
-                   passes: int, overlap: float = 0.25):
+                   passes: int, overlap: float = 0.25,
+                   base: float = 0.0, span: float = 1.0):
     import demucs.apply as apply_mod
     from demucs.apply import apply_model
 
-    reporter = _Progress(passes)
+    reporter = _Progress(passes, base, span)
     # Rebind only demucs.apply's own `tqdm` name: nothing else in the
     # process (torch.hub's download bar, for one) sees the swap.
     real_tqdm = apply_mod.tqdm
@@ -208,12 +277,39 @@ def cmd_separate(args: argparse.Namespace) -> int:
     passes = n_models * max(1, shifts)
     overlap = min(0.9, max(0.05, float(args.overlap)))
 
-    status("Reading the track…")
-    try:
-        wav, in_sr = _load_audio(args.input, model.samplerate, model.audio_channels)
-    except Exception as e:  # noqa: BLE001
-        emit({"event": "error", "message": f"Could not read '{args.input}': {e}"})
-        return 4
+    hybrid = args.engine == "hybrid"
+    rf_vocals = None
+    rf_sr = 0
+    vocal_s = 0.0
+    if hybrid:
+        # Stage one: the vocal specialist takes the vocals out; Demucs then
+        # splits only what is left, so its own vocal output is just bleed.
+        status(f"Separating the vocals ({args.vocal_model})…")
+        emit({"event": "progress", "fraction": 0.03})
+        t_voc = time.time()
+        try:
+            rf_vocals, instrumental, rf_sr = _roformer_vocals(
+                args.input, args.vocal_model, args.models_dir, args.out)
+        except Exception as e:  # noqa: BLE001
+            emit({"event": "error", "message": f"Vocal model failed: {type(e).__name__}: {e}"})
+            return 6
+        vocal_s = round(time.time() - t_voc, 2)
+        emit({"event": "progress", "fraction": 0.45})
+        status("Splitting the rest into drums, bass and other…")
+        wav = torch.from_numpy(np.ascontiguousarray(instrumental.T))
+        if wav.shape[0] == 1 and model.audio_channels == 2:
+            wav = wav.repeat(2, 1)
+        in_sr = rf_sr
+        if rf_sr != model.samplerate:
+            import julius
+            wav = julius.resample_frac(wav, rf_sr, model.samplerate)
+    else:
+        status("Reading the track…")
+        try:
+            wav, in_sr = _load_audio(args.input, model.samplerate, model.audio_channels)
+        except Exception as e:  # noqa: BLE001
+            emit({"event": "error", "message": f"Could not read '{args.input}': {e}"})
+            return 4
 
     # Demucs' own normalisation (see demucs.separate): the model expects a
     # standardised mixture and the sources are scaled back afterwards.
@@ -230,9 +326,11 @@ def cmd_separate(args: argparse.Namespace) -> int:
         # Out of VRAM: shorter segments halve the footprint; then the CPU.
         attempts += [("cuda", 4.0), ("cpu", None)]
     last_err: Exception | None = None
+    base, span = (0.45, 0.55) if hybrid else (0.0, 1.0)
     for dev, seg in attempts:
         try:
-            sources = _separate_once(model, wav, dev, shifts, seg, passes, overlap)
+            sources = _separate_once(model, wav, dev, shifts, seg, passes, overlap,
+                                     base, span)
             device = dev
             break
         except RuntimeError as e:
@@ -257,13 +355,29 @@ def cmd_separate(args: argparse.Namespace) -> int:
     stem_names = list(model.sources)
     for src, name in zip(sources, stem_names):
         arr = np.ascontiguousarray(src.cpu().numpy().T).astype(np.float32)  # (n, ch)
+        if hybrid and name == "vocals" and rf_vocals is not None:
+            # The specialist's vocal plus whatever bleed Demucs still
+            # heard in the instrumental, so the four lanes sum to the mix.
+            if rf_sr != model.samplerate:
+                import julius
+                rf_t = julius.resample_frac(
+                    torch.from_numpy(np.ascontiguousarray(rf_vocals.T)), rf_sr, model.samplerate)
+                rf = np.ascontiguousarray(rf_t.numpy().T)
+            else:
+                rf = rf_vocals
+            n = min(len(rf), len(arr))
+            arr = (rf[:n] + arr[:n]).astype(np.float32)
         sf.write(str(out_dir / f"{name}.wav"), arr, model.samplerate, subtype="FLOAT")
     names = stem_names
 
-    emit({"event": "done", "sources": names, "sr": int(model.samplerate),
-          "input_sr": int(in_sr), "elapsed_s": round(time.time() - t0, 2),
-          "device": device, "passes": passes, "shifts": shifts,
-          "overlap": overlap, "model": args.model})
+    done = {"event": "done", "sources": names, "sr": int(model.samplerate),
+            "input_sr": int(in_sr), "elapsed_s": round(time.time() - t0, 2),
+            "device": device, "passes": passes, "shifts": shifts,
+            "overlap": overlap, "model": args.model, "engine": args.engine}
+    if hybrid:
+        done["vocal_model"] = args.vocal_model
+        done["vocal_s"] = vocal_s
+    emit(done)
     return 0
 
 
@@ -278,6 +392,13 @@ def main(argv=None) -> int:
     s.add_argument("--shifts", type=int, default=1)
     s.add_argument("--overlap", type=float, default=0.25,
                    help="segment overlap 0.05–0.9; more = fewer seams, slower")
+    s.add_argument("--engine", default="demucs", choices=("demucs", "hybrid"),
+                   help="demucs: the named model(s) on the mix; hybrid: a RoFormer "
+                        "vocal model first, then Demucs on the instrumental")
+    s.add_argument("--vocal-model", default="vocals_mel_band_roformer.ckpt",
+                   help="audio-separator checkpoint for the hybrid engine's vocal stage")
+    s.add_argument("--models-dir", default="",
+                   help="where audio-separator keeps its checkpoints")
     s.add_argument("--device", default="auto", choices=("auto", "cuda", "cpu"))
     s.add_argument("--out", required=True)
     args = p.parse_args(argv)
