@@ -1,6 +1,6 @@
 // batch.js — Orchestrates the Batch tab.
 
-import { fetchPresets, postBatchStream, browseFolder, fetchSettings } from './api.js';
+import { fetchPresets, postBatchStream, browseFolder, fetchSettings, fetchToneFamilies } from './api.js';
 
 export async function initBatchTab() {
     const $ = (id) => document.getElementById(id);
@@ -14,6 +14,23 @@ export async function initBatchTab() {
     const preserveVol  = $('batch-preserve-vol');
     const trimSilence  = $('batch-trim-silence');
     const applyEq      = $('batch-apply-eq');
+    const autoEq       = $('batch-auto-eq');
+    const toneFamily   = $('batch-tone-family');
+    const writeTags    = $('batch-tags');
+    (async () => {
+        if (!toneFamily) return;
+        const fams = await fetchToneFamilies();
+        const saved = (await fetchSettings().catch(() => null)) || {};
+        toneFamily.innerHTML = '';
+        (fams.length ? fams : [{key: 'neutral', label: 'Neutral'}]).forEach((f) => {
+            const o = document.createElement('option');
+            o.value = f.key;
+            o.textContent = f.label;
+            if (f.blurb) o.title = f.blurb;
+            toneFamily.appendChild(o);
+        });
+        if (saved.tone && saved.tone.family) toneFamily.value = saved.tone.family;
+    })();
     const masterEnabled = $('batch-master-enabled');
     const masterTarget = $('batch-master-target');
     const masterIntensity = $('batch-master-intensity');
@@ -106,10 +123,11 @@ export async function initBatchTab() {
         const autoDetect = getMode() === 'auto';
         const strength = parseFloat(strengthEl.value);
 
-        // The Single tab persists its EQ on every edit; reuse it here.
+        // The Master tab persists its EQ, tags and Tone choices on every
+        // edit; reuse them here.
         let eqPayload = null;
+        const saved = (await fetchSettings()) || {};
         if (applyEq && applyEq.checked) {
-            const saved = await fetchSettings();
             if (saved && saved.eq && saved.eq.enabled &&
                 Array.isArray(saved.eq.bands) && saved.eq.bands.length) {
                 eqPayload = saved.eq;
@@ -137,6 +155,22 @@ export async function initBatchTab() {
             },
         };
         if (eqPayload) payload.eq = eqPayload;
+        payload.auto_eq = !!(autoEq && autoEq.checked);
+        payload.tone_family = (toneFamily && toneFamily.value) ||
+            (saved.tone && saved.tone.family) || 'neutral';
+        if (writeTags && writeTags.checked) {
+            const t = saved.tags || {};
+            payload.tags = {
+                enabled: t.enabled !== false,
+                artist: t.artist || '', album_artist: t.album_artist || '',
+                album: t.album || '', genre: t.genre || '', year: t.year || '',
+                copyright: t.copyright || '', isrc: t.isrc || '',
+                mode: t.keep === false ? 'overwrite' : 'fill',
+                notes: t.notes !== false,
+            };
+        } else {
+            payload.tags = { enabled: false };
+        }
 
         postBatchStream(payload, {
             onMessage: (msg) => {
@@ -173,6 +207,10 @@ export async function initBatchTab() {
                         const cut = (msg.trim.cut_head_s || 0) + (msg.trim.cut_tail_s || 0);
                         if (cut > 0.05) line += `   trimmed ${cut.toFixed(1)}s`;
                     }
+                    if (msg.tone_moves != null) {
+                        line += `   EQ: ${msg.tone_moves} move${msg.tone_moves === 1 ? '' : 's'}`;
+                    }
+                    if (msg.tags_written) line += '   tags written';
 
                     append(line, 'ok');
                 } else if (msg.type === 'file_error') {

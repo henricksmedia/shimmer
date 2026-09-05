@@ -82,6 +82,7 @@
                     <button type="button" class="btn btn-primary step-btn" data-step="1" id="pick-file-btn">Choose file…</button>
                     <div class="dropzone-formats">.wav · .mp3 · .flac · .ogg · .m4a</div>
                     <div class="selected-file" id="selected-file" hidden></div>
+                    <div class="prior-pass-note" id="prior-pass-note" hidden></div>
                 </div>
             </div>
             <div class="card" id="recents-card" hidden>
@@ -240,12 +241,31 @@
                             <div id="auto-detect-results" class="auto-detect-results" hidden></div>
                             <div id="repair-list" class="repair-list" hidden></div>
                             <div class="analysis-hint" id="analysis-hint">
-                                Click <b>Analyze</b> and Shimmer listens to your track for the noise AI
-                                music tools leave behind — fizz, hiss, whistles, and metallic sheen.
-                                It checks all 19 cleanup presets against what it hears and picks the
-                                one that fits your track best. It also finds the spot where the noise
-                                is worst, so the preview loop starts right where you need to hear it.
-                                This takes a few seconds and does not change your audio.
+                                <div class="ah-lead">Click <b>Analyze</b> and Shimmer listens to your track for the
+                                    noise AI music tools leave behind: fizz, hiss, whistles, metallic sheen.</div>
+                                <div class="ah-grid">
+                                    <div class="ah-item">
+                                        <span class="ah-num">1</span>
+                                        <div><b>Picks the preset</b><span>Tries all 19 cleanup presets on the busiest
+                                            part and keeps the best match, with a plain reason.</span></div>
+                                    </div>
+                                    <div class="ah-item">
+                                        <span class="ah-num">2</span>
+                                        <div><b>Finds the worst spot</b><span>Parks the preview loop where the noise
+                                            is loudest, so you hear the problem first.</span></div>
+                                    </div>
+                                    <div class="ah-item">
+                                        <span class="ah-num">3</span>
+                                        <div><b>Plans the EQ</b><span>Ringing tones, mud and harshness first, then a
+                                            few gentle balance moves, checked on the loudest part.</span></div>
+                                    </div>
+                                </div>
+                                <div class="ah-foot">Takes 20 to 40 seconds. Does not change your audio.</div>
+                            </div>
+                            <div class="analysis-busy" id="analysis-busy" hidden>
+                                <div class="ab-bar"><i></i></div>
+                                <div class="ab-text"><b>Analyzing…</b> listening to the busiest part, trying 19 presets,
+                                    planning the EQ. About half a minute.</div>
                             </div>
                         </div>
                     </div>
@@ -286,7 +306,16 @@
                     <div class="card insp">
 
                         <details class="acc-sec" open>
-                            <summary><span class="a-title">Mastering</span><span class="a-gloss">loudness &amp; tone for release</span></summary>
+                            <summary><span class="a-title">Parametric EQ</span><span class="a-gloss">suggested moves and your own · zero-phase</span><span class="a-state" id="state-eq"></span></summary>
+                            <div class="acc-body">
+                                <!-- Suggested EQ: the Tone plan from Analyze, applied here. -->
+                                <div class="tone-strip" id="tone-strip"></div>
+                                <div class="eq-card" id="eq-card"></div>
+                            </div>
+                        </details>
+
+                        <details class="acc-sec" open>
+                            <summary><span class="a-title">Mastering</span><span class="a-gloss">loudness &amp; tone for release</span><span class="a-state" id="state-master"></span></summary>
                             <div class="acc-body">
                                 <div class="mastering-card" id="mastering-card">
                                     <label class="checkbox-row mastering-toggle">
@@ -313,7 +342,7 @@
                                                 </select>
                                             </div>
                                             <div class="master-grid-span">
-                                                <label class="label" for="master-tilt">Tone</label>
+                                                <label class="label" for="master-tilt">Tilt</label>
                                                 <select id="master-tilt" class="select"
                                                         title="Stylistic warm–bright tilt on top of the tone match. Bounded by the same safety limits: boosts never exceed +2 dB, and the 5–12 kHz harshness band stays capped so AI fizz can't come back.">
                                                     <option value="brightest">Brightest — max air &amp; sparkle</option>
@@ -330,15 +359,9 @@
                             </div>
                         </details>
 
-                        <details class="acc-sec" open>
-                            <summary><span class="a-title">Parametric EQ</span><span class="a-gloss">your tonal moves — zero-phase</span></summary>
-                            <div class="acc-body">
-                                <div class="eq-card" id="eq-card"></div>
-                            </div>
-                        </details>
 
                         <details class="acc-sec">
-                            <summary><span class="a-title">Output</span><span class="a-gloss">format &amp; export options</span></summary>
+                            <summary><span class="a-title">Output</span><span class="a-gloss">format &amp; export options</span><span class="a-state" id="state-output"></span></summary>
                             <div class="acc-body">
                                 <div class="inline-field">
                                     <label class="label" for="output-format">Format</label>
@@ -365,6 +388,67 @@
                                        title="When on, preset, strength, mastering, EQ, and other Master choices come back on the next visit. When off, each page load starts from defaults.">
                                     <input type="checkbox" id="remember-settings">
                                     <span>Remember settings next time</span>
+                                </label>
+                            </div>
+                        </details>
+
+                        <details class="acc-sec" id="tags-sec">
+                            <summary><span class="a-title">Tags</span><span class="a-gloss">title, artist, album on the export</span><span class="a-state" id="state-tags"></span></summary>
+                            <div class="acc-body tags-body">
+                                <label class="checkbox-row"
+                                       title="Writes the fields below into the exported file, in the form each format uses: RIFF INFO plus an ID3 chunk for WAV, Vorbis comments for FLAC and OGG, ID3v2.3 for MP3, iTunes atoms for M4A. Players, stores and DAWs read these, not the filename.">
+                                    <input type="checkbox" id="tags-enabled" checked>
+                                    <span>Write tags on the export</span>
+                                </label>
+                                <div class="inline-field">
+                                    <label class="label" for="tag-title">Title</label>
+                                    <input id="tag-title" class="input" type="text" autocomplete="off" spellcheck="false"
+                                           placeholder="The song's real title">
+                                    <div class="tag-hint" id="tag-title-hint">Filled from the file. Edit it if the real title differs.</div>
+                                </div>
+                                <div class="tags-grid">
+                                    <div class="inline-field">
+                                        <label class="label" for="tag-artist">Artist</label>
+                                        <input id="tag-artist" class="input" type="text" autocomplete="off" placeholder="The Treq">
+                                    </div>
+                                    <div class="inline-field">
+                                        <label class="label" for="tag-album-artist">Album artist</label>
+                                        <input id="tag-album-artist" class="input" type="text" autocomplete="off" placeholder="same as artist">
+                                    </div>
+                                    <div class="inline-field">
+                                        <label class="label" for="tag-album">Album</label>
+                                        <input id="tag-album" class="input" type="text" autocomplete="off" placeholder="">
+                                    </div>
+                                    <div class="inline-field">
+                                        <label class="label" for="tag-genre">Genre</label>
+                                        <input id="tag-genre" class="input" type="text" autocomplete="off" placeholder="">
+                                    </div>
+                                    <div class="inline-field">
+                                        <label class="label" for="tag-year">Year</label>
+                                        <input id="tag-year" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="2026">
+                                    </div>
+                                    <div class="inline-field">
+                                        <label class="label" for="tag-track">Track no.</label>
+                                        <input id="tag-track" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="3 or 3/12">
+                                    </div>
+                                    <div class="inline-field">
+                                        <label class="label" for="tag-copyright">Copyright</label>
+                                        <input id="tag-copyright" class="input" type="text" autocomplete="off" placeholder="© year artist (filled in)">
+                                    </div>
+                                    <div class="inline-field">
+                                        <label class="label" for="tag-isrc">ISRC</label>
+                                        <input id="tag-isrc" class="input" type="text" autocomplete="off" spellcheck="false" placeholder="optional">
+                                    </div>
+                                </div>
+                                <label class="checkbox-row"
+                                       title="On: the file's own tags stay and the fields above only fill what is missing. Off: the fields above replace the file's tags where you typed something.">
+                                    <input type="checkbox" id="tags-keep" checked>
+                                    <span>Keep the file's own tags <small class="pv-note">fill only the blanks</small></span>
+                                </label>
+                                <label class="checkbox-row"
+                                       title="Adds one line per pass to the comment: preset and strength, EQ, mastering target. A pass 2 export keeps the pass 1 line, so the file carries its own history.">
+                                    <input type="checkbox" id="tags-notes" checked>
+                                    <span>Add a Shimmer note to the comment <small class="pv-note">preset, pass, loudness</small></span>
                                 </label>
                             </div>
                         </details>
@@ -619,6 +703,21 @@
                             <input type="checkbox" id="batch-apply-eq">
                             <span>Apply EQ from Master tab</span>
                         </label>
+                        <label class="checkbox-row"
+                               title="Plans a short corrective EQ for each file on its own: ringing tones, mud, harshness, then at most three gentle balance moves toward the family range. Judged after that file's cleaning and checked on its loudest part. Adds to any EQ from the Master tab.">
+                            <input type="checkbox" id="batch-auto-eq">
+                            <span>Suggested EQ per file <small class="pv-note">Tone plan, judged after cleaning</small></span>
+                        </label>
+                        <div class="inline-field batch-family">
+                            <label class="label" for="batch-tone-family">Family for the suggested EQ</label>
+                            <select id="batch-tone-family" class="select"
+                                    title="How far from neutral the balance may sit before a move is worth making. A tolerance, not a target."></select>
+                        </div>
+                        <label class="checkbox-row"
+                               title="Writes the Tags from the Master tab (artist, album, genre, year, copyright) onto every export, keeping each file's own tags and taking the title from them or the filename.">
+                            <input type="checkbox" id="batch-tags" checked>
+                            <span>Write tags from the Master tab</span>
+                        </label>
                         <div class="card-divider"></div>
                         <div class="batch-mastering">
                             <label class="checkbox-row">
@@ -811,7 +910,12 @@
      aria-labelledby="process-modal-title">
     <div class="process-modal card" role="document">
         <div class="process-modal-title" id="process-modal-title">Cleaning &amp; mastering</div>
+        <!-- The signal chain, live: audio comes in on the left, lights each
+             stage as it passes, and leaves on the right when the file is
+             written. Built by single.js from the Signal Chain phases. -->
+        <div class="pm-chain" id="process-modal-chain" aria-hidden="true"></div>
         <div class="process-modal-stage" id="process-modal-stage" aria-live="polite">Preparing…</div>
+        <div class="process-modal-detail" id="process-modal-detail"></div>
         <div class="process-modal-track">
             <div class="process-modal-fill" id="process-modal-fill"></div>
         </div>
@@ -822,15 +926,23 @@
 </div>
 
 <!-- ───────────── Advanced controls drawer ───────────── -->
-<div id="advanced-drawer-backdrop" class="drawer-backdrop" hidden></div>
-<aside id="advanced-drawer" class="drawer" hidden role="dialog" aria-modal="true"
+<div id="advanced-drawer-backdrop" class="adv-backdrop" hidden></div>
+<aside id="advanced-drawer" class="adv-sheet" hidden role="dialog" aria-modal="true"
        aria-labelledby="advanced-drawer-title">
-    <header class="drawer-header">
-        <div class="drawer-title" id="advanced-drawer-title">Advanced artifact controls</div>
-        <button type="button" class="help-close" id="advanced-close" aria-label="Close advanced controls">&times;</button>
+    <header class="adv-head">
+        <div class="adv-head-main">
+            <div class="adv-title" id="advanced-drawer-title">Advanced artifact controls</div>
+            <div class="adv-context" id="adv-context">Preset values at the current strength. Move a slider to override it for this run.</div>
+        </div>
+        <div class="adv-head-actions">
+            <span class="adv-live" id="adv-live"></span>
+            <button type="button" class="btn btn-ghost btn-sm" id="adv-reset-all" hidden>Reset all to preset</button>
+            <button type="button" class="help-close" id="advanced-close" aria-label="Close advanced controls">&times;</button>
+        </div>
     </header>
-    <div class="drawer-body">
-        <div id="sliders-host"></div>
+    <div class="adv-body">
+        <div class="adv-controls" id="sliders-host"></div>
+        <aside class="adv-focus" id="adv-focus" aria-live="polite"></aside>
     </div>
 </aside>
 
@@ -868,10 +980,22 @@
                     <li><span class="step">1</span>
                         <b>Drop your track in.</b> WAV, MP3, FLAC, OGG, or M4A all work.</li>
                     <li><span class="step">2</span>
-                        <b>Click Analyze.</b> Shimmer listens to your song, checks it
-                        against all 19 presets, and picks the best match. It tells you
-                        why, and jumps the preview loop to the spot where the noise is
-                        worst.</li>
+                        <b>Click Analyze</b> (above Clean &amp; Master, or in the
+                        Analysis card). Shimmer listens to your song, tries all 19
+                        presets on the busiest part, and picks the best match. It
+                        shows that match big with a plain reason, lists the next
+                        five under it, sets <b>Preset strength</b> for you, and parks
+                        the preview loop on the spot where the noise is worst. Click
+                        <b>Expand</b> to see it all in one workspace. If a second
+                        pass would still help, a <b>Next step</b> card says so and
+                        shows a two-pass plan. <b>Run both passes</b>
+                                        does the whole thing and stops at Download; or run them one
+                                        at a time and listen in between. Analyze also plans a
+                                        <b>Suggested EQ</b>: a ringing tone, mud or harshness first,
+                                        then a few gentle balance moves toward the family you pick
+                                        (Neutral by default). It is checked on the loudest part and
+                                        goes into the EQ on the final pass when <b>Use on the final
+                                        pass</b> is on. Every move stays editable in the EQ card.</li>
                     <li><span class="step">3</span>
                         <b>Listen.</b> A short section loops on its own. Press
                         <b>2</b> to hear the cleaned version, <b>1</b> to hear your
@@ -880,10 +1004,19 @@
                     <li><span class="step">4</span>
                         <b>Adjust if you need to.</b> Pick a different preset and you
                         hear the change in about a second. Use <b>Preset strength</b>
-                        to dial it up or down.</li>
+                        to dial it up or down. <b>Advanced artifact controls</b> opens
+                        every knob in chain order, with a panel that explains the one
+                        under your pointer; the <b>EQ presets</b> menu holds starting
+                        points at mastering scale, each one saying what it does.</li>
                     <li><span class="step">5</span>
-                        <b>Click Clean &amp; Master</b>, then download from the green
-                        banner. That is your finished, release-ready file.</li>
+                        <b>Click Clean &amp; Master</b> (it says <b>Clean</b> when
+                        mastering is off), then download from the green banner. That
+                        is your finished file. The <b>What changed</b> chart under the
+                        player shows the spectrum before and after and what was
+                        removed, and the numbers under it give loudness, true peak,
+                        and how hard the limiter worked. The file carries its tags:
+                        title, artist and album from the <b>Tags</b> section, plus
+                        one note per pass in the comment.</li>
                 </ol>
 
                 <div class="help-tip">
@@ -901,8 +1034,13 @@
                     better, even when it is not. <b>Loudness-matched A/B</b> is on by
                     default so you compare the sound, not the level.</li>
                     <li><b>Your low end is never touched.</b> Kick, bass, and the body
-                    of your vocals bypass the cleaning completely. Shimmer only works
-                    above about 4.5 kHz.</li>
+                        of your vocals bypass the cleaning completely. Most presets
+                        only work above 4 to 5 kHz; a few vocal presets reach down to
+                        about 2 kHz.</li>
+                    <li><b>The bar at the bottom is your transport.</b> Skip 5
+                        seconds either way, click or drag the scrubber to move, and
+                        press <b>Space</b> to play. The amber band on the scrubber is
+                        the Live loop.</li>
                     <li><b>Nothing is permanent until you export.</b> Presets, sliders,
                     and EQ only change what you hear in the preview. Your original file
                     is never modified.</li>

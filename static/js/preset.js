@@ -52,6 +52,9 @@ const STRENGTH_SCALE = {
     deres:          { neutral: 0.0, lo: 0.0, hi: 1.0 },
     deharsh:        { neutral: 0.0, lo: 0.0, hi: 1.0 },
     decheck:        { neutral: 0.0, lo: 0.0, hi: 1.0 },
+    tone_kill:      { neutral: 0.0, lo: 0.0, hi: 1.0 },
+    flicker_tame:   { neutral: 0.0, lo: 0.0, hi: 1.0 },
+    noise_resynth:  { neutral: 0.0, lo: 0.0, hi: 1.0 },
     high_shelf_db:  { neutral: 0.0, lo: -12.0, hi: 0.0 },
 };
 
@@ -92,6 +95,6 @@ export function presetToSliderValues(preset, strength = 1.0) {
 /**
  * Run auto-detect on a file; return the full result dict.
  */
-export async function runAutoDetect(file) {
-    return suggestPreset(file);
+export async function runAutoDetect(file, extras = {}) {
+    return suggestPreset(file, extras);
 }

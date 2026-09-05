@@ -71,8 +71,13 @@ def _scaled_params(p: Params, scale: float) -> Params:
     return q
 
 
+StageCallback = Callable[[str, str, str], None]
+
+
 def _clean_channel(mono: np.ndarray, sr: int, q: Params,
-                   progress: Optional[Callable[[float], None]]) -> np.ndarray:
+                   progress: Optional[Callable[[float], None]],
+                   stage: Optional[StageCallback] = None,
+                   channel: str = "") -> np.ndarray:
     """Run the fine-grid pass, then the STFT artifact engine, on a single
     (mono) M/S channel.
 
@@ -85,9 +90,13 @@ def _clean_channel(mono: np.ndarray, sr: int, q: Params,
     x1 = mono[:, None].astype(np.float32)
     q_coarse = q
     if fine_pass_active(q):
+        if stage:
+            stage("fine", "Fine pass", f"{channel} · fast flicker and sibilant bursts")
         x1 = fine_pass(x1, sr, q)
         if float(q.flicker_tame) > 1e-6:
             q_coarse = replace(q, flicker_tame=0.0)
+    if stage:
+        stage("engine", "Cleaning: the 9-stage engine", f"{channel} channel")
     y = process(x1, sr, q_coarse, progress_callback=progress)
     y = np.asarray(y, dtype=np.float32)
     if y.ndim > 1:
@@ -108,6 +117,7 @@ def clean_and_master(
     eq_params: Optional[EqParams] = None,
     master_loudness_ref: Optional[Dict[str, float]] = None,
     repair: Optional["NotchPlan"] = None,
+    stage_callback: Optional[StageCallback] = None,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     """Run the full safe pipeline.
 
@@ -130,6 +140,10 @@ def clean_and_master(
             both channels before anything adaptive runs. De-click runs
             just before it when `p.declick` > 0. Both diffs are folded
             into `removed`.
+        stage_callback: optional callable(key, label, detail) called as
+            each chain stage starts (keys match the Signal Chain phases:
+            repair, pre, split, fine, engine, recombine, post, master), so
+            a UI can show where the audio is in the chain.
 
     Returns:
         (processed, removed, report)
@@ -144,6 +158,10 @@ def clean_and_master(
         if progress_callback:
             progress_callback(float(np.clip(frac, 0.0, 1.0)))
 
+    def _stage(key: str, label: str, detail: str = "") -> None:
+        if stage_callback:
+            stage_callback(key, label, detail)
+
     report: Dict[str, Any] = {}
 
     # ── 0. Deterministic repairs, first (docs/PLAN.md Section 2) ────────
@@ -153,6 +171,14 @@ def clean_and_master(
     # signal without clicks or generator lines.
     from .repair import apply_static_repair, declick
     x_src = x_in
+    n_notch = len(repair.notches) if repair is not None and getattr(repair, "enabled", True) else 0
+    bits = []
+    if float(p.declick) > 1e-6:
+        bits.append("de-click")
+    if n_notch:
+        bits.append(f"{n_notch} fixed tone{'s' if n_notch != 1 else ''} notched")
+    _stage("repair", "Fixing clicks and fixed tones" if bits else "Checking for clicks and fixed tones",
+           " · ".join(bits))
     if float(p.declick) > 1e-6:
         x_in, dc_report = declick(
             x_in, sr, float(p.declick), min_hz=float(p.dc_min_hz),
@@ -168,6 +194,7 @@ def clean_and_master(
     tone_delta = [0.0]
     use_mastering = master_params is not None and master_params.enabled
     if use_mastering:
+        _stage("pre", "Tone match, before cleaning", "shape against released music · ±2 dB")
         eq_strength = resolve_eq_strength(master_params)
         raw_spectrum = (raw_analysis or {}).get("spectrum")
         cutoff = (raw_analysis or {}).get("cutoff_hz") if raw_analysis else None
@@ -183,6 +210,8 @@ def clean_and_master(
     _prog(0.05)
 
     # ── 2. Complementary FIR crossover: low/mid bypasses everything ──────
+    _stage("split", "Splitting the band",
+           f"below {float(p.crossover_hz):.0f} Hz passes through · highs go Mid/Side")
     cf = ensure_stereo_channels_first(x_toned)
     low, high = complementary_fir_split(
         cf, sr, crossover_hz=float(p.crossover_hz),
@@ -195,9 +224,11 @@ def clean_and_master(
     p_side = _scaled_params(p, p.ms_side_scale)
 
     clean_mid = _clean_channel(
-        mid, sr, p_mid, lambda f: _prog(0.05 + 0.40 * f))
+        mid, sr, p_mid, lambda f: _prog(0.05 + 0.40 * f),
+        stage=stage_callback, channel="Mid")
     clean_side = _clean_channel(
-        side, sr, p_side, lambda f: _prog(0.45 + 0.40 * f))
+        side, sr, p_side, lambda f: _prog(0.45 + 0.40 * f),
+        stage=stage_callback, channel="Side")
 
     # ── 4. Removed signal (pre-compensation cleaning diff) ───────────────
     removed_mid = (mid[:clean_mid.shape[0]] - clean_mid).astype(np.float32)
@@ -205,6 +236,7 @@ def clean_and_master(
     removed_cf = decode_ms(removed_mid, removed_side)
 
     # ── 5. Side width compensation ────────────────────────────────────────
+    _stage("recombine", "Recombining", "width compensation · low band back in")
     clean_side, swc_stats = side_width_compensation(
         side, clean_side, sr,
         attenuation_threshold_db=float(p.swc_threshold_db),
@@ -236,6 +268,10 @@ def clean_and_master(
     removed = (removed + pre_diff[:n, :removed.shape[1]]).astype(np.float32)
 
     # ── 7. Post filters + fade on the full-range signal, once ────────────
+    eq_on = eq_params is not None and eq_params.is_active(sr)
+    _stage("post", "Post filters" + (" and your EQ" if eq_on else ""),
+           f"your EQ · {len(eq_params.active_bands(sr))} band{'s' if len(eq_params.active_bands(sr)) != 1 else ''}"
+           if eq_on else "shelves, subsonic, presence")
     y = apply_post_filters(y, sr, p)
 
     fade = int(sr * (float(p.fade_ms) / 1000.0))
@@ -257,6 +293,8 @@ def clean_and_master(
 
     # ── 8. Mastering (single-pass, true-peak safe) ───────────────────────
     if use_mastering:
+        _stage("master", "Mastering",
+               f"level to {float(master_params.target_lufs):g} LUFS · peak shaper · true-peak limiter")
         y, m_report = master(
             y, sr, master_params, analysis=raw_analysis,
             eq_bands_db=tone_delta,

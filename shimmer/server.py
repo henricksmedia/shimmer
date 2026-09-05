@@ -73,6 +73,13 @@ from .presets import (
     get_preset, describe_preset, label_for, is_visible,
 )
 from .report import plr_db, spectra_report, stereo_correlation
+from .autoeq import family_list, moves_to_eq_payload, normalize_family, plan_tone
+from .mastering import compute_tone_curve, resolve_eq_strength
+from .tags import (
+    build_tags, read_tags, shimmer_note, strip_shimmer_suffix, title_from_stem,
+    write_tags,
+)
+from . import __version__ as SHIMMER_VERSION
 from .preview_store import PREVIEW_STORE, clamp_samples_for_preview
 from .settings_store import load_settings, save_settings
 from . import stems as stems_mod
@@ -182,11 +189,18 @@ def _params_from_json(data: Dict[str, Any]) -> Params:
 
 def _threadsafe_progress_pusher(job: Job, loop: asyncio.AbstractEventLoop):
     """Return a callback(fraction) that pushes into the job's asyncio.Queue
-    from a worker thread."""
+    from a worker thread. `_cb.stage(key, label, detail)` pushes a chain
+    stage event (same queue), so the UI can show where the audio is."""
     def _cb(fraction: float) -> None:
         job.progress = float(fraction)
         asyncio.run_coroutine_threadsafe(
             job.queue.put({"fraction": float(fraction)}), loop)
+
+    def _stage(key: str, label: str, detail: str = "") -> None:
+        asyncio.run_coroutine_threadsafe(
+            job.queue.put({"fraction": float(job.progress), "stage": key,
+                           "status": label, "detail": detail}), loop)
+    _cb.stage = _stage  # type: ignore[attr-defined]
     return _cb
 
 
@@ -196,6 +210,89 @@ def _master_params_from_request(data: Dict[str, Any]) -> MasterParams:
 
 def _eq_params_from_request(data: Dict[str, Any]) -> EqParams:
     return eq_params_from_json(data.get("eq") or {})
+
+
+def _tone_plan_for(x: np.ndarray, sr: int, analysis: Dict[str, Any],
+                   preset_name: str, strength: float, family: str,
+                   mp: Optional[MasterParams],
+                   repair_dict: Optional[Dict[str, Any]] = None,
+                   overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """The Tone plan (autoeq.plan_tone) judged the way the chain will run:
+    the loudest excerpt is cleaned with the chosen preset first, and the
+    mastering tone curve (when mastering is on) is subtracted, so the
+    plan never corrects what cleaning or mastering already handles."""
+    import copy
+    try:
+        p = get_preset(preset_name or "generic")
+    except KeyError:
+        p = get_preset("generic")
+    if abs(float(strength) - 1.0) > 1e-6:
+        apply_preset_strength(p, float(strength))
+    for key, value in (overrides or {}).items():
+        if hasattr(p, key) and isinstance(value, (int, float)):
+            setattr(p, key, float(value))
+    cutoff = analysis.get("cutoff_hz")
+    p.cutoff_hz = float(cutoff or 0.0)
+    repair = None
+    notches = None
+    if isinstance(repair_dict, dict) and isinstance(repair_dict.get("notches"), list):
+        repair = NotchPlan.from_dict(repair_dict, sr)
+        notches = [{"hz": n.hz} for n in repair.notches]
+    tone_curve = None
+    if mp is not None and mp.enabled:
+        tone_curve = compute_tone_curve(
+            x, sr, strength=resolve_eq_strength(mp),
+            raw_spectrum=analysis.get("spectrum"), tilt=mp.tilt,
+            cutoff_hz=cutoff)
+    p_clean = copy.deepcopy(p)
+    p_clean.pad = False
+    p_clean.fade_ms = 0.0
+
+    def cleaner(ex: np.ndarray) -> np.ndarray:
+        y, _removed, _rep = clean_and_master(
+            ex, sr, copy.deepcopy(p_clean), master_params=None,
+            raw_analysis=analysis, repair=repair)
+        return y
+
+    plan = plan_tone(x, sr, family=normalize_family(family),
+                     cutoff_hz=cutoff, tone_curve_db=tone_curve,
+                     notches=notches, cleaner=cleaner)
+    plan["preset"] = preset_name
+    plan["preset_label"] = label_for(preset_name) if preset_name in PRESET_NAMES else preset_name
+    plan["preset_strength"] = float(strength)
+    plan["mastering_on"] = bool(mp is not None and mp.enabled)
+    return plan
+
+
+def _tag_export(path: str, source_path: str, req: Optional[Dict[str, Any]],
+                note: str) -> Dict[str, Any]:
+    """Write tags onto an export: the source's own tags, the user's
+    defaults for the blanks, and Shimmer's note in the comment."""
+    req = dict(req or {})
+    if req.get("enabled", True) is False:
+        return {"written": False, "reason": "off"}
+    source = read_tags(source_path) if source_path and os.path.exists(source_path) else {}
+    stem = Path(source_path).stem if source_path else ""
+    if stem.startswith("input_"):
+        stem = stem[len("input_"):]
+    tags = build_tags(source, req, title_hint=stem,
+                      note=note if req.get("notes", True) else "",
+                      software=f"Shimmer {SHIMMER_VERSION}")
+    rep = write_tags(path, tags)
+    rep["tags"] = {k: v for k, v in tags.items() if k != "software"}
+    rep["source_had_tags"] = bool(source)
+    return rep
+
+
+def _pass_label(source_path: str) -> str:
+    """Pass number for the note: one more than the Shimmer notes already in
+    the source's comment (a pass-1 export carries one)."""
+    try:
+        comment = read_tags(source_path).get("comment", "") if source_path else ""
+    except Exception:  # noqa: BLE001
+        comment = ""
+    prior = sum(1 for ln in comment.splitlines() if ln.strip().startswith("Shimmer"))
+    return f"pass {prior + 1}"
 
 
 def _repair_plan_for(x: Optional[np.ndarray], sr: int,
@@ -227,14 +324,24 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
                   eq_params: Optional[EqParams] = None,
                   trim_in_s: float = 0.0,
                   trim_out_s: Optional[float] = None,
-                  repair_req: Optional[Dict[str, Any]] = None) -> None:
+                  repair_req: Optional[Dict[str, Any]] = None,
+                  export_meta: Optional[Dict[str, Any]] = None) -> None:
     """CPU-bound worker: runs in a thread executor."""
     x, sr = load_audio(upload_path)
+    export_meta = export_meta or {}
+    stage_cb = getattr(progress_cb, "stage", None)
+
+    def _stage(key: str, label: str, detail: str = "") -> None:
+        if stage_cb:
+            stage_cb(key, label, detail)
 
     # Explicit in/out points are applied to the SOURCE, before anything
     # else runs. A head click is a transient the limiter would otherwise
     # duck the whole intro for, and cutting first keeps every downstream
     # measurement (loudness, tone curve) describing the real music.
+    if float(trim_in_s or 0.0) > 0 or trim_out_s is not None:
+        _stage("edit", "Trimming the edges",
+               f"in at {float(trim_in_s or 0.0):.2f} s" + (f" · out at {float(trim_out_s):.2f} s" if trim_out_s is not None else ""))
     x, edge_trim_report = apply_trim(x, sr, trim_in_s, trim_out_s)
 
     meas_in = measure(x)
@@ -261,11 +368,13 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         raw_analysis=mastering_analysis,
         eq_params=eq_params,
         repair=repair_plan,
+        stage_callback=stage_cb,
     )
     mastering_report: Dict[str, Any] = pipe_report.get(
         "mastering", {"enabled": False})
 
     if not use_mastering and preserve_vol:
+        _stage("level", "Preserve volume", "matching the original level")
         y2 = preserve_volume(
             y2, meas_in["peak_linear"], input_rms=meas_in["rms_linear"])
         y2 = clip_protect(y2)
@@ -299,8 +408,21 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
     processed_path = os.path.join(
         job.workdir, f"processed{job.output_ext}")
     diff_path = os.path.join(job.workdir, f"removed{job.output_ext}")
+    _stage("export", "Writing the file",
+           f"{job.output_ext.lstrip('.').upper()} · tags" + (" · silence trim" if trim_silence else ""))
     save_audio(processed_path, y2, sr)
     save_audio(diff_path, diff, sr)
+
+    # Tags: the source's own, the user's defaults, and one note per pass.
+    eq_bands = len(eq_params.active_bands(sr)) if eq_params is not None and eq_params.is_active(sr) else 0
+    note = shimmer_note(
+        f"Shimmer {SHIMMER_VERSION}", _pass_label(upload_path),
+        label_for(job.preset_name) if job.preset_name in PRESET_NAMES else job.preset_name,
+        float(export_meta.get("preset_strength", 1.0)), use_mastering,
+        float(master_params.target_lufs) if use_mastering else None,
+        float(master_params.ceiling_dbtp) if use_mastering else None,
+        eq_bands=eq_bands)
+    tags_report = _tag_export(processed_path, upload_path, export_meta.get("tags"), note)
 
     # Silence trim is an export-only variant: the playback files above stay
     # full length so the synced A/B/C player keeps a shared clock.
@@ -309,6 +431,7 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         y_trim, cut_head, cut_tail = dsp_trim_silence(y2, sr)
         trimmed_path = os.path.join(job.workdir, f"trimmed{job.output_ext}")
         save_audio(trimmed_path, y_trim, sr)
+        _tag_export(trimmed_path, upload_path, export_meta.get("tags"), note)
         job.trimmed_path = trimmed_path
         trim_report = {
             "enabled": True,
@@ -338,6 +461,7 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         "bit_depth": 24 if ext in (".wav", ".flac") else None,
         "dither": False,
         "bitrate": "320k" if ext == ".mp3" else None,
+        "tags": tags_report,
     }
 
     job.processed_path = processed_path
@@ -374,7 +498,8 @@ async def _run_job_async(job: Job, upload_path: str, params: Params,
                          eq_params: Optional[EqParams] = None,
                          trim_in_s: float = 0.0,
                          trim_out_s: Optional[float] = None,
-                         repair_req: Optional[Dict[str, Any]] = None) -> None:
+                         repair_req: Optional[Dict[str, Any]] = None,
+                         export_meta: Optional[Dict[str, Any]] = None) -> None:
     """Schedule the worker on the default executor; push done sentinel."""
     loop = asyncio.get_running_loop()
     cb = _threadsafe_progress_pusher(job, loop)
@@ -384,7 +509,7 @@ async def _run_job_async(job: Job, upload_path: str, params: Params,
             None, _run_job_sync,
             job, upload_path, params, preserve_vol, cb,
             master_params, mastering_analysis, trim_silence, eq_params,
-            trim_in_s, trim_out_s, repair_req)
+            trim_in_s, trim_out_s, repair_req, export_meta)
         job.progress = 1.0
         job.status = "done"
         await job.queue.put({"fraction": 1.0, "done": True})
@@ -547,7 +672,9 @@ async def api_process(
     job.preset_name = params_data.get("preset") or "generic"
 
     orig_name = Path(file.filename or "upload").name
-    job.source_stem = Path(orig_name).stem or "audio"
+    # Exports never chain suffixes: a pass-2 file is named from the
+    # original stem, and the pass ledger lives in the tags instead.
+    job.source_stem = strip_shimmer_suffix(Path(orig_name).stem) or "audio"
     job.original_path = os.path.join(job.workdir, "input_" + orig_name)
     with open(job.original_path, "wb") as f:
         while True:
@@ -557,10 +684,18 @@ async def api_process(
             f.write(chunk)
 
     # Fire-and-forget worker task; progress flows via job.queue → SSE.
+    try:
+        preset_strength = float(params_data.get("preset_strength", 1.0))
+    except (TypeError, ValueError):
+        preset_strength = 1.0
+    export_meta = {
+        "tags": params_data.get("tags") if isinstance(params_data.get("tags"), dict) else None,
+        "preset_strength": preset_strength,
+    }
     asyncio.create_task(_run_job_async(
         job, job.original_path, p, preserve_volume, mp, mastering_analysis,
         trim_silence, eqp, trim_in_s, trim_out_s,
-        params_data.get("repair")))
+        params_data.get("repair"), export_meta))
     JOB_STORE.sweep()
     return JSONResponse({"job_id": job.id})
 
@@ -655,8 +790,14 @@ async def api_result(job_id: str, kind: str = "processed") -> FileResponse:
 # ───────────────────────────────────────────────────────────────────────────
 
 @app.post("/api/suggest")
-async def api_suggest(file: UploadFile = File(...)) -> JSONResponse:
-    """Artifact preset suggestion + loudness/spectrum analysis."""
+async def api_suggest(file: UploadFile = File(...),
+                      tone_family: str = Form("neutral"),
+                      mastering: str = Form(""),
+                      tone: bool = Form(True),
+                      overrides: str = Form("")) -> JSONResponse:
+    """Artifact preset suggestion + loudness/spectrum analysis, the
+    source file's tags, and the Tone plan (suggested EQ) judged for the
+    picked preset and the current mastering settings."""
     from .probe import suggest_preset
 
     import tempfile
@@ -675,6 +816,18 @@ async def api_suggest(file: UploadFile = File(...)) -> JSONResponse:
         x, sr = await loop.run_in_executor(None, load_audio, tmp_path)
         analysis = await loop.run_in_executor(None, analyze_track, x, sr)
         result["analysis"] = analysis
+        result["source_tags"] = await loop.run_in_executor(None, read_tags, tmp_path)
+        if tone:
+            mp = _parse_master_form(mastering)
+            ov = _parse_json_form(overrides)
+            try:
+                result["tone_plan"] = await loop.run_in_executor(
+                    None, _tone_plan_for, x, sr, analysis,
+                    result.get("preset") or "generic",
+                    float(result.get("strength") or 1.0),
+                    tone_family, mp, result.get("repair_plan"), ov)
+            except Exception as e:  # noqa: BLE001
+                result["tone_plan"] = {"error": str(e)}
     finally:
         try:
             os.unlink(tmp_path)
@@ -684,9 +837,80 @@ async def api_suggest(file: UploadFile = File(...)) -> JSONResponse:
 
 
 @app.post("/api/analyze")
-async def api_analyze(file: UploadFile = File(...)) -> JSONResponse:
+async def api_analyze(file: UploadFile = File(...),
+                      tone_family: str = Form("neutral"),
+                      mastering: str = Form(""),
+                      tone: bool = Form(True),
+                      overrides: str = Form("")) -> JSONResponse:
     """Combined artifact detect + mastering analysis (alias of suggest)."""
-    return await api_suggest(file)
+    return await api_suggest(file, tone_family, mastering, tone, overrides)
+
+
+def _parse_json_form(raw: str) -> Dict[str, Any]:
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _parse_master_form(raw: str) -> Optional[MasterParams]:
+    data = _parse_json_form(raw)
+    if not data:
+        return None
+    return master_params_from_json(data)
+
+
+@app.get("/api/tone/families")
+async def api_tone_families() -> JSONResponse:
+    return JSONResponse({"families": family_list()})
+
+
+@app.post("/api/tone")
+async def api_tone(file: UploadFile = File(...),
+                   preset: str = Form("generic"),
+                   preset_strength: float = Form(1.0),
+                   tone_family: str = Form("neutral"),
+                   mastering: str = Form(""),
+                   repair: str = Form(""),
+                   overrides: str = Form("")) -> JSONResponse:
+    """Re-plan the Tone step for a file with the current preset, strength,
+    family and mastering settings (family picker, pass 2 of a two-pass run)."""
+    import tempfile
+    with tempfile.NamedTemporaryFile(
+            suffix=Path(file.filename or "x.wav").suffix,
+            delete=False) as tmp:
+        while True:
+            chunk = await file.read(1 << 20)
+            if not chunk:
+                break
+            tmp.write(chunk)
+        tmp_path = tmp.name
+    try:
+        loop = asyncio.get_running_loop()
+        x, sr = await loop.run_in_executor(None, load_audio, tmp_path)
+        analysis = await loop.run_in_executor(None, analyze_track, x, sr)
+        source_tags = await loop.run_in_executor(None, read_tags, tmp_path)
+        repair_dict = _parse_json_form(repair) or None
+        if repair_dict is None:
+            plan_obj = await loop.run_in_executor(
+                None, lambda: plan_from_lines(scan_fixed_lines(x, sr), sr))
+            repair_dict = plan_obj.as_dict()
+        plan = await loop.run_in_executor(
+            None, _tone_plan_for, x, sr, analysis, preset,
+            float(preset_strength), tone_family, _parse_master_form(mastering),
+            repair_dict, _parse_json_form(overrides))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, f"Tone plan failed: {e}")
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+    return JSONResponse({"tone_plan": plan, "analysis": analysis,
+                         "source_tags": source_tags})
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -705,6 +929,9 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     static_repair = bool(payload.get("static_repair", True))
     mp = master_params_from_json(payload.get("mastering") or {})
     eqp = eq_params_from_json(payload.get("eq") or {})
+    auto_eq = bool(payload.get("auto_eq", False))
+    tone_family = normalize_family(payload.get("tone_family"))
+    tags_req = payload.get("tags") if isinstance(payload.get("tags"), dict) else None
     # Codec-aware ceiling unless the user explicitly chose one.
     if (payload.get("mastering") or {}).get("ceiling_dbtp") is None:
         mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
@@ -761,10 +988,13 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
                 r = await loop.run_in_executor(
                     None, _batch_one, src, dst, preset, preserve_vol,
                     auto_detect, preset_strength, mp, trim_silence, eqp,
-                    static_repair)
+                    static_repair, auto_eq, tone_family, tags_req)
                 yield _sse_event({
                     "type": "file_done", "index": i, "name": name,
                     "duration_s": r["duration_s"],
+                    "tone_moves": r.get("tone_moves"),
+                    "tone_summary": r.get("tone_summary"),
+                    "tags_written": r.get("tags_written"),
                     "trim": r.get("trim"),
                     "peak_in_db": r["input"]["peak_dbfs"],
                     "peak_out_db": r["output"]["peak_dbfs"],
@@ -789,7 +1019,10 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
                master_params: Optional[MasterParams] = None,
                trim_silence: bool = False,
                eq_params: Optional[EqParams] = None,
-               static_repair: bool = True):
+               static_repair: bool = True,
+               auto_eq: bool = False,
+               tone_family: str = "neutral",
+               tags_req: Optional[Dict[str, Any]] = None):
     detected_info: Dict[str, Any] = {}
 
     if auto_detect:
@@ -821,6 +1054,22 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
     if abs(preset_strength - 1.0) > 1e-6:
         apply_preset_strength(params, preset_strength)
 
+    # Suggested EQ per file: the Tone plan for this track, judged after
+    # its own cleaning, added to any EQ the user set on the Master tab.
+    if auto_eq:
+        x, sr = load_audio(src)
+        analysis = analyze_track(x, sr)
+        chosen_name = detected_info.get("detected_preset") or preset_name
+        plan = _tone_plan_for(x, sr, analysis, chosen_name, preset_strength,
+                              tone_family, master_params)
+        moves = plan.get("moves") or []
+        detected_info["tone_moves"] = len(moves)
+        detected_info["tone_summary"] = plan.get("summary", "")
+        if moves:
+            base = eq_params.bands if (eq_params is not None and eq_params.enabled) else []
+            merged = eq_params_from_json(moves_to_eq_payload(moves))
+            eq_params = EqParams(enabled=True, bands=list(base) + list(merged.bands))
+
     result = process_file(
         input_path=src, output_path=dst,
         params=params, do_preserve_volume=preserve_vol,
@@ -830,6 +1079,19 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
         static_repair=static_repair,
     )
     result.update(detected_info)
+
+    mastered = master_params is not None and master_params.enabled
+    eq_bands = len(eq_params.active_bands(44100)) if eq_params is not None and eq_params.is_active(44100) else 0
+    chosen = detected_info.get("detected_preset") or preset_name
+    note = shimmer_note(
+        f"Shimmer {SHIMMER_VERSION}", _pass_label(src),
+        label_for(chosen) if chosen in PRESET_NAMES else chosen,
+        float(detected_info.get("effective_strength", preset_strength)), mastered,
+        float(master_params.target_lufs) if mastered else None,
+        float(master_params.ceiling_dbtp) if mastered else None,
+        eq_bands=eq_bands)
+    tag_rep = _tag_export(dst, src, tags_req, note)
+    result["tags_written"] = bool(tag_rep.get("written"))
     return result
 
 
@@ -953,9 +1215,12 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
     # plan every preview slice and run for this session starts from.
     lines = await loop2.run_in_executor(None, scan_fixed_lines, x, sr)
     sess.repair_lines = lines
+    source_tags = await loop2.run_in_executor(None, read_tags, orig_path)
     PREVIEW_STORE.sweep()
     return JSONResponse({
         "session_id": sess.id,
+        "source_tags": source_tags,
+        "title_hint": title_from_stem(Path(orig_name).stem),
         "sample_rate": sr,
         "channels": sess.channels,
         "duration_s": sess.duration_s,

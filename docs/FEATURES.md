@@ -195,11 +195,85 @@ filters, **before** mastering — so the limiter always catches user boosts.
 - Frontend ([static/js/eq.js](static/js/eq.js)): interactive curve editor
   — drag nodes, scroll to change Q, double-click to add/remove bands —
   with the track's analysis spectrum as a background silhouette, per-band
-  chips, and 7 quick EQ presets (Air lift, De-mud, Warmth, Presence,
-  Vocal clarity, Rumble cut, Lo-fi telephone).
+  chips, and 13 starting points at mastering scale, grouped in the
+  menu with a one-line gloss each. Corrective: Rumble cut (high-pass
+  28 Hz), Tighten lows (high-pass, −1.5 dB @ 65 Hz, −1 dB shelf @
+  130 Hz), De-mud (−2 dB @ 300 Hz), Box cut (−1.5 dB @ 450 Hz), Smooth
+  the top (−1.5 dB @ 5.5 kHz, −0.5 dB shelf @ 10 kHz). Tonal: Tilt
+  darker / Tilt brighter (±0.75 dB shelves pivoting near 1 kHz), Warmth
+  (+1 dB @ 120 Hz, −1 dB @ 8 kHz), Open mids (+1 dB @ 1.5 kHz), Presence
+  (+1.5 dB @ 3 kHz), Air, gentle (+1 dB shelf @ 10 kHz, greyed out when
+  the render's cutoff is under 12 kHz), Vocal clarity. Creative: Lo-fi
+  telephone. A preset replaces the current bands; every band stays
+  editable.
 - Participates in live preview, full processing, and batch (via the
-  "Apply EQ from Single File tab" checkbox, which reuses the persisted
-  EQ settings).
+  "Apply EQ from Master tab" checkbox, which reuses the persisted EQ
+  settings).
+
+### Suggested EQ (the Tone step) — [autoeq.py](autoeq.py)
+
+A per-track corrective EQ plan, measured at Analyze time and applied in
+the user EQ stage above. Analysis only: nothing here changes audio except
+the verification run on a copy of the loudest excerpt.
+
+How it decides (a producer's order of business):
+
+1. **Judge the loud parts.** 3 s windows; "loud" = within 6 dB of the
+   90th-percentile window RMS (at least 4 windows). Long tracks are
+   sampled evenly (up to 96 windows). Shape = median 1/3-octave band
+   power over the loud windows, relative to the 200 Hz–2 kHz median (the
+   same scale as the mastering reference, `mastering._REF_DB`).
+2. **Judge what the EQ will hear.** The server passes a `cleaner` that
+   runs the chosen preset on the loudest 20 s; the balance is judged
+   after that change and after the mastering tone curve when mastering
+   is on (`tone_curve_db`), so the plan never corrects what cleaning or
+   the tone match already handles. Bands at or above 0.9 × the render's
+   cutoff are not judged and never boosted.
+3. **Fix first** (narrow, subtractive, verified):
+   - *Ringing tone*: on a 96-points-per-octave grid, spectrum minus its
+     ±1/6-octave median; a peak ≥ 8 dB above that baseline, ≤ 1/8 octave
+     wide, present (≥ 5 dB) in ≥ 60 % of loud windows, with no partner at
+     1/3, 1/2, 2/3, 3/2, 2 or 3 × its frequency (a played note has
+     partners), not within 3 % of a static-repair notch, never under
+     120 Hz, and not more than 40 dB under the loudest region. Bell, Q
+     4–10 from the measured width, cut = half the prominence, 4 dB max,
+     two at most.
+   - *Mud stack*: the 200–500 Hz band whose residual against a line
+     fitted through 100 Hz–1 kHz (log-frequency) is ≥ 2 dB in ≥ 60 % of
+     loud windows, unless a narrow tone dominates that band. Bell Q 1.4,
+     cut = 0.6 × excess, 2.5 dB max.
+   - *Harsh band*: the 2–5 kHz band ≥ 2.5 dB over a line fitted through
+     1–8 kHz, persistent. Bell Q 1.2, cut = half the excess, 1.5 dB max.
+4. **Shape second**: six regions (sub 20–60, bass 60–150, low mids
+   150–500, mids 500–2k, presence 2–6k, air 6k+). A region outside the
+   family range gets one broad move toward the range (¾ of the amount
+   outside, 2 dB max, 0.5 dB minimum): bell 40 Hz, low shelf 100 Hz,
+   bell 300 Hz, bell 1 kHz, bell 3.5 kHz, high shelf 8 kHz. Sub and bass
+   moving the same way become one low shelf at 90 Hz. Regions the Fix
+   layer already cut get no shape move. Three shape moves at most; cuts
+   first; boosts ≤ +1.5 dB (≤ +1 dB in presence and air; no air lift
+   when the cutoff is ≤ 11 kHz).
+5. **Budget and check**: four moves total, cuts before boosts. The plan
+   is run (zero-phase, through `eq.apply_eq`) on the loudest 20 s (the
+   cleaned copy when a cleaner was given); integrated LUFS and true peak
+   before and after give PLR before/after. If peaks rise more than
+   loudness by over 1 dB, boosts are halved, then dropped.
+
+**Families** (`FAMILIES`): per-region offset from neutral and tolerance
+(± dB). Neutral 0 / ±4 sub, ±3 bass, ±2.5 low mids, ±2 mids, ±2.5
+presence, ±3 air; Pop, Hip-hop / Trap (sub +4, bass +3, top −1), EDM /
+Dance, Rock / Metal, R&B / Soul, Acoustic / Folk, Lo-fi / Ambient,
+Cinematic / Orchestral. Offsets say where a family usually sits;
+tolerances say how far a track may stray before a move is worth making.
+No reference tracks and no genre detection.
+
+**Result** (`plan_tone(...)`): `moves[]` (`type, freq_hz, gain_db, q,
+enabled, layer fix|shape, kind resonance|mud|harsh|balance, region,
+reason`), `regions[]` (deviation from the family center, tolerance,
+status, deviation after the plan), `shape` (29-band measured / judged /
+center / tolerance), `verify` (excerpt, LUFS and true peak before/after,
+PLR, `plr_shift_db`, `limiter_safe`, `boosts_scaled|dropped`), `summary`
+(8th-grade sentence), `eq` (ready for `eq_params_from_json`).
 
 ### Deterministic repairs (run first) — [repair.py](repair.py)
 
@@ -283,6 +357,18 @@ without smearing; the coarse pass then sees a steadier signal.
   `dh_bin_med_bins` 31): the coarse De-harsh keeps its band-level
   trigger, but the cut is weighted per bin the same way, so a glazed
   overtone is cut harder than the band around it.
+
+### Stage reporting
+
+`clean_and_master(..., stage_callback=fn)` calls `fn(key, label, detail)`
+as each chain stage starts: `repair`, `pre` (mastering on), `split`,
+`fine` (when the fine pass runs) and `engine` per M/S channel (detail
+"Mid channel" / "Side channel"), `recombine`, `post` (label adds "and
+your EQ" when bands are active), `master` (mastering on). The server adds
+`edit` (explicit trim points), `level` (preserve volume) and `export`
+(writing the file and tags) around it and pushes every stage down the
+job's progress stream, which the processing window draws as the live
+chain. Tests: `tests/test_pipeline_stages.py`.
 
 ### Pipeline-level controls
 
@@ -473,9 +559,9 @@ wrapper, region diagnostics)
   if one still removes ≥ 40 % as much residue at ≥ 80 % purity and at least
   −26 dB re. the top end, it is reported as `follow_up`.
 - A per-second top-end intensity timeline (3–16 kHz level against the body,
-  normalised per track) is returned; the UI draws the sparkline, anchors the
-  live-preview loop at the hottest region, and the verification window is
-  chosen from it.
+  normalised per track) is returned; the UI draws it as the "Noise over
+  time" strip, parks the live-preview loop on the worst stretch, and the
+  verification window is chosen from it.
 - Falls back to `generic` when the top score is below 0.05 or the best trial
   clean removes less than −48 dB re. the top end.
 - Cost: roughly 25–30 short pipeline runs, about 8–15 s per track.
@@ -499,7 +585,7 @@ re-boost what the cleaner removed); the level chain runs after cleaning:
 
 | Step | Details |
 |---|---|
-| 1. Tone curve (pre-clean) | Analysis-driven 1/3-octave correction toward a neutral reference, applied zero-phase in the STFT domain. Bounds: +2.0 / −3.0 dB, boosts capped at +0.5 dB in the 5–12 kHz harshness band. Scaled by `eq_strength`/`intensity`; the warm↔bright `tilt` (±2 dB smooth tilt, 5 positions) rides on top within the same bounds |
+| 1. Tone curve (pre-clean) | Analysis-driven 1/3-octave correction toward a neutral reference, applied zero-phase in the STFT domain. The track is measured as band **power** per 1/3-octave band relative to its own 200 Hz–2 kHz median; the reference (`_REF_DB`) is the same kind of number for released music (after Pestana, Ma, Reiss, Barbosa, Black, AES 135, 2013: about −5 dB/oct from 100 Hz to 4 kHz in the raw spectrum, flatter in recent decades; in band-power terms about −1.5 dB/oct, steeper above 4 kHz, rolling off under 60 Hz). Shape against shape, so only the difference matters. Bounds: +2.0 / −3.0 dB, boosts capped at +0.5 dB in the 5–12 kHz harshness band, no boost at or above 0.9 × the render's cutoff. Scaled by `eq_strength`/`intensity`; the warm↔bright `tilt` (±2 dB smooth tilt, 5 positions) rides on top within the same bounds |
 | 2. DC removal + highpass | `hp_hz`, default 25 Hz (zero-phase Butterworth) |
 | 3. LUFS gain | One static gain toward the target integrated loudness — measured once, applied once, no iterative passes |
 | 4. Soft peak shaper | Transparent below the knee; smoothly compresses the top ~2 dB so the limiter only shaves the last fraction of a dB |
@@ -521,8 +607,10 @@ on the web single/batch/remix paths and by the CLI (from the output
 extension). TPDF dither is applied on PCM_16 exports.
 
 Analysis exports: `measure_loudness()` (integrated LUFS, LRA, true peak),
-`analyze_spectrum()` (1/3-octave long-term spectrum), `analyze_track()`
-(combined snapshot). The mastering report (before/after LUFS, true peak,
+`analyze_spectrum()` (1/3-octave long-term spectrum: `band_db` mean
+per-bin level, `band_power_db` total band power, `rel_db` band power
+relative to the 200 Hz–2 kHz median; all true dB, 10·log10 of power),
+`analyze_track()` (combined snapshot). The mastering report (before/after LUFS, true peak,
 limiter max gain reduction) flows into job metrics and the UI metrics strip.
 
 ---
@@ -600,22 +688,41 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   you click Apply on another; the other matches (up to five) sit in a
   quiet ranked table (rank, name, match bar, strength, Apply; reason on
   hover). Apply also moves the Preset strength slider. When a runner-up
-  still finds residue on the winner's output, a "Next step" callout names
-  the second pass, shows the two settings it needs as state rows
-  (mastering off, Preserve volume on) and offers one button: "Set up
-  second pass" flips them, then "Run this pass: Clean" starts the run. Tonal-balance and cutoff
+  still finds residue on the winner's output, a two-pass plan card lays
+  out both passes by name ("Pass 1: <applied> now · Pass 2: <follow-up>"),
+  shows the settings pass 1 needs as state rows (mastering off, Preserve
+  volume on) and offers one button: "Set up pass 1" flips them, then
+  "Run pass 1: <applied> (Clean)" starts the run. When that run finishes,
+  "Continue to pass 2" loads its result in place (named like an export,
+  {stem}_{preset}_processed_{id}.wav), applies the pass-2 preset, turns
+  mastering on and shows the pass-2 card immediately, ready to run, with
+  an optional "Analyze this result first" button. A loaded file whose name matches an export is treated as
+  pass 1's output: the dropzone notes "Shimmer output · pass 1 was …",
+  and the card becomes "Pass 2: <follow-up>" (mastering on, Preserve
+  volume off) whose button applies the pass-2 preset and runs
+  Clean & Master. Tonal-balance and cutoff
   notes sit in a Details list. Below: the "Noise over time" strip, one bar
   per second of top-end noise, amber for the worst stretches, with a time
   axis; click it to jump there (moves the loop window while Live is on,
   seeks the player otherwise). Takes roughly ten seconds.
+- Workflow stepper: three equal segments across the page (1 Upload,
+  2 Analyze, 3 Clean & Master). Each stage has one colour everywhere it
+  appears (1 teal, 2 cyan, 3 amber); the current stage has a filled badge
+  and a full underline, done stages an outlined badge, pending stages
+  grey. Stage buttons carry the same number badge and colour, and step 3
+  reads "Clean" when mastering is off.
+- Dock status line under the two stage buttons: the current preset,
+  strength, and "master to <target>" or "cleaning only", read from the
+  live controls.
 - Analyze also lives in the dock above Clean & Master (cyan, step 2). It
   runs the analysis and jumps to the card; once done it becomes "View
-  analysis" (still cyan, outlined, with a check). Clicking it then, or the card's Expand button,
-  opens the Analysis workspace: a sheet that slides up over the page
-  (four status tiles on top: Applied, Second pass, Fixed tones, Top end;
-  then the timeline, the hero and table left, next step, details and
-  fixed tones right) with "Loop the worst part" and Close. The transport stays
-  visible below it; Escape or a new upload closes it.
+  analysis" (still cyan, outlined, with a check). Clicking it then, or
+  the card's Expand button, opens the Analysis workspace: a sheet that
+  slides up over the page (four status tiles on top: Applied, Second
+  pass, Fixed tones, Top end; then the timeline, the hero and table left,
+  next step, details and fixed tones right) with "Loop the worst part"
+  and Close. The transport stays visible below it; Escape or a new upload
+  closes it.
 - Preset strength slider 0–200% (step 5%): visible sliders re-scale live in
   the client, hidden amount keys scale server-side via the same whitelist.
 - Clean & Master with a pending second-pass suggestion and mastering on
@@ -662,17 +769,28 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   the export (format, bit depth, dither). Warnings (limiter pumping) get
   their own row.
 
-**Advanced controls drawer**
-- Right-side modal drawer (closes via ×, backdrop click, or Escape) rendered
-  from the `CONTROL_SPEC` schema in
-  [static/js/controls.js](static/js/controls.js).
-- 10 sliders in 3 groups, each with a live value, tooltip, and a `?` that
-  opens the help Controls tab anchored to that slider:
-  - **Band:** Start Hz (500–12000), End Hz (1000–20000)
-  - **Detection:** Threshold (2–20 dB), Slope (0.1–1.5)
-  - **Processing:** Denoise, De-resonator, De-harsh, De-checker (each
-    0–100%), Air cut (−12 to 0 dB, inverted: right = off), Mix (0–100%)
-- Each group shows a plain-English intro with directional guidance.
+**Advanced artifact controls (the Advanced pane)**
+- A wide sheet (1060 px, full screen on phones), not a side drawer.
+  Left: the controls in chain order, in sections with the Signal Chain's
+  phase colours: Repair (De-click), Band (Start Hz, End Hz), Detection
+  (Threshold, Slope), Cleanup tools (De-esser, Noise Reduction,
+  De-resonator, De-harsh, Flicker Tamer, Comb Suppressor, Tone Notcher,
+  Noise Resynthesis), Recombine (Mix), Post (Air cut). Labels are the
+  chain's own terms with a plain-words gloss; each slider says what its
+  two ends mean, so no group needs a paragraph. Right: a Focus panel
+  that explains whatever is under the pointer or keyboard (what it does,
+  move it right when, move it left when, typical range, the preset value
+  against the current one) and lights its stage on a mini chain.
+- The tick under every slider is the preset's value at the current
+  strength (`presetToSliderValues`); a slider that differs is marked
+  "changed", its section counts them, the header says "Generic · 100% ·
+  2 controls overridden for this run", and Reset all appears. Double-click
+  a slider to put it back on the preset; Shift + arrow keys move ten steps.
+- Shows whether the Live loop is on, since that is how a change is heard.
+- Source of truth: `CONTROL_SPEC` and `GROUPS` in
+  [static/js/controls.js](static/js/controls.js); `renderControls` returns
+  `getValues / setValues / setBaseline / getChanged / resetAll`. Closes
+  via ×, backdrop click, or Escape.
 
 **Player and visualizer** ([static/js/visualizer.js](static/js/visualizer.js))
 - Three track tabs sharing one playhead: **Original** (enabled on upload),
@@ -734,6 +852,21 @@ Sources: [chain.py](chain.py), [static/js/chain.js](static/js/chain.js),
   whether a Trim cut is armed); `build_chain()` resolves it with the same
   functions as `/api/process` and returns the modules in the order
   `pipeline.py`, `engine.py` and `server.py` apply them.
+- How it is drawn: stages flow left to right and wrap like text, with one
+  continuous SVG wire that drops down and returns to the left edge at each
+  row break (no horizontal scrolling; the wire follows the real card
+  positions and redraws on resize). Each stage carries a `phase` (edit,
+  repair, pre, split, fine, engine, recombine, post, level, master,
+  export) with one hue per phase, moving around the wheel in signal order,
+  used on the wire, the card's top rail, the phase label and the badges.
+  Each stage also carries a `band` ([lo, hi] Hz, or null for whole-signal
+  or time-only stages), drawn as a small log-frequency bar (40 Hz to
+  20 kHz) with a tick at the crossover. Inactive stages are dashed with a
+  one-line reason and a dashed wire into them. A summary sits on top
+  (stages on, STFT size and passes, bypass point, the two gates, and a
+  phase legend with on/total counts); a sticky detail panel beside the
+  flow shows the selected stage's phase, number, larger band bar with
+  axis labels, full text, every value, and the Advanced-drawer link.
 - Modules: Trim → De-click → Static repair → Tone curve → Crossover →
   M/S → Pre-analyze mask → the nine STFT stages in registry order → Side
   width comp → Recombine + wet/dry → Post filters + fades → Parametric
@@ -812,12 +945,16 @@ See [Section 11](#11-batch-processing) for the backend. UI features:
 - Preset mode radio: **Same preset for all** (dropdown) or **Auto-detect each
   file** (hides the dropdown).
 - Preset strength (0–200%), output format, preserve volume, trim silence,
-  "Apply EQ from Single File tab" (reuses the persisted user EQ), and a
-  full mastering block (enable/target/intensity/tilt) mirroring the
-  single-file tab.
+  "Apply EQ from Master tab" (reuses the persisted user EQ), **Suggested
+  EQ per file** (plans a Tone step for each file, judged after that
+  file's cleaning, added to any EQ from the Master tab) with a family
+  picker, **Write tags from the Master tab** (the Tags defaults on every
+  export, title from each file's tags or its name), and a full mastering
+  block (enable/target/intensity/tilt) mirroring the single-file tab.
 - Process All streams a color-coded log: header lines in gold, per-file
   successes in green (duration, peak in→out, detected preset + confidence in
-  auto mode), failures in red, then a completion summary.
+  auto mode, the number of suggested-EQ moves, "tags written"), failures
+  in red, then a completion summary.
 
 ### Help system ([static/js/help.js](static/js/help.js))
 
@@ -844,10 +981,15 @@ per-slider `?` (Controls, anchored).
 Autosaved via a debounced (300 ms) `POST /api/settings` while the UI is
 open (`remember_settings`, `preset`, `preset_strength`, `sliders`,
 `preserve_volume`, `trim_silence`, `output_format`, `mastering`, `eq`,
-`ab_loudness_match`) so Batch can reuse the Single File EQ in the same
-session. On page load / refresh, the Single File tab restores those
-values only when `remember_settings` is true (the “Remember settings
-next time” checkbox under Trim silence; off by default). Remix-tab
+`ab_loudness_match`, `tags` (the Tags defaults: artist, album artist,
+album, genre, year, copyright, ISRC, keep, notes), `tone` (Suggested EQ
+family, "use on the final pass", amount)) so Batch can reuse the Master
+tab's EQ, tags and family in the same session. On page load / refresh,
+the Single File tab restores the run settings only when
+`remember_settings` is true (the “Remember settings next time” checkbox
+under Trim silence; off by default); `tags` and `tone` come back
+regardless, since an artist name and a family are identity, not run
+state. One settings file serves every running instance. Remix-tab
 state persists per track in the projects store instead (see the Remix
 tab section).
 
@@ -872,13 +1014,15 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
 | POST | `/api/settings` | Save UI settings JSON |
 | POST | `/api/browse-folder` | Open the native (tkinter) folder picker; `{initial_dir?, title?}` → `{path}` or `{path: null}` |
 | POST | `/api/process` | Start a full-file job → `{job_id}` |
-| GET | `/api/progress/{job_id}` | SSE stream of `{fraction, status?, done?, error?}` with 15 s keepalives |
+| GET | `/api/progress/{job_id}` | SSE stream of `{fraction}` progress events, `{fraction, stage, status, detail}` chain-stage events (stage keys match the Signal Chain phases: edit, repair, pre, split, fine, engine, recombine, post, level, master, export), then `{done}` or `{error}`; 15 s keepalives |
 | GET | `/api/metrics/{job_id}` | Job metrics; 202 while running, 500 on job error |
 | GET | `/api/result/{job_id}?kind=` | Stream the file: `processed` \| `diff` \| `original` |
-| POST | `/api/suggest` | Multipart upload → `{preset, strength, ranked[≤6], follow_up, notes, timeline, scores, evidence, verification, metrics, analysis}` (see Section 6; ~10 s) |
+| POST | `/api/suggest` | Multipart upload (+ optional form fields `tone_family`, `mastering` JSON, `overrides` JSON, `tone` bool) → `{preset, strength, ranked[≤6], follow_up, notes, timeline, scores, evidence, verification, metrics, analysis, source_tags, tone_plan}` (see Section 6; ~10 s plus a few seconds for the Tone plan, which cleans the loudest 20 s with the picked preset) |
 | POST | `/api/analyze` | Alias of `/api/suggest` |
+| POST | `/api/tone` | Multipart upload + `preset`, `preset_strength`, `tone_family`, `mastering` JSON, `repair` JSON, `overrides` JSON → `{tone_plan, analysis, source_tags}`: re-plan the suggested EQ for the current settings |
+| GET | `/api/tone/families` | `{families: [{key, label, blurb}]}` in display order |
 | POST | `/api/batch` | JSON body → SSE stream of per-file batch status |
-| POST | `/api/upload` | Upload once → preview session `{session_id, sample_rate, channels, duration_s, name, analysis, edges, repair: {lines, plan}}` |
+| POST | `/api/upload` | Upload once → preview session `{session_id, sample_rate, channels, duration_s, name, analysis, edges, repair: {lines, plan}, source_tags, title_hint}` |
 | GET | `/api/envelope/{session_id}?start_s=&end_s=&points=` | Peak envelope in dBFS over a range of the resident session (drawing data for the Trim view) |
 | DELETE | `/api/upload/{session_id}` | Release a preview session |
 | POST | `/api/preview` | Render a loop slice → single binary payload |
@@ -892,8 +1036,12 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
 
 - `file` — the audio upload
 - `params` — JSON string:
-  `{preset, preset_strength (0..2), overrides: {param: value, ...}, mastering: {...}, mastering_analysis: {...}}`.
+  `{preset, preset_strength (0..2), overrides: {param: value, ...}, mastering: {...}, mastering_analysis: {...}, eq: {...}, repair: {...}, tags: {...}}`.
   Order of application: preset → strength scaling → explicit overrides.
+  `tags` = `{enabled, title, artist, album_artist, album, genre, year, track, copyright, isrc, mode: "fill"|"overwrite", notes: bool}`;
+  the export's tags are the source's own tags, the blanks filled from these
+  (`fill`) or these winning where set (`overwrite`), plus one Shimmer note
+  per pass in the comment when `notes` is true.
 - `trim_in_s`, `trim_out_s` — optional explicit in/out points from the Trim
   view. Applied to the source before cleaning and mastering, with a 5 ms
   fade at each new edge. Omitted entirely when no trim is armed.
@@ -911,9 +1059,16 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
   "preserve_volume": true,
   "output_format": "wav",
   "auto_detect": false,
-  "mastering": {"enabled": true, "target_lufs": -14.0, "intensity": "med"}
+  "mastering": {"enabled": true, "target_lufs": -14.0, "intensity": "med"},
+  "auto_eq": false,
+  "tone_family": "neutral",
+  "tags": {"enabled": true, "artist": "The Treq", "mode": "fill", "notes": true}
 }
 ```
+
+`auto_eq` plans a suggested EQ per file (judged after that file's
+cleaning) and adds it to `eq`; `file_done` events carry `tone_moves`,
+`tone_summary` and `tags_written`.
 
 `POST /api/preview` (JSON): `{session_id, start_s, end_s, preset,
 preset_strength, overrides, preserve_volume, mastering}`. The response is one
@@ -925,8 +1080,10 @@ loudness matching plus `render_ms`.
 
 `GET /api/metrics/{job_id}` returns `sample_rate`, `channels`, `duration_s`,
 `input`/`output` peak and RMS, `diagnostic` (when enabled), the `mastering`
-report, and `loudness` (input/output integrated LUFS, populated whether or
-not mastering ran, so the client can loudness-match A/B in every state).
+report, `loudness` (input/output integrated LUFS, populated whether or
+not mastering ran, so the client can loudness-match A/B in every state),
+and `export` (`format, subtype, bit_depth, dither, bitrate, tags:
+{written, form, fields, tags}`).
 
 ---
 

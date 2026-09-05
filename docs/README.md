@@ -192,6 +192,8 @@ shimmer/            The Python package (all application code)
   trim_silence.py   Export-time silence trimming
   edges.py          Head/tail render-glitch scan (reported, never applied)
   report.py         Report-stage numbers: band spectra, PLR, stereo correlation
+  - `shimmer/autoeq.py` — the Tone step: a per-track suggested EQ plan (fix, shape, verify) with genre families as tolerance bands
+  - `shimmer/tags.py` — export metadata: read the source's tags, fill from defaults, one note per pass, write per format
   audio_io.py       File I/O, measurement, format dispatch
   stems.py          Demucs separation + cache
   stem_effects.py   Per-stem effect chain

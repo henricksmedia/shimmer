@@ -32,18 +32,38 @@ from .dsp import as_2d, apply_highpass, db_to_lin, lin_to_db
 from .params import MasterParams, LOUDNESS_TARGETS, intensity_to_eq_strength
 
 
-# Neutral long-term spectrum reference (dB relative, 1/3-octave centers).
-# Gentle tilt: slightly less sub, slight air lift — not a smiley curve.
+# Neutral long-term spectrum reference: 1/3-octave band POWER of a typical
+# commercial master, in dB relative to the median of the 200 Hz - 2 kHz
+# bands. Grounded in the AES study of released music (Pestana, Ma, Reiss,
+# Barbosa, Black, "Spectral characteristics of popular commercial
+# recordings 1950-2010", AES 135, 2013): the average spectrum decays about
+# 5 dB per octave from 100 Hz to 4 kHz, flattening in recent decades. In
+# band-power terms (which add 3 dB per octave) that is a slope of about
+# -1.5 dB per octave for modern masters, the same convention that makes a
+# finished record look flat on a 4.5 dB/oct analyzer. Above 4 kHz the
+# decay steepens; below 60 Hz the band power rolls off. The measured track
+# is normalised the same way (relative_band_levels), so the comparison is
+# shape against shape. Only the difference matters, and it is bounded to
+# a couple of dB; the reference sets the direction, not a template.
 _REF_FREQS = np.array([
     31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630,
     800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000,
     10000, 12500, 16000, 20000,
 ], dtype=np.float64)
-_REF_DB = np.array([
-    -2, -1.5, -1, -0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0.5, 1, 1.5, 2,
+_REF_SHAPE_DB = np.array([
+    -2.5, 1.0, 3.5, 4.5, 5.0, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0,
+    0.5, 0.0, -0.5, -1.0, -1.5, -2.0, -2.5, -3.0, -4.3, -5.8, -7.5,
+    -9.5, -12.0, -16.0, -22.0,
 ], dtype=np.float64)
+_MID_BANDS = (_REF_FREQS >= 200.0) & (_REF_FREQS <= 2000.0)
+_REF_DB = _REF_SHAPE_DB - np.median(_REF_SHAPE_DB[_MID_BANDS])
+
+
+def relative_band_levels(band_power_db: np.ndarray) -> np.ndarray:
+    """Band power in dB relative to the median of the 200 Hz - 2 kHz bands,
+    the same normalisation the reference uses."""
+    b = np.asarray(band_power_db, dtype=np.float64)
+    return b - float(np.median(b[_MID_BANDS]))
 
 _MAX_EQ_BOOST_DB = 2.0    # static tone curve max boost
 _MAX_EQ_CUT_DB = 3.0      # static tone curve max cut
@@ -144,21 +164,28 @@ def analyze_spectrum(x: np.ndarray, sr: int,
         acc += spec
     acc /= max(1, n_frames)
     freqs = np.fft.rfftfreq(n_fft, 1.0 / sr)
-    power_db = 20.0 * np.log10(acc + 1e-12)
+    # Power in dB is 10 log10 of |X|^2 (20 log10 doubled every difference).
+    power_db = 10.0 * np.log10(acc + 1e-20)
 
-    band_db: List[float] = []
+    band_db: List[float] = []        # mean per-bin level in the band
+    band_power_db: List[float] = []  # total band power (what a 1/3-octave analyzer shows)
     for cf in _REF_FREQS:
         lo = cf / (2 ** (1 / 6))
         hi = cf * (2 ** (1 / 6))
         idx = np.where((freqs >= lo) & (freqs <= hi))[0]
         if idx.size == 0:
             band_db.append(-120.0)
+            band_power_db.append(-120.0)
         else:
             band_db.append(float(np.mean(power_db[idx])))
+            band_power_db.append(float(10.0 * np.log10(np.sum(acc[idx]) + 1e-20)))
 
+    rel = relative_band_levels(np.asarray(band_power_db))
     return {
         "freqs_hz": _REF_FREQS.tolist(),
         "band_db": band_db,
+        "band_power_db": band_power_db,
+        "rel_db": [round(float(v), 2) for v in rel],
     }
 
 
@@ -218,8 +245,15 @@ def compute_tone_curve(x_raw: np.ndarray, sr: int, strength: float = 1.0,
         delta = tilt_delta.copy()
     else:
         spec = raw_spectrum if raw_spectrum is not None else analyze_spectrum(x_raw, sr)
-        measured = np.array(spec["band_db"], dtype=np.float64)
-        # Relative to reference: positive correction = boost where track is weak.
+        if "rel_db" in spec:
+            measured = np.array(spec["rel_db"], dtype=np.float64)
+        else:
+            # Older callers: band power derived from the per-bin levels.
+            bw = _REF_FREQS * (2 ** (1 / 6) - 2 ** (-1 / 6))
+            measured = relative_band_levels(
+                np.array(spec["band_db"], dtype=np.float64) + 10.0 * np.log10(bw))
+        # Shape against shape: positive correction = boost where the track
+        # sits under the reference, negative = cut where it sits over.
         delta = (_REF_DB - measured) * strength + tilt_delta
     delta = np.clip(delta, -_MAX_EQ_CUT_DB, _MAX_EQ_BOOST_DB)
     delta = gaussian_filter1d(delta, sigma=1.0)  # ~1/3-octave smoothing

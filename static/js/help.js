@@ -375,7 +375,7 @@ function renderControlsHelp(host) {
         groupEl.className = 'help-group';
         const title = document.createElement('div');
         title.className = 'help-group-title';
-        title.textContent = group;
+        title.textContent = (GROUP_INTROS[group] && GROUP_INTROS[group].title) || group;
         groupEl.appendChild(title);
 
         const intro = GROUP_INTROS[group];
@@ -408,12 +408,25 @@ function renderControlsHelp(host) {
 
             const h = document.createElement('h4');
             h.textContent = spec.label;
+            if (spec.gloss) {
+                const g = document.createElement('span');
+                g.className = 'help-card-gloss';
+                g.textContent = spec.gloss;
+                h.appendChild(g);
+            }
             card.appendChild(h);
 
             const p = document.createElement('p');
             p.className = 'help-card-short';
             p.textContent = spec.help.short;
             card.appendChild(p);
+
+            if (spec.ends) {
+                const ends = document.createElement('div');
+                ends.className = 'help-card-ends';
+                ends.innerHTML = `Left: <span>${spec.ends[0]}</span> · Right: <span>${spec.ends[1]}</span>`;
+                card.appendChild(ends);
+            }
 
             const list = document.createElement('ul');
             list.className = 'help-card-list';

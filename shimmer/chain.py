@@ -58,14 +58,36 @@ def _pct(v: float) -> str:
     return f"{float(v) * 100.0:.0f}%"
 
 
+# Phase per category: the view colours the wire and each card's rail by
+# phase, with hue moving around the wheel in signal order.
+_PHASES = {
+    "Edit": "edit", "Repair": "repair", "Pre": "pre", "Split": "split",
+    "Recombine": "recombine", "Post": "post", "Level": "level",
+    "Master": "master", "Export": "export",
+}
+
+
+def _phase_of(cat: str) -> str:
+    if cat.startswith("Fine"):
+        return "fine"
+    if cat.startswith("STFT"):
+        return "engine"
+    return _PHASES.get(cat, "engine")
+
+
 def _mod(mid: str, cat: str, name: str, gloss: str, detail: str,
          badges: Optional[List[str]] = None, active: bool = True,
-         adv: Optional[List[str]] = None, off_reason: str = "") -> Dict[str, Any]:
+         adv: Optional[List[str]] = None, off_reason: str = "",
+         band: Optional[List[float]] = None) -> Dict[str, Any]:
+    """`band` is [lo_hz, hi_hz] where the stage acts (None for stages that
+    act on the whole signal or in time only), so the view can draw where
+    on the spectrum each stage works."""
     return {
-        "id": mid, "cat": cat, "name": name, "gloss": gloss,
-        "badges": list(badges or []), "detail": detail,
+        "id": mid, "cat": cat, "phase": _phase_of(cat), "name": name,
+        "gloss": gloss, "badges": list(badges or []), "detail": detail,
         "active": bool(active), "adv": list(adv or []),
         "off_reason": off_reason,
+        "band": [float(band[0]), float(band[1])] if band else None,
     }
 
 
@@ -79,6 +101,7 @@ def _stage_descriptor(cls_name: str, p: Params) -> Dict[str, Any]:
             mid="expander", name="Downward Expander",
             gloss=f"turns {_band(p.exp_start_hz, p.exp_end_hz)} down when it gets quiet",
             badges=[f"{p.exp_threshold_db:.0f} dB threshold", f"{p.exp_ratio:g}:1 ratio"],
+            band=[p.exp_start_hz, p.exp_end_hz],
             detail=("When the band drops below the threshold, the expander "
                     "turns it down further. That catches shimmer tails "
                     "between notes. Only Echo Sheen uses it."),
@@ -89,6 +112,7 @@ def _stage_descriptor(cls_name: str, p: Params) -> Dict[str, Any]:
             gloss="learns the noise floor and subtracts it",
             badges=[_band(p.dn_start_hz, p.dn_end_hz), f"{p.dn_floor_db:.0f} dB floor",
                     _pct(p.denoise)],
+            band=[p.dn_start_hz, p.dn_end_hz],
             detail=("Spectral noise reduction. It learns the noise floor from "
                     "the quietest moments and subtracts it. A floor keeps it "
                     "from digging holes. The Denoise slider sets how much."),
@@ -100,6 +124,7 @@ def _stage_descriptor(cls_name: str, p: Params) -> Dict[str, Any]:
             gloss="notches ringing peaks while they ring",
             badges=[_band(p.deq_start_hz, p.deq_end_hz), f"{p.deq_max_att_db:.0f} dB max",
                     _pct(p.deres)],
+            band=[p.deq_start_hz, p.deq_end_hz],
             detail=("Finds narrow peaks that ring for a while and notches them "
                     "only while they ring. The De-resonator slider sets how "
                     "much."),
@@ -110,6 +135,7 @@ def _stage_descriptor(cls_name: str, p: Params) -> Dict[str, Any]:
             mid="shimmer", name="Shimmer Suppressor",
             gloss="the main narrow-band detector",
             badges=[_band(p.start_hz, p.end_hz), f"threshold {p.thr_db:g} dB", f"slope {p.slope:g}"],
+            band=[p.start_hz, p.end_hz],
             detail=("Looks for narrow peaks that poke above the nearby "
                     "spectrum inside the band and turns them down. The Band, "
                     "Threshold and Slope controls set it."),
@@ -123,6 +149,7 @@ def _stage_descriptor(cls_name: str, p: Params) -> Dict[str, Any]:
                     f"ref {_band(p.dh_ref_start_hz, p.dh_ref_end_hz)}",
                     f"{p.dh_max_att_db:.0f} dB max", _pct(p.deharsh),
                     f"{_pct(p.dh_per_bin)} per-bin"],
+            band=[p.dh_start_hz, p.dh_end_hz],
             detail=("A dynamic EQ that compares the band with a reference "
                     "band. When the band gets too loud against the reference, "
                     "it is turned down. The cut is weighted per bin: the peaks "
@@ -138,9 +165,11 @@ def _stage_descriptor(cls_name: str, p: Params) -> Dict[str, Any]:
             gloss="compresses fast flicker in the hash band",
             badges=[_band(p.ft_start_hz, p.ft_end_hz), f"{p.ft_n_bands} bands",
                     f"{p.ft_max_att_db:.0f} dB max", _pct(p.flicker_tame)],
+            band=[p.ft_start_hz, p.ft_end_hz],
             detail=("Splits the band into sub-bands and compresses the fast "
-                    "flicker that makes AI hash sound like frying. Set per "
-                    "preset."),
+                    "flicker that makes AI hash sound like frying. The "
+                    "Flicker Tamer slider sets how much."),
+            adv=["flicker_tame"],
         )
     if cls_name == "DeCheckerStage":
         return dict(
@@ -149,6 +178,7 @@ def _stage_descriptor(cls_name: str, p: Params) -> Dict[str, Any]:
             badges=[_band(p.cb_start_hz, p.cb_end_hz),
                     f"{p.cb_min_spacing_hz:.0f}–{p.cb_max_spacing_hz:.0f} Hz spacing",
                     _pct(p.decheck)],
+            band=[p.cb_start_hz, p.cb_end_hz],
             detail=("Finds evenly spaced peaks (the comb pattern some "
                     "generators leave) and turns the comb down. The "
                     "De-checker slider sets how much."),
@@ -160,19 +190,23 @@ def _stage_descriptor(cls_name: str, p: Params) -> Dict[str, Any]:
             gloss="tracks steady whistles",
             badges=[_band(p.tk_start_hz, p.tk_end_hz), f"{p.tk_max_att_db:.0f} dB max",
                     _pct(p.tone_kill)],
+            band=[p.tk_start_hz, p.tk_end_hz],
             detail=("Tracks whistles that hold one pitch for seconds and "
                     "notches them. Fixed tones are cut earlier by Static "
-                    "Notches; this stage catches the ones that drift. Set per "
-                    "preset."),
+                    "Notches; this stage catches the ones that drift. The "
+                    "Tone Notcher slider sets how much."),
+            adv=["tone_kill"],
         )
     if cls_name == "NoiseResynthStage":
         return dict(
             mid="resynth", name="Noise Resynthesis",
             gloss="replaces glassy texture with smooth noise",
             badges=[f"{_pct(p.noise_resynth)} depth", _band(p.start_hz, p.end_hz)],
+            band=[p.start_hz, p.end_hz],
             detail=("Blends in a copy of the band with random phase, so what "
                     "is left sounds like smooth noise instead of glassy "
                     "texture."),
+            adv=["noise_resynth"],
         )
     # Unknown stage: still show it so the view never silently omits code.
     return dict(mid=cls_name.lower(), name=cls_name, gloss="", badges=[], detail="")
@@ -235,6 +269,7 @@ def build_chain(p: Params,
                 f"{k_sigma:.1f}σ threshold"],
         active=dc_on, adv=["declick"],
         off_reason="this preset leaves De-click at zero",
+        band=[p.dc_min_hz, 20000.0],
     ))
     rep = repair or {}
     rep_enabled = rep.get("enabled", True) is not False
@@ -261,6 +296,7 @@ def build_chain(p: Params,
          "notch on both channels, at full depth. Analyze lists them; "
          "untick any you want to keep."),
         badges=rep_badges, active=rep_active, off_reason=rep_off,
+        band=[2000.0, 20000.0],
     ))
 
     # ── Pre ─────────────────────────────────────────────────────────────
@@ -291,6 +327,7 @@ def build_chain(p: Params,
          "split lower, and Vocal Glaze splits at 300 Hz so it can use the "
          "low range of the voice as its reference."),
         badges=[f"{p.crossover_hz:.0f} Hz", f"{p.crossover_taps}-tap FIR"],
+        band=[p.crossover_hz, 20000.0],
     ))
     modules.append(_mod(
         "ms", "Split", "Mid/Side Split",
@@ -301,6 +338,7 @@ def build_chain(p: Params,
          "Most AI shimmer is in the sides. Deep Scrub and the Vocal Glaze "
          "presets clean the center harder."),
         badges=[f"Mid {p.ms_mid_scale:g}×", f"Side {p.ms_side_scale:g}×"],
+        band=[p.crossover_hz, 20000.0],
     ))
 
     # ── Fine pass (1024/256), before the coarse engine ──────────────────
@@ -323,6 +361,7 @@ def build_chain(p: Params,
         active=ft_on,
         off_reason=("fine pass is off" if not p.fine_pass
                     else "this preset leaves the Flicker Tamer at zero"),
+        band=[p.ft_start_hz, p.ft_end_hz],
     ))
     de_on = fine_on and float(p.deess) > 1e-6
     modules.append(_mod(
@@ -339,6 +378,7 @@ def build_chain(p: Params,
         active=de_on, adv=["deess"],
         off_reason=("fine pass is off" if not p.fine_pass
                     else "this preset leaves the De-esser at zero"),
+        band=[p.de_start_hz, p.de_end_hz],
     ))
 
     # ── STFT engine ─────────────────────────────────────────────────────
@@ -351,6 +391,7 @@ def build_chain(p: Params,
          "before the stages run. Only Deep Scrub uses it."),
         badges=[_band(p.pa_start_hz, p.pa_end_hz), f"{p.pa_max_att_db:.0f} dB max"],
         active=bool(p.pre_analyze), off_reason="this preset does not pre-scan",
+        band=[p.pa_start_hz, p.pa_end_hz],
     ))
     stages = [cls() for cls in STAGE_REGISTRY]
     n = len(stages)
@@ -366,7 +407,7 @@ def build_chain(p: Params,
         modules.append(_mod(
             d["mid"], f"STFT {i}/{n}", d["name"], d["gloss"], d["detail"],
             badges=d["badges"], active=active, adv=d.get("adv"),
-            off_reason=off_reason,
+            off_reason=off_reason, band=d.get("band"),
         ))
 
     # ── Recombine ───────────────────────────────────────────────────────
@@ -376,6 +417,7 @@ def build_chain(p: Params,
         ("Cleaning the sides narrows the stereo image. This measures the "
          "loss and adds a small make-up gain so the mix keeps its width."),
         badges=[f"+{p.swc_max_makeup_db:g} dB max", f"{p.swc_threshold_db:g} dB threshold"],
+        band=[p.crossover_hz, 20000.0],
     ))
     modules.append(_mod(
         "mix", "Recombine", "Recombine + Mix",

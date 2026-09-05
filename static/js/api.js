@@ -114,15 +114,46 @@ export async function renderPreview(payload, {signal} = {}) {
     return {meta, processed, removed};
 }
 
-export async function suggestPreset(file) {
+export async function suggestPreset(file, extras = {}) {
     const form = new FormData();
     form.append('file', file);
+    // Tone plan inputs: family, current mastering and slider overrides,
+    // so the suggested EQ is judged the way the run will actually go.
+    for (const [k, v] of Object.entries(extras || {})) {
+        if (v != null) form.append(k, String(v));
+    }
     const res = await fetch('/api/suggest', {method: 'POST', body: form});
     if (!res.ok) {
         const text = await res.text();
         throw new Error(text || 'Auto-detect failed');
     }
     return res.json();
+}
+
+/** Re-plan the Tone step (suggested EQ) for a file with the current
+ *  preset, strength, family, mastering and repair settings. */
+export async function fetchTonePlan(file, fields = {}) {
+    const form = new FormData();
+    form.append('file', file);
+    for (const [k, v] of Object.entries(fields || {})) {
+        if (v != null) form.append(k, String(v));
+    }
+    const res = await fetch('/api/tone', {method: 'POST', body: form});
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Tone plan failed');
+    }
+    return res.json();  // { tone_plan, analysis, source_tags }
+}
+
+export async function fetchToneFamilies() {
+    try {
+        const res = await fetch('/api/tone/families');
+        if (!res.ok) return [];
+        return (await res.json()).families || [];
+    } catch {
+        return [];
+    }
 }
 
 export async function browseFolder({initialDir, title} = {}) {

@@ -1,15 +1,16 @@
 // single.js — Orchestrates the Single-File tab.
 
-import { renderControls } from './controls.js';
+import { renderControls, CONTROL_SPEC as ADV_SPEC, GROUPS as ADV_GROUPS } from './controls.js';
 import { initPresetSelect, presetToSliderValues, runAutoDetect } from './preset.js';
 import {
-    submitProcess, openSSE, fetchMetrics, resultUrl,
+    submitProcess, openSSE, fetchMetrics, resultUrl, fetchTonePlan, fetchToneFamilies,
     uploadFile, dropSession, renderPreview,
 } from './api.js';
 import { makeSettingsSaver, loadSettings } from './settings.js';
 import { openHelp } from './help.js';
 import { createUnifiedPlayer, fmtTime } from './visualizer.js';
 import { initEqPanel } from './eq.js';
+import { PHASES as CHAIN_PHASES } from './chain.js';
 import { initTrim } from './trim.js';
 import { initReport } from './report.js';
 
@@ -159,6 +160,16 @@ export async function initSingleTab() {
     const analysisSheetLoop = $('analysis-sheet-loop');
     const analysisHome = $('analysis-home');
     const analysisExpandBtn = $('analysis-expand-btn');
+    const tagsEnabled = $('tags-enabled');
+    const tagTitle = $('tag-title');
+    const tagTitleHint = $('tag-title-hint');
+    const tagFields = {
+        artist: $('tag-artist'), album_artist: $('tag-album-artist'), album: $('tag-album'),
+        genre: $('tag-genre'), year: $('tag-year'), track: $('tag-track'),
+        copyright: $('tag-copyright'), isrc: $('tag-isrc'),
+    };
+    const tagsKeep = $('tags-keep');
+    const tagsNotes = $('tags-notes');
     const repairListHost = $('repair-list');
     let sheetCloseTimer = null;
 
@@ -229,13 +240,26 @@ export async function initSingleTab() {
     const advBackdrop = $('advanced-drawer-backdrop');
     const advCloseBtn = $('advanced-close');
 
+    const advContext = $('adv-context');
+    const advLive = $('adv-live');
+    const advResetAll = $('adv-reset-all');
+    const advFocus = $('adv-focus');
+    let advLastFocus = null;
+
     function openAdvancedDrawer() {
         advDrawer.hidden = false;
         advBackdrop.hidden = false;
+        syncAdvancedBaseline();
+        syncAdvancedHeader();
+        renderAdvFocus(null);
+        advLastFocus = document.activeElement;
+        const first = advDrawer.querySelector('input[type="range"]');
+        if (first) first.focus({ preventScroll: true });
     }
     function closeAdvancedDrawer() {
         advDrawer.hidden = true;
         advBackdrop.hidden = true;
+        if (advLastFocus && advLastFocus.focus) advLastFocus.focus({ preventScroll: true });
     }
     advOpenBtn.addEventListener('click', openAdvancedDrawer);
     advCloseBtn.addEventListener('click', closeAdvancedDrawer);
@@ -243,6 +267,103 @@ export async function initSingleTab() {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !advDrawer.hidden) closeAdvancedDrawer();
     });
+    if (advResetAll) {
+        advResetAll.addEventListener('click', () => {
+            if (controls.resetAll()) { pushSettings(); schedulePreviewRender(); }
+            syncAdvancedHeader();
+        });
+    }
+
+    // The preset's values at the current strength: the tick under every
+    // slider, and what "changed" is measured against.
+    function syncAdvancedBaseline() {
+        const preset = byName.get(presetSelect.value);
+        if (!preset) return;
+        controls.setBaseline(presetToSliderValues(preset, currentStrength()));
+    }
+    function syncAdvancedHeader() {
+        // Only while the pane is open: it is refreshed on open, and the
+        // page's own init sets sliders long before the labels exist.
+        if (!advContext || !advDrawer || advDrawer.hidden) return;
+        const changed = controls.getChanged();
+        const preset = labelOf(presetSelect.value);
+        const pct = Math.round(currentStrength() * 100);
+        advContext.textContent = changed.length
+            ? `${preset} · ${pct}% · ${changed.length} control${changed.length === 1 ? '' : 's'} overridden for this run`
+            : `${preset} · ${pct}% · preset values. Move a slider to override it for this run.`;
+        if (advResetAll) advResetAll.hidden = changed.length === 0;
+        if (advLive) {
+            const live = !!(previewState && previewState.active);
+            advLive.textContent = live ? 'Live · you hear each change in about a second'
+                : 'Live loop is off · turn it on under the player to hear changes as you move';
+            advLive.classList.toggle('on', live);
+        }
+    }
+
+    // Focus panel: the control under the pointer or keyboard, its meaning,
+    // where it sits on the chain, and the preset value against the current one.
+    function renderAdvFocus(spec, state) {
+        if (!advFocus) return;
+        advFocus.innerHTML = '';
+        const chain = mkEl('div', 'af-chain');
+        const phase = spec ? (ADV_GROUPS.find((g) => g.key === spec.group) || {}).phase : null;
+        CHAIN_PHASES.forEach(([key, label, color]) => {
+            const dot = mkEl('span', `af-dot${phase === key ? ' on' : ''}`);
+            dot.style.setProperty('--phase', color);
+            dot.title = label;
+            chain.appendChild(dot);
+        });
+        if (!spec) {
+            const changed = controls.getChanged();
+            advFocus.appendChild(mkEl('div', 'af-kicker', changed.length ? 'Overridden for this run' : 'How to read this pane'));
+            if (changed.length) {
+                const list = mkEl('div', 'af-changed');
+                changed.forEach((c) => {
+                    const row = mkEl('div', 'af-changed-row');
+                    row.append(mkEl('span', 'af-changed-label', c.label),
+                               mkEl('span', 'af-changed-vals', `${c.baselineText} → ${c.valueText}`));
+                    list.appendChild(row);
+                });
+                advFocus.appendChild(list);
+                advFocus.appendChild(mkEl('div', 'af-note', 'Double-click a slider to put it back on the preset. Reset all is at the top.'));
+            } else {
+                advFocus.appendChild(mkEl('div', 'af-title', 'Hover or tab to a control'));
+                advFocus.appendChild(mkEl('div', 'af-short',
+                    'This panel explains it: what it does, when to move it, and where it sits in the chain. ' +
+                    'The tick under each slider is the preset\u2019s value at the current strength. ' +
+                    'Double-click a slider to go back to it. Shift + arrow keys move ten steps.'));
+            }
+            advFocus.appendChild(mkEl('div', 'af-chain-label', 'The chain'));
+            advFocus.appendChild(chain);
+            return;
+        }
+        const g = ADV_GROUPS.find((x) => x.key === spec.group) || { title: spec.group };
+        advFocus.appendChild(mkEl('div', 'af-kicker', `${g.title} · ${spec.module || ''}`));
+        advFocus.appendChild(mkEl('div', 'af-title', spec.label));
+        if (spec.gloss) advFocus.appendChild(mkEl('div', 'af-gloss', spec.gloss));
+        if (spec.help && spec.help.short) advFocus.appendChild(mkEl('div', 'af-short', spec.help.short));
+        if (spec.help) {
+            const list = mkEl('div', 'af-list');
+            const up = mkEl('div', 'af-item');
+            up.append(mkEl('b', null, 'Move it right when'), mkEl('span', null, spec.help.when_up || ''));
+            const dn = mkEl('div', 'af-item');
+            dn.append(mkEl('b', null, 'Move it left when'), mkEl('span', null, spec.help.when_down || ''));
+            list.append(up, dn);
+            advFocus.appendChild(list);
+            if (spec.help.typical) advFocus.appendChild(mkEl('div', 'af-typical', `Typical ${spec.help.typical}`));
+        }
+        if (state) {
+            const vals = mkEl('div', 'af-values');
+            vals.append(mkEl('span', 'af-val', `Now ${state.valueText}`));
+            if (state.baselineText != null) {
+                vals.append(mkEl('span', `af-val base${state.changed ? '' : ' same'}`,
+                    state.changed ? `Preset ${state.baselineText}` : 'On the preset value'));
+            }
+            advFocus.appendChild(vals);
+        }
+        advFocus.appendChild(mkEl('div', 'af-chain-label', 'Where it acts on the chain'));
+        advFocus.appendChild(chain);
+    }
 
     // ── Preset description: collapsed to 2 lines, click to expand ────
     presetDesc.addEventListener('click', () => {
@@ -308,6 +429,18 @@ export async function initSingleTab() {
     }
 
     let lastAnalysis = null;
+    // Tone step (suggested EQ): the last plan, what it put into the EQ,
+    // the family list from the server and the user's choices.
+    let lastTonePlan = null;
+    let toneAppliedBands = [];
+    let toneApplied = false;
+    const toneStrip = $('tone-strip');
+    const stateEls = {
+        eq: $('state-eq'), master: $('state-master'), output: $('state-output'), tags: $('state-tags'),
+    };
+    let toneFamilies = [];
+    const toneState = { family: 'neutral', auto: true, amount: 1.0 };
+    fetchToneFamilies().then((f) => { toneFamilies = f; });
     let lastFollowUp = null; // Analyze's second-pass suggestion, if any
     // Static-repair plan for the current file: the generator's fixed
     // tonal lines the server found, each with an `on` flag the user can
@@ -363,6 +496,7 @@ export async function initSingleTab() {
         descEl: presetDesc,
         onChange: (preset) => {
             controls.setValues(presetToSliderValues(preset, currentStrength()));
+            controls.setBaseline(presetToSliderValues(preset, currentStrength()));
             pushSettings();
             schedulePreviewRender();
         },
@@ -372,11 +506,16 @@ export async function initSingleTab() {
         slidersHost,
         () => { pushSettings(); schedulePreviewRender(); },
         (specKey) => openHelp('controls', specKey),
+        {
+            onFocus: (spec, state) => renderAdvFocus(spec, state),
+            onDirty: () => syncAdvancedHeader(),
+        },
     );
 
     const eqPanel = initEqPanel($('eq-card'), {
         onChange: () => { pushSettings(); schedulePreviewRender(); },
         getSpectrum: () => (lastAnalysis && lastAnalysis.spectrum) || null,
+        getCutoffHz: () => (lastAnalysis && Number(lastAnalysis.cutoff_hz)) || 0,
     });
 
     // Top & tail. Detection is reported here, never applied on its own —
@@ -516,6 +655,8 @@ export async function initSingleTab() {
     // Defaults first; restore only when the user opted in last time.
     controls.setValues(presetToSliderValues(
         byName.get(defaultName), currentStrength()));
+    controls.setBaseline(presetToSliderValues(
+        byName.get(defaultName), currentStrength()));
 
     const saved = await loadSettings();
     const shouldRestore = !!(saved && saved.remember_settings);
@@ -551,8 +692,18 @@ export async function initSingleTab() {
         }
     }
 
+    // Identity and preferences come back regardless of "remember
+    // settings": the artist name and the Tone family are not run state.
+    if (saved && saved.tags) restoreTagsDefaults(saved.tags);
+    if (saved && saved.tone) {
+        if (typeof saved.tone.family === 'string') toneState.family = saved.tone.family;
+        if (typeof saved.tone.auto === 'boolean') toneState.auto = saved.tone.auto;
+        if (Number.isFinite(saved.tone.amount)) toneState.amount = Math.min(1.25, Math.max(0.25, saved.tone.amount));
+    }
+
     updateMasteringUI();
     applyLoudnessMatch();
+    syncInspectorStates();
 
     // Live strength re-scaling: rebuild visible slider values from the
     // current preset every time the strength slider moves so the user
@@ -563,6 +714,7 @@ export async function initSingleTab() {
         const preset = byName.get(presetSelect.value);
         if (preset) {
             controls.setValues(presetToSliderValues(preset, currentStrength()));
+            controls.setBaseline(presetToSliderValues(preset, currentStrength()));
         }
         pushSettings();
         schedulePreviewRender();
@@ -647,6 +799,7 @@ export async function initSingleTab() {
         pushSettings();
     });
     let currentFile = null;
+    renderToneStrip();
 
     function hideDoneBanner() {
         doneBanner.hidden = true;
@@ -675,6 +828,24 @@ export async function initSingleTab() {
 
     function adoptFile(file) {
         currentFile = file;
+        lastRun = null;
+        if (!keepPlanOnAdopt) passPlan = null;
+        priorPassPreset = detectPriorPass(file.name);
+        resetTagsForFile(file);
+        lastTonePlan = null;
+        toneAppliedBands = [];
+        toneApplied = false;
+        // The previous track's analysis (and its suggested EQ) must not
+        // sit under a new file.
+        autoDetectResults.hidden = true;
+        autoDetectResults.innerHTML = '';
+        renderToneStrip();
+        const priorNote = $('prior-pass-note');
+        if (priorNote) {
+            priorNote.hidden = !priorPassPreset;
+            priorNote.textContent = priorPassPreset
+                ? `Shimmer output · pass 1 was ${labelOf(priorPassPreset)}` : '';
+        }
         selectedFile.hidden = false;
         selectedFile.textContent = `${file.name}  (${(file.size/1048576).toFixed(1)} MB)`;
         selectedFile.title = selectedFile.textContent;
@@ -912,8 +1083,815 @@ export async function initSingleTab() {
     // in the workspace sheet (CSS). Amber marks exactly two things: the
     // applied choice and the next action.
     let syncNextStep = null;   // re-checks the second-pass callout when mastering toggles
+    // Two-pass bookkeeping. `priorPassPreset` is set when the loaded file
+    // is one of Shimmer's own exports (recognised by the export name
+    // {stem}_{preset}_processed_{id}.ext), so the card knows pass 1 is
+    // already done. `lastRun` remembers the last finished run so pass 2
+    // can load its result without a download and re-upload.
+    let priorPassPreset = null;
+    let lastRun = null;
+    function detectPriorPass(name) {
+        const m = /^(.*)_(processed|trimmed)_[0-9a-f]{8}\.[a-z0-9]+$/i.exec(name || '');
+        if (!m) return null;
+        const before = m[1].toLowerCase();
+        let best = null;
+        for (const key of byName.keys()) {
+            if (before.endsWith('_' + key) && (!best || key.length > best.length)) best = key;
+        }
+        return best;
+    }
     masterEnabled.addEventListener('change', () => { if (syncNextStep) syncNextStep(); });
     preserveVol.addEventListener('change', () => { if (syncNextStep) syncNextStep(); });
+
+    function mkEl(tag, cls, text) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text != null) e.textContent = text;
+        return e;
+    }
+
+    // ── Two-pass plan ────────────────────────────────────────────────
+    // Built when Analyze suggests a follow-up. It survives the file swap
+    // that Continue does and dies on a new upload. It drives the Passes
+    // card and the one-click automation. Status walks: idle → running1 →
+    // done1 → loading → loaded2 → running2 → done2.
+    let passPlan = null;
+    let keepPlanOnAdopt = false;
+
+    function ensurePlan(followUp) {
+        const p2 = {
+            name: followUp.name,
+            label: followUp.label || labelOf(followUp.name),
+            strength: Number.isFinite(followUp.strength) ? followUp.strength : 1.0,
+        };
+        if (passPlan && passPlan.status !== 'idle') {
+            passPlan.pass2 = p2;
+            return;
+        }
+        if (priorPassPreset && byName.has(priorPassPreset)) {
+            // A re-uploaded pass-1 output: pass 1 is history.
+            passPlan = {
+                pass1: { name: priorPassPreset, label: labelOf(priorPassPreset), strength: null, external: true },
+                pass2: p2, status: 'loaded2', jobs: {}, loud: {}, auto: false,
+            };
+            return;
+        }
+        passPlan = {
+            pass1: { name: presetSelect.value, label: labelOf(presetSelect.value), strength: currentStrength() },
+            pass2: p2, status: 'idle', jobs: {}, loud: {}, auto: false,
+        };
+    }
+
+    function waitForRun() {
+        return new Promise((resolve) => {
+            const h = (e) => {
+                document.removeEventListener('shimmer:run-complete', h);
+                resolve(e.detail || {});
+            };
+            document.addEventListener('shimmer:run-complete', h);
+        });
+    }
+
+    async function runPass(n) {
+        if (!passPlan) return false;
+        if (n === 1) {
+            masterEnabled.checked = false;
+            masterEnabled.dispatchEvent(new Event('change'));
+            preserveVol.checked = true;
+            preserveVol.dispatchEvent(new Event('change'));
+            passPlan.pass1 = { name: presetSelect.value, label: labelOf(presetSelect.value), strength: currentStrength() };
+            // Pass 1 cleans only: no suggested EQ yet (it is planned for
+            // pass 2 on the cleaned file).
+            removeTonePlan();
+            passPlan.status = 'running1';
+        } else {
+            applyDetectedPreset(passPlan.pass2.name, passPlan.pass2.strength);
+            masterEnabled.checked = true;
+            masterEnabled.dispatchEvent(new Event('change'));
+            passPlan.status = 'running2';
+        }
+        renderPassPlan();
+        closeAnalysisSheet(true);
+        const done = waitForRun();
+        processBtn.click();
+        const r = await done;
+        if (!r.ok) {
+            passPlan.status = n === 1 ? 'idle' : 'loaded2';
+            renderPassPlan();
+            return false;
+        }
+        passPlan.jobs[n] = r.jobId;
+        passPlan.loud[n] = r.loudness || null;
+        passPlan.status = n === 1 ? 'done1' : 'done2';
+        renderPassPlan();
+        return true;
+    }
+
+    // Continue: pass 1's result becomes the source, pass 2 is set up.
+    async function loadPass1Result() {
+        if (!passPlan || !passPlan.jobs[1]) return false;
+        passPlan.status = 'loading';
+        renderPassPlan();
+        try {
+            const res = await fetch(resultUrl(passPlan.jobs[1], 'processed'));
+            if (!res.ok) {
+                throw new Error('The pass 1 result is no longer on the server. Download it and upload it instead.');
+            }
+            const blob = await res.blob();
+            const stem = (currentFile && currentFile.name.replace(/\.[^.]+$/, '')) || 'track';
+            const name = `${stem}_${passPlan.pass1.name}_processed_${passPlan.jobs[1].slice(0, 8)}.wav`;
+            keepPlanOnAdopt = true;
+            try { adoptFile(new File([blob], name, { type: blob.type || 'audio/wav' })); }
+            finally { keepPlanOnAdopt = false; }
+            applyDetectedPreset(passPlan.pass2.name, passPlan.pass2.strength);
+            masterEnabled.checked = true;
+            masterEnabled.dispatchEvent(new Event('change'));
+            lastFollowUp = { name: passPlan.pass2.name, label: passPlan.pass2.label, strength: passPlan.pass2.strength };
+            passPlan.status = 'loaded2';
+            autoDetectResults.hidden = false;
+            autoDetectResults.innerHTML = '';
+            const side = mkEl('div', 'ad-side');
+            autoDetectResults.appendChild(side);
+            renderPassPlan(side);
+            // Pass 2 gets its own Tone plan, judged on the cleaned file
+            // with the pass-2 preset and mastering on. Applied when the
+            // switch is on, before pass 2 can start.
+            const main = mkEl('div', 'ad-main');
+            main.appendChild(mkEl('div', 'tone-card busy tone-placeholder', 'Planning the EQ for pass 2…'));
+            autoDetectResults.insertBefore(main, side);
+            jumpToAnalysis();
+            const plan = await replanTone();
+            if (plan && toneState.auto) applyTonePlan();
+            renderPassPlan();
+            return true;
+        } catch (e) {
+            passPlan.status = 'done1';
+            renderPassPlan();
+            showAutoDetectError(e.message);
+            return false;
+        }
+    }
+
+    async function runBothPasses() {
+        if (!passPlan) return;
+        passPlan.auto = true;
+        try {
+            if (passPlan.status === 'idle' && !(await runPass(1))) return;
+            if (!passPlan.auto) return;
+            if (passPlan.status === 'done1' && !(await loadPass1Result())) return;
+            if (!passPlan.auto) return;
+            if (passPlan.status === 'loaded2') await runPass(2);
+        } finally {
+            passPlan.auto = false;
+            renderPassPlan();
+        }
+    }
+
+    // The Passes card. `host` is remembered so state changes re-render in
+    // place; a new host (a fresh results render) replaces it.
+    let planHost = null;
+    function renderPassPlan(host) {
+        if (host) planHost = host;
+        // The host may not be attached yet (renderAutoDetect appends its
+        // side column after filling it), so only require that it exists.
+        if (!passPlan || !planHost) return;
+        const p = passPlan;
+        const st = p.status;
+        const p1 = st === 'idle'
+            ? { name: presetSelect.value, label: labelOf(presetSelect.value), strength: currentStrength() }
+            : p.pass1;
+        const p2 = p.pass2;
+        const masterOn = masterEnabled.checked;
+        const preserveOn = !!preserveVol.checked;
+        const old = planHost.querySelector('.ad-next');
+        const card = mkEl('div', 'ad-next plan');
+
+        const kickers = {
+            idle: 'Two-pass plan', running1: 'Two-pass plan · running pass 1',
+            done1: 'Two-pass plan · pass 1 done', loading: 'Two-pass plan · loading the result',
+            loaded2: 'Two-pass plan · pass 2 ready', running2: 'Two-pass plan · running pass 2',
+            done2: 'Done · both passes',
+        };
+        card.appendChild(mkEl('div', 'ad-next-kicker', kickers[st] || 'Two-pass plan'));
+        const titles = {
+            idle: `Pass 1: ${p1.label} now · Pass 2: ${p2.label}`,
+            running1: `Running pass 1: ${p1.label}`,
+            done1: `Pass 1 done · next: pass 2 with ${p2.label}`,
+            loading: 'Loading pass 1\u2019s result…',
+            loaded2: `Pass 2: ${p2.label}`,
+            running2: `Running pass 2: ${p2.label}`,
+            done2: `${p1.label}, then ${p2.label}: finished`,
+        };
+        card.appendChild(mkEl('div', 'ad-next-title', titles[st] || ''));
+        if (st === 'loaded2' && p1.external) {
+            card.appendChild(mkEl('div', 'ad-next-prior',
+                `This file is Shimmer's output from ${p1.label} (pass 1). ` +
+                `The next step is ${p2.label}, not ${p1.label} again.`));
+        }
+        if ((st === 'idle' || st === 'loaded2') && lastFollowUp && lastFollowUp.reason) {
+            card.appendChild(mkEl('div', 'ad-next-reason', lastFollowUp.reason));
+        }
+
+        // The three steps.
+        const steps = mkEl('ol', 'plan-steps');
+        const lufs = (n) => {
+            const l = p.loud[n];
+            const v = l && Number.isFinite(l.output_lufs_i) ? l.output_lufs_i : null;
+            return v == null ? '' : ` · ${v.toFixed(1)} LUFS`;
+        };
+        const step = (num, name, sub, state, cls) => {
+            const li = mkEl('li', `plan-step ${cls}`);
+            li.append(mkEl('span', 'ps-num', num));
+            const body = mkEl('div', 'ps-body');
+            body.append(mkEl('div', 'ps-name', name), mkEl('div', 'ps-sub', sub));
+            li.append(body, mkEl('span', 'ps-state', state));
+            steps.appendChild(li);
+        };
+        const s1 = st === 'idle' ? ['next', 'active'] : st === 'running1' ? ['running…', 'active running']
+            : [`✓ done${p1.external ? '' : lufs(1)}`, 'done'];
+        step(p1.external ? '✓' : '1', `Pass 1 · ${p1.label}`,
+             p1.external ? 'already done (this file is its output)' : 'clean only · keeps the level',
+             s1[0], s1[1]);
+        const target = (masterTarget.options[masterTarget.selectedIndex] || {}).text || '';
+        const s2 = st === 'loaded2' ? ['next', 'active'] : st === 'running2' ? ['running…', 'active running']
+            : st === 'done2' ? [`✓ done${lufs(2)}`, 'done'] : st === 'loading' ? ['loading…', 'active'] : ['waiting', ''];
+        step('2', `Pass 2 · ${p2.label}`, `clean & master${toneState.auto ? ' · suggested EQ' : ''} · ${target.includes(')') ? target.slice(0, target.indexOf(')') + 1) : target}`, s2[0], s2[1]);
+        step('3', 'Download', 'the mastered file', st === 'done2' ? 'ready' : 'after pass 2', st === 'done2' ? 'active' : '');
+        card.appendChild(steps);
+
+        // Settings for the pass about to run, shown as state (the run
+        // buttons set them; nothing to click here).
+        if (st === 'idle' || st === 'loaded2') {
+            const checks = mkEl('div', 'ad-next-checks');
+            const row = (label, ok, text) => {
+                const r = mkEl('div', `ad-check ${ok ? 'ok' : ''}`);
+                r.append(mkEl('span', 'ad-check-dot'), mkEl('span', 'ad-check-label', label),
+                         mkEl('span', 'ad-check-state', ok ? `✓ ${text}` : text));
+                checks.appendChild(r);
+            };
+            if (st === 'idle') {
+                row('Mastering off for pass 1 (set when it runs)', !masterOn, masterOn ? 'On' : 'Off');
+                row('Preserve volume on', preserveOn, preserveOn ? 'On' : 'Off');
+                row('Suggested EQ planned for pass 2', toneState.auto, toneState.auto ? 'On' : 'Off');
+            } else {
+                row('Mastering on for the final pass', masterOn, masterOn ? 'On' : 'Off');
+                row('Preserve volume off', !preserveOn, preserveOn ? 'On' : 'Off');
+                const nMoves = lastTonePlan && Array.isArray(lastTonePlan.moves) ? lastTonePlan.moves.length : 0;
+                row('Suggested EQ (Tone)', toneState.auto && (toneAppliedBands.length > 0 || nMoves === 0),
+                    !toneState.auto ? 'Off' : nMoves === 0 ? 'None needed'
+                        : toneAppliedBands.length ? `${toneAppliedBands.length} move${toneAppliedBands.length === 1 ? '' : 's'} in the EQ` : 'Planning…');
+            }
+            card.appendChild(checks);
+            card.appendChild(mkEl('div', 'ad-next-why', st === 'idle'
+                ? 'Master only once, at the end. Cleaning a mastered file and mastering it again hurts the sound.'
+                : 'This is the last pass, so it masters.'));
+        }
+
+        // Actions.
+        const actions = mkEl('div', 'plan-actions');
+        const button = (text, cls, onClick, disabled = false) => {
+            const b = mkEl('button', `btn ad-next-btn ${cls}`, text);
+            b.type = 'button';
+            b.disabled = disabled;
+            if (onClick) b.addEventListener('click', onClick);
+            actions.appendChild(b);
+            return b;
+        };
+        let hint = '';
+        if (st === 'idle') {
+            button('Run both passes', 'ready', () => runBothPasses());
+            button('Run pass 1 only', 'again', () => runPass(1));
+            hint = 'Run both passes sets the settings, cleans, loads the result, applies ' +
+                   `${p2.label}${toneState.auto ? ' and the suggested EQ' : ''}, masters, and stops at Download.`;
+        } else if (st === 'running1' || st === 'running2' || st === 'loading') {
+            button(st === 'loading' ? 'Loading…' : `Running pass ${st === 'running1' ? 1 : 2}…`, 'ready', null, true);
+            if (p.auto) button('Stop after this pass', 'again', () => { p.auto = false; renderPassPlan(); });
+            hint = p.auto ? 'Running on its own. The progress window shows each step.' : '';
+        } else if (st === 'done1') {
+            button(`Continue: run pass 2 with ${p2.label}`, 'ready', async () => {
+                if (await loadPass1Result()) await runPass(2);
+            });
+            button('Load the result, don\u2019t run yet', 'again', () => loadPass1Result());
+            button('Run pass 1 again', 'again', () => runPass(1));
+            hint = 'Continue loads pass 1\u2019s result here, applies the pass-2 preset, turns mastering on and runs it.';
+        } else if (st === 'loaded2') {
+            button(`Run pass 2: ${p2.label} (Clean & Master)`, 'ready', () => runPass(2));
+            button('Analyze this result first', 'again', () => autoBtn.click());
+            hint = 'This applies the preset and runs the final pass on this file.';
+        } else if (st === 'done2') {
+            button('Download the mastered file', 'ready', () => downloadLink.click());
+            button('Run pass 2 again', 'again', () => runPass(2));
+            hint = 'Both passes are done. The What changed chart and the numbers below cover pass 2.';
+        }
+        card.appendChild(actions);
+        if (hint) card.appendChild(mkEl('div', 'ad-next-after', hint));
+
+        if (old) old.replaceWith(card); else planHost.appendChild(card);
+        syncNextStep = () => renderPassPlan();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Tone step: the suggested EQ. The server measures the track, judges
+    // it after the chosen preset's cleaning (and after the mastering tone
+    // match when mastering is on), and returns a short plan. Here it is
+    // shown verdict first, applied to the EQ on request or automatically
+    // on the final pass, and re-planned when the family changes.
+    // ═══════════════════════════════════════════════════════════════════
+    const TYPE_LABELS = {
+        bell: 'Bell', low_shelf: 'Low shelf', high_shelf: 'High shelf',
+        highpass: 'High-pass', lowpass: 'Low-pass', notch: 'Notch',
+    };
+    const fmtHz = (f) => (f >= 1000
+        ? `${(f / 1000).toFixed(f % 1000 ? 1 : 0)} kHz`
+        : `${Math.round(f)} Hz`);
+    const signed = (v, digits = 1) => `${v > 0 ? '+' : ''}${v.toFixed(digits)}`;
+
+    function analyzeExtras() {
+        return {
+            tone_family: toneState.family,
+            mastering: JSON.stringify(masteringPayload()),
+            overrides: JSON.stringify(controls.getValues()),
+        };
+    }
+
+    function toneTileText(plan) {
+        if (!plan || plan.error) return 'Not planned';
+        const n = (plan.moves || []).length;
+        return n ? `${n} move${n === 1 ? '' : 's'} · ${plan.family_label}` : `Inside ${plan.family_label}`;
+    }
+    function toneTileTone(plan) {
+        if (!plan || plan.error) return 'grey';
+        return (plan.moves || []).length ? 'cyan' : 'green';
+    }
+    function updateToneTile(plan) {
+        const t = document.querySelector('.ad-tile.tone');
+        if (!t) return;
+        t.className = `ad-tile tone ${toneTileTone(plan)}`;
+        t.querySelector('.t-value').textContent = toneTileText(plan);
+    }
+
+    function fillFamilySelect(sel, current) {
+        sel.innerHTML = '';
+        const list = toneFamilies.length ? toneFamilies : [{ key: 'neutral', label: 'Neutral' }];
+        list.forEach((f) => {
+            const o = mkEl('option', null, f.label);
+            o.value = f.key;
+            if (f.blurb) o.title = f.blurb;
+            sel.appendChild(o);
+        });
+        sel.value = current || 'neutral';
+        if (sel.value !== (current || 'neutral')) sel.value = 'neutral';
+    }
+
+    function renderTonePlan(plan, ctx = {}) {
+        lastTonePlan = plan;
+        renderToneStrip();
+        const moves = Array.isArray(plan.moves) ? plan.moves : [];
+        const card = mkEl('div', 'tone-card');
+
+        const head = mkEl('div', 'tone-head');
+        head.appendChild(mkEl('div', 'ad-next-kicker', 'Suggested EQ'));
+        const famWrap = mkEl('label', 'tone-family-wrap');
+        famWrap.append(mkEl('span', 'tf-label', 'Family'));
+        const fam = mkEl('select', 'select tone-family');
+        fam.title = 'Genre family: how far from neutral the balance may sit before a move is worth making. A tolerance, not a target. Nothing is guessed.';
+        fillFamilySelect(fam, plan.family);
+        fam.addEventListener('change', () => {
+            toneState.family = fam.value;
+            pushSettings();
+            replanTone();
+        });
+        famWrap.appendChild(fam);
+        const autoWrap = mkEl('label', 'tone-auto');
+        const autoIn = mkEl('input');
+        autoIn.type = 'checkbox';
+        autoIn.checked = toneState.auto;
+        autoIn.title = 'On: the plan goes into the EQ on the final pass by itself (single pass now, pass 2 of a two-pass plan). Off: use Apply to EQ when you want it.';
+        autoIn.addEventListener('change', () => {
+            toneState.auto = autoIn.checked;
+            pushSettings();
+            if (autoIn.checked && !ctx.followUp && moves.length) applyTonePlan();
+            syncToneCards();
+        });
+        autoWrap.append(autoIn, mkEl('span', null, 'Use on the final pass'));
+        head.append(famWrap, autoWrap);
+        card.appendChild(head);
+
+        const verdict = (plan.verdict || (moves.length
+            ? `${moves.length} move${moves.length === 1 ? '' : 's'} suggested`
+            : 'No EQ needed')).replace(/\.$/, '');
+        card.appendChild(mkEl('div', 'tone-title', verdict));
+        const why = plan.why || (moves.length ? (plan.summary || '') : `Every region sits inside the ${plan.family_label} range.`);
+        card.appendChild(mkEl('div', 'tone-summary', why));
+
+        // Six regions: where the track sits against the family range.
+        const regions = mkEl('div', 'tone-regions');
+        (plan.regions || []).forEach((r) => {
+            const reg = mkEl('div', `tone-region ${r.status}`);
+            reg.appendChild(mkEl('div', 'tr-label', r.label));
+            const bar = mkEl('div', 'tr-bar');
+            const span = Math.max((r.tol_db || 0) + 4, 6);
+            const pct = (v) => 50 + 50 * Math.max(-1, Math.min(1, v / span));
+            const band = mkEl('div', 'tr-band');
+            band.style.left = `${pct(-r.tol_db)}%`;
+            band.style.right = `${100 - pct(r.tol_db)}%`;
+            bar.appendChild(band);
+            bar.appendChild(mkEl('div', 'tr-center'));
+            if (r.status !== 'n/a') {
+                const mark = mkEl('div', 'tr-mark');
+                mark.style.left = `${pct(r.dev_db)}%`;
+                bar.appendChild(mark);
+                if (r.dev_after_db != null && Math.abs(r.dev_after_db - r.dev_db) > 0.05) {
+                    const after = mkEl('div', 'tr-mark after');
+                    after.style.left = `${pct(r.dev_after_db)}%`;
+                    bar.appendChild(after);
+                }
+            }
+            reg.appendChild(bar);
+            const val = r.status === 'n/a' ? 'above cutoff' : `${signed(r.dev_db)} dB`;
+            reg.appendChild(mkEl('div', 'tr-val', val));
+            const lo = fmtHz(r.lo_hz), hi = fmtHz(r.hi_hz);
+            reg.title = r.status === 'n/a'
+                ? `${r.label} (${lo}–${hi}): nothing real above the render's cutoff`
+                : `${r.label} (${lo}–${hi}): ${val} from the ${plan.family_label} center · range ±${r.tol_db} dB` +
+                  (r.dev_after_db != null ? ` · after the plan ${signed(r.dev_after_db)} dB` : '');
+            regions.appendChild(reg);
+        });
+        card.appendChild(regions);
+
+        if (moves.length) {
+            const list = mkEl('div', 'tone-moves');
+            moves.forEach((m) => {
+                const row = mkEl('label', `tone-move ${m.layer}${m.enabled === false ? ' off' : ''}`);
+                const cb = mkEl('input');
+                cb.type = 'checkbox';
+                cb.checked = m.enabled !== false;
+                cb.addEventListener('change', () => {
+                    m.enabled = cb.checked;
+                    row.classList.toggle('off', !cb.checked);
+                    if (toneApplied) applyTonePlan(); else renderToneStrip();
+                });
+                row.append(cb,
+                    mkEl('span', 'tm-pill', m.layer === 'fix' ? 'Fix' : 'Shape'),
+                    mkEl('span', 'tm-spec', `${TYPE_LABELS[m.type] || m.type} ${fmtHz(m.freq_hz)}`),
+                    mkEl('span', `tm-gain ${m.gain_db < 0 ? 'cut' : 'boost'}`, `${signed(m.gain_db)} dB`),
+                    mkEl('span', 'tm-q', `Q ${m.q}`),
+                    mkEl('div', 'tm-reason', m.reason || ''));
+                list.appendChild(row);
+            });
+            card.appendChild(list);
+        }
+
+        const foot = mkEl('div', 'tone-foot');
+        if (moves.length) {
+            const amountWrap = mkEl('label', 'tone-amount');
+            const amount = mkEl('input');
+            amount.type = 'range';
+            amount.min = '25'; amount.max = '125'; amount.step = '5';
+            amount.value = String(Math.round(toneState.amount * 100));
+            const amountVal = mkEl('span', 'tone-amount-val', `${amount.value}%`);
+            amount.addEventListener('input', () => {
+                toneState.amount = Number(amount.value) / 100;
+                amountVal.textContent = `${amount.value}%`;
+                if (toneApplied) applyTonePlan(); else renderToneStrip();
+            });
+            amount.addEventListener('change', () => pushSettings());
+            amountWrap.append(mkEl('span', 'ta-label', 'Amount'), amount, amountVal);
+            const apply = mkEl('button', 'btn ad-next-btn tone-apply', 'Apply to EQ');
+            apply.type = 'button';
+            const remove = mkEl('button', 'btn btn-ghost btn-sm tone-remove', 'Remove from EQ');
+            remove.type = 'button';
+            const state = mkEl('span', 'tone-state');
+            const syncBtns = () => {
+                const on = toneApplied;
+                apply.hidden = on;
+                remove.hidden = !on;
+                state.textContent = on ? '✓ In the EQ · fine-tune it in the EQ panel' : '';
+            };
+            apply.addEventListener('click', () => applyTonePlan());
+            remove.addEventListener('click', () => removeTonePlan());
+            card._syncTone = syncBtns;
+            syncBtns();
+            foot.append(amountWrap, apply, remove, state);
+        }
+        const v = plan.verify || {};
+        if (v.lufs_before != null && v.lufs_after != null && moves.length) {
+            const dl = v.lufs_after - v.lufs_before;
+            const dp = (v.tp_after ?? 0) - (v.tp_before ?? 0);
+            const tail = v.limiter_safe
+                ? 'limiter safe'
+                : `the limiter works about ${(v.plr_shift_db ?? 0).toFixed(1)} dB harder`;
+            foot.appendChild(mkEl('div', 'tone-verify',
+                `Checked on the loudest ${Math.round(v.excerpt_s || 20)} s at ${fmtTime(v.excerpt_start_s || 0)}: ` +
+                `loudness ${signed(dl)} dB, peaks ${signed(dp)} dB, ${tail}.` +
+                (v.boosts_dropped ? ' Boosts were dropped to keep peaks in check.'
+                    : v.boosts_scaled ? ' Boosts were halved to keep peaks in check.' : '')));
+        }
+        const basis = [];
+        if (plan.analysis && plan.analysis.cleaning_applied) {
+            basis.push(`judged after ${plan.preset_label || 'the preset'} cleaning on the loudest part`);
+        }
+        if (plan.mastering_on) basis.push('mastering tone match taken into account');
+        if (basis.length) foot.appendChild(mkEl('div', 'tone-basis', basis.join(' · ')));
+        const stale = mkEl('div', 'tone-stale');
+        stale.hidden = true;
+        const replan = mkEl('button', 'btn btn-ghost btn-sm', 'Re-plan for the current settings');
+        replan.type = 'button';
+        replan.addEventListener('click', () => replanTone());
+        stale.append(mkEl('span', null, 'Settings changed since this plan. '), replan);
+        foot.appendChild(stale);
+        card.appendChild(foot);
+        return card;
+    }
+
+    function maybeAutoApplyTone(plan, followUp) {
+        // Auto-apply only on a final pass: with a second pass ahead, pass 1
+        // stays EQ-free and pass 2 plans its own on the cleaned file.
+        if (!toneState.auto || followUp) return;
+        if (plan && Array.isArray(plan.moves) && plan.moves.length) applyTonePlan();
+    }
+
+    function toneBandsNow() {
+        if (!lastTonePlan || !Array.isArray(lastTonePlan.moves)) return [];
+        return lastTonePlan.moves.filter((m) => m.enabled !== false).map((m) => ({
+            type: m.type,
+            freq_hz: Math.round(m.freq_hz * 100) / 100,
+            gain_db: Math.round(m.gain_db * toneState.amount * 100) / 100,
+            q: Math.round(m.q * 1000) / 1000,
+            enabled: true,
+            source: 'tone',
+        }));
+    }
+    function userEqBands() {
+        const cur = eqPanel.getPayload();
+        return { enabled: cur.enabled, bands: cur.bands.filter((b) => b.source !== 'tone') };
+    }
+    function syncToneCards() {
+        document.querySelectorAll('.tone-card').forEach((c) => { if (c._syncTone) c._syncTone(); });
+        renderToneStrip();
+        if (syncNextStep) syncNextStep();
+    }
+    function applyTonePlan() {
+        const bands = toneBandsNow();
+        const user = userEqBands();
+        eqPanel.setPayload({
+            enabled: bands.length > 0 || (user.enabled && user.bands.length > 0),
+            bands: user.bands.concat(bands).slice(0, 12),
+        });
+        toneAppliedBands = bands;
+        toneApplied = true;
+        afterEqChange();
+        syncToneCards();
+    }
+    function removeTonePlan() {
+        if (!toneApplied) return;
+        const user = userEqBands();
+        eqPanel.setPayload({ enabled: user.enabled && user.bands.length > 0, bands: user.bands });
+        toneAppliedBands = [];
+        toneApplied = false;
+        afterEqChange();
+        syncToneCards();
+    }
+
+    // The strip in the EQ card: the plan's verdict, apply/remove, family
+    // and the final-pass switch, next to the editor the bands land in.
+    function renderToneStrip() {
+        if (!toneStrip) return;
+        toneStrip.innerHTML = '';
+        const plan = lastTonePlan;
+        const moves = plan && Array.isArray(plan.moves) ? plan.moves : [];
+        const head = mkEl('div', 'ts-head');
+        head.appendChild(mkEl('span', 'ts-kicker', 'Suggested EQ'));
+        if (!plan) {
+            head.appendChild(mkEl('span', 'ts-text muted', currentFile
+                ? 'Run Analyze to plan it for this track.'
+                : 'Planned by Analyze for each track.'));
+            toneStrip.appendChild(head);
+            toneStrip.classList.toggle('empty', true);
+            return;
+        }
+        toneStrip.classList.toggle('empty', false);
+        const on = moves.filter((m) => m.enabled !== false).length;
+        const text = moves.length
+            ? `${on} of ${moves.length} move${moves.length === 1 ? '' : 's'} · ${plan.family_label}`
+            : `None needed · inside the ${plan.family_label} range`;
+        head.appendChild(mkEl('span', 'ts-text', text));
+        if (moves.length) {
+            const brief = moves.filter((m) => m.enabled !== false).map((m) =>
+                `${TYPE_LABELS[m.type] || m.type} ${fmtHz(m.freq_hz)} ${signed(m.gain_db * toneState.amount)}`).join(' · ');
+            head.appendChild(mkEl('span', 'ts-brief', brief));
+        }
+        toneStrip.appendChild(head);
+        const row = mkEl('div', 'ts-row');
+        if (moves.length) {
+            if (toneApplied) {
+                row.appendChild(mkEl('span', 'ts-state', '✓ In the EQ below'));
+                const remove = mkEl('button', 'btn btn-ghost btn-sm', 'Remove');
+                remove.type = 'button';
+                remove.addEventListener('click', () => removeTonePlan());
+                row.appendChild(remove);
+            } else {
+                const apply = mkEl('button', 'btn btn-sm ts-apply', 'Apply to EQ');
+                apply.type = 'button';
+                apply.addEventListener('click', () => applyTonePlan());
+                row.appendChild(apply);
+            }
+        }
+        const famWrap = mkEl('label', 'tone-family-wrap');
+        famWrap.append(mkEl('span', 'tf-label', 'Family'));
+        const fam = mkEl('select', 'select tone-family');
+        fillFamilySelect(fam, toneState.family);
+        fam.addEventListener('change', () => {
+            toneState.family = fam.value;
+            pushSettings();
+            replanTone();
+        });
+        famWrap.appendChild(fam);
+        const autoWrap = mkEl('label', 'tone-auto');
+        const autoIn = mkEl('input');
+        autoIn.type = 'checkbox';
+        autoIn.checked = toneState.auto;
+        autoIn.title = 'On: the plan goes into the EQ on the final pass by itself. Off: use Apply when you want it.';
+        autoIn.addEventListener('change', () => {
+            toneState.auto = autoIn.checked;
+            pushSettings();
+            syncToneCards();
+        });
+        autoWrap.append(autoIn, mkEl('span', null, 'Use on the final pass'));
+        row.append(famWrap, autoWrap);
+        toneStrip.appendChild(row);
+        const seeIt = mkEl('button', 'btn btn-ghost btn-sm ts-jump', 'See why');
+        seeIt.type = 'button';
+        seeIt.title = 'Jump to the plan in the Analysis card: regions, reasons, the check on the loudest part.';
+        seeIt.addEventListener('click', () => {
+            const card = document.querySelector('.tone-card');
+            if (card) { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); card.classList.add('flash'); setTimeout(() => card.classList.remove('flash'), 1200); }
+        });
+        row.appendChild(seeIt);
+    }
+
+    // Each right-pane section says its state in the summary line, so the
+    // pane reads at a glance even when the sections are closed.
+    function syncInspectorStates() {
+        const eq = eqPanel.getPayload();
+        if (stateEls.eq) {
+            const n = eq.bands.filter((b) => b.enabled !== false).length;
+            stateEls.eq.textContent = !eq.enabled || n === 0 ? 'off'
+                : `${n} band${n === 1 ? '' : 's'}${toneApplied ? ' · suggested' : ''}`;
+        }
+        if (stateEls.master) {
+            if (!masterEnabled.checked) {
+                stateEls.master.textContent = 'off';
+            } else {
+                const opt = masterTarget.options[masterTarget.selectedIndex];
+                const t = opt ? opt.text : '';
+                const short = t.includes('(') ? t.slice(t.indexOf('(') + 1, t.indexOf(')')) : t;
+                const iOpt = masterIntensity.options[masterIntensity.selectedIndex];
+                const intensity = iOpt ? iOpt.text.split(' ')[0] : '';
+                stateEls.master.textContent = `${short} · match ${intensity.toLowerCase()}`;
+            }
+        }
+        if (stateEls.output) {
+            const f = outputFormat.value.toUpperCase();
+            const bits = outputFormat.value === 'wav' || outputFormat.value === 'flac' ? ' 24-bit' : '';
+            stateEls.output.textContent = `${f}${bits}${trimSilence.checked ? ' · trim' : ''}`;
+        }
+        if (stateEls.tags) {
+            const t = tagsDefaults();
+            stateEls.tags.textContent = !t.enabled ? 'off' : (t.artist || 'on');
+        }
+    }
+    function afterEqChange() {
+        pushSettings();
+        previewCache.clear();
+        if (previewState.active) schedulePreviewRender();
+    }
+
+    async function replanTone() {
+        if (!currentFile) return null;
+        const cards = Array.from(document.querySelectorAll('.tone-card'));
+        cards.forEach((c) => c.classList.add('busy'));
+        try {
+            const r = await fetchTonePlan(currentFile, {
+                preset: presetSelect.value,
+                preset_strength: currentStrength(),
+                tone_family: toneState.family,
+                mastering: JSON.stringify(masteringPayload()),
+                repair: JSON.stringify(repairPayload() || {}),
+                overrides: JSON.stringify(controls.getValues()),
+            });
+            const plan = r.tone_plan;
+            const wasApplied = toneApplied;
+            const ctx = { followUp: (lastFollowUp && !priorPassPreset && !(passPlan && passPlan.status === 'loaded2')) ? lastFollowUp : null };
+            const fresh = renderTonePlan(plan, ctx);
+            const live = Array.from(document.querySelectorAll('.tone-card'));
+            if (live.length) {
+                live[0].replaceWith(fresh);
+                live.slice(1).forEach((c) => c.remove());
+            }
+            if (wasApplied) applyTonePlan();
+            updateToneTile(plan);
+            return plan;
+        } catch (e) {
+            document.querySelectorAll('.tone-card.busy').forEach((c) => c.classList.remove('busy'));
+            showAutoDetectError(`Tone plan failed: ${e.message}`);
+            return null;
+        }
+    }
+    function markToneStale() {
+        document.querySelectorAll('.tone-card .tone-stale').forEach((el) => { el.hidden = false; });
+    }
+    [masterEnabled, masterIntensity, masterTilt, presetSelect].forEach((el) => {
+        el.addEventListener('change', markToneStale);
+    });
+    [masterEnabled, masterTarget, masterIntensity, outputFormat, trimSilence].forEach((el) => {
+        el.addEventListener('change', syncInspectorStates);
+    });
+    strengthEl.addEventListener('change', markToneStale);
+
+    // ── Tags: title from the file, defaults from the user ─────────────
+    function titleFromName(name) {
+        let stem = (name || '').replace(/\.[^.]+$/, '');
+        for (let guard = 0; guard < 6; guard++) {
+            const m = /^(.*)_(processed|trimmed)_[0-9a-f]{8}$/i.exec(stem);
+            if (!m) break;
+            const before = m[1];
+            let best = null;
+            for (const key of byName.keys()) {
+                if (before.toLowerCase().endsWith('_' + key) && (!best || key.length > best.length)) best = key;
+            }
+            stem = best ? before.slice(0, before.length - key_len(best) - 1) : before;
+        }
+        return stem.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    const key_len = (k) => k.length;
+    function resetTagsForFile(file) {
+        if (!tagTitle) return;
+        tagTitle.dataset.user = '0';
+        tagTitle.value = titleFromName(file.name);
+        if (tagTitleHint) tagTitleHint.textContent = 'From the filename. Edit it if the real title differs.';
+        if (tagFields.track) tagFields.track.value = '';
+        Object.values(tagFields).forEach((el) => { if (el) el.placeholder = ''; });
+    }
+    function prefillTags(source, hint) {
+        if (!tagTitle) return;
+        const src = source || {};
+        if (tagTitle.dataset.user !== '1') {
+            const auto = src.title || hint || (currentFile ? titleFromName(currentFile.name) : '');
+            if (auto) tagTitle.value = auto;
+            if (tagTitleHint) {
+                tagTitleHint.textContent = src.title
+                    ? "From the file's own tags."
+                    : 'From the filename. Edit it if the real title differs.';
+            }
+        }
+        for (const [key, el] of Object.entries(tagFields)) {
+            if (!el) continue;
+            if (src[key]) el.placeholder = `${src[key]} (from the file)`;
+        }
+        if (tagFields.track && !tagFields.track.value && src.track) tagFields.track.value = src.track;
+    }
+    if (tagTitle) {
+        tagTitle.addEventListener('input', () => {
+            tagTitle.dataset.user = tagTitle.value.trim() ? '1' : '0';
+        });
+    }
+    function tagsDefaults() {
+        const g = (el) => (el ? el.value.trim() : '');
+        return {
+            enabled: !tagsEnabled || tagsEnabled.checked,
+            artist: g(tagFields.artist), album_artist: g(tagFields.album_artist),
+            album: g(tagFields.album), genre: g(tagFields.genre), year: g(tagFields.year),
+            copyright: g(tagFields.copyright), isrc: g(tagFields.isrc),
+            keep: !tagsKeep || tagsKeep.checked,
+            notes: !tagsNotes || tagsNotes.checked,
+        };
+    }
+    function tagsPayload() {
+        const d = tagsDefaults();
+        return {
+            enabled: d.enabled,
+            title: tagTitle ? tagTitle.value.trim() : '',
+            track: tagFields.track ? tagFields.track.value.trim() : '',
+            artist: d.artist, album_artist: d.album_artist, album: d.album,
+            genre: d.genre, year: d.year, copyright: d.copyright, isrc: d.isrc,
+            mode: d.keep ? 'fill' : 'overwrite',
+            notes: d.notes,
+        };
+    }
+    function restoreTagsDefaults(t) {
+        if (!t) return;
+        if (tagsEnabled && typeof t.enabled === 'boolean') tagsEnabled.checked = t.enabled;
+        for (const key of ['artist', 'album_artist', 'album', 'genre', 'year', 'copyright', 'isrc']) {
+            if (tagFields[key] && typeof t[key] === 'string') tagFields[key].value = t[key];
+        }
+        if (tagsKeep && typeof t.keep === 'boolean') tagsKeep.checked = t.keep;
+        if (tagsNotes && typeof t.notes === 'boolean') tagsNotes.checked = t.notes;
+    }
+    [tagsEnabled, tagsKeep, tagsNotes, ...Object.values(tagFields)].forEach((el) => {
+        if (!el) return;
+        el.addEventListener('change', () => pushSettings());
+    });
 
     function renderAutoDetect(r) {
         autoDetectResults.hidden = false;
@@ -926,6 +1904,13 @@ export async function initSingleTab() {
             note.className = 'ad-reason';
             note.textContent = 'No artifact detected; safe defaults will do.';
             autoDetectResults.appendChild(note);
+            if (r.tone_plan && !r.tone_plan.error) {
+                const main = document.createElement('div');
+                main.className = 'ad-main';
+                main.appendChild(renderTonePlan(r.tone_plan, { followUp: null }));
+                autoDetectResults.appendChild(main);
+                maybeAutoApplyTone(r.tone_plan, null);
+            }
             return;
         }
 
@@ -961,6 +1946,8 @@ export async function initSingleTab() {
         tile('Top end',
             cutoffHz > 0 ? `Stops at ${(cutoffHz / 1000).toFixed(1)} kHz` : 'Full range',
             'grey');
+        const toneTile = tile('Suggested EQ', toneTileText(r.tone_plan), toneTileTone(r.tone_plan));
+        toneTile.classList.add('tone');
 
         // Hero + table. Re-rendered whenever Apply moves the choice, so
         // the highlight follows the state, never the position.
@@ -1017,65 +2004,36 @@ export async function initSingleTab() {
             const none = table.childElementCount === 0;
             othersLabel.hidden = none;
             table.hidden = none;
+            if (syncNextStep) syncNextStep();
         };
         renderMain();
+
+        // Tone: the suggested EQ, judged after this preset's cleaning.
+        if (r.tone_plan && !r.tone_plan.error) {
+            main.appendChild(renderTonePlan(r.tone_plan, { followUp }));
+            maybeAutoApplyTone(r.tone_plan, followUp);
+        } else if (r.tone_plan && r.tone_plan.error) {
+            main.appendChild(el('div', 'ad-reason', `Tone plan skipped: ${r.tone_plan.error}`));
+        }
 
         // Side: next step (second pass) and details.
         const side = el('div', 'ad-side');
         if (followUp) {
-            const next = el('div', 'ad-next');
-            next.append(el('div', 'ad-next-kicker', 'Next step'),
-                        el('div', 'ad-next-title', `Second pass with ${nameOf(followUp)}`));
-            if (followUp.reason) next.append(el('div', 'ad-next-reason', followUp.reason));
-            // The two settings this pass needs, as state rows rather than
-            // prose, plus one button that sets them and then runs the pass.
-            const checks = el('div', 'ad-next-checks');
-            const mkCheck = (label) => {
-                const row = el('div', 'ad-check');
-                const state = el('span', 'ad-check-state');
-                row.append(el('span', 'ad-check-dot'), el('span', 'ad-check-label', label), state);
-                checks.appendChild(row);
-                return { row, state };
-            };
-            const cMaster = mkCheck('Mastering off for this pass');
-            const cPreserve = mkCheck('Preserve volume on');
-            const why = el('div', 'ad-next-why',
-                'Master only once, at the end. Cleaning a mastered file and ' +
-                'mastering it again hurts the sound.');
-            const btn = el('button', 'btn ad-next-btn');
-            btn.type = 'button';
-            const after = el('div', 'ad-next-after',
-                `Then upload the result and run ${nameOf(followUp)}.`);
-            const setState = (c, ok, text) => {
-                c.row.classList.toggle('ok', ok);
-                c.state.textContent = ok ? `✓ ${text}` : text;
-            };
-            const syncNext = () => {
-                const masterOff = !masterEnabled.checked;
-                const preserveOn = !!preserveVol.checked;
-                setState(cMaster, masterOff, masterOff ? 'Off' : 'On');
-                setState(cPreserve, preserveOn, preserveOn ? 'On' : 'Off');
-                const ready = masterOff && preserveOn;
-                btn.textContent = ready ? 'Run this pass: Clean' : 'Set up second pass';
-                btn.classList.toggle('ready', ready);
-                after.hidden = !ready;
-            };
-            btn.addEventListener('click', () => {
-                if (btn.classList.contains('ready')) {
-                    closeAnalysisSheet(true);
-                    processBtn.click();
-                    return;
-                }
-                masterEnabled.checked = false;
-                masterEnabled.dispatchEvent(new Event('change'));
-                preserveVol.checked = true;
-                preserveVol.dispatchEvent(new Event('change'));
-                syncNext();
-            });
-            syncNextStep = syncNext;
-            syncNext();
-            next.append(checks, why, btn, after);
-            side.appendChild(next);
+            ensurePlan(followUp);
+            renderPassPlan(side);
+        } else if (passPlan && passPlan.status !== 'idle') {
+            // Mid-plan (a loaded pass-1 result) and Analyze found nothing
+            // further: keep the plan card so the flow can finish.
+            renderPassPlan(side);
+        } else {
+            // Say so, rather than leaving a gap where the plan would be.
+            const one = el('div', 'ad-single');
+            one.append(el('div', 'ad-next-kicker', 'One pass'),
+                       el('div', 'ad-single-text',
+                          'One pass is enough. Analyze tried the runner-ups on the cleaned ' +
+                          'result and none of them found more worth removing. Clean & Master ' +
+                          'runs the applied preset and masters in one go.'));
+            side.appendChild(one);
         }
         const notes = Array.isArray(r.notes) ? r.notes : [];
         if (notes.length) {
@@ -1166,9 +2124,13 @@ export async function initSingleTab() {
         autoBtn.textContent = 'Analyzing…';
         autoBtn.disabled = true;
         setAnalyzeDock('busy');
+        const busyEl = $('analysis-busy');
+        const hintEl = $('analysis-hint');
+        if (busyEl) busyEl.hidden = false;
+        if (hintEl) hintEl.hidden = true;
         let done = false;
         try {
-            const r = await runAutoDetect(currentFile);
+            const r = await runAutoDetect(currentFile, analyzeExtras());
             lastFollowUp = (r.follow_up && r.follow_up.name) ? r.follow_up : null;
             if (r.repair_plan) setRepairPlan(r.repair_plan);
             applyDetectedPreset(r.preset, r.strength);
@@ -1189,12 +2151,15 @@ export async function initSingleTab() {
                 renderAnalysisReadout(r.analysis);
                 eqPanel.refreshSpectrum();
             }
+            if (r.source_tags) prefillTags(r.source_tags, null);
             setWizardStep(1);
         } catch (e) {
             showAutoDetectError(`Analyze failed: ${e.message}`);
         } finally {
             autoBtn.textContent = originalLabel;
             autoBtn.disabled = false;
+            if (busyEl) busyEl.hidden = true;
+            if (hintEl && !done) hintEl.hidden = false;
             if (!done) setAnalyzeDock('idle');
         }
     });
@@ -1222,9 +2187,11 @@ export async function initSingleTab() {
     };
 
     function pushSettings() {
+        if (advDrawer && !advDrawer.hidden) syncAdvancedHeader();
         // The Signal Chain view re-renders from live settings on this.
         document.dispatchEvent(new CustomEvent('shimmer:settings-changed'));
         syncDockStatus();
+        syncInspectorStates();
         saveSettings({
             remember_settings: !!(rememberSettings && rememberSettings.checked),
             preset: presetSelect.value,
@@ -1236,6 +2203,8 @@ export async function initSingleTab() {
             mastering: masteringPayload(),
             eq: eqPanel.getPayload(),
             ab_loudness_match: abLoudnessMatch.checked,
+            tags: tagsDefaults(),
+            tone: { family: toneState.family, auto: toneState.auto, amount: toneState.amount },
         });
     }
     preserveVol.addEventListener('change', () => {
@@ -1341,6 +2310,7 @@ export async function initSingleTab() {
                 renderAnalysisReadout(r.analysis);
                 eqPanel.refreshSpectrum();
             }
+            prefillTags(r.source_tags || {}, r.title_hint || null);
             return r.session_id;
         } catch (e) {
             if (!quiet) setPreviewStatus(`Preview failed: ${e.message}`, 'error');
@@ -1560,16 +2530,130 @@ export async function initSingleTab() {
 
     // Stage caption from the pipeline's known fraction boundaries
     // (tone ~0–5%, cleaning ~5–85%, master/limiter/encode ~85–100%).
-    function processStageLabel(frac) {
-        if (frac < 0.05) return 'Preparing…';
-        if (frac < 0.85) return 'Cleaning AI artifacts…';
-        return masterEnabled.checked ? 'Mastering & finalizing…' : 'Finalizing…';
+    // ── The chain, live, inside the progress modal ─────────────────────
+    // Audio enters on the left, each stage lights as the server reports
+    // it, and the packet leaves on the right when the file is written.
+    const processModalChain = $('process-modal-chain');
+    const processModalDetail = $('process-modal-detail');
+    const pmChain = { nodes: new Map(), current: null, planned: new Set(), packet: null, wire: null };
+
+    function plannedPhases() {
+        const st = window.shimmerChainState ? window.shimmerChainState() : null;
+        const masterOn = masterEnabled.checked;
+        const set = new Set(['repair', 'split', 'fine', 'engine', 'recombine', 'post', 'export']);
+        if (st && st.trim_armed) set.add('edit');
+        if (masterOn) { set.add('pre'); set.add('master'); }
+        else if (preserveVol.checked) set.add('level');
+        return set;
     }
+
+    function buildProcessChain() {
+        if (!processModalChain) return;
+        processModalChain.innerHTML = '';
+        pmChain.nodes.clear();
+        pmChain.current = null;
+        pmChain.planned = plannedPhases();
+        const wire = mkEl('div', 'pm-wire');
+        const lit = mkEl('div', 'pm-wire-lit');
+        wire.appendChild(lit);
+        pmChain.wire = lit;
+        processModalChain.appendChild(wire);
+        const row = mkEl('div', 'pm-nodes');
+        const port = (cls, label) => {
+            const el = mkEl('div', `pm-port ${cls}`);
+            el.append(mkEl('span', 'pm-port-glyph'), mkEl('span', 'pm-label', label));
+            return el;
+        };
+        row.appendChild(port('in', 'In'));
+        CHAIN_PHASES.forEach(([key, fullLabel, color]) => {
+            const label = fullLabel === 'Fine pass' ? 'Fine' : fullLabel;
+            const planned = pmChain.planned.has(key);
+            const node = mkEl('div', `pm-node ${planned ? 'pending' : 'skipped'}`);
+            node.style.setProperty('--phase', color);
+            node.dataset.key = key;
+            node.append(mkEl('span', 'pm-dot'), mkEl('span', 'pm-label', label));
+            node.title = planned ? label : `${label}: not in this run`;
+            row.appendChild(node);
+            pmChain.nodes.set(key, node);
+        });
+        row.appendChild(port('out', 'Out'));
+        processModalChain.appendChild(row);
+        const packet = mkEl('div', 'pm-packet');
+        packet.append(mkEl('i'), mkEl('i'), mkEl('i'));
+        processModalChain.appendChild(packet);
+        pmChain.packet = packet;
+        requestAnimationFrame(() => movePacket('in'));
+    }
+
+    function nodeCenterPct(target) {
+        if (!processModalChain) return 0;
+        const rect = processModalChain.getBoundingClientRect();
+        if (rect.width <= 0) return 0;
+        let el = null;
+        if (target === 'in') el = processModalChain.querySelector('.pm-port.in .pm-port-glyph');
+        else if (target === 'out') el = processModalChain.querySelector('.pm-port.out .pm-port-glyph');
+        else { const n = pmChain.nodes.get(target); el = n ? n.querySelector('.pm-dot') : null; }
+        if (!el) return 0;
+        const r = el.getBoundingClientRect();
+        return ((r.left + r.width / 2) - rect.left) / rect.width * 100;
+    }
+
+    function movePacket(target) {
+        if (!pmChain.packet) return;
+        const to = nodeCenterPct(target);
+        const from = nodeCenterPct('in');
+        pmChain.packet.style.setProperty('--x0', `${from}%`);
+        pmChain.packet.style.setProperty('--x1', `${to}%`);
+        if (pmChain.wire) {
+            pmChain.wire.style.left = `${from}%`;
+            pmChain.wire.style.width = `${Math.max(0, to - from)}%`;
+        }
+        // Restart the travel so the packet always sets off from In.
+        pmChain.packet.style.animation = 'none';
+        void pmChain.packet.offsetWidth;
+        pmChain.packet.style.animation = '';
+        pmChain.packet.classList.toggle('arrived', target === 'out');
+    }
+
+    function setProcessStage(key, label, detail) {
+        if (label) processModalStage.textContent = label;
+        if (processModalDetail) processModalDetail.textContent = detail || '';
+        if (!pmChain.nodes.size || !key) return;
+        const order = CHAIN_PHASES.map(([k]) => k);
+        const idx = order.indexOf(key);
+        if (idx < 0) return;
+        order.forEach((k, i) => {
+            const node = pmChain.nodes.get(k);
+            if (!node) return;
+            const skipped = node.classList.contains('skipped');
+            node.classList.remove('pending', 'active', 'done');
+            if (skipped) return;
+            node.classList.add(i < idx ? 'done' : i === idx ? 'active' : 'pending');
+        });
+        pmChain.current = key;
+        movePacket(key);
+    }
+
+    function finishProcessChain() {
+        pmChain.nodes.forEach((node) => {
+            if (node.classList.contains('skipped')) return;
+            node.classList.remove('pending', 'active');
+            node.classList.add('done');
+        });
+        processModalChain && processModalChain.classList.add('finished');
+        movePacket('out');
+    }
+
     function updateProcessModal(frac) {
         const pct = Math.max(0, Math.min(100, Math.round(frac * 100)));
         processModalFill.style.width = `${pct}%`;
         processModalPct.textContent = `${pct}%`;
-        processModalStage.textContent = processStageLabel(frac);
+        if (!pmChain.current && frac > 0.05 && frac < 1) {
+            // No stage events (an older server): say what the fraction means.
+            processModalStage.textContent = frac < 0.85 ? 'Cleaning AI artifacts…'
+                : (masterEnabled.checked ? 'Mastering & finalizing…' : 'Finalizing…');
+        }
+        if (frac >= 1) finishProcessChain();
     }
     function openProcessModal() {
         // The title must say what this run actually does.
@@ -1583,7 +2667,10 @@ export async function initSingleTab() {
         processModalFill.style.width = '0%';
         processModalPct.textContent = '0%';
         processModalStage.textContent = 'Preparing…';
+        if (processModalDetail) processModalDetail.textContent = 'reading the file';
+        processModalChain && processModalChain.classList.remove('finished');
         processModal.hidden = false;
+        buildProcessChain();
     }
     function closeProcessModal() { processModal.hidden = true; }
     function failProcessModal(message) {
@@ -1594,6 +2681,11 @@ export async function initSingleTab() {
         processModalClose.focus();
     }
     processModalClose.addEventListener('click', closeProcessModal);
+    window.addEventListener('resize', () => {
+        if (!processModal.hidden && pmChain.nodes.size) {
+            movePacket(processModalChain.classList.contains('finished') ? 'out' : (pmChain.current || 'in'));
+        }
+    });
     document.addEventListener('keydown', (e) => {
         // Not dismissable while running (no cancel support); Esc closes only
         // once the error Close button is offered.
@@ -1645,7 +2737,9 @@ export async function initSingleTab() {
         // Analyze found a second pass and mastering is on: ask before we
         // master a file that still needs another cleaning pass. Three
         // real choices; Cancel means cancel.
-        if (lastFollowUp && masterEnabled.checked) {
+        // Skip the master-once question on a file that is already pass 1's
+        // output: this run is the last pass, and it should master.
+        if (lastFollowUp && masterEnabled.checked && !priorPassPreset) {
             const label = lastFollowUp.label || labelOf(lastFollowUp.name);
             const choice = await askSecondPass(label);
             if (choice === 'cancel') return;
@@ -1663,6 +2757,7 @@ export async function initSingleTab() {
             applyPreviewToggle(false);
         }
         processBtn.disabled = true;
+        const ranWithMastering = masterEnabled.checked;
         processBtn.textContent = 'Processing…';
         progressEl.value = 0;
         openProcessModal();
@@ -1677,6 +2772,7 @@ export async function initSingleTab() {
                 mastering: masteringPayload(),
                 eq: eqPanel.getPayload(),
                 repair: repairPayload(),
+                tags: tagsPayload(),
             };
             if (lastAnalysis) paramsBody.mastering_analysis = lastAnalysis;
 
@@ -1694,6 +2790,7 @@ export async function initSingleTab() {
             await new Promise((resolve, reject) => {
                 openSSE(`/api/progress/${job.job_id}`, {
                     onMessage: (msg) => {
+                        if (msg.stage) setProcessStage(msg.stage, msg.status, msg.detail);
                         if (typeof msg.fraction === 'number') {
                             progressEl.value = msg.fraction;
                             updateProcessModal(msg.fraction);
@@ -1711,8 +2808,15 @@ export async function initSingleTab() {
             downloadLink.href = resultUrl(
                 job.job_id, wantTrim ? 'trimmed' : 'processed');
             setWizardStep(2);
+            lastRun = { jobId: job.job_id, masteringOn: ranWithMastering, preset: presetSelect.value };
+            if (syncNextStep) syncNextStep();
 
             const bannerChips = [];
+            if (lastFollowUp && !ranWithMastering && !priorPassPreset) {
+                bannerChips.push('pass 1 of 2 · cleaning only');
+            } else if (priorPassPreset && ranWithMastering) {
+                bannerChips.push('pass 2 of 2 · mastered');
+            }
             const m = await fetchMetrics(job.job_id);
             if (m && m.metrics) {
                 const mm = m.metrics;
@@ -1833,6 +2937,11 @@ export async function initSingleTab() {
                 if (mm.eq && mm.eq.enabled) {
                     job.push(`EQ: ${mm.eq.bands} band${mm.eq.bands === 1 ? '' : 's'}`);
                 }
+                if (mm.export && mm.export.tags && mm.export.tags.written) {
+                    const t = mm.export.tags.tags || {};
+                    const who = [t.title, t.artist].filter(Boolean).join(' · ');
+                    job.push(`Tags written${who ? ': ' + who : ''} (${mm.export.tags.form})`);
+                }
                 const chStr = mm.channels === 1 ? 'mono' : (mm.channels === 2 ? 'stereo' : `${mm.channels} ch`);
                 job.push(`${fmtTime(mm.duration_s)} · ${(mm.sample_rate / 1000).toFixed(1)} kHz · ${chStr}`);
                 // What the download actually is: format, bit depth, dither.
@@ -1862,10 +2971,17 @@ export async function initSingleTab() {
             downloadLink.textContent =
                 `Download ${outputFormat.value.toUpperCase()}`;
             showDoneBanner(bannerChips);
-            closeProcessModal();  // success: reveal the done banner
+            // Success: let the packet leave through Out, then reveal the
+            // done banner.
+            setTimeout(closeProcessModal, 900);
+            document.dispatchEvent(new CustomEvent('shimmer:run-complete', { detail: {
+                ok: true, jobId: job.job_id, masteringOn: ranWithMastering,
+                loudness: (m && m.metrics && m.metrics.loudness) || null,
+            } }));
         } catch (e) {
             setMetrics(`Error: ${e.message}`);
             failProcessModal(e.message);  // keep modal open with a Close
+            document.dispatchEvent(new CustomEvent('shimmer:run-complete', { detail: { ok: false } }));
         } finally {
             processBtn.disabled = false;
             processBtn.textContent = processLabel();

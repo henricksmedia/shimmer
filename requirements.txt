@@ -1,6 +1,7 @@
 numpy>=1.26,<3
 scipy>=1.11
 soundfile>=0.12
+mutagen>=1.47
 matplotlib>=3.8
 fastapi>=0.110
 uvicorn[standard]>=0.27

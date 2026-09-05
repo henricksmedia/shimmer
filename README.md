@@ -79,6 +79,10 @@ just picking whichever is louder. The bar tells you what it is doing, for
 example "Processed −2.2 dB". That is a monitoring level only. Your export is
 never touched.
 
+The transport at the bottom has back-to-start, skip 5 seconds either way,
+play/pause, and a scrubber you can click or drag. The amber band on the
+scrubber is the Live loop window.
+
 ---
 
 ## Quick start
@@ -187,14 +191,18 @@ WAV, FLAC, and OGG work right away. MP3 and M4A also need
 **2. Click Analyze.** Shimmer scans your whole song for the tell-tale signs
 of AI noise, then *tries* every cleanup preset on the busiest few seconds
 and measures what each one really took out: noise, or your music. It shows
-the six best fits with a plain reason for each, sets the **Preset strength**
-to the gentlest setting that did the job, and points Live preview at the
-spot where the noise is worst. It takes about ten seconds. If a second pass
-with another preset would still help, Analyze says so.
+the best fit big, with its strength and a plain reason, and the next five
+in a list under it; click **Apply** on any of them to switch. It sets the
+**Preset strength** to the gentlest setting that did the job and points Live
+preview at the spot where the noise is worst. It takes about ten seconds.
+Click **Expand** to open the results as a full workspace over the page. If
+a second pass with another preset would still help, Analyze says so.
 
 **3. Click Clean & Master.** A progress window shows each step, then closes
-when your finished file is ready — along with the numbers behind it: loudness
-before and after, true peak, and how hard the limiter worked.
+when your finished file is ready — along with a **What changed** chart (the
+spectrum before and after, what was removed, and where) and the numbers
+behind it: loudness before and after, true peak, peak-to-loudness ratio,
+stereo correlation, and how hard the limiter worked.
 
 Want to hear your edits instantly? Turn on **Live** in the bottom bar. It
 loops a short section of your song and re-renders it in about a second, so
@@ -246,9 +254,11 @@ it down.
 **Two passes? Master once.** When Analyze suggests a second pass, run the
 first pass with mastering off and Preserve volume on, load the result, and
 master on the last pass only. Mastering limits the sound and sets its final
-loudness, so cleaning a mastered file and mastering it again hurts it.
-Shimmer reminds you of this if mastering is still on when you click
-Clean & Master.
+loudness, so cleaning a mastered file and mastering it again hurts it. The **Two-pass plan** card under the results lists Pass 1, Pass 2 and
+Download with live status. **Run both passes** does the whole thing: it sets
+the settings, cleans, loads the result, applies the pass-2 preset, masters,
+and stops at Download. Or run the passes one at a time and listen in between. If mastering is still on when you
+click Clean & Master, Shimmer asks first.
 
 ### Mastering that respects your dynamics
 
@@ -256,9 +266,11 @@ Clean & Master.
   LUFS is how streaming platforms measure loudness. Spotify and Apple Music
   turn everything toward −14, so mastering louder than that just gets turned
   back down.
-- **Tone match** — gently pulls your track toward a balanced reference curve.
-  Choose how strongly: Low, Medium, or High.
-- **Tone tilt** — warmer or brighter, your call. Boosts are capped at +2 dB,
+- **Tone match** — gently pulls your track toward the shape of released
+  music. It compares shape with shape, so a balanced track gets close to
+  nothing and a boomy one loses a little low end. Choose how strongly: Low,
+  Medium, or High.
+- **Tilt** — warmer or brighter, your call. Boosts are capped at +2 dB,
   and the harsh 5–12 kHz band stays limited, so the fizz can't sneak back in.
 - **True-peak limiter** — 4× oversampled, so your track won't clip or
   distort after it's converted to MP3 or AAC. Lossless files get −1.0 dBTP of
@@ -275,8 +287,41 @@ to change the Q (how wide or narrow the move is), double-click to add or
 delete.
 
 It runs **zero-phase**, which means it shapes tone without smearing your
-transients. Seven starting points are built in — Air Lift, De-Mud, Warmth,
-Presence, Vocal Clarity, Rumble Cut, and Lo-Fi Telephone.
+transients. Thirteen starting points are built in, at mastering scale
+(small, broad moves): corrective ones like Tighten Lows, De-Mud, Box Cut
+and Smooth The Top; tonal ones like Tilt Darker, Tilt Brighter, Warmth,
+Open Mids, Presence, a gentle Air lift, and Vocal Clarity; and Lo-Fi
+Telephone for when you want an effect. Each one says what it does right in
+the menu, and every band it loads stays editable.
+
+### Suggested EQ: the moves a mastering engineer would make
+
+Analyze also plans a short EQ for the track, the way a pro works: fix
+first, shape second, cuts before boosts, nothing big. It listens to the
+loud parts only, and judges the balance after your preset's cleaning, so
+it never fights the cleanup. It looks for a ringing tone, a mud stack in
+the low mids, and a harsh band in the presence range, then makes at most
+three gentle balance moves toward a **family** range — Neutral, Pop,
+Hip-hop, EDM, Rock, R&B, Acoustic, Lo-fi, or Cinematic. A family is a
+tolerance, not a target: it says how far from neutral your track may sit
+before a move is worth making. No reference track, no genre guessing.
+
+Every plan is checked on the loudest 20 seconds: if the peaks would rise
+more than the loudness, the limiter would work harder, so boosts are
+halved, then dropped. You see the moves and the reasons, you can turn any
+move off or scale the whole plan, and Apply puts them into the EQ as
+normal bands you can edit. With "Use on the final pass" on, it happens by
+itself: on a one-pass track right after Analyze, and in a two-pass plan
+on pass 2, planned fresh on the cleaned file.
+
+### Tags that travel with the file
+
+Exports carry proper metadata: title, artist, album, genre, year, track,
+copyright and ISRC, written the way each format expects (WAV gets both
+RIFF INFO and an ID3 chunk, so Windows Explorer shows them too). The
+file's own tags stay; Shimmer fills the blanks from your defaults and adds
+one note per pass to the comment, so a file always says what was done to
+it. Set your artist name once in the Tags section and every export has it.
 
 ### Remix: split the song into stems
 
@@ -302,14 +347,20 @@ let it auto-detect the right preset *and* strength for each track (the
 strength slider then scales what it found; 100% means trust the analysis).
 Results stream in file by file as it goes.
 
+Batch can also plan a **Suggested EQ** for each file on its own, judged after
+that file's cleaning, and write your **Tags** defaults onto every export.
+
 ### Signal Chain: see what's actually happening
 
 A map of every stage your audio passes through, in order, in plain language,
 drawn from the preset and options you have set right now: the crossover
 point, how hard the center is cleaned, each stage's band and depth, and
-whether mastering, EQ or a Trim cut are in play. Stages that do nothing for
-the current preset are shown dashed. Click any stage to read what it does
-and jump to its controls. No black box.
+whether mastering, EQ or a Trim cut are in play. Follow the wire: the stages
+run left to right and wrap down the page, one connected line from Trim to
+Export, no sideways scrolling. Each phase of the chain has its own colour,
+and every card shows where on the spectrum that stage works. Stages that do
+nothing for the current preset are shown dashed. Click any stage to read
+what it does and jump to its controls. No black box.
 
 ---
 

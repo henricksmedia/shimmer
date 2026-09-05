@@ -33,33 +33,78 @@ const BAND_COLORS = [
 ];
 
 // One-click starting points. Each replaces the current band list.
+// Starting points at mastering scale: tonal moves of 1 to 1.5 dB with a
+// broad Q, corrective cuts a little narrower. Genre-neutral first; a
+// preset replaces the current bands, and every band stays editable.
+// `needsCutoffHz` greys a preset out when the render's bandwidth stops
+// below it (a top-end lift on a 16 kHz render lifts nothing but noise).
 const EQ_PRESETS = [
-    { key: 'air',       label: 'Air lift',       bands: [
-        { type: 'high_shelf', freq_hz: 11000, gain_db: 2.0, q: 0.707 },
+    // ── Corrective ──────────────────────────────────────────────────────
+    { key: 'rumble', group: 'Corrective', label: 'Rumble cut',
+      gloss: 'high-pass 28 Hz · sub rumble and DC out', bands: [
+        { type: 'highpass', freq_hz: 28, gain_db: 0, q: 0.707 },
     ]},
-    { key: 'demud',     label: 'De-mud',         bands: [
-        { type: 'bell', freq_hz: 300, gain_db: -2.5, q: 1.2 },
+    { key: 'tighten', group: 'Corrective', label: 'Tighten lows',
+      gloss: 'high-pass, a dip at 65 Hz, a little off 130 Hz · boomy low end', bands: [
+        { type: 'highpass',  freq_hz: 28,  gain_db: 0,    q: 0.707 },
+        { type: 'bell',      freq_hz: 65,  gain_db: -1.5, q: 0.9 },
+        { type: 'low_shelf', freq_hz: 130, gain_db: -1.0, q: 0.707 },
     ]},
-    { key: 'warmth',    label: 'Warmth',         bands: [
-        { type: 'low_shelf',  freq_hz: 200,  gain_db: 1.5,  q: 0.707 },
-        { type: 'high_shelf', freq_hz: 9000, gain_db: -1.5, q: 0.707 },
+    { key: 'demud', group: 'Corrective', label: 'De-mud',
+      gloss: '−2 dB at 300 Hz · the mud zone', bands: [
+        { type: 'bell', freq_hz: 300, gain_db: -2.0, q: 1.0 },
     ]},
-    { key: 'presence',  label: 'Presence',       bands: [
-        { type: 'bell', freq_hz: 3500, gain_db: 2.0, q: 1.4 },
+    { key: 'box', group: 'Corrective', label: 'Box cut',
+      gloss: '−1.5 dB at 450 Hz · boxy, cardboard mids', bands: [
+        { type: 'bell', freq_hz: 450, gain_db: -1.5, q: 1.2 },
     ]},
-    { key: 'vocal',     label: 'Vocal clarity',  bands: [
-        { type: 'bell',       freq_hz: 300,   gain_db: -1.5, q: 1.2 },
-        { type: 'bell',       freq_hz: 3000,  gain_db: 1.5,  q: 1.4 },
-        { type: 'high_shelf', freq_hz: 10000, gain_db: 1.0,  q: 0.707 },
+    { key: 'smooth', group: 'Corrective', label: 'Smooth the top',
+      gloss: '−1.5 dB at 5.5 kHz, a touch off 10 kHz · harsh or fizzy highs', bands: [
+        { type: 'bell',       freq_hz: 5500,  gain_db: -1.5, q: 1.0 },
+        { type: 'high_shelf', freq_hz: 10000, gain_db: -0.5, q: 0.707 },
     ]},
-    { key: 'rumble',    label: 'Rumble cut',     bands: [
-        { type: 'highpass', freq_hz: 30, gain_db: 0, q: 0.707 },
+    // ── Tonal ───────────────────────────────────────────────────────────
+    { key: 'tilt_dark', group: 'Tonal', label: 'Tilt darker',
+      gloss: '+0.75 dB lows, −0.75 dB highs · pivot near 1 kHz', bands: [
+        { type: 'low_shelf',  freq_hz: 250,  gain_db: 0.75,  q: 0.5 },
+        { type: 'high_shelf', freq_hz: 4000, gain_db: -0.75, q: 0.5 },
     ]},
-    { key: 'telephone', label: 'Lo-fi telephone', bands: [
+    { key: 'tilt_bright', group: 'Tonal', label: 'Tilt brighter',
+      gloss: '−0.75 dB lows, +0.75 dB highs · pivot near 1 kHz', bands: [
+        { type: 'low_shelf',  freq_hz: 250,  gain_db: -0.75, q: 0.5 },
+        { type: 'high_shelf', freq_hz: 4000, gain_db: 0.75,  q: 0.5 },
+    ]},
+    { key: 'warmth', group: 'Tonal', label: 'Warmth',
+      gloss: '+1 dB under 120 Hz, −1 dB over 8 kHz · rounder', bands: [
+        { type: 'low_shelf',  freq_hz: 120,  gain_db: 1.0,  q: 0.707 },
+        { type: 'high_shelf', freq_hz: 8000, gain_db: -1.0, q: 0.707 },
+    ]},
+    { key: 'openmids', group: 'Tonal', label: 'Open mids',
+      gloss: '+1 dB at 1.5 kHz, broad · scooped mixes', bands: [
+        { type: 'bell', freq_hz: 1500, gain_db: 1.0, q: 0.8 },
+    ]},
+    { key: 'presence', group: 'Tonal', label: 'Presence',
+      gloss: '+1.5 dB at 3 kHz, broad · forward, not harsh', bands: [
+        { type: 'bell', freq_hz: 3000, gain_db: 1.5, q: 0.9 },
+    ]},
+    { key: 'air', group: 'Tonal', label: 'Air, gentle',
+      gloss: '+1 dB over 10 kHz · needs a full-range source', needsCutoffHz: 12000, bands: [
+        { type: 'high_shelf', freq_hz: 10000, gain_db: 1.0, q: 0.707 },
+    ]},
+    { key: 'vocal', group: 'Tonal', label: 'Vocal clarity',
+      gloss: '−1.5 dB at 300 Hz, +1.5 dB at 3 kHz, +0.5 dB air', bands: [
+        { type: 'bell',       freq_hz: 300,   gain_db: -1.5, q: 1.0 },
+        { type: 'bell',       freq_hz: 3000,  gain_db: 1.5,  q: 0.9 },
+        { type: 'high_shelf', freq_hz: 10000, gain_db: 0.5,  q: 0.707 },
+    ]},
+    // ── Creative ────────────────────────────────────────────────────────
+    { key: 'telephone', group: 'Creative', label: 'Lo-fi telephone',
+      gloss: 'band-pass 400 Hz to 3.2 kHz · an effect, not a polish', bands: [
         { type: 'highpass', freq_hz: 400,  gain_db: 0, q: 0.707 },
         { type: 'lowpass',  freq_hz: 3200, gain_db: 0, q: 0.707 },
     ]},
 ];
+const EQ_PRESET_GROUPS = ['Corrective', 'Tonal', 'Creative'];
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
@@ -156,7 +201,7 @@ function fmtGain(db) {
  * opts.getSpectrum returns {freqs_hz, band_db} or null — drawn as a
  * silhouette behind the curve when available.
  */
-export function initEqPanel(host, { onChange, getSpectrum } = {}) {
+export function initEqPanel(host, { onChange, getSpectrum, getCutoffHz } = {}) {
     const state = {
         enabled: false,
         bands: [],
@@ -176,10 +221,11 @@ export function initEqPanel(host, { onChange, getSpectrum } = {}) {
             <span><b>Equalizer</b> — shape the cleaned audio before mastering</span>
         </label>
         <div class="eq-header-actions">
-            <select class="select eq-preset-select" title="Load an EQ starting point (replaces current bands)">
+            <select class="select eq-preset-select" title="Load a starting point at mastering scale (replaces the current bands; every band stays editable)">
                 <option value="">EQ presets…</option>
-                ${EQ_PRESETS.map(p => `<option value="${p.key}">${p.label}</option>`).join('')}
-                <option value="__flat">Clear all bands</option>
+                ${EQ_PRESET_GROUPS.map(g => `<optgroup label="${g}">${EQ_PRESETS.filter(p => p.group === g).map(p =>
+                    `<option value="${p.key}" title="${p.gloss}">${p.label} · ${p.gloss}</option>`).join('')}</optgroup>`).join('')}
+                <optgroup label="Reset"><option value="__flat">Clear all bands</option></optgroup>
             </select>
             <button type="button" class="btn btn-ghost eq-add-btn" title="Add a bell band (or double-click the curve)">+ Band</button>
         </div>`;
@@ -408,6 +454,10 @@ export function initEqPanel(host, { onChange, getSpectrum } = {}) {
             chip.className = 'eq-chip';
             if (bi === state.selected) chip.classList.add('active');
             if (!band.enabled) chip.classList.add('off');
+            if (band.source === 'tone') {
+                chip.classList.add('tone');
+                chip.title = 'From the suggested EQ (Analyze). Edit it like any band.';
+            }
             chip.style.setProperty(
                 '--chip-color', BAND_COLORS[bi % BAND_COLORS.length]);
             const gainTxt = t && t.hasGain ? ` ${fmtGain(band.gain_db)}` : '';
@@ -550,6 +600,22 @@ export function initEqPanel(host, { onChange, getSpectrum } = {}) {
         refresh();
     });
 
+    // A top-end lift needs a top end: grey those presets out when the
+    // render's bandwidth stops below what they reach for.
+    function refreshPresetAvailability() {
+        const cutoff = getCutoffHz ? Number(getCutoffHz()) || 0 : 0;
+        for (const opt of presetSel.options) {
+            const preset = EQ_PRESETS.find(p => p.key === opt.value);
+            if (!preset || !preset.needsCutoffHz) continue;
+            const blocked = cutoff > 0 && cutoff < preset.needsCutoffHz;
+            opt.disabled = blocked;
+            opt.textContent = blocked
+                ? `${preset.label} · not for this render (top end stops at ${(cutoff / 1000).toFixed(1)} kHz)`
+                : `${preset.label} · ${preset.gloss}`;
+        }
+    }
+    presetSel.addEventListener('pointerdown', refreshPresetAvailability);
+    presetSel.addEventListener('focus', refreshPresetAvailability);
     presetSel.addEventListener('change', () => {
         const key = presetSel.value;
         presetSel.value = '';
@@ -608,6 +674,7 @@ export function initEqPanel(host, { onChange, getSpectrum } = {}) {
                 gain_db: Math.round(b.gain_db * 100) / 100,
                 q: Math.round(b.q * 1000) / 1000,
                 enabled: b.enabled,
+                ...(b.source ? { source: b.source } : {}),
             })),
         };
     }
@@ -625,6 +692,7 @@ export function initEqPanel(host, { onChange, getSpectrum } = {}) {
                 gain_db: clamp(Number(b.gain_db) || 0, -GAIN_LIMIT, GAIN_LIMIT),
                 q: clamp(Number(b.q) || 1, Q_MIN, Q_MAX),
                 enabled: b.enabled !== false,
+                ...(b.source === 'tone' ? { source: 'tone' } : {}),
             }));
         state.selected = state.bands.length ? 0 : -1;
         refresh({ notify: false });
