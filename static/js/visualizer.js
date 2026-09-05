@@ -634,9 +634,11 @@ export function createUnifiedPlayer({
     }
 
     function updateTimeLabel() {
-        if (!timeLabel) return;
-        timeLabel.textContent =
-            `${fmtTime(getTime())} / ${fmtTime(totalDuration())}`;
+        const t = getTime();
+        const d = totalDuration();
+        if (timeLabel) timeLabel.textContent = `${fmtTime(t)} / ${fmtTime(d)}`;
+        // Transport scrubber and anything else that follows the playhead.
+        if (onTimeUpdate) onTimeUpdate(t, d, state.loop);
     }
 
     // ── Sources & buffers ───────────────────────────────────────────
@@ -1241,6 +1243,12 @@ export function createUnifiedPlayer({
         setMode,
         // Seek on the shared timeline (clamped into the loop while Live).
         seek(t) { seekFullTime(t); drawFrame(); },
+        skip(dt) { seekFullTime(getTime() + dt); drawFrame(); },
+        toStart() {
+            seekFullTime(state.preview && state.loop ? state.loop.start : 0);
+            drawFrame();
+        },
+        get duration() { return totalDuration(); },
         setPreviewBuffers,
         decodeAudio,
         exitPreview,

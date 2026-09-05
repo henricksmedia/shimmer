@@ -83,6 +83,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **A real transport.** The bridge had a play button and a clock. It now
+  has back-to-start, back 5 s, play/pause, forward 5 s, the clock, and a
+  scrubber that stretches between the two halves of the clock on the
+  same line: click or drag to seek, the cyan fill is the playhead, and
+  the amber band is the Live loop window. It works wherever the waveform
+  is scrolled away and on a phone. The zone now has the same skeleton as
+  Monitor and Preview loop (a small label, the main row, a sub line with
+  the key shortcuts). The bar's three zones now split the width in
+  proportion (transport 1.15, the others 1 each) instead of capping the
+  other two at 460 px and handing every leftover pixel to the transport,
+  and the monitor pills stretch across their zone. Buttons are 34 px and up for touch; when the bar
+  stacks on narrow screens the buttons centre and the scrubber spans the
+  full width, and the bar stacks below about 720 px so the transport and
+  the monitor pills never collide.
+
 - **The workflow stepper fills its row and names the stage you are in.**
   The three steps were small chips in a corner. They are now three equal
   segments across the page: the current stage has an amber underline and
@@ -258,9 +273,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
   around them takes less, so a vocal keeps its air.
 - **A reminder to master once.** When Analyze suggests a second pass and
   mastering is still on, the second-pass card says so in plain words, and
-  Clean & Master asks before it runs with three choices: turn mastering
-  off for this pass (and keep Preserve volume on), master anyway, or
-  cancel and run nothing. Cleaning a mastered file and mastering it again
+  Clean & Master asks before it runs. The dialog is built around the
+  decision: a "Decision needed" kicker, the finding in one line, the
+  state that matters ("Mastering is on for this pass") as a state row, a
+  two-line why, then the recommended action full width ("Turn mastering
+  off for this pass", noting it keeps Preserve volume on) with Cancel and
+  "Master anyway" as quieter choices under it. Cleaning a mastered file and mastering it again
   hurts the sound, so master on the last pass only.
 - **Trim — see and fix the blip at the start of a track.** Every file you
   load is now checked at both ends for the short glitch AI generators leave

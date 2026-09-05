@@ -682,6 +682,10 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   **Spectrogram** (real 1024-point FFT, Hann window, log-frequency rows,
   Inferno colormap) with the current shimmer band drawn as overlay lines.
 - Click to seek; gold loop-window overlay during live preview.
+- Transport in the bridge: back to start, back 5 s, play/pause, forward
+  5 s, the clock, and a scrubber (click or drag to seek; cyan fill =
+  playhead, amber band = Live loop window). Space, ←/→ and 1/2/3 keys
+  still work.
 - Canvas height follows the mode: 150 px in Waveform (a navigation strip),
   300 px in Spectrogram and Both, where vertical resolution matters.
 - While playing: a 170 px live log-frequency analyzer with a 12 dB grid

@@ -672,8 +672,37 @@
 <footer class="bridge">
     <div class="bridge-inner">
         <div class="bz bz-transport player-transport">
-            <button type="button" class="btn btn-primary play-btn" id="player-play" aria-label="Play">▶</button>
-            <span class="player-time" id="player-time">0:00 / 0:00</span>
+            <div class="bz-label">Transport</div>
+            <div class="bz-row tp-row">
+                <div class="tp-buttons">
+                    <button type="button" class="btn tp-btn" id="player-start" title="Back to the start" aria-label="Back to the start">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="2.2" height="12" rx="0.6"/><path d="M14 2.5 5.5 8 14 13.5z"/></svg>
+                    </button>
+                    <button type="button" class="btn tp-btn" id="player-back" title="Back 5 seconds (←)" aria-label="Back 5 seconds">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8.5 2.5 1.5 8l7 5.5z"/><path d="M15 2.5 8 8l7 5.5z" opacity=".5"/></svg>
+                    </button>
+                    <button type="button" class="btn btn-primary play-btn" id="player-play" aria-label="Play">▶</button>
+                    <button type="button" class="btn tp-btn" id="player-fwd" title="Forward 5 seconds (→)" aria-label="Forward 5 seconds">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M7.5 2.5 14.5 8l-7 5.5z"/><path d="M1 2.5 8 8l-7 5.5z" opacity=".5"/></svg>
+                    </button>
+                </div>
+                <!-- Scrubber between the two halves of the clock; stretches to the
+                     zone's width. The amber band is the Live loop window. -->
+                <div class="tp-bar">
+                    <span class="tp-time" id="tp-cur">0:00</span>
+                    <div class="tp-seek" id="player-seek" role="slider" aria-label="Playback position"
+                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0" title="Click or drag to seek">
+                        <div class="tp-seek-track">
+                            <div class="tp-seek-loop" id="player-seek-loop" hidden></div>
+                            <div class="tp-seek-fill" id="player-seek-fill"></div>
+                            <div class="tp-seek-thumb" id="player-seek-thumb"></div>
+                        </div>
+                    </div>
+                    <span class="tp-time" id="tp-total">0:00</span>
+                </div>
+                <span class="player-time" id="player-time" hidden aria-live="off">0:00 / 0:00</span>
+            </div>
+            <div class="bz-sub tp-hint">Space play · ←/→ skip 5 s · 1 2 3 switch track</div>
         </div>
 
         <div class="bz-sep bz-sep-1"></div>
@@ -758,13 +787,21 @@
 <!-- ───────────── Master-once reminder (second pass pending) ───────────── -->
 <div id="second-pass-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
      aria-labelledby="second-pass-title">
-    <div class="process-modal card" role="document">
-        <div class="process-modal-title" id="second-pass-title">Master once, at the end</div>
-        <div class="process-modal-stage second-pass-text" id="second-pass-text"></div>
+    <div class="process-modal card second-pass-card" role="document">
+        <div class="sp-kicker"><span class="sp-warn" aria-hidden="true">!</span>Decision needed</div>
+        <div class="process-modal-title sp-title" id="second-pass-title">Master once, at the end</div>
+        <p class="sp-lead">Analyze found a second pass worth running: <b id="second-pass-preset">Deep Scrub</b>.</p>
+        <div class="sp-state"><span class="sp-state-dot" aria-hidden="true"></span><span>Mastering is <b>on</b> for this pass</span></div>
+        <p class="sp-why">If you master now, the next pass cleans a file that is already limited and set to its final loudness, then masters it again. That hurts the sound.</p>
         <div class="second-pass-actions">
-            <button type="button" class="btn btn-primary" id="second-pass-off">Turn mastering off for this pass</button>
-            <button type="button" class="btn btn-ghost" id="second-pass-master">Master anyway</button>
-            <button type="button" class="btn btn-ghost" id="second-pass-cancel">Cancel</button>
+            <button type="button" class="btn btn-primary sp-primary" id="second-pass-off">
+                <span class="sp-btn-main">Turn mastering off for this pass</span>
+                <span class="sp-btn-sub">Recommended · keeps Preserve volume on</span>
+            </button>
+            <div class="sp-row">
+                <button type="button" class="btn btn-ghost" id="second-pass-cancel">Cancel</button>
+                <button type="button" class="btn btn-ghost" id="second-pass-master">Master anyway</button>
+            </div>
         </div>
     </div>
 </div>

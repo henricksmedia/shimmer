@@ -9,7 +9,9 @@
    duplicated or absolutely positioned and nothing can overlap. */
 .bridge-inner {
     display: grid;
-    grid-template-columns: auto 1px minmax(0, 460px) 1px minmax(0, 460px);
+    /* Proportional split so no zone hoards the leftover width: the
+       transport a little wider for its scrubber, the other two equal. */
+    grid-template-columns: minmax(0, 1.15fr) 1px minmax(0, 1fr) 1px minmax(0, 1fr);
     grid-template-areas: "transport sep1 monitor sep2 loop";
     align-items: stretch;
     column-gap: var(--gap-4);
@@ -32,10 +34,10 @@
     min-width: 0;
 }
 .bz-label {
-    font-size: 9px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: .12em;
-    color: var(--fg-3);
+    color: var(--fg-1);
     font-weight: 700;
 }
 .bz-row { display: flex; align-items: center; gap: 8px; }
@@ -48,19 +50,75 @@
     background: var(--line);
     flex: none;
 }
-.bz-transport { flex-direction: row; align-items: center; gap: 12px; }
-/* Top-align the two stacked zones so "Monitor" and "Preview loop" sit on
-   the same baseline; both carry label / row / sub, so they also share a
-   bottom edge. The transport zone stays vertically centred. The two
-   minmax(0, 460px) columns share width equally whatever the Live state and
-   stop sprawling on wide screens. */
+/* Transport: same skeleton as the other two zones (label, main row, sub
+   line). The main row is one line on desktop: buttons, then the scrubber
+   stretching between the two halves of the clock, so the zone uses its
+   width. On narrow bars the scrubber wraps under the buttons. The zone
+   also carries .player-transport (components.css), whose align-items:
+   center would shrink the scrubber to nothing: stretch. */
+.bridge .bz-transport.player-transport {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 4px;
+    min-width: 320px;
+}
+.tp-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tp-buttons { display: flex; align-items: center; gap: 8px; flex: none; }
+.tp-bar { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 0; }
+.tp-time { font-family: var(--font-mono); font-size: 12px; color: var(--fg-1); flex: none; min-width: 34px; }
+#tp-cur { text-align: right; }
+.tp-hint { font-size: 11px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tp-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--line-2);
+    color: var(--fg-1);
+    flex: none;
+}
+.tp-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); border-color: var(--fg-3); color: var(--fg-0); }
+.tp-btn:active:not(:disabled) { transform: scale(0.95); }
+.tp-seek { flex: 1 1 auto; min-width: 0; padding: 8px 0; cursor: pointer; touch-action: none; user-select: none; }
+.tp-seek-track { position: relative; height: 6px; border-radius: 3px; background: var(--bg-4); }
+.tp-seek-loop { position: absolute; top: 0; bottom: 0; background: rgba(245, 165, 36, 0.38); border-radius: 3px; }
+.tp-seek-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    background: linear-gradient(90deg, var(--cyan), var(--teal));
+    border-radius: 3px;
+}
+.tp-seek-thumb {
+    position: absolute;
+    top: 50%; left: 0;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--bg-1);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+.tp-seek:hover .tp-seek-thumb { transform: translate(-50%, -50%) scale(1.15); }
+.tp-seek:focus-visible { outline: none; }
+.tp-seek:focus-visible .tp-seek-thumb { box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.45); }
+/* Top-align the zones so the three labels sit on one line; each carries
+   label / row / sub, so they also share a bottom edge. */
 .bz-monitor, .bz-loop {
     justify-content: flex-start;
     min-width: 0;
-    max-width: 460px;
 }
+/* The monitor pills stretch across their zone instead of huddling left. */
+.bz-monitor .bz-row { width: 100%; }
+.bridge .player-tabs { flex: 1 1 auto; width: 100%; }
+.bridge .track-tab { flex: 1 1 0; justify-content: center; min-width: 0; }
 
-.bridge .player-transport { flex-wrap: nowrap; }
 .bridge .play-btn {
     width: 44px;
     height: 44px;
@@ -85,7 +143,6 @@
     font-size: 12.5px;
     min-width: 92px;
 }
-.bridge .player-tabs { flex: 0 0 auto; }
 .bridge .player-preview-row {
     border-top: none;
     padding-top: 0;
@@ -110,7 +167,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 360px;
+    max-width: 100%;
     min-width: 0;
 }
 /* Always-on orientation line: explains what Live does while it's off.
@@ -121,7 +178,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 360px;
+    max-width: 100%;
     min-width: 0;
 }
 /* The one-time just-in-time nudge: same line, promoted to amber. */
@@ -408,9 +465,9 @@
     .bridge .preview-explainer { max-width: none; }
 }
 
-/* Narrower still (phone-width panes): every zone on its own row, and the
-   pill group and loop controls wrap instead of overflowing. */
-@container bridge (max-width: 579px) {
+/* Narrower still (tablet and phone widths): every zone on its own row, the
+   scrubber spans the bar, and the pill group and loop controls wrap. */
+@container bridge (max-width: 719px) {
     .bridge-inner {
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas:
@@ -419,6 +476,9 @@
             "loop";
     }
     .bz-sep-1 { display: none; }
+    .bridge .bz-transport.player-transport { min-width: 0; }
+    .tp-buttons { width: 100%; justify-content: center; }
+    .tp-hint { text-align: center; }
     .bz-monitor {
         max-width: none;
         border-top: 1px solid var(--line);

@@ -391,7 +391,36 @@ export async function initSingleTab() {
         readout: $('spectrum-readout'),
     });
 
+    // Transport scrubber (bridge): follows the playhead and shows the Live
+    // loop window; click or drag to seek. Declared before the player so
+    // its first time update can reach these elements.
+    const seekEl = $('player-seek');
+    const seekTrack = seekEl ? seekEl.querySelector('.tp-seek-track') : null;
+    const seekFill = $('player-seek-fill');
+    const seekThumb = $('player-seek-thumb');
+    const seekLoop = $('player-seek-loop');
+    const tpCur = $('tp-cur');
+    const tpTotal = $('tp-total');
+    function updateSeek(t, d, loop) {
+        if (tpCur) tpCur.textContent = fmtTime(t);
+        if (tpTotal) tpTotal.textContent = fmtTime(d);
+        if (!seekEl) return;
+        const frac = d > 0 ? Math.max(0, Math.min(1, t / d)) : 0;
+        seekFill.style.width = `${frac * 100}%`;
+        seekThumb.style.left = `${frac * 100}%`;
+        seekEl.setAttribute('aria-valuenow', String(Math.round(frac * 100)));
+        seekEl.setAttribute('aria-valuetext', `${fmtTime(t)} of ${fmtTime(d)}`);
+        if (loop && d > 0) {
+            seekLoop.hidden = false;
+            seekLoop.style.left = `${(loop.start / d) * 100}%`;
+            seekLoop.style.width = `${Math.max(0.5, ((loop.end - loop.start) / d) * 100)}%`;
+        } else {
+            seekLoop.hidden = true;
+        }
+    }
+
     player = createUnifiedPlayer({
+        onTimeUpdate: updateSeek,
         els: { original: audioOrig, processed: audioProc, removed: audioDiff },
         canvas: $('player-canvas'),
         playBtn: $('player-play'),
@@ -410,6 +439,33 @@ export async function initSingleTab() {
         },
     });
     player.attachKeyboard();
+
+    // Transport buttons and scrubber.
+    const SKIP_S = 5;
+    const btnStart = $('player-start'), btnBack = $('player-back'), btnFwd = $('player-fwd');
+    if (btnStart) btnStart.addEventListener('click', () => player.toStart());
+    if (btnBack) btnBack.addEventListener('click', () => player.skip(-SKIP_S));
+    if (btnFwd) btnFwd.addEventListener('click', () => player.skip(SKIP_S));
+    if (seekEl && seekTrack) {
+        let seeking = false;
+        const seekAt = (clientX) => {
+            const rect = seekTrack.getBoundingClientRect();
+            if (rect.width <= 0) return;
+            const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const d = player.duration;
+            if (d > 0) player.seek(frac * d);
+        };
+        seekEl.addEventListener('pointerdown', (e) => {
+            seeking = true;
+            try { seekEl.setPointerCapture(e.pointerId); } catch (_) {}
+            seekAt(e.clientX);
+            e.preventDefault();
+        });
+        seekEl.addEventListener('pointermove', (e) => { if (seeking) seekAt(e.clientX); });
+        const stop = (e) => { if (seeking) { seeking = false; if (e && e.clientX != null) seekAt(e.clientX); } };
+        seekEl.addEventListener('pointerup', stop);
+        seekEl.addEventListener('pointercancel', () => { seeking = false; });
+    }
 
     const abMatchNote = $('ab-match-note');
 
@@ -811,15 +867,8 @@ export async function initSingleTab() {
     function askSecondPass(label) {
         return new Promise((resolve) => {
             if (!secondPassModal) { resolve('master'); return; }
-            const text = $('second-pass-text');
-            if (text) {
-                text.textContent =
-                    `Analyze found a second pass worth running: ${label}. ` +
-                    'Mastering is on. If you master now, the next pass will ' +
-                    'clean a file that is already limited and set to its final ' +
-                    'loudness, then master it again. That can hurt the sound. ' +
-                    'Best plan: master only once, at the end.';
-            }
+            const presetEl = $('second-pass-preset');
+            if (presetEl) presetEl.textContent = label;
             const btnOff = $('second-pass-off');
             const btnMaster = $('second-pass-master');
             const btnCancel = $('second-pass-cancel');
