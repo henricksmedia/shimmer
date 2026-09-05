@@ -350,6 +350,21 @@ Separation uses your GPU when you have one. The first run downloads the
 separation engine, which is a large one-time install; the Best model
 fetches another 330 MB the first time you pick it.
 
+**Models and licences.** Shimmer ships no model. Each split downloads its
+model the first time you pick it, from the author's own release, into
+`stem_cache/` next to the app, and works offline after that. A model file
+you place in `stem_cache/models/` yourself (same file name) is used as it
+is. Every model offered may be used on music you release and sell:
+
+| Split | Model | Author | Licence |
+|---|---|---|---|
+| Fast, Best, 6 stems, Ultra | htdemucs, htdemucs_ft, htdemucs_6s, hdemucs_mmi | Meta Platforms (Demucs) | MIT |
+| Studio | Mel-Band RoFormer vocal model, then htdemucs_ft | Kimberley Jensen; Meta | MIT |
+
+Models whose authors have published no terms are not offered. The full list
+with links is in [NOTICE](NOTICE), and each card in the Remix tab names its
+model, author and licence.
+
 ### Batch: a whole folder at once
 
 Point Shimmer at a folder and let it work. Use one preset for everything, or

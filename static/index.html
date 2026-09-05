@@ -1495,6 +1495,32 @@
                     says which engine and card it found.</p>
                 </div>
                 <div class="help-card">
+                    <h4>The models, who made them, and what you may do with them</h4>
+                    <p>Shimmer does not ship any model. Each one downloads the first
+                    time you pick its split, from its author's own release, into
+                    <code>stem_cache</code> next to the app, and stays there; after
+                    that the Remix tab works offline. A model file you place in
+                    <code>stem_cache/models</code> yourself (same file name) is used
+                    as it is. Every model offered is under a licence that lets you
+                    use it on music you release and sell; models whose authors have
+                    published no terms are not offered.</p>
+                    <table class="help-table">
+                        <thead><tr><th>Split</th><th>Model</th><th>Author</th><th>Licence</th><th>First download</th></tr></thead>
+                        <tbody>
+                            <tr><td>Fast</td><td>htdemucs</td><td>Meta Platforms (Demucs)</td><td>MIT</td><td>80 MB</td></tr>
+                            <tr><td>Best</td><td>htdemucs_ft</td><td>Meta Platforms (Demucs)</td><td>MIT</td><td>330 MB</td></tr>
+                            <tr><td>6 stems</td><td>htdemucs_6s</td><td>Meta Platforms (Demucs)</td><td>MIT</td><td>80 MB</td></tr>
+                            <tr><td>Ultra</td><td>htdemucs_ft + htdemucs + hdemucs_mmi</td><td>Meta Platforms (Demucs)</td><td>MIT</td><td>160 MB beyond Best</td></tr>
+                            <tr><td>Studio</td><td>Mel-Band RoFormer vocals + htdemucs_ft</td><td>Kimberley Jensen · Meta</td><td>MIT</td><td>915 MB, plus the RoFormer runner (about 300 MB)</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="help-card-short">The runners themselves, Demucs and audio-separator, are
+                    MIT too, installed into their own folder (<code>.venv-stems</code>).
+                    The full list with links is in the
+                    <a href="https://github.com/henricksmedia/shimmer/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>
+                    file and on the About tab.</p>
+                </div>
+                <div class="help-card">
                     <h4>Which stems can it make?</h4>
                     <p>The open separator Shimmer runs (Demucs) splits a mix into
                     <b>vocals, drums, bass</b> and <b>other</b>; the 6-stem tier adds

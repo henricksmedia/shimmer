@@ -1495,6 +1495,7 @@ progress::-moz-progress-bar { background: var(--amber); }
 .rc-count { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--purple); white-space: nowrap; }
 .rc-desc { font-size: 11.5px; color: var(--fg-2); line-height: 1.45; }
 .rc-meta { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3); }
+.rc-license { font-size: 10px; color: var(--fg-3); }
 .rc-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
 .rc-chips .chip { font-size: 10px; }
 .rc-chips .rc-chip-cached { color: var(--success); border-color: rgba(74,222,128,.4); background: rgba(74,222,128,.08); }
@@ -1580,10 +1581,14 @@ progress::-moz-progress-bar { background: var(--amber); }
 /* One line: the sub sits after the name and gives way first. */
 .rm-sub { font-size: 10.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
 .rm-ctl { display: flex; align-items: center; gap: 5px; margin-top: 1px; }
-.rm-gain { flex: 1; min-width: 56px; accent-color: var(--lane); height: 18px; margin: 0; }
+/* The sliders carry the element name too: the sheet's generic
+   input[type=range] rule (width 100 %) would otherwise outrank the
+   class and stretch the pan across the lane. */
+.rm-ctl input.rm-gain { flex: 1 1 56px; width: auto; min-width: 56px; accent-color: var(--lane); height: 18px; margin: 0; }
 .rm-gain-val { font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-1); min-width: 50px; text-align: right; }
-.rm-pan { width: 54px; flex: none; accent-color: var(--fg-2); height: 18px; margin: 0 0 0 2px; }
+.rm-ctl input.rm-pan { width: 54px; min-width: 54px; flex: 0 0 54px; accent-color: var(--fg-2); height: 18px; margin: 0 0 0 2px; }
 .rm-pan-val { font-family: var(--font-mono); font-size: 10px; color: var(--fg-2); min-width: 24px; }
+.rm-head { overflow: hidden; }   /* nothing in a head may spill into the lane */
 .rm-title .rm-fx-btn { height: 18px; padding: 0 6px; font-size: 10px; margin-left: 2px; }
 .rm-fx-btn {
     height: 22px;

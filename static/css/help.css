@@ -445,3 +445,26 @@ body.help-open { overflow: hidden; }
     .help-tab { white-space: nowrap; }
     .help-body { padding: 16px; }
 }
+
+/* Tables inside help cards (the models-and-licences list on Setup). */
+.help-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 10px;
+    font-size: 12px;
+}
+.help-table th, .help-table td {
+    text-align: left;
+    vertical-align: top;
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--line);
+}
+.help-table th {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--fg-3);
+    font-weight: 700;
+}
+.help-table td:nth-child(2) { font-family: var(--font-mono); font-size: 11px; color: var(--fg-1); }
+.help-table tr:last-child td { border-bottom: none; }

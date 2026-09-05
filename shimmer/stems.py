@@ -82,6 +82,12 @@ class Tier:
     overlap: float = 0.25  # segment overlap; more = fewer seams, slower
     engine: str = "demucs"  # demucs | hybrid: a RoFormer vocal model, then Demucs on the rest
     vocal_model: str = ""   # audio-separator checkpoint for the hybrid engine
+    # Who trained the weights and under what terms: shown on the chooser
+    # card and in Help, mirrored in NOTICE. Only licences that permit use
+    # on released, sold music are offered.
+    author: str = "Meta Platforms (Demucs)"
+    license: str = "MIT"
+    license_url: str = "https://github.com/facebookresearch/demucs/blob/main/LICENSE"
 
     @property
     def models(self) -> List[str]:
@@ -129,7 +135,10 @@ TIERS: Dict[str, Tier] = {
     "studio": Tier("studio", "Studio", "kim_melroformer+htdemucs_ft", 1, 4,
                    "Mel-Band RoFormer vocals (Kimberley Jensen, MIT) · Best splits the rest",
                    915, 18.0, 200.0, engine="hybrid",
-                   vocal_model="vocals_mel_band_roformer.ckpt"),
+                   vocal_model="vocals_mel_band_roformer.ckpt",
+                   author="Kimberley Jensen (vocal model) · Meta (Demucs)",
+                   license="MIT",
+                   license_url="https://github.com/KimberleyJensen/Mel-Band-Roformer-Vocal-Model"),
 }
 
 

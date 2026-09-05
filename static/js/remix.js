@@ -23,11 +23,11 @@ const SEP_PHASES = [
 // Fallback tier list for the chooser when /api/stems/engine is slow or
 // unreachable; the server's answer replaces it.
 const TIER_FALLBACK = [
-    { key: 'fast', label: 'Fast', model: 'htdemucs', stems: 4, download_mb: 80, gpu_s_per_min: 1.4, cpu_s_per_min: 20 },
-    { key: 'best', label: 'Best', model: 'htdemucs_ft', stems: 4, download_mb: 330, gpu_s_per_min: 4.2, cpu_s_per_min: 55 },
-    { key: 'six', label: '6 stems', model: 'htdemucs_6s', stems: 6, download_mb: 80, gpu_s_per_min: 1.4, cpu_s_per_min: 20 },
-    { key: 'ultra', label: 'Ultra', model: 'htdemucs_ft+htdemucs+hdemucs_mmi', stems: 4, download_mb: 570, gpu_s_per_min: 19, cpu_s_per_min: 250 },
-    { key: 'studio', label: 'Studio', model: 'kim_melroformer+htdemucs_ft', stems: 4, download_mb: 915, gpu_s_per_min: 18, cpu_s_per_min: 200, engine: 'hybrid' },
+    { key: 'fast', label: 'Fast', model: 'htdemucs', stems: 4, download_mb: 80, gpu_s_per_min: 1.4, cpu_s_per_min: 20, author: 'Meta Platforms (Demucs)', license: 'MIT' },
+    { key: 'best', label: 'Best', model: 'htdemucs_ft', stems: 4, download_mb: 330, gpu_s_per_min: 4.2, cpu_s_per_min: 55, author: 'Meta Platforms (Demucs)', license: 'MIT' },
+    { key: 'six', label: '6 stems', model: 'htdemucs_6s', stems: 6, download_mb: 80, gpu_s_per_min: 1.4, cpu_s_per_min: 20, author: 'Meta Platforms (Demucs)', license: 'MIT' },
+    { key: 'ultra', label: 'Ultra', model: 'htdemucs_ft+htdemucs+hdemucs_mmi', stems: 4, download_mb: 570, gpu_s_per_min: 19, cpu_s_per_min: 250, author: 'Meta Platforms (Demucs)', license: 'MIT' },
+    { key: 'studio', label: 'Studio', model: 'kim_melroformer+htdemucs_ft', stems: 4, download_mb: 915, gpu_s_per_min: 18, cpu_s_per_min: 200, engine: 'hybrid', author: 'Kimberley Jensen (vocal model) · Meta (Demucs)', license: 'MIT' },
 ];
 const TIER_DESC = {
     fast: 'vocals · drums · bass · other — one pass, the quickest split',
@@ -383,6 +383,11 @@ export async function initRemixTab() {
             }
             if (!cached && t.downloaded === false) meta.push(`downloads ${t.download_mb} MB first`);
             card.appendChild(el('div', 'rc-meta', meta.join(' · ')));
+            if (t.author || t.license) {
+                const lic = el('div', 'rc-license', `${t.author || ''}${t.author && t.license ? ' · ' : ''}${t.license || ''}`);
+                lic.title = 'Who trained the model and its licence. Every model offered may be used on music you release and sell; the full list is in NOTICE and the About tab.';
+                card.appendChild(lic);
+            }
             const chips = el('div', 'rc-chips');
             if (cached) chips.appendChild(el('span', 'chip rc-chip-cached', 'cached · instant'));
             if (t.key === last && state.projectTier === t.key) chips.appendChild(el('span', 'chip', 'last time'));
