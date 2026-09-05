@@ -51,9 +51,15 @@ def _venv_python(venv: Path) -> Path:
     return venv / "bin" / "python"
 
 
-def _report(cb: ProgressCb, frac: float, msg: str) -> None:
+def _report(cb: ProgressCb, frac: float, msg: str, stage: Optional[str] = None) -> None:
     if cb:
-        cb(float(frac), msg)
+        if stage is None:
+            cb(float(frac), msg)
+        else:
+            try:
+                cb(float(frac), msg, stage)
+            except TypeError:
+                cb(float(frac), msg)
 
 
 # ── Environment ──────────────────────────────────────────────────────────
@@ -91,7 +97,7 @@ def install_env(progress: ProgressCb = None) -> str:
     One-time cost: several GB of downloads. Raises RuntimeError with a
     readable message on failure.
     """
-    _report(progress, 0.02, "Creating separation environment…")
+    _report(progress, 0.02, "Creating separation environment…", stage="setup")
     uv = shutil.which("uv")
     py = _venv_python(STEMS_VENV)
 
@@ -108,7 +114,7 @@ def install_env(progress: ProgressCb = None) -> str:
             raise RuntimeError(f"venv creation failed: {r.stderr[-500:]}")
 
     def _pip(args, frac, msg):
-        _report(progress, frac, msg)
+        _report(progress, frac, msg, stage="setup")
         if uv:
             cmd = [uv, "pip", "install", "--python", str(py)] + args
         else:
@@ -125,7 +131,7 @@ def install_env(progress: ProgressCb = None) -> str:
         _pip(["torch", "torchaudio"],
              0.10, "Installing PyTorch (CPU)… one-time download")
     _pip(["demucs", "soundfile"], 0.75, "Installing Demucs…")
-    _report(progress, 0.95, "Verifying separation engine…")
+    _report(progress, 0.95, "Verifying separation engine…", stage="setup")
     if not env_ready():
         raise RuntimeError("Separation engine installed but failed to import")
     return str(py)
@@ -175,7 +181,8 @@ def separate(input_path: str, target_sr: int,
         device = "cuda" if has_cuda() else "cpu"
         _report(progress, 0.30,
                 f"Separating stems ({device.upper()})…"
-                + ("" if device == "cuda" else " CPU mode takes a few minutes"))
+                + ("" if device == "cuda" else " CPU mode takes a few minutes"),
+                stage="separate")
 
         STEM_CACHE.mkdir(exist_ok=True)
         work = out_dir.parent / f"{digest}.work"
@@ -203,7 +210,7 @@ def separate(input_path: str, target_sr: int,
         meta = {"model": DEMUCS_MODEL, "source": os.path.basename(input_path)}
         (out_dir / "meta.json").write_text(json.dumps(meta))
 
-    _report(progress, 0.90, "Loading stems…")
+    _report(progress, 0.90, "Loading stems…", stage="load")
     stems: Dict[str, np.ndarray] = {}
     for name in STEM_NAMES:
         x, sr = sf.read(str(out_dir / f"{name}.wav"),
@@ -214,5 +221,5 @@ def separate(input_path: str, target_sr: int,
             x = resample_poly(
                 x, target_sr // g, sr // g, axis=0).astype(np.float32)
         stems[name] = x
-    _report(progress, 1.0, "Stems ready")
+    _report(progress, 1.0, "Stems ready", stage="load")
     return stems

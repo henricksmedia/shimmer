@@ -5,6 +5,23 @@
 import { uploadFile, dropSession, openSSE, resultUrl,
          fetchPresets, fetchMetrics } from './api.js';
 import { fmtTime } from './visualizer.js';
+import { PHASES as CHAIN_PHASES } from './chain.js';
+import { processModal } from './progress-chain.js';
+
+// The processing window's phases for the two Remix jobs. Separation is
+// its own short chain; the render is the mix, an optional analysis,
+// then the Signal Chain phases that apply, then the export.
+const SEP_PHASES = [
+    ['setup',    'Engine setup', '#22d3ee'],
+    ['separate', 'Separate',     '#a78bfa'],
+    ['load',     'Load',         '#c084fc'],
+];
+const RENDER_PHASES = [
+    ['mix', 'Mix', '#2dd4bf'],
+    ['analyze', 'Analyze', '#22d3ee'],
+    ...CHAIN_PHASES.filter(([k]) => k !== 'edit' && k !== 'level')
+        .map(([k, l, c]) => [k, l === 'Fine pass' ? 'Fine' : l, c]),
+];
 
 const RENDER_DEBOUNCE_MS = 300;
 
@@ -90,13 +107,11 @@ export async function initRemixTab() {
     const selectedFile = $('remix-selected-file');
     const sepBtn = $('remix-separate-btn');
     const sepStatus = $('remix-sep-status');
-    const sepProgress = $('remix-sep-progress');
     const stripsHost = $('remix-strips');
     const toolbar = $('remix-toolbar');
     const resetBtn = $('remix-reset');
     const renderBlock = $('remix-render-block');
     const renderBtn = $('remix-render-btn');
-    const renderProgress = $('remix-render-progress');
     const masterEnabled = $('remix-master-enabled');
     const masterOptions = $('remix-master-options');
     const masterTarget = $('remix-master-target');
@@ -114,6 +129,15 @@ export async function initRemixTab() {
     const loopHereBtn = $('remix-loop-here');
     const playBtn = $('remix-play');
     const timeLabel = $('remix-time');
+    const startBtn = $('remix-start');
+    const backBtn = $('remix-back');
+    const fwdBtn = $('remix-fwd');
+    const seekEl = $('remix-seek');
+    const seekFill = $('remix-seek-fill');
+    const seekThumb = $('remix-seek-thumb');
+    const seekLoop = $('remix-seek-loop');
+    const tpCur = $('remix-tp-cur');
+    const tpTotal = $('remix-tp-total');
     const origEl = $('remix-audio-original');
     const remixEl = $('remix-audio-remix');
 
@@ -524,11 +548,16 @@ export async function initRemixTab() {
     waveCanvas.addEventListener('click', (e) => {
         if (!state.durationS) return;
         const rect = waveCanvas.getBoundingClientRect();
-        const t = ((e.clientX - rect.left) / rect.width) * state.durationS;
-        // Clicking outside the loop moves the loop window there — for BOTH
-        // tracks. (Seeking Original outside the loop used to get snapped
-        // back by the loop-wrap on the next timeupdate, so clicks past the
-        // window looked dead.)
+        seekTo(((e.clientX - rect.left) / rect.width) * state.durationS);
+    });
+
+    // Seek anywhere in the track. Outside the loop, the loop window moves
+    // there first, for BOTH tracks. (Seeking Original outside the loop used
+    // to get snapped back by the loop-wrap on the next timeupdate, so
+    // clicks past the window looked dead.)
+    function seekTo(t) {
+        if (!state.durationS) return;
+        t = Math.max(0, Math.min(state.durationS, t));
         if (t < state.loopStart || t >= state.loopEnd) {
             state.loopStart = t;
             clampLoop();
@@ -542,6 +571,56 @@ export async function initRemixTab() {
         }
         drawWave();
         updateTime();
+    }
+    const SKIP_S = 5;
+    if (startBtn) startBtn.addEventListener('click', () => seekTo(0));
+    if (backBtn) backBtn.addEventListener('click', () => seekTo(positionInTrack() - SKIP_S));
+    if (fwdBtn) fwdBtn.addEventListener('click', () => seekTo(positionInTrack() + SKIP_S));
+
+    // The scrubber in the bridge: click or drag to seek.
+    if (seekEl) {
+        const fracAt = (ev) => {
+            const r = seekEl.getBoundingClientRect();
+            return r.width > 0 ? Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) : 0;
+        };
+        let dragging = false;
+        seekEl.addEventListener('pointerdown', (ev) => {
+            if (!state.durationS) return;
+            dragging = true;
+            seekEl.setPointerCapture(ev.pointerId);
+            seekTo(fracAt(ev) * state.durationS);
+        });
+        seekEl.addEventListener('pointermove', (ev) => {
+            if (dragging) seekTo(fracAt(ev) * state.durationS);
+        });
+        const stop = (ev) => {
+            if (!dragging) return;
+            dragging = false;
+            try { seekEl.releasePointerCapture(ev.pointerId); } catch (_) {}
+        };
+        seekEl.addEventListener('pointerup', stop);
+        seekEl.addEventListener('pointercancel', stop);
+        seekEl.addEventListener('keydown', (ev) => {
+            if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
+                ev.preventDefault();
+                seekTo(positionInTrack() + (ev.key === 'ArrowLeft' ? -SKIP_S : SKIP_S));
+            }
+        });
+    }
+
+    // Keyboard, Remix tab only: Space play, 1/2 switch track, arrows skip.
+    document.addEventListener('keydown', (ev) => {
+        const tag = (ev.target && ev.target.tagName || '').toLowerCase();
+        if (['input', 'select', 'textarea', 'button'].includes(tag)) return;
+        const panel = document.getElementById('tab-remix');
+        if (!panel || !panel.classList.contains('active')) return;
+        if (ev.code === 'Space') { ev.preventDefault(); playBtn.click(); }
+        else if (ev.key === '1') setTrack('original');
+        else if (ev.key === '2') { if (!tabRemix.disabled) setTrack('remix'); }
+        else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
+            ev.preventDefault();
+            seekTo(positionInTrack() + (ev.key === 'ArrowLeft' ? -SKIP_S : SKIP_S));
+        }
     });
 
     // ── Mini A/B loop player ─────────────────────────────────────────
@@ -561,8 +640,24 @@ export async function initRemixTab() {
     }
 
     function updateTime() {
-        timeLabel.textContent =
-            `${fmtTime(positionInTrack())} / ${fmtTime(state.durationS)}`;
+        const t = positionInTrack();
+        const d = state.durationS || 0;
+        timeLabel.textContent = `${fmtTime(t)} / ${fmtTime(d)}`;
+        if (tpCur) tpCur.textContent = fmtTime(t);
+        if (tpTotal) tpTotal.textContent = fmtTime(d);
+        if (!seekEl) return;
+        const frac = d > 0 ? Math.max(0, Math.min(1, t / d)) : 0;
+        seekFill.style.width = `${frac * 100}%`;
+        seekThumb.style.left = `${frac * 100}%`;
+        seekEl.setAttribute('aria-valuenow', String(Math.round(frac * 100)));
+        seekEl.setAttribute('aria-valuetext', `${fmtTime(t)} of ${fmtTime(d)}`);
+        if (d > 0 && state.loopEnd > state.loopStart) {
+            seekLoop.hidden = false;
+            seekLoop.style.left = `${(state.loopStart / d) * 100}%`;
+            seekLoop.style.width = `${Math.max(0.5, ((state.loopEnd - state.loopStart) / d) * 100)}%`;
+        } else {
+            seekLoop.hidden = true;
+        }
     }
 
     origEl.addEventListener('timeupdate', () => {
@@ -771,8 +866,7 @@ export async function initRemixTab() {
     sepBtn.addEventListener('click', async () => {
         if (!state.file) return;
         sepBtn.disabled = true;
-        sepProgress.hidden = false;
-        sepProgress.value = 0;
+        let modalOpen = false;
         try {
             if (!state.sessionId) {
                 sepStatus.textContent = 'Uploading…';
@@ -789,7 +883,16 @@ export async function initRemixTab() {
                 clampLoop();
                 updateTime();
             }
-            sepStatus.textContent = 'Starting separation…';
+            sepStatus.textContent = 'Separating…';
+            processModal.open({
+                title: 'Separating stems',
+                phases: SEP_PHASES,
+                planned: new Set(['separate', 'load']),
+                stage: 'Starting separation…',
+                detail: 'vocals · drums · bass · other',
+                outLabel: '4 stems',
+            });
+            modalOpen = true;
             const res = await fetch('/api/stems/separate', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -800,9 +903,9 @@ export async function initRemixTab() {
             await new Promise((resolve, reject) => {
                 openSSE(`/api/progress/${job_id}`, {
                     onMessage: (msg) => {
-                        if (typeof msg.fraction === 'number') {
-                            sepProgress.value = msg.fraction;
-                        }
+                        if (msg.stage) processModal.stage(msg.stage, msg.message, msg.detail || '');
+                        else if (msg.message) processModal.stage(null, msg.message, '');
+                        if (typeof msg.fraction === 'number') processModal.progress(msg.fraction);
                         if (msg.message) sepStatus.textContent = msg.message;
                         if (msg.error) reject(new Error(msg.error));
                     },
@@ -811,6 +914,9 @@ export async function initRemixTab() {
                     onError: reject,
                 });
             });
+            processModal.finish();
+            processModal.closeSoon(900);
+            modalOpen = false;
             state.stemsReady = true;
             sepStatus.textContent = 'Stems ready — tweak away.';
             buildStrips();
@@ -819,8 +925,7 @@ export async function initRemixTab() {
         } catch (e) {
             sepStatus.textContent = `Failed: ${e.message}`;
             sepBtn.disabled = false;
-        } finally {
-            sepProgress.hidden = true;
+            if (modalOpen) processModal.fail(e.message);
         }
     });
 
@@ -902,8 +1007,22 @@ export async function initRemixTab() {
     renderBtn.addEventListener('click', async () => {
         if (!state.stemsReady) return;
         renderBtn.disabled = true;
-        renderProgress.hidden = false;
-        renderProgress.value = 0;
+        const mp = masteringPayload();
+        const cleaning = cleanupSel.value;
+        const planned = new Set(['mix', 'export']);
+        if (cleaning === 'auto') planned.add('analyze');
+        if (cleaning !== 'off') {
+            ['repair', 'split', 'fine', 'engine', 'recombine', 'post'].forEach((k) => planned.add(k));
+            if (mp.enabled) planned.add('pre');
+        }
+        if (mp.enabled) planned.add('master');
+        processModal.open({
+            title: mp.enabled ? 'Rendering & mastering the remix' : 'Rendering the remix',
+            phases: RENDER_PHASES,
+            planned,
+            stage: 'Preparing…',
+            detail: 'summing the stems with their effects',
+        });
         try {
             const res = await fetch('/api/remix/render', {
                 method: 'POST',
@@ -921,8 +1040,9 @@ export async function initRemixTab() {
             await new Promise((resolve, reject) => {
                 openSSE(`/api/progress/${job_id}`, {
                     onMessage: (msg) => {
+                        if (msg.stage) processModal.stage(msg.stage, msg.status, msg.detail);
                         if (typeof msg.fraction === 'number') {
-                            renderProgress.value = msg.fraction;
+                            processModal.progress(msg.fraction, (f) => (f < 0.9 ? 'Rendering…' : 'Finishing…'));
                         }
                         if (msg.error) reject(new Error(msg.error));
                     },
@@ -931,6 +1051,8 @@ export async function initRemixTab() {
                     onError: reject,
                 });
             });
+            processModal.finish();
+            processModal.closeSoon(900);
             const a = document.createElement('a');
             a.href = resultUrl(job_id, 'processed');
             a.download = '';
@@ -939,13 +1061,14 @@ export async function initRemixTab() {
             a.remove();
             let metrics = null;
             try { metrics = await fetchMetrics(job_id); } catch (_) {}
-            renderReport(metrics);
+            // /api/metrics answers {status, metrics}; the report wants the inner object.
+            renderReport(metrics && metrics.metrics ? metrics.metrics : metrics);
         } catch (e) {
             metricsEl.hidden = false;
             metricsEl.textContent = `Render failed: ${e.message}`;
+            processModal.fail(e.message);
         } finally {
             renderBtn.disabled = false;
-            renderProgress.hidden = true;
         }
     });
 

@@ -33,6 +33,9 @@ function wireTabs() {
             });
             panels.forEach(p => p.classList.toggle(
                 'active', p.id === `tab-${name}`));
+            // The bridge (transport / monitor / loop) shows the controls of
+            // the tab that owns the player: Master or Remix.
+            document.body.dataset.tab = name;
             const [title, sub] = VIEW_TITLES[name] || [name, ''];
             if (titleEl) titleEl.textContent = title;
             if (subEl) subEl.textContent = sub;
@@ -42,6 +45,7 @@ function wireTabs() {
 
 async function boot() {
     wireTabs();
+    document.body.dataset.tab = 'single';
     // Wordmark = home: back to the Master view.
     document.getElementById('wordmark-home')?.addEventListener('click', () =>
         document.querySelector('.tab[data-tab="single"]')?.click());

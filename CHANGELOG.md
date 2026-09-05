@@ -141,6 +141,25 @@ Versions follow [Semantic Versioning](https://semver.org/).
   940 px wide on a desktop, stage names on one line, the stage in
   19 px type, so it reads from across the room.
 
+- **The Remix tab's player lives in the bridge.** Its transport, A/B
+  and loop controls used to sit in a card that scrolled away with the
+  page while the bottom bar showed the Master tab's idle player. The
+  bar now belongs to whichever tab owns the player: on Remix it shows
+  the same transport (start, back 5 s, play, forward 5 s, a scrubber
+  with the loop window), a Monitor with 1 Original / 2 Remix, and the
+  loop controls (Live is always on there, loop length, Set from
+  playhead, the live status). The waveform stays in the page. Keyboard:
+  Space, 1, 2, and the arrow keys work on the Remix tab like on Master.
+  Fixed on the way: the remix render's report always said "Not
+  mastered" because it read the wrong level of the metrics response.
+
+- **The Remix tab uses the same live-chain window.** Stem separation
+  shows Engine setup (only on the first run), Separate and Load, with
+  the four stems as its Out; the remix render shows Mix, Analyze (when
+  the cleanup preset is Auto), the Signal Chain phases that apply, and
+  Export. The two inline bars under the buttons are gone. One module,
+  `static/js/progress-chain.js`, now draws the window for every job.
+
 - **EQ presets rebuilt at mastering scale.** The seven one-band
   sketches are replaced by thirteen starting points a mastering engineer
   would reach for, genre-neutral first: small broad moves (tonal 1 to

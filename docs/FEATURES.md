@@ -368,7 +368,11 @@ your EQ" when bands are active), `master` (mastering on). The server adds
 `edit` (explicit trim points), `level` (preserve volume) and `export`
 (writing the file and tags) around it and pushes every stage down the
 job's progress stream, which the processing window draws as the live
-chain. Tests: `tests/test_pipeline_stages.py`.
+chain ([static/js/progress-chain.js](static/js/progress-chain.js), one
+module shared by Clean & Master, stem separation and the remix render).
+Separation reports `setup`, `separate` and `load`; the remix render
+reports `mix`, `analyze` (auto preset), the chain phases and `export`.
+Tests: `tests/test_pipeline_stages.py`.
 
 ### Pipeline-level controls
 
@@ -935,6 +939,17 @@ then export a cleaned, mastered remix.
 - Every edit (strips, mastering settings, cleanup choice) autosaves to
   `%APPDATA%/Shimmer/projects/<sha1>.json`, keyed by the same content
   digest as the stem cache — re-dropping the file restores the whole mix.
+
+
+**Player in the bridge.** The bottom bar (transport, monitor, preview
+loop) belongs to whichever tab owns the player: `<body data-tab>` picks
+the Master set or the Remix set of controls in each zone (`.bz-owner`).
+On Remix it drives the A/B loop player: start / back 5 s / play /
+forward 5 s, a scrubber whose amber band is the loop window (seeking
+outside the loop moves it), 1 Original / 2 Remix, loudness-matched
+A/B, loop length, Set from playhead, and the live status. Only the
+waveform stays in the page. Space, 1, 2 and the arrow keys apply to
+the active tab's player.
 
 ### Batch tab
 

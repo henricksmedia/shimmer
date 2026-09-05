@@ -11,6 +11,7 @@ import { openHelp } from './help.js';
 import { createUnifiedPlayer, fmtTime } from './visualizer.js';
 import { initEqPanel } from './eq.js';
 import { PHASES as CHAIN_PHASES } from './chain.js';
+import { processModal } from './progress-chain.js';
 import { initTrim } from './trim.js';
 import { initReport } from './report.js';
 
@@ -2520,23 +2521,9 @@ export async function initSingleTab() {
     });
 
     // ── Clean & Master progress modal ─────────────────────────────────
-    const processModal      = $('process-modal');
-    const processModalTitle = $('process-modal-title');
-    const processModalStage = $('process-modal-stage');
-    const processModalFill  = $('process-modal-fill');
-    const processModalPct   = $('process-modal-pct');
-    const processModalError = $('process-modal-error');
-    const processModalClose = $('process-modal-close');
-
-    // Stage caption from the pipeline's known fraction boundaries
-    // (tone ~0–5%, cleaning ~5–85%, master/limiter/encode ~85–100%).
-    // ── The chain, live, inside the progress modal ─────────────────────
-    // Audio enters on the left, each stage lights as the server reports
-    // it, and the packet leaves on the right when the file is written.
-    const processModalChain = $('process-modal-chain');
-    const processModalDetail = $('process-modal-detail');
-    const pmChain = { nodes: new Map(), current: null, planned: new Set(), packet: null, wire: null };
-
+    // ── The processing window: the chain, live ─────────────────────────
+    // Shared with the Remix tab (progress-chain.js). This tab hands it the
+    // Signal Chain's phases and which of them this run will use.
     function plannedPhases() {
         const st = window.shimmerChainState ? window.shimmerChainState() : null;
         const masterOn = masterEnabled.checked;
@@ -2546,146 +2533,24 @@ export async function initSingleTab() {
         else if (preserveVol.checked) set.add('level');
         return set;
     }
-
-    function buildProcessChain() {
-        if (!processModalChain) return;
-        processModalChain.innerHTML = '';
-        pmChain.nodes.clear();
-        pmChain.current = null;
-        pmChain.planned = plannedPhases();
-        const wire = mkEl('div', 'pm-wire');
-        const lit = mkEl('div', 'pm-wire-lit');
-        wire.appendChild(lit);
-        pmChain.wire = lit;
-        processModalChain.appendChild(wire);
-        const row = mkEl('div', 'pm-nodes');
-        const port = (cls, label) => {
-            const el = mkEl('div', `pm-port ${cls}`);
-            el.append(mkEl('span', 'pm-port-glyph'), mkEl('span', 'pm-label', label));
-            return el;
-        };
-        row.appendChild(port('in', 'In'));
-        CHAIN_PHASES.forEach(([key, fullLabel, color]) => {
-            const label = fullLabel === 'Fine pass' ? 'Fine' : fullLabel;
-            const planned = pmChain.planned.has(key);
-            const node = mkEl('div', `pm-node ${planned ? 'pending' : 'skipped'}`);
-            node.style.setProperty('--phase', color);
-            node.dataset.key = key;
-            node.append(mkEl('span', 'pm-dot'), mkEl('span', 'pm-label', label));
-            node.title = planned ? label : `${label}: not in this run`;
-            row.appendChild(node);
-            pmChain.nodes.set(key, node);
-        });
-        row.appendChild(port('out', 'Out'));
-        processModalChain.appendChild(row);
-        const packet = mkEl('div', 'pm-packet');
-        packet.append(mkEl('i'), mkEl('i'), mkEl('i'));
-        processModalChain.appendChild(packet);
-        pmChain.packet = packet;
-        requestAnimationFrame(() => movePacket('in'));
-    }
-
-    function nodeCenterPct(target) {
-        if (!processModalChain) return 0;
-        const rect = processModalChain.getBoundingClientRect();
-        if (rect.width <= 0) return 0;
-        let el = null;
-        if (target === 'in') el = processModalChain.querySelector('.pm-port.in .pm-port-glyph');
-        else if (target === 'out') el = processModalChain.querySelector('.pm-port.out .pm-port-glyph');
-        else { const n = pmChain.nodes.get(target); el = n ? n.querySelector('.pm-dot') : null; }
-        if (!el) return 0;
-        const r = el.getBoundingClientRect();
-        return ((r.left + r.width / 2) - rect.left) / rect.width * 100;
-    }
-
-    function movePacket(target) {
-        if (!pmChain.packet) return;
-        const to = nodeCenterPct(target);
-        const from = nodeCenterPct('in');
-        pmChain.packet.style.setProperty('--x0', `${from}%`);
-        pmChain.packet.style.setProperty('--x1', `${to}%`);
-        if (pmChain.wire) {
-            pmChain.wire.style.left = `${from}%`;
-            pmChain.wire.style.width = `${Math.max(0, to - from)}%`;
-        }
-        // Restart the travel so the packet always sets off from In.
-        pmChain.packet.style.animation = 'none';
-        void pmChain.packet.offsetWidth;
-        pmChain.packet.style.animation = '';
-        pmChain.packet.classList.toggle('arrived', target === 'out');
-    }
-
-    function setProcessStage(key, label, detail) {
-        if (label) processModalStage.textContent = label;
-        if (processModalDetail) processModalDetail.textContent = detail || '';
-        if (!pmChain.nodes.size || !key) return;
-        const order = CHAIN_PHASES.map(([k]) => k);
-        const idx = order.indexOf(key);
-        if (idx < 0) return;
-        order.forEach((k, i) => {
-            const node = pmChain.nodes.get(k);
-            if (!node) return;
-            const skipped = node.classList.contains('skipped');
-            node.classList.remove('pending', 'active', 'done');
-            if (skipped) return;
-            node.classList.add(i < idx ? 'done' : i === idx ? 'active' : 'pending');
-        });
-        pmChain.current = key;
-        movePacket(key);
-    }
-
-    function finishProcessChain() {
-        pmChain.nodes.forEach((node) => {
-            if (node.classList.contains('skipped')) return;
-            node.classList.remove('pending', 'active');
-            node.classList.add('done');
-        });
-        processModalChain && processModalChain.classList.add('finished');
-        movePacket('out');
-    }
-
-    function updateProcessModal(frac) {
-        const pct = Math.max(0, Math.min(100, Math.round(frac * 100)));
-        processModalFill.style.width = `${pct}%`;
-        processModalPct.textContent = `${pct}%`;
-        if (!pmChain.current && frac > 0.05 && frac < 1) {
-            // No stage events (an older server): say what the fraction means.
-            processModalStage.textContent = frac < 0.85 ? 'Cleaning AI artifacts…'
-                : (masterEnabled.checked ? 'Mastering & finalizing…' : 'Finalizing…');
-        }
-        if (frac >= 1) finishProcessChain();
-    }
     function openProcessModal() {
-        // The title must say what this run actually does.
-        if (processModalTitle) {
-            processModalTitle.textContent = masterEnabled.checked
-                ? 'Cleaning & mastering' : 'Cleaning';
-        }
-        processModalError.hidden = true;
-        processModalError.textContent = '';
-        processModalClose.hidden = true;
-        processModalFill.style.width = '0%';
-        processModalPct.textContent = '0%';
-        processModalStage.textContent = 'Preparing…';
-        if (processModalDetail) processModalDetail.textContent = 'reading the file';
-        processModalChain && processModalChain.classList.remove('finished');
-        processModal.hidden = false;
-        buildProcessChain();
+        processModal.open({
+            // The title must say what this run actually does.
+            title: masterEnabled.checked ? 'Cleaning & mastering' : 'Cleaning',
+            phases: CHAIN_PHASES.map(([k, l, c]) => [k, l === 'Fine pass' ? 'Fine' : l, c]),
+            planned: plannedPhases(),
+            stage: 'Preparing…',
+            detail: 'reading the file',
+        });
     }
-    function closeProcessModal() { processModal.hidden = true; }
-    function failProcessModal(message) {
-        processModalStage.textContent = 'Processing failed';
-        processModalError.textContent = message;
-        processModalError.hidden = false;
-        processModalClose.hidden = false;
-        processModalClose.focus();
+    function closeProcessModal() { processModal.close(); }
+    function failProcessModal(message) { processModal.fail(message); }
+    function setProcessStage(key, label, detail) { processModal.stage(key, label, detail); }
+    function updateProcessModal(frac) {
+        // No stage events (an older server): say what the fraction means.
+        processModal.progress(frac, (f) => (f < 0.85 ? 'Cleaning AI artifacts…'
+            : (masterEnabled.checked ? 'Mastering & finalizing…' : 'Finalizing…')));
     }
-    processModalClose.addEventListener('click', closeProcessModal);
-    window.addEventListener('resize', () => {
-        if (!processModal.hidden && pmChain.nodes.size) {
-            movePacket(processModalChain.classList.contains('finished') ? 'out' : (pmChain.current || 'in'));
-        }
-    });
     document.addEventListener('keydown', (e) => {
         // Not dismissable while running (no cancel support); Esc closes only
         // once the error Close button is offered.

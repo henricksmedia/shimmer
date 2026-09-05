@@ -491,7 +491,6 @@
                                 <button type="button" class="btn btn-primary" id="remix-separate-btn" disabled>Separate stems</button>
                                 <span class="remix-sep-status" id="remix-sep-status">Drop a file to start.</span>
                             </div>
-                            <progress id="remix-sep-progress" value="0" max="1" hidden></progress>
                         </div>
                     </div>
                 </div>
@@ -507,30 +506,10 @@
                 <div class="card viz-card">
                     <div class="player-card remix-player-card">
                         <div class="remix-ab-row">
-                            <button type="button" class="track-tab active" id="remix-tab-original">1 Original</button>
-                            <button type="button" class="track-tab" id="remix-tab-remix" disabled>2 Remix</button>
-                            <span class="player-kbd-hint">Loop window follows the playhead</span>
+                            <span class="player-kbd-hint">Loop window follows the playhead · transport, A/B and loop controls are in the bar below</span>
                         </div>
                         <canvas id="remix-wave" class="remix-wave"
                                 title="Click to seek · shaded region is the loop window"></canvas>
-                        <div class="remix-loop-row">
-                            <label class="preview-mini-label" for="remix-window">Loop</label>
-                            <select id="remix-window" class="select preview-select">
-                                <option value="10" selected>10 s</option>
-                                <option value="15">15 s</option>
-                                <option value="20">20 s</option>
-                            </select>
-                            <button type="button" class="btn btn-ghost" id="remix-loop-here">Set from playhead</button>
-                            <span class="preview-status" id="remix-status"></span>
-                        </div>
-                        <div class="player-transport">
-                            <button type="button" class="btn btn-primary play-btn" id="remix-play" aria-label="Play">▶</button>
-                            <span class="player-time" id="remix-time">0:00 / 0:00</span>
-                            <label class="transport-check" title="Attenuate the louder track so you judge the remix, not the volume difference — mastering makes the remix much louder than the original.">
-                                <input type="checkbox" id="remix-ab-match" checked>
-                                <span>Loudness-matched A/B</span>
-                            </label>
-                        </div>
                         <audio id="remix-audio-original" preload="auto" hidden></audio>
                         <audio id="remix-audio-remix" preload="auto" hidden></audio>
                     </div>
@@ -599,7 +578,6 @@
                             </select>
                             <button type="button" class="btn btn-primary" id="remix-render-btn">Render &amp; Download</button>
                         </div>
-                        <progress id="remix-render-progress" value="0" max="1" hidden></progress>
                     </div>
                 </div>
                 <div class="card note-card">
@@ -772,6 +750,7 @@
     <div class="bridge-inner">
         <div class="bz bz-transport player-transport">
             <div class="bz-label">Transport</div>
+            <div class="bz-owner" data-owner="single">
             <div class="bz-row tp-row">
                 <div class="tp-buttons">
                     <button type="button" class="btn tp-btn" id="player-start" title="Back to the start" aria-label="Back to the start">
@@ -802,12 +781,39 @@
                 <span class="player-time" id="player-time" hidden aria-live="off">0:00 / 0:00</span>
             </div>
             <div class="bz-sub tp-hint">Space play · ←/→ skip 5 s · 1 2 3 switch track</div>
+            </div>
+            <!-- Remix tab: the same transport, driving the A/B loop player. -->
+            <div class="bz-owner" data-owner="remix">
+            <div class="bz-row tp-row">
+                <div class="tp-buttons">
+                    <button type="button" class="btn tp-btn" id="remix-start" title="Back to the start" aria-label="Back to the start"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="2.2" height="12" rx="0.6"/><path d="M14 2.5 5.5 8 14 13.5z"/></svg></button>
+                    <button type="button" class="btn tp-btn" id="remix-back" title="Back 5 seconds (←)" aria-label="Back 5 seconds"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8.5 2.5 1.5 8l7 5.5z"/><path d="M15 2.5 8 8l7 5.5z" opacity=".5"/></svg></button>
+                    <button type="button" class="btn btn-primary play-btn" id="remix-play" aria-label="Play">▶</button>
+                    <button type="button" class="btn tp-btn" id="remix-fwd" title="Forward 5 seconds (→)" aria-label="Forward 5 seconds"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M7.5 2.5 14.5 8l-7 5.5z"/><path d="M1 2.5 8 8l-7 5.5z" opacity=".5"/></svg></button>
+                </div>
+                <div class="tp-bar">
+                    <span class="tp-time" id="remix-tp-cur">0:00</span>
+                    <div class="tp-seek" id="remix-seek" role="slider" aria-label="Playback position"
+                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0" title="Click or drag to seek · the amber band is the loop window">
+                        <div class="tp-seek-track">
+                            <div class="tp-seek-loop" id="remix-seek-loop" hidden></div>
+                            <div class="tp-seek-fill" id="remix-seek-fill"></div>
+                            <div class="tp-seek-thumb" id="remix-seek-thumb"></div>
+                        </div>
+                    </div>
+                    <span class="tp-time" id="remix-tp-total">0:00</span>
+                </div>
+                <span class="player-time" id="remix-time" hidden aria-live="off">0:00 / 0:00</span>
+            </div>
+            <div class="bz-sub tp-hint">Space play · ←/→ skip 5 s · 1 2 switch track · seeking outside the loop moves it</div>
+            </div>
         </div>
 
         <div class="bz-sep bz-sep-1"></div>
 
         <div class="bz bz-monitor">
             <div class="bz-label">Monitor</div>
+            <div class="bz-owner" data-owner="single">
             <div class="bz-row">
                 <div class="player-tabs" id="track-tabs" role="tablist">
                     <button type="button" class="track-tab active" data-track="original" title="Hear the untouched upload (key: 1)">
@@ -834,12 +840,33 @@
                     <span class="ab-match-note" id="ab-match-note"></span>
                 </label>
             </div>
+            </div>
+            <div class="bz-owner" data-owner="remix">
+            <div class="bz-row">
+                <div class="player-tabs" role="tablist">
+                    <button type="button" class="track-tab active" id="remix-tab-original" title="Hear the untouched upload (key: 1)">
+                        <span class="track-key">1</span> Original
+                    </button>
+                    <button type="button" class="track-tab" id="remix-tab-remix" disabled
+                            title="Hear the remix: every stem with its effects, summed (key: 2). Separate stems first.">
+                        <span class="track-key">2</span> Remix
+                    </button>
+                </div>
+            </div>
+            <div class="bz-sub">
+                <label class="transport-check" title="Attenuate the louder track so you judge the remix, not the volume difference — mastering makes the remix much louder than the original.">
+                    <input type="checkbox" id="remix-ab-match" checked>
+                    <span>Loudness-matched A/B</span>
+                </label>
+            </div>
+            </div>
         </div>
 
         <div class="bz-sep bz-sep-2"></div>
 
         <div class="bz bz-loop">
             <div class="bz-label">Preview loop</div>
+            <div class="bz-owner" data-owner="single">
             <div class="bz-row player-preview-row" id="preview-bar">
                 <label class="preview-toggle-row" id="preview-toggle-row" title="Loop a short window and hear preset & slider edits instantly.">
                     <input type="checkbox" id="preview-toggle">
@@ -861,6 +888,26 @@
             <div class="bz-sub">
                 <div class="preview-explainer" id="preview-explainer">Turn on Live to loop the worst section and hear edits instantly.</div>
                 <div class="preview-status" id="preview-status">Drop a file to start.</div>
+            </div>
+            </div>
+            <div class="bz-owner" data-owner="remix">
+            <div class="bz-row player-preview-row">
+                <span class="preview-toggle-label remix-live-pill" title="The Remix tab always previews live: every edit re-renders the loop."><b>Live</b> · always on</span>
+                <div class="preview-controls">
+                    <select id="remix-window" class="select preview-select" title="Length of the looped preview window">
+                        <option value="10" selected>10 s</option>
+                        <option value="15">15 s</option>
+                        <option value="20">20 s</option>
+                    </select>
+                    <button type="button" class="btn btn-ghost preview-here-btn" id="remix-loop-here"
+                        title="Anchor the loop window at the current playhead">
+                        Set from playhead
+                    </button>
+                </div>
+            </div>
+            <div class="bz-sub">
+                <div class="preview-status" id="remix-status">Drop a file to start.</div>
+            </div>
             </div>
         </div>
 

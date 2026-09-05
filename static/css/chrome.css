@@ -557,7 +557,7 @@
    colour, the active one pulses, pending ones wait, skipped ones are
    dashed. The packet (three bars, an audio blip) travels from In to the
    active node on a loop, and out to the right when the file is written. */
-.pm-chain { position: relative; padding: 20px 0 22px; margin: 4px 0 0; container-type: inline-size; }
+.pm-chain { position: relative; padding: 20px 0 22px; margin: 4px 0 0; }
 .pm-wire {
     position: absolute; left: 4%; right: 4%; top: 28px; height: 3px;
     background: var(--line-2); border-radius: 1px;
@@ -583,9 +583,7 @@
 }
 /* Eleven stages in one row: alternate the labels over two lines so the
    long names (Recombine, Fine pass) never run into their neighbours. */
-@container (max-width: 720px) {
-    .pm-node:nth-child(odd) .pm-label { transform: translateY(15px); }
-}
+.pm-chain.dense .pm-node:nth-child(odd) .pm-label { transform: translateY(15px); }
 .pm-node.done .pm-dot { background: var(--phase); border-color: var(--phase); }
 .pm-node.done .pm-label { color: var(--fg-2); }
 .pm-node.active .pm-dot {
@@ -1091,3 +1089,11 @@
 }
 .palette .p-item.sel,
 .palette .p-item:hover { background: var(--bg-4); color: var(--fg-0); }
+
+/* The bridge belongs to whichever tab owns the player. Each zone holds a
+   Master set and a Remix set of controls; <body data-tab> picks one. */
+.bz-owner { display: contents; }
+body[data-tab="remix"] .bz-owner[data-owner="single"] { display: none; }
+body:not([data-tab="remix"]) .bz-owner[data-owner="remix"] { display: none; }
+.remix-live-pill { color: var(--success); font-size: 12px; white-space: nowrap; }
+.remix-live-pill b { color: var(--success); }

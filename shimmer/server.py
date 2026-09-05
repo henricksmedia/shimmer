@@ -1532,10 +1532,19 @@ async def api_stems_separate(payload: Dict[str, Any]) -> JSONResponse:
     job.source_stem = Path(sess.original_name).stem or "audio"
     loop = asyncio.get_running_loop()
 
-    def _progress(frac: float, msg: str) -> None:
+    def _progress(frac: float, msg: str, stage: Optional[str] = None) -> None:
         job.progress = float(frac)
-        asyncio.run_coroutine_threadsafe(
-            job.queue.put({"fraction": float(frac), "message": msg}), loop)
+        event: Dict[str, Any] = {"fraction": float(frac), "message": msg}
+        if stage:
+            event["stage"] = stage
+            event["status"] = msg
+            if stage == "separate":
+                event["detail"] = "vocals, drums, bass and other · a minute or two"
+            elif stage == "setup":
+                event["detail"] = "one-time install of the separation engine"
+            elif stage == "load":
+                event["detail"] = "reading the four stems back"
+        asyncio.run_coroutine_threadsafe(job.queue.put(event), loop)
 
     def _work() -> None:
         sess.stems = stems_mod.separate(
@@ -1723,10 +1732,16 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
     job.preset_name = "remix"
     loop = asyncio.get_running_loop()
     cb = _threadsafe_progress_pusher(job, loop)
+    stage_cb = getattr(cb, "stage", None)
+
+    def _stage(key: str, label: str, detail: str = "") -> None:
+        if stage_cb:
+            stage_cb(key, label, detail)
 
     def _work() -> None:
         sr = sess.sr
         cb(0.05)
+        _stage("mix", "Mixing the stems", "each stem's effects, then the sum")
         y = render_remix(sess.stems, sr, settings)
         cb(0.15)
 
@@ -1736,6 +1751,7 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
             preset_name = clean_choice
             if preset_name == "auto":
                 from .probe import suggest_preset
+                _stage("analyze", "Picking the cleanup preset", "listening to the summed remix")
                 tmp = os.path.join(job.workdir, "remix_sum.wav")
                 save_audio(tmp, y, sr)
                 sug = suggest_preset(tmp)
@@ -1764,13 +1780,17 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
                 repair=remix_plan,
                 master_params=mp if mp.enabled else None,
                 progress_callback=lambda f: cb(0.2 + 0.7 * f),
+                stage_callback=stage_cb,
             )
             m_report = rep.get("mastering", {"enabled": False})
         elif mp.enabled:
+            _stage("master", "Mastering",
+                   f"level to {float(mp.target_lufs):g} LUFS · peak shaper · true-peak limiter")
             y, m_report = master(y, sr, mp)
         cb(0.9)
 
         processed = os.path.join(job.workdir, f"processed{job.output_ext}")
+        _stage("export", "Writing the file", job.output_ext.lstrip(".").upper())
         save_audio(processed, y, sr)
         job.processed_path = processed
         if m_report.get("enabled"):
