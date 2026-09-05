@@ -252,9 +252,14 @@ Placement notes:
   runner in the existing side venv: `audio-separator[gpu]` (Roformer,
   MDX, Demucs, ensembles, CUDA on Windows) or ZFTurbo's inference
   scripts. Cache by content hash *and* model set.
-- Tiers: Fast = `htdemucs_ft`; Best = BS-RoFormer + Mel-RoFormer
-  ensemble (4-stem). Check each checkpoint's licence before shipping.
-- Acceptance: MUSDB18-HQ average ≥ 13 dB SDR on the Best tier.
+- Tiers: Fast = `htdemucs_ft`; Best = SCNet XL IHF + BS-RoFormer 4-stem
+  ensemble with a Mel-RoFormer vocal model. Check each checkpoint's
+  licence before shipping (see [STEMS_MODELS.md](STEMS_MODELS.md)).
+- Acceptance (corrected 2026-09-05): the 13.7 dB figure quoted before is
+  MVSep's *proprietary* ensemble and is not downloadable. Open weights
+  top out near 10 dB on the 4-stem average and 11–13 dB on vocals. Best
+  tier target on MUSDB18-HQ test: 4-stem average ≥ 10.0 dB (about 9.2
+  today), vocals ≥ 11.0 dB (8.2 today), drums ≥ 11.5, other ≥ 7.5.
 
 ### B2. Stem tree (12 faithful stems)
 
@@ -281,8 +286,10 @@ Placement notes:
 - Benchmark set: MUSDB18-HQ stems mixed, then passed through a neural
   codec (DAC or Encodec) so the mix carries real generator artifacts
   while the ground-truth stems stay known. This is the only way to
-  measure "better on AI music" with numbers. Targets: ≥ 13 dB average
-  on real music; ≥ +1.5 dB over the best open ensemble on the codec set.
+  measure "better on AI music" with numbers. Targets: ≥ 10 dB average
+  on real music with open weights; ≥ +1.5 dB over the best single open
+  model on the codec set, from the artifact-aware pipeline (static
+  notches before the split, residual stem) plus the ensemble.
 - Own models (Decision 3): the same codec-degraded set doubles as the
   specialisation training set. Data sources must be cleared for the
   use (MUSDB18-HQ and MoisesDB are research licences; check before
@@ -322,7 +329,7 @@ Placement notes:
 |---|---|---|
 | 0 | C (data-driven chain view), docs — **done 2026-09-04** | S |
 | 1 | A1 static repair, A2 de-click, A5 cutoff — **built 2026-09-05, awaiting listening sign-off.** Corpus: 83 fixed lines notched across 26 tracks, mean tone removal 0.98 on the 7 tracks with lines (target ≥ 0.8 met on 7/7); cutoff found on 6 tracks (15.6–19.0 kHz). De-click ships at 40 % in Sibilance Rattle and Deep Scrub because dense hi-hats register as clicks on some tracks; needs ears before going higher. | M |
-| 2 | A3 fine pass, A4 per-bin DeHarsh / DeRes | L |
+| 2 | A3 fine pass, A4 per-bin DeHarsh — **built 2026-09-05, awaiting listening sign-off.** Corpus (26 tracks, verified Analyze): mean purity of ranked picks 0.82 → 0.83, six distinct winners, Analyze time 10.6 → 13.2 s per track (the fine pass adds about 2.5 s to the 28 trial cleans). The Flicker Tamer needed two fixes, not one: the fine grid *and* a floor reference (a half-duty flicker sits only 3 dB above its running mean, so the old design could never cut more than 1 dB). DeRes persistence-only detection deferred: static notches now handle its main target (fixed lines). | L |
 | 3 | A6 catalog + preset chains, A7 Analyze | M |
 | 4 | B1–B4 engine, stem tree, artifact-aware, benchmark | L |
 | 5 | B5 stem-aware cleaning path and Remix UI (residual as a first-class stem with its own cleaning slot) | M |

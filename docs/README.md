@@ -9,8 +9,10 @@ For the exhaustive parameter and API reference, see [FEATURES.md](FEATURES.md).
 For remote access / hosting options (and why Cloudflare Pages isn't a fit),
 see [DEPLOYMENT.md](DEPLOYMENT.md). For a research-backed review of every
 preset against the causes of AI-music artifacts, see
-[PRESET_REVIEW.md](PRESET_REVIEW.md), and for the proposed presets /
-stems / signal-chain roadmap that follows from it, see [PLAN.md](PLAN.md).
+[PRESET_REVIEW.md](PRESET_REVIEW.md), for the presets / stems /
+signal-chain roadmap that follows from it, see [PLAN.md](PLAN.md), and
+for the stems-engine model shortlist with licences, see
+[STEMS_MODELS.md](STEMS_MODELS.md).
 
 ## Architecture
 
@@ -21,7 +23,9 @@ Input → [trim] → de-click → static repair (fixed-line notches)
                               └── high band → M/S split
                                      ├── mid  (0.2× strength)
                                      └── side (1.0× strength)
-                                            └── 9-stage STFT engine
+                                            ├── fine pass 1024/256
+                                            │   (flicker tamer, spectral de-esser)
+                                            └── 9-stage STFT engine 4096/1024
         → side-width compensation → recombine → wet/dry mix
         → post filters → user EQ → mastering → export
 ```
@@ -180,6 +184,7 @@ shimmer/            The Python package (all application code)
   detect.py         Auto-detect: evidence scan + pipeline verification
   chain.py          Signal Chain description generated from Params
   repair.py         Deterministic repairs: de-click, static notches, cutoff
+  finepass.py       Fine-grid pass (1024/256): flicker tamer, spectral de-esser
   probe.py          Region diagnostics, suggest_preset wrapper
   eq.py             Parametric EQ (RBJ biquads, zero-phase)
   bands.py          Linear-phase crossover

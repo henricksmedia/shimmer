@@ -28,6 +28,27 @@ class Params:
     # never reach above it (the band is empty there, only hash).
     cutoff_hz: float = 0.0
 
+    # ── Fine-grid dynamic pass (finepass.py) ─────────────────────────────
+    # Runs on the high band, per M/S channel, before the coarse pass.
+    # Flicker Tamer moves here (see ft_* below); the spectral de-esser
+    # lives only here.
+    fine_pass: bool = True
+    fine_n_fft: int = 1024
+    fine_hop: int = 256
+    deess: float = 0.0             # 0..1 spectral de-esser amount
+    de_start_hz: float = 4000.0
+    de_end_hz: float = 10000.0
+    de_edge_hz: float = 200.0
+    de_ref_start_hz: float = 1000.0
+    de_ref_end_hz: float = 4000.0
+    de_thr_db: float = 6.0         # band-vs-reference excess before acting
+    de_slope: float = 0.6          # dB attenuation per dB excess
+    de_max_att_db: float = 8.0
+    de_attack_ms: float = 1.0
+    de_release_ms: float = 40.0
+    de_bin_med_bins: int = 31      # smoothed-spectrum window for per-bin weighting
+    de_bin_excess_db: float = 3.0  # bins this far above the envelope take the full cut
+
     # ── Shimmer suppression band ──────────────────────────────────────────
     start_hz: float = 5100.0       # low edge of target band
     end_hz: float = 7200.0         # high edge of target band
@@ -137,6 +158,11 @@ class Params:
     dh_max_att_db: float = 6.0
     dh_attack_ms: float = 5.0
     dh_release_ms: float = 120.0
+    # How much of the cut follows the peaks. 0 = one gain across the
+    # whole band (old behaviour); 1 = bins above the band's smoothed
+    # spectrum take up to 1.5x the cut and bins below take almost none.
+    dh_per_bin: float = 0.5
+    dh_bin_med_bins: int = 31
 
     # ── Narrow-tone killer (steady-state Suno "whistle" notcher) ──────────
     # Tracks the long-term per-bin magnitude vs a wide local-frequency
@@ -182,6 +208,14 @@ class Params:
     ft_thr_db: float = 1.5          # excess of E_fast over E_slow before acting
     ft_slope: float = 0.85          # dB att per dB excess past threshold
     ft_max_att_db: float = 18.0     # ceiling per sub-band
+    # Fine-pass version (finepass.py): the on-phases of flicker are
+    # measured against a floor follower (fast down, slow up) instead of
+    # the running mean, and the cut only engages where the sub-band's
+    # fine-time spread says flicker is present, so a steady cymbal wash
+    # is left alone.
+    ft_floor_up_db_s: float = 20.0  # how fast the floor may rise
+    ft_flicker_min_db: float = 1.5  # spread (std of detrended dB) where the cut starts
+    ft_flicker_full_db: float = 4.0 # spread where the cut is fully on
 
     # ── De-checkerboard (periodic deconv-grid suppressor) ─────────────────
     decheck: float = 0.0           # 0..1 strength
@@ -282,6 +316,7 @@ class Params:
 _STRENGTH_AMOUNT_KEYS = (
     # 0..1 amount-style strengths
     ("declick",       0.0, 1.0),
+    ("deess",         0.0, 1.0),
     ("denoise",       0.0, 1.0),
     ("deres",         0.0, 1.0),
     ("deharsh",       0.0, 1.0),
@@ -292,6 +327,7 @@ _STRENGTH_AMOUNT_KEYS = (
 
     # dB ceilings — let strength scale them up to ~2x preset.
     ("dh_max_att_db",  0.0, 30.0),
+    ("de_max_att_db",  0.0, 24.0),
     ("deq_max_att_db", 0.0, 30.0),
     ("tk_max_att_db",  0.0, 40.0),
     ("ft_max_att_db",  0.0, 36.0),

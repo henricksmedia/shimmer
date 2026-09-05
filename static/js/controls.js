@@ -107,6 +107,18 @@ export const CONTROL_SPEC = [
         },
     },
     {
+        key: 'deess', label: 'De-esser',
+        min: 0.0, max: 1.0, step: 0.02, group: 'Processing', isPct: true,
+        help: {
+            short: 'Tames sharp "s", "sh" and "t" sounds and other short ' +
+                   'bursts in 4–10 kHz. Works per frequency, so the rest ' +
+                   'of the band keeps its brightness.',
+            when_up: 'Consonants or hi-hat splashes cut through like a razor.',
+            when_down: 'The singer starts to lisp or the hats lose their snap.',
+            typical: '0% - 60%',
+        },
+    },
+    {
         key: 'denoise', label: 'Denoise',
         min: 0.0, max: 1.0, step: 0.02, group: 'Processing', isPct: true,
         help: {

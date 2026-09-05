@@ -89,7 +89,7 @@
     padding: 10px 14px 12px;
     border-top: 1px solid var(--line);
 }
-.viz-card .spectrum-live { height: 96px; }
+.viz-card .spectrum-live { height: 170px; }   /* see .spectrum-live */
 
 .hint-text { color: var(--fg-3); font-size: 11.5px; }
 .analysis-hint { color: var(--fg-2); font-size: 12.5px; line-height: 1.6; max-width: 620px; }
@@ -442,6 +442,10 @@ input[type=range]::-moz-range-thumb {
     background: #0c0f13;
     cursor: pointer;
 }
+/* Waveform mode is a navigation strip: seek, loop window, dynamics. The
+   spectrogram modes keep the full height, where vertical resolution shows
+   hash as streaks in the shaded band. */
+.player-canvas.mode-waveform { height: 150px; }
 
 .player-kbd-hint { font-size: 10.5px; color: var(--fg-3); font-family: var(--font-mono); }
 
@@ -499,10 +503,12 @@ input[type=range]::-moz-range-thumb {
 .ab-match-note { color: var(--fg-3); font-size: 10.5px; font-family: var(--font-mono); }
 
 .player-meters { display: flex; flex-direction: column; gap: 6px; }
+/* Tall enough to read a dB grid: the artifacts this tool removes all sit
+   above 4 kHz, and the analyzer is where you watch them come and go. */
 .spectrum-live {
     display: block;
     width: 100%;
-    height: 64px;
+    height: 170px;
     border-radius: var(--radius-s);
     background: #0c0f13;
     border: 1px solid var(--line);
@@ -647,10 +653,20 @@ input[type=range]::-moz-range-thumb {
     border-radius: 14px;
     padding: 11px 14px;
     display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 7px;
     font-size: 11px;
     color: var(--fg-2);
+}
+/* One labeled row per group: Loudness, Cleaning, Job. */
+.metric-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.metric-row-label {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--fg-3);
+    font-weight: 700;
+    min-width: 62px;
 }
 
 /* ── Progress bars ──────────────────────────────────────────────────── */
@@ -760,6 +776,10 @@ progress::-moz-progress-bar { background: var(--amber); }
 .ad-followup { border-color: rgba(251,191,36,.45); }
 .ad-followup-tip { margin-top: 5px; color: var(--amber); }
 
+/* Master-once reminder: three real choices, Cancel means cancel. */
+.second-pass-text { text-align: left; line-height: 1.5; white-space: normal; }
+.second-pass-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; justify-content: flex-end; }
+
 /* Fixed tones the static-repair stage will notch first in the chain.
    Each row is a checkbox so the user can keep a line. */
 .repair-list { margin-top: 8px; }
@@ -778,39 +798,63 @@ progress::-moz-progress-bar { background: var(--amber); }
 .repair-empty { font-size: 11px; color: var(--fg-3); padding: 2px 4px; }
 .ad-followup b, .ad-note b { color: var(--fg-0); font-weight: 650; }
 
-/* Shimmer-intensity timeline: one thin bar per time bin, hot bins amber.
-   The preview loop auto-anchors on the hottest region. */
+/* Noise-over-time strip: one thin bar per second, amber above the hot
+   threshold. Caption above, time axis below, click to jump. */
+.ad-timeline-wrap { margin-top: 10px; }
+.ad-timeline-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+.ad-timeline-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--fg-3);
+    font-weight: 700;
+}
+.ad-timeline-key { font-size: 10.5px; color: var(--fg-3); }
+.ad-timeline-key .sw {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    vertical-align: -1px;
+}
+.ad-timeline-key .sw.hot { background: var(--amber); }
+.ad-timeline-key .sw.cool { background: rgba(56, 189, 248, .5); }
 .ad-timeline {
     position: relative;
     display: flex;
     align-items: flex-end;
     gap: 1px;
-    height: 40px;
-    margin-top: 8px;
+    height: 48px;
     padding: 4px 6px 3px;
     background: #0c0f13;
     border: 1px solid var(--line);
     border-radius: var(--radius-s);
     overflow: hidden;
-}
-.ad-timeline::after {
-    content: "shimmer intensity — loop anchors at the hottest region";
-    position: absolute;
-    top: 3px;
-    left: 8px;
-    font-size: 9px;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    color: var(--fg-3);
-    pointer-events: none;
+    cursor: pointer;
 }
 .ad-timeline-bar {
     flex: 1 1 0;
     min-width: 1px;
     background: rgba(56, 189, 248, .38);
     border-radius: 1px 1px 0 0;
+    pointer-events: none;   /* the strip handles clicks; bars keep tooltips off */
 }
 .ad-timeline-bar.hot { background: var(--amber); }
+.ad-timeline-axis {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 4px 0;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--fg-3);
+}
 
 /* ════ COMPAT: advanced drawer (controls.js-generated sliders) ══════ */
 

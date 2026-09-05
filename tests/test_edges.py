@@ -167,3 +167,70 @@ def test_apply_trim_out_point_only():
     y, rep = apply_trim(x, SR, 0.0, 2.0)
     assert rep["applied"] and rep["cut_head_s"] == 0.0
     assert abs(rep["cut_tail_s"] - 1.0) < 0.01
+
+
+# ── 4. The AI-render case: no digital silence anywhere ───────────────────
+
+def _noise_floor(dur_s: float, peak: float, seed: int = 11) -> np.ndarray:
+    """Head noise the way AI renders have it: never silent, -60..-70 dBFS."""
+    rng = np.random.default_rng(seed)
+    n = int(dur_s * SR)
+    x = rng.standard_normal((n, 2)).astype(np.float32)
+    return (x / np.abs(x).max() * peak).astype(np.float32)
+
+
+def test_detects_head_burst_over_noisy_floor():
+    """A 15 ms click at -41 dBFS, then 450 ms of -65 dBFS floor, then the
+    song. The absolute pass sees one continuous run (nothing is under
+    -75 dBFS); the relative pass must find the click and cut inside the
+    quiet run before the music."""
+    x = np.concatenate([_burst(15, 0.009), _noise_floor(0.45, 0.0006), _tone(3.0)])
+    r = detect_edge_artifacts(x, SR)
+    assert r["head"] is not None
+    h = r["head"]
+    assert h["artifact_ms"] <= 40.0
+    # The cut lands after the burst and before the music.
+    assert h["artifact_end_s"] <= h["suggested_s"] <= 0.45
+    assert h["program_s"] >= 0.4
+    # The cut lands in the quiet run, well under the click's level.
+    cut = int(h["suggested_s"] * SR)
+    assert np.abs(x[cut - 40:cut + 40]).max() < 0.002
+
+
+def test_noisy_floor_without_burst_not_flagged():
+    x = np.concatenate([_noise_floor(0.45, 0.0006), _tone(3.0)])
+    assert detect_edge_artifacts(x, SR)["head"] is None
+
+
+# ── 7. Ticks around the main click ───────────────────────────────────────
+
+def test_secondary_tick_is_cut_too():
+    """A click, 80 ms of floor, a smaller tick, then floor and the song.
+    The tick is part of the artifact zone: the suggested cut must land
+    after it, not between the click and the tick."""
+    x = np.concatenate([
+        _burst(15, 0.009), _noise_floor(0.08, 0.0006),
+        _burst(3, 0.004), _noise_floor(0.40, 0.0006, seed=12), _tone(3.0),
+    ])
+    h = detect_edge_artifacts(x, SR)["head"]
+    assert h is not None
+    assert h["ticks"] == 1
+    tick_end_s = 0.015 + 0.08 + 0.003
+    assert tick_end_s <= h["suggested_s"] <= 0.5
+    # What is left between the cut and the song is floor only.
+    cut = int(h["suggested_s"] * SR)
+    assert np.abs(x[cut:cut + int(0.03 * SR)]).max() < 0.002
+
+
+def test_faint_tick_before_the_click_does_not_stop_the_cut_short():
+    """A faint tick, 50 ms of floor, then the real click. The click is
+    the loudest run in the zone, so the cut lands after it."""
+    x = np.concatenate([
+        _burst(3, 0.002), _noise_floor(0.05, 0.0006),
+        _burst(15, 0.009), _noise_floor(0.40, 0.0006, seed=12), _tone(3.0),
+    ])
+    h = detect_edge_artifacts(x, SR)["head"]
+    assert h is not None
+    click_end_s = 0.003 + 0.05 + 0.015
+    assert click_end_s <= h["suggested_s"] <= 0.5
+    assert h["artifact_peak_db"] > -45.0

@@ -64,6 +64,28 @@ MIN_PROMINENCE_DB = 10.0
 # cut, so the edit lands inside the gap rather than on the decay.
 CUT_MARGIN_MS = 10.0
 
+# The burst's run ends where the envelope first drops under the detection
+# threshold, which can be well before it has died away, and smaller ticks
+# later in the gap sit under the threshold too. Either one leaves a faint
+# blip after the cut. So the cut is pushed to where the gap has settled:
+# the first stretch of SETTLE_MS whose envelope stays within SETTLE_DB of
+# the gap's own quiet level: the middle of its noise band (the median
+# of the peak envelope), so the box reaches the floor, not its top edge.
+SETTLE_DB = 3.0
+SETTLE_MS = 10.0
+SETTLE_PCT = 50.0
+
+# Smaller ticks after (or before) the main click count as part of the
+# artifact when they are this short and land within ZONE_MAX_MS of its
+# start. Render ticks run 1-40 ms; a musical hit rings longer than that.
+TICK_MAX_MS = 60.0
+ZONE_MAX_MS = 500.0
+
+# Lead-in kept before the music when the gap allows it. The suggested cut
+# sits this far ahead of the program, so the tick and all of the dead air
+# after it go, and the song still has a natural breath before it starts.
+PRE_ROLL_MS = 40.0
+
 
 def _envelope_db(mono: np.ndarray, sr: int) -> Tuple[np.ndarray, int]:
     """Peak envelope in dBFS, one value per HOP_MS. Returns (env, hop)."""
@@ -91,6 +113,24 @@ def _runs_above(env_db: np.ndarray, floor_db: float) -> List[Tuple[int, int]]:
     return list(zip(starts, ends))
 
 
+def _merge_close_runs(runs: List[Tuple[int, int]],
+                      min_gap_frames: int) -> List[Tuple[int, int]]:
+    """Join runs separated by less than the minimum gap. A burst that
+    decays into the noise floor crosses the threshold several times on
+    its way down; those crossings are the same event, not a burst
+    followed by music."""
+    if not runs:
+        return []
+    merged = [tuple(runs[0])]
+    for s, e in runs[1:]:
+        ps, pe = merged[-1]
+        if s - pe < min_gap_frames:
+            merged[-1] = (ps, max(pe, e))
+        else:
+            merged.append((s, e))
+    return merged
+
+
 def _zero_crossing_near(x: np.ndarray, target: int, sr: int,
                         window_ms: float = 3.0) -> int:
     """Nearest sample to `target` where every channel is closest to zero.
@@ -107,61 +147,170 @@ def _zero_crossing_near(x: np.ndarray, target: int, sr: int,
     return int(lo + np.argmin(energy))
 
 
+# Relative pass: the music proper starts where the envelope first comes
+# within this much of the loudest point of the scan window.
+PROGRAM_BELOW_PEAK_DB = 20.0
+# Quiet level of the head, estimated from the pre-music region: this
+# percentile of the peak envelope. AI renders rarely start from digital
+# silence; a -60..-70 dBFS floor is normal.
+HEAD_FLOOR_PCT = 20.0
+
+
 def _detect_one_edge(x: np.ndarray, sr: int) -> Optional[Dict[str, Any]]:
     """Look for an artifact at the START of `x`. Tail detection reverses
-    the audio and calls this, then mirrors the timings back."""
+    the audio and calls this, then mirrors the timings back.
+
+    Two passes. The absolute pass wants a gap below FLOOR_DB between the
+    burst and the music, which is what a render with real digital
+    silence gives. Most AI renders never get that quiet: the head sits at
+    -60..-70 dBFS, so the burst and the song read as one run and the
+    absolute pass sees nothing. The relative pass then finds where the
+    music proper starts (within PROGRAM_BELOW_PEAK_DB of the scan's
+    loudest point), estimates the head's own quiet level before it, and
+    looks for a short burst standing MIN_PROMINENCE_DB above that level
+    with a gap of head noise after it."""
     scan = x[:int(min(x.shape[0], SCAN_S * sr))]
     if scan.shape[0] < int(0.05 * sr):
         return None
 
     mono = np.max(np.abs(scan), axis=1)
     env_db, hop = _envelope_db(mono, sr)
-    f2s = hop / sr  # frames → seconds
 
-    runs = _runs_above(env_db, FLOOR_DB)
-    if len(runs) < 2:
-        # Either silence throughout, or audio that starts and never stops —
-        # both mean there is no detached burst to report.
+    found = _detect_in_envelope(env_db, hop, x, sr, FLOOR_DB, limit=None)
+    if found is not None:
+        return found
+
+    loud = np.flatnonzero(env_db >= float(env_db.max()) - PROGRAM_BELOW_PEAK_DB)
+    if loud.size == 0:
+        return None
+    p0 = int(loud[0])
+    if p0 < int(0.05 * sr / hop):
+        return None  # music starts at once: nothing detached to cut
+    head_floor = float(np.percentile(env_db[:p0], HEAD_FLOOR_PCT))
+    thr = max(FLOOR_DB, head_floor + MIN_PROMINENCE_DB)
+    return _detect_in_envelope(env_db, hop, x, sr, thr, limit=p0)
+
+
+def _detect_in_envelope(env_db: np.ndarray, hop: int, x: np.ndarray, sr: int,
+                        floor_db: float, limit: Optional[int]
+                        ) -> Optional[Dict[str, Any]]:
+    """Shared burst-gap-program test on the peak envelope above `floor_db`.
+    With `limit` (a frame index where the music proper starts), the
+    music itself counts as the program even when the envelope never
+    drops below `floor_db` again.
+
+    The artifact is a zone, not one run: the first run plus any short
+    ticks after it (see TICK_MAX_MS), up to the program. A render often
+    leaves a click and then a couple of smaller ticks, or a faint tick
+    before the click; cutting after the first run alone left those
+    behind as a blip. The program is the first later run that is not a
+    tick, or the music proper when `limit` is given."""
+    f2s = hop / sr  # frames → seconds
+    env = env_db if limit is None else env_db[:limit]
+
+    runs = _merge_close_runs(_runs_above(env, floor_db),
+                             int(round(MIN_GAP_MS / 1000.0 / f2s)))
+    if not runs:
         return None
 
-    a_start, a_end = runs[0]
-    p_start = runs[1][0]
+    tick_max = int(round(TICK_MAX_MS / 1000.0 / f2s))
+    zone_max = int(round(ZONE_MAX_MS / 1000.0 / f2s))
+    min_gap = int(round(MIN_GAP_MS / 1000.0 / f2s))
+    zone = [runs[0]]
+    p_start: Optional[int] = None
+    for idx, (s, e) in enumerate(runs[1:], start=1):
+        # A short run that reaches the music proper with no gap is the
+        # song's own lead-in, not a tick: it is where the program starts.
+        touches_program = (limit is not None and idx == len(runs) - 1
+                           and (env.shape[0] - e) < min_gap)
+        if ((e - s) <= tick_max and (e - runs[0][0]) <= zone_max
+                and not touches_program):
+            zone.append((s, e))
+            continue
+        p_start = s
+        break
+    if p_start is None:
+        if limit is None:
+            # Silence throughout, ticks with no music after them, or audio
+            # that starts and never stops — nothing detached to cut.
+            return None
+        p_start = int(limit)
 
+    a_start = zone[0][0]
+    a_end = zone[-1][1]
+    # The main burst is the loudest run in the zone; the length and
+    # brevity tests apply to it, not to the spread of the ticks.
+    main = max(zone, key=lambda r: float(env_db[r[0]:r[1]].max()))
+    main_ms = (main[1] - main[0]) * f2s * 1000.0
     length_ms = (a_end - a_start) * f2s * 1000.0
     gap_ms = (p_start - a_end) * f2s * 1000.0
-    if length_ms > MAX_ARTIFACT_MS or gap_ms < MIN_GAP_MS:
+    if main_ms > MAX_ARTIFACT_MS or gap_ms < MIN_GAP_MS:
         return None
     # A glitch is brief relative to the silence that follows it. A note
     # that rings longer than the gap after it is part of the arrangement.
-    if gap_ms < length_ms:
+    if gap_ms < main_ms:
         return None
 
-    peak_db = float(env_db[a_start:a_end].max())
+    peak_db = float(env_db[main[0]:main[1]].max())
     gap_db = float(env_db[a_end:p_start].max())
     if peak_db < MIN_ARTIFACT_PEAK_DB:
         return None
     if peak_db - gap_db < MIN_PROMINENCE_DB:
         return None
 
-    # Cut as little as possible: just past the burst, still inside the gap.
-    cut_s = min(
-        a_end * f2s + CUT_MARGIN_MS / 1000.0,
-        p_start * f2s - CUT_MARGIN_MS / 1000.0,
-    )
-    cut_s = max(cut_s, a_end * f2s)
+    # Cut as little as possible, but past everything the burst left
+    # behind: walk from the zone's end to where the gap has settled at
+    # its quiet level (see SETTLE_*). If it never settles, cut right up
+    # to the margin before the music; the gap is not program by
+    # construction.
+    # The gap is dead air, so the cleanest edit takes all of it: land
+    # PRE_ROLL_MS before the music, which is well clear of the tick and
+    # its decay. A gap too short for that falls back to just past the
+    # settled point.
+    settled = _settle_frame(env_db, a_end, p_start, f2s)
+    margin = int(round(CUT_MARGIN_MS / 1000.0 / f2s))
+    pre_roll = int(round(PRE_ROLL_MS / 1000.0 / f2s))
+    cut_frame = max(settled + margin, p_start - pre_roll)
+    cut_frame = min(cut_frame, p_start - margin)
+    cut_frame = max(cut_frame, a_end)
+    cut_s = cut_frame * f2s
     cut_sample = _zero_crossing_near(x, int(round(cut_s * sr)), sr)
 
+    # Report the artifact as it looks and sounds: it ends where its
+    # slope has reached the floor, not where it crossed the threshold.
+    end = max(a_end, settled)
     return {
         "artifact_start_s": float(a_start * f2s),
-        "artifact_end_s": float(a_end * f2s),
-        "artifact_ms": float(length_ms),
+        "artifact_end_s": float(end * f2s),
+        "artifact_ms": float((end - a_start) * f2s * 1000.0),
         "artifact_peak_db": round(peak_db, 1),
-        "gap_ms": float(gap_ms),
+        "ticks": len(zone) - 1,
+        "gap_ms": float((p_start - end) * f2s * 1000.0),
         "gap_floor_db": round(gap_db, 1),
         # Where the music itself begins (head) or ends (tail).
         "program_s": float(p_start * f2s),
         "suggested_s": float(cut_sample / sr),
     }
+
+
+def _settle_frame(env_db: np.ndarray, a_end: int, p_start: int,
+                  f2s: float) -> int:
+    """First frame at or after `a_end` from which the envelope stays
+    within SETTLE_DB of the gap's quiet level for SETTLE_MS. Falls back
+    to the last frame that still leaves CUT_MARGIN_MS before `p_start`."""
+    margin = int(round(CUT_MARGIN_MS / 1000.0 / f2s))
+    latest = max(a_end, p_start - margin)
+    gap = env_db[a_end:p_start]
+    if gap.size == 0:
+        return a_end
+    quiet_db = float(np.percentile(gap, SETTLE_PCT))
+    win = max(1, int(round(SETTLE_MS / 1000.0 / f2s)))
+    for f in range(a_end, latest + 1):
+        if f + win > p_start:
+            break
+        if np.all(env_db[f:f + win] <= quiet_db + SETTLE_DB):
+            return f
+    return latest
 
 
 def _mirror(edge: Dict[str, Any], duration_s: float) -> Dict[str, Any]:
@@ -255,6 +404,9 @@ def describe_edge(edge: Optional[Dict[str, Any]], where: str = "head") -> str:
     """One-line human summary, for logs, the CLI, and the UI notice."""
     if not edge:
         return f"no {where} artifact"
+    ticks = int(edge.get("ticks") or 0)
+    extra = "" if ticks == 0 else (
+        f" plus {ticks} smaller tick{'s' if ticks != 1 else ''}")
     return (f"{edge['artifact_ms']:.0f} ms burst at "
-            f"{edge['artifact_peak_db']:.0f} dBFS, "
+            f"{edge['artifact_peak_db']:.0f} dBFS{extra}, "
             f"{edge['gap_ms']:.0f} ms before program")

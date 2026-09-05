@@ -12,6 +12,53 @@ const TRACK_KEYS = ['original', 'processed', 'removed'];
 // clips the output.
 const REMOVED_BOOST_DB = 14;
 
+// ── Live analyzer calibration ───────────────────────────────────────
+// AnalyserNode magnitudes are Blackman-windowed and scaled by 1/N, so a
+// full-scale sine reads about -13.6 dB. Add that back so the dB grid is
+// in dBFS for sines, the convention most analyzers use.
+const SPEC_CAL_DB = 13.6;
+// Music falls off at roughly 4.5 dB per octave. Tilting the display by
+// that much around 1 kHz makes a normal mix read close to flat, so the
+// top end (where the artifacts live) is not crushed into the corner.
+const SPEC_TILT_DB_PER_OCT = 4.5;
+const SPEC_DB_TOP = 0;
+const SPEC_DB_BOTTOM = -84;
+const SPEC_GRID_STEP_DB = 12;
+// Ghost trace smoothing: per-frame EMA of the other A/B track's spectrum.
+const GHOST_EMA = 0.12;
+
+// ── Loudness strip (ITU-R BS.1770 K-weighting) ──────────────────────
+// The strip fills with momentary loudness (400 ms) in LUFS, on the same
+// scale as its target marker. Filter design follows the standard's
+// analog prototypes so it holds at any sample rate (as in libebur128).
+const LUFS_STRIP_MIN = -40;
+const LUFS_STRIP_MAX = 0;
+const LUFS_MOMENTARY_S = 0.4;
+
+function kWeightingCoefficients(fs) {
+    // Stage 1: high shelf, +4 dB above ~1.5 kHz.
+    const f0 = 1681.974450955533, G = 3.999843853973347, Q = 0.7071752369554196;
+    const K = Math.tan(Math.PI * f0 / fs);
+    const Vh = Math.pow(10, G / 20);
+    const Vb = Math.pow(Vh, 0.4996667741545416);
+    const a0 = 1 + K / Q + K * K;
+    const shelf = {
+        feedforward: [(Vh + Vb * K / Q + K * K) / a0,
+                      2 * (K * K - Vh) / a0,
+                      (Vh - Vb * K / Q + K * K) / a0],
+        feedback:    [1, 2 * (K * K - 1) / a0, (1 - K / Q + K * K) / a0],
+    };
+    // Stage 2: high-pass at ~38 Hz (the "RLB" weighting).
+    const f1 = 38.13547087602444, Q1 = 0.5003270373238773;
+    const K1 = Math.tan(Math.PI * f1 / fs);
+    const d0 = 1 + K1 / Q1 + K1 * K1;
+    const hp = {
+        feedforward: [1, -2, 1],
+        feedback:    [1, 2 * (K1 * K1 - 1) / d0, (1 - K1 / Q1 + K1 * K1) / d0],
+    };
+    return { shelf, hp };
+}
+
 // ── Colors (match tokens.css) ───────────────────────────────────────
 const C = {
     waveTop: 'rgba(139, 149, 163, 0.40)',
@@ -253,6 +300,14 @@ export function createUnifiedPlayer({
     let specData = null;            // {canvas, yOfFreq} for current base
     let audioCtx = null;
     let analyser = null;
+    let meterIn = null;             // everything audible fans out from here
+    let kAnalysers = null;          // per-channel K-weighted time-domain taps
+    // Loudness strip state: recent (time, mean-square) pairs for the
+    // 400 ms momentary window.
+    const loud = { window: [] };
+    // Ghost traces: smoothed display-dB spectrum per track, so the other
+    // A/B track can be drawn behind the live one.
+    const ghost = { original: null, processed: null, removed: null };
     const sourceNodes = new WeakMap();  // <audio> -> MediaElementSourceNode
     const elementGains = new WeakMap(); // <audio> -> GainNode (level control)
 
@@ -282,10 +337,32 @@ export function createUnifiedPlayer({
     function ensureCtx() {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            // meterIn -> analyser -> speakers (spectrum, mono downmix)
+            // meterIn -> splitter -> K-weighting -> per-channel taps
+            meterIn = audioCtx.createGain();
             analyser = audioCtx.createAnalyser();
             analyser.fftSize = 2048;
             analyser.smoothingTimeConstant = 0.7;
+            meterIn.connect(analyser);
             analyser.connect(audioCtx.destination);
+            try {
+                const { shelf, hp } = kWeightingCoefficients(audioCtx.sampleRate);
+                const splitter = audioCtx.createChannelSplitter(2);
+                meterIn.connect(splitter);
+                kAnalysers = [];
+                for (let ch = 0; ch < 2; ch++) {
+                    const s = new IIRFilterNode(audioCtx, shelf);
+                    const h = new IIRFilterNode(audioCtx, hp);
+                    const tap = audioCtx.createAnalyser();
+                    tap.fftSize = 2048;
+                    splitter.connect(s, ch);
+                    s.connect(h);
+                    h.connect(tap);
+                    kAnalysers.push(tap);
+                }
+            } catch (_) {
+                kAnalysers = null;   // very old browser: strip stays empty
+            }
         }
         return audioCtx;
     }
@@ -297,7 +374,7 @@ export function createUnifiedPlayer({
                 const src = ctx.createMediaElementSource(el);
                 const gain = ctx.createGain();
                 src.connect(gain);
-                gain.connect(analyser);
+                gain.connect(meterIn);
                 sourceNodes.set(el, src);
                 elementGains.set(el, gain);
             } catch (_) { /* already connected elsewhere */ }
@@ -380,7 +457,7 @@ export function createUnifiedPlayer({
         for (const key of TRACK_KEYS) {
             const g = audioCtx.createGain();
             g.gain.value = 0;
-            g.connect(analyser);
+            g.connect(meterIn);
             prev.gains[key] = g;
         }
     }
@@ -586,6 +663,10 @@ export function createUnifiedPlayer({
     function setSource(key, url, { decodeBuffer = true } = {}) {
         const el = els[key];
         if (!el) return;
+        // New audio: forget the ghost spectrum for it (and, for a new
+        // upload, for every track).
+        ghost[key] = null;
+        if (key === 'original') { ghost.processed = null; ghost.removed = null; }
         if (!url) {
             el.removeAttribute('src');
             el.load();
@@ -822,8 +903,9 @@ export function createUnifiedPlayer({
     }
 
     // ── Live meters ─────────────────────────────────────────────────
-    const freqData = new Uint8Array(1024);
+    const freqDb = new Float32Array(1024);
     const timeData = new Float32Array(2048);
+    let specCols = null;            // display spectrum, one value per 2 px
 
     function drawLiveMeters() {
         if (!analyser || !spectrumCanvas) return;
@@ -836,7 +918,7 @@ export function createUnifiedPlayer({
             spectrumCanvas.height = h;
         }
         const ctx = spectrumCanvas.getContext('2d');
-        analyser.getByteFrequencyData(freqData);
+        analyser.getFloatFrequencyData(freqDb);
         ctx.clearRect(0, 0, w, h);
 
         const sr = audioCtx ? audioCtx.sampleRate : 48000;
@@ -845,17 +927,27 @@ export function createUnifiedPlayer({
         const fMin = 40;
         const fMax = Math.min(20000, nyq);
         const nBins = analyser.frequencyBinCount;
+        // Reserve a right-hand gutter for the dB labels and a bottom strip
+        // for the frequency labels, so the trace never runs through text.
+        const gutterR = 26 * dpr;
+        const gutterB = 13 * dpr;
+        const plotW = w - gutterR;
+        const plotH = h - gutterB;
 
         const xOfFreq = (f) => {
             const frac = Math.log(Math.max(fMin, Math.min(fMax, f)) / fMin) /
                          Math.log(fMax / fMin);
-            return frac * w;
+            return frac * plotW;
+        };
+        const yOfDb = (db) => {
+            const t = (db - SPEC_DB_TOP) / (SPEC_DB_BOTTOM - SPEC_DB_TOP);
+            return Math.max(0, Math.min(plotH, t * plotH));
         };
 
         // Frequency gridlines + labels (drawn first so the trace sits on top)
         const ticks = [
-            [100, '100'], [1000, '1k'], [5000, '5k'],
-            [10000, '10k'], [20000, '20k'],
+            [100, '100'], [500, '500'], [1000, '1k'], [2000, '2k'],
+            [5000, '5k'], [10000, '10k'], [20000, '20k'],
         ];
         ctx.font = `500 ${9 * dpr}px system-ui, sans-serif`;
         ctx.textBaseline = 'bottom';
@@ -866,7 +958,7 @@ export function createUnifiedPlayer({
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(x, 0);
-            ctx.lineTo(x, h);
+            ctx.lineTo(x, plotH);
             ctx.stroke();
             ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
             const isLast = f >= fMax;
@@ -874,36 +966,80 @@ export function createUnifiedPlayer({
             const pad = 3 * dpr;
             ctx.fillText(text, isLast ? x - pad : x + pad, h - 2 * dpr);
         }
+        // dB gridlines + labels in the right gutter. The scale is dBFS for
+        // a sine, after the 4.5 dB/oct display tilt (see SPEC_TILT_DB_PER_OCT).
         ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        for (let db = SPEC_DB_TOP - SPEC_GRID_STEP_DB; db > SPEC_DB_BOTTOM;
+             db -= SPEC_GRID_STEP_DB) {
+            const y = yOfDb(db);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(plotW, y);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.38)';
+            ctx.fillText(String(db), plotW + 4 * dpr, y);
+        }
 
         // Shimmer band shading (log-frequency x-axis)
         const band = getShimmerBand();
         ctx.fillStyle = C.bandFill;
-        ctx.fillRect(xOfFreq(band.lo), 0, xOfFreq(band.hi) - xOfFreq(band.lo), h);
+        ctx.fillRect(xOfFreq(band.lo), 0, xOfFreq(band.hi) - xOfFreq(band.lo), plotH);
         ctx.strokeStyle = C.bandEdge;
         ctx.lineWidth = 1;
         for (const f of [band.lo, band.hi]) {
             const x = xOfFreq(f);
             ctx.beginPath();
             ctx.moveTo(x, 0);
-            ctx.lineTo(x, h);
+            ctx.lineTo(x, plotH);
             ctx.stroke();
+        }
+
+        // Display spectrum: one calibrated, tilted dB value per 2 px column.
+        const nCols = Math.max(2, Math.floor(plotW / 2));
+        if (!specCols || specCols.length !== nCols) specCols = new Float32Array(nCols);
+        for (let c = 0; c < nCols; c++) {
+            const frac = (c * 2) / plotW;
+            const f = fMin * Math.pow(fMax / fMin, frac);
+            const bin = Math.min(nBins - 1, Math.round((f / nyq) * (nBins - 1)));
+            let db = freqDb[bin];
+            if (!Number.isFinite(db)) db = SPEC_DB_BOTTOM - 20;
+            db += SPEC_CAL_DB + SPEC_TILT_DB_PER_OCT * Math.log2(f / 1000);
+            specCols[c] = Math.max(SPEC_DB_BOTTOM - 6, Math.min(SPEC_DB_TOP + 6, db));
+        }
+        // Keep a smoothed copy per track so the other A/B side can be
+        // drawn as a ghost behind the live trace.
+        let g = ghost[state.active];
+        if (!g || g.length !== nCols) {
+            g = Float32Array.from(specCols);
+            ghost[state.active] = g;
+        } else {
+            for (let c = 0; c < nCols; c++) g[c] += (specCols[c] - g[c]) * GHOST_EMA;
+        }
+        const ghostKey = state.active === 'original' ? 'processed' : 'original';
+        const gh = ghost[ghostKey];
+        if (gh && gh.length === nCols) {
+            ctx.beginPath();
+            for (let c = 0; c < nCols; c++) {
+                const y = yOfDb(gh[c]);
+                if (c === 0) ctx.moveTo(0, y); else ctx.lineTo(c * 2, y);
+            }
+            ctx.setLineDash([4 * dpr, 3 * dpr]);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.34)';
+            ctx.lineWidth = 1 * dpr;
+            ctx.stroke();
+            ctx.setLineDash([]);
         }
 
         // Log-frequency line spectrum — thin bright gradient line with a
         // translucent filled body (blue/teal -> green/yellow -> pink).
         ctx.beginPath();
-        let started = false;
-        for (let px = 0; px < w; px += 2) {
-            const frac = px / w;
-            const f = fMin * Math.pow(fMax / fMin, frac);
-            const bin = Math.min(nBins - 1, Math.round((f / nyq) * (nBins - 1)));
-            const v = freqData[bin] / 255;
-            const y = h - v * h;
-            if (!started) { ctx.moveTo(px, y); started = true; }
-            else ctx.lineTo(px, y);
+        for (let c = 0; c < nCols; c++) {
+            const y = yOfDb(specCols[c]);
+            if (c === 0) ctx.moveTo(0, y); else ctx.lineTo(c * 2, y);
         }
-        const grad = ctx.createLinearGradient(0, 0, w, 0);
+        const grad = ctx.createLinearGradient(0, 0, plotW, 0);
         grad.addColorStop(0.0, '#38bdf8');
         grad.addColorStop(0.3, '#2dd4bf');
         grad.addColorStop(0.55, '#a3e635');
@@ -913,44 +1049,75 @@ export function createUnifiedPlayer({
         ctx.lineWidth = 1.5 * dpr;
         ctx.stroke();
         // Fill under the line
-        ctx.lineTo(w, h);
-        ctx.lineTo(0, h);
+        ctx.lineTo(plotW, plotH);
+        ctx.lineTo(0, plotH);
         ctx.closePath();
-        const bodyGrad = ctx.createLinearGradient(0, 0, 0, h);
+        const bodyGrad = ctx.createLinearGradient(0, 0, 0, plotH);
         bodyGrad.addColorStop(0, 'rgba(140, 110, 250, 0.28)');
         bodyGrad.addColorStop(1, 'rgba(140, 110, 250, 0.06)');
         ctx.fillStyle = bodyGrad;
         ctx.fill();
 
-        // Status label, top-left (listening aid, not diagnostics).
+        // Status label, top-left; ghost key, top-right.
         const statusText = {
             original: 'BEFORE · SOURCE',
             processed: 'AFTER · SHIMMER',
             removed: 'REMOVED · SIGNAL — boosted for monitoring',
         }[state.active] || '';
+        ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
+        ctx.textBaseline = 'top';
         if (statusText) {
-            ctx.font = `600 ${10 * dpr}px system-ui, sans-serif`;
+            ctx.textAlign = 'left';
             ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-            ctx.textBaseline = 'top';
             ctx.fillText(statusText, 8 * dpr, 6 * dpr);
         }
+        if (gh && gh.length === nCols) {
+            ctx.textAlign = 'right';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            const ghostLabel = ghostKey === 'original' ? 'dashed: Original' : 'dashed: Processed';
+            ctx.fillText(ghostLabel, plotW - 8 * dpr, 6 * dpr);
+        }
+        ctx.textAlign = 'left';
 
-        // Level bar (RMS dBFS approximation against LUFS scale)
-        if (lufsFillEl) {
-            analyser.getFloatTimeDomainData(timeData);
+        drawLoudnessStrip();
+    }
+
+    // Momentary loudness (BS.1770 K-weighting, 400 ms) of what is playing,
+    // on the same LUFS scale as the strip's target marker.
+    function drawLoudnessStrip() {
+        if (!lufsFillEl || !kAnalysers || !audioCtx) return;
+        let ms = 0;
+        for (const tap of kAnalysers) {
+            tap.getFloatTimeDomainData(timeData);
             let acc = 0;
             for (let i = 0; i < timeData.length; i++) acc += timeData[i] * timeData[i];
-            const rms = Math.sqrt(acc / timeData.length);
-            const db = 20 * Math.log10(rms + 1e-9);
-            const minDb = -40, maxDb = 0;
-            const pct = Math.max(0, Math.min(100,
-                ((db - minDb) / (maxDb - minDb)) * 100));
-            lufsFillEl.style.width = `${pct}%`;
-            if (lufsTargetEl) {
-                const tPct = Math.max(0, Math.min(100,
-                    ((state.targetLufs - minDb) / (maxDb - minDb)) * 100));
-                lufsTargetEl.style.left = `${tPct}%`;
-            }
+            ms += acc / timeData.length;
+        }
+        const now = audioCtx.currentTime;
+        loud.window.push({ t: now, ms });
+        while (loud.window.length && now - loud.window[0].t > LUFS_MOMENTARY_S) {
+            loud.window.shift();
+        }
+        let sum = 0;
+        for (const s of loud.window) sum += s.ms;
+        const mean = loud.window.length ? sum / loud.window.length : 0;
+        let lufs = -0.691 + 10 * Math.log10(mean + 1e-12);
+        // A mono file is up-mixed to two identical channels on the way to
+        // the taps, which doubles the power; the standard counts it once.
+        const buf = buffers.get(state.preview ? 'original' : state.active);
+        if (buf && buf.numberOfChannels === 1) lufs -= 3.01;
+        const span = LUFS_STRIP_MAX - LUFS_STRIP_MIN;
+        const pct = Math.max(0, Math.min(100, ((lufs - LUFS_STRIP_MIN) / span) * 100));
+        lufsFillEl.style.width = `${pct}%`;
+        if (lufsTargetEl) {
+            const tPct = Math.max(0, Math.min(100,
+                ((state.targetLufs - LUFS_STRIP_MIN) / span) * 100));
+            lufsTargetEl.style.left = `${tPct}%`;
+        }
+        const host = lufsFillEl.parentElement;
+        if (host && Number.isFinite(lufs) && lufs > LUFS_STRIP_MIN - 20) {
+            host.title = `Momentary loudness ${lufs.toFixed(1)} LUFS · ` +
+                `white line = target ${state.targetLufs} LUFS`;
         }
     }
 
@@ -1009,11 +1176,20 @@ export function createUnifiedPlayer({
 
     if (playBtn) playBtn.addEventListener('click', toggle);
 
+    // The canvas height follows the mode (CSS): the waveform is a
+    // navigation strip and stays short; the spectrogram modes keep the
+    // full height because their vertical resolution is the point.
+    function applyModeClass() {
+        canvas.classList.toggle('mode-waveform', state.mode === 'waveform');
+        canvas.classList.toggle('mode-spectrogram', state.mode !== 'waveform');
+    }
+
     function setMode(mode) {
         state.mode = ['spectrogram', 'overlay'].includes(mode) ? mode : 'waveform';
         if (modeWaveBtn) modeWaveBtn.classList.toggle('active', state.mode === 'waveform');
         if (modeOverlayBtn) modeOverlayBtn.classList.toggle('active', state.mode === 'overlay');
         if (modeSpecBtn) modeSpecBtn.classList.toggle('active', state.mode === 'spectrogram');
+        applyModeClass();
         invalidateBase();
         drawFrame();
     }
@@ -1056,12 +1232,15 @@ export function createUnifiedPlayer({
 
     updateTabs();
     updatePlayBtn();
+    applyModeClass();
     drawFrame();
 
     return {
         setSource,
         setTrack,
         setMode,
+        // Seek on the shared timeline (clamped into the loop while Live).
+        seek(t) { seekFullTime(t); drawFrame(); },
         setPreviewBuffers,
         decodeAudio,
         exitPreview,

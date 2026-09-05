@@ -4,14 +4,24 @@
 
 /* ── Transport bridge internals ─────────────────────────────────────── */
 
+/* One grid, three named zones. Desktop puts them side by side; the two
+   @container steps below re-flow the same areas into rows, so nothing is
+   duplicated or absolutely positioned and nothing can overlap. */
 .bridge-inner {
-    height: 100%;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1px minmax(0, 460px) 1px minmax(0, 460px);
+    grid-template-areas: "transport sep1 monitor sep2 loop";
     align-items: stretch;
-    gap: var(--gap-4);
+    column-gap: var(--gap-4);
+    row-gap: var(--gap-2);
     padding: 8px var(--gap-4);
     min-width: 0;
 }
+.bz-transport { grid-area: transport; }
+.bz-sep-1     { grid-area: sep1; }
+.bz-monitor   { grid-area: monitor; }
+.bz-sep-2     { grid-area: sep2; }
+.bz-loop      { grid-area: loop; }
 
 /* Console-style zones: label on top, primary row, secondary row. */
 .bz {
@@ -40,18 +50,17 @@
 }
 .bz-transport { flex-direction: row; align-items: center; gap: 12px; }
 /* Top-align the two stacked zones so "Monitor" and "Preview loop" sit on
-   the same baseline; both now carry label / row / sub, so they also share a
-   bottom edge. The transport zone stays vertically centred. An equal flex
-   share (basis 0, grow 1) keeps the two zones the same width regardless of
-   content or Live state; the cap stops them sprawling on wide screens. */
+   the same baseline; both carry label / row / sub, so they also share a
+   bottom edge. The transport zone stays vertically centred. The two
+   minmax(0, 460px) columns share width equally whatever the Live state and
+   stop sprawling on wide screens. */
 .bz-monitor, .bz-loop {
     justify-content: flex-start;
-    flex: 1 1 0;
     min-width: 0;
     max-width: 460px;
 }
 
-.bridge .player-transport { flex: 0 0 auto; flex-wrap: nowrap; }
+.bridge .player-transport { flex-wrap: nowrap; }
 .bridge .play-btn {
     width: 44px;
     height: 44px;
@@ -158,17 +167,190 @@
     padding-bottom: 10px;
 }
 .process-dock progress { height: 4px; width: 100%; }
+
+/* Step 2 lives in the dock too, so the next action is always in view.
+   Cyan (analysis) against the amber Clean & Master; turns into a green
+   "ready" status once Analyze has run. Clicking always jumps to the card. */
+.analyze-dock-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.analyze-dock-btn:hover:not(:disabled) {
+    background: rgba(56, 189, 248, 0.16);
+    border-color: var(--cyan);
+    color: #dff4ff;
+}
+.analyze-dock-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.analyze-dock-btn .adb-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    font-size: 11px;
+    font-weight: 700;
+}
+.analyze-dock-btn .adb-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.analyze-dock-btn.busy { color: var(--fg-1); border-color: var(--line-2); background: var(--bg-3); }
+.analyze-dock-btn.done {
+    color: var(--success);
+    background: rgba(74, 222, 128, 0.08);
+    border-color: rgba(74, 222, 128, 0.45);
+}
+.analyze-dock-btn.done:hover:not(:disabled) {
+    background: rgba(74, 222, 128, 0.14);
+    border-color: var(--success);
+    color: #e6ffef;
+}
+
+/* Status pill in the Analysis card header, mirrors the dock button. */
+.analysis-status {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--success);
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(74, 222, 128, 0.08);
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    white-space: nowrap;
+}
+
+/* ── Analysis workspace: slides up over the page, transport stays below ── */
+.analysis-sheet {
+    position: fixed;
+    left: var(--rail-w);        /* JS measures the real rail and bridge */
+    right: 0;
+    bottom: 0;
+    z-index: 40;                /* above the sticky dock, under every modal */
+    max-height: 80dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-2);
+    border-top: 1px solid var(--line-2);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+    transform: translateY(100%);
+    transition: transform 220ms ease;
+}
+.analysis-sheet[hidden] { display: none; }
+.analysis-sheet.open { transform: none; }
+@media (prefers-reduced-motion: reduce) { .analysis-sheet { transition: none; } }
+.analysis-sheet-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 18px;
+    border-bottom: 1px solid var(--line);
+    flex: none;
+}
+.analysis-sheet-head .title { font-weight: 600; font-size: 14px; color: var(--fg-0); }
+.analysis-sheet-head .gloss { color: var(--fg-2); font-size: 11.5px; }
+.analysis-sheet-head .spacer { flex: 1; }
+.analysis-sheet-head .analysis-status { margin-left: 4px; }
+/* The body is one grid; the results container contributes its groups
+   as grid items (display: contents). Timeline across the top, ranked
+   matches on the left, second pass + notes and fixed tones on the right. */
+.analysis-sheet-body {
+    overflow: auto;
+    padding: 14px 18px 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-areas:
+        "timeline timeline"
+        "main     side"
+        "main     repair";
+    gap: 12px 20px;
+    align-content: start;
+    min-height: 0;
+}
+.analysis-sheet-body #auto-detect-results { display: contents; }
+.analysis-sheet-body .ad-timeline-wrap { grid-area: timeline; margin-top: 0; }
+.analysis-sheet-body .ad-timeline { height: 72px; }
+.analysis-sheet-body .ad-main { grid-area: main; }
+.analysis-sheet-body .ad-side { grid-area: side; }
+.analysis-sheet-body #repair-list { grid-area: repair; margin-top: 0; }
+.analysis-sheet-body .ad-reason { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+    .analysis-sheet-body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "timeline" "main" "side" "repair";
+    }
+}
+
+/* Brief ring on the Analysis card when the dock button jumps to it. */
+.card.flash { animation: cardFlash 1.6s ease-out 1; }
+@keyframes cardFlash {
+    0%   { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.0); }
+    20%  { box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.55); }
+    100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .card.flash { animation: none; }
+}
 .process-dock .process-btn { width: 100%; padding: 12px 16px; font-size: 14px; }
 .bridge .player-kbd-hint { display: none; }   /* lives in the rail now */
 
 @media (max-width: 1400px) {
     .bridge .transport-check .ab-match-note { display: none; }
 }
-@media (max-width: 1100px) {
-    .bridge-inner { flex-wrap: wrap; padding: 8px var(--gap-3); gap: var(--gap-2); }
-    .bridge { min-height: var(--bridge-h); }
-    /* Keep .preview-status visible: it carries the rendering/live state. */
-    .bridge .preview-status:not(.busy):not(.live):not(.error) { display: none; }
+/* Bridge narrower than the three zones need side by side (transport +
+   monitor pills + loop controls with Live on): the loop zone drops to its
+   own full-width row under a hairline. Measured against the bridge itself,
+   so it holds whether the rail is wide or collapsed. */
+@container bridge (max-width: 939px) {
+    .bridge-inner {
+        grid-template-columns: auto 1px minmax(0, 1fr);
+        grid-template-areas:
+            "transport sep1 monitor"
+            "loop      loop loop";
+        padding: 8px var(--gap-3);
+    }
+    .bz-sep-2 { display: none; }
+    .bz-loop {
+        max-width: none;
+        border-top: 1px solid var(--line);
+        padding-top: var(--gap-2);
+    }
+    .bridge .preview-status,
+    .bridge .preview-explainer { max-width: none; }
+}
+
+/* Narrower still (phone-width panes): every zone on its own row, and the
+   pill group and loop controls wrap instead of overflowing. */
+@container bridge (max-width: 579px) {
+    .bridge-inner {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "transport"
+            "monitor"
+            "loop";
+    }
+    .bz-sep-1 { display: none; }
+    .bz-monitor {
+        max-width: none;
+        border-top: 1px solid var(--line);
+        padding-top: var(--gap-2);
+    }
+    .bz-row, .bridge .player-tabs, .bridge .player-preview-row { flex-wrap: wrap; }
+    .bridge .player-preview-row { white-space: normal; }
+    .bz-sub { flex-wrap: wrap; }
 }
 
 /* ── Clean & Master progress modal ──────────────────────────────────── */
@@ -343,7 +525,7 @@
 /* ── Rail session card ──────────────────────────────────────────────── */
 
 .session-card {
-    background: var(--bg-3);
+    background: var(--bg-2);   /* a recessed well on the lifted rail deck */
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 10px 11px;

@@ -73,9 +73,22 @@ def _scaled_params(p: Params, scale: float) -> Params:
 
 def _clean_channel(mono: np.ndarray, sr: int, q: Params,
                    progress: Optional[Callable[[float], None]]) -> np.ndarray:
-    """Run the STFT artifact engine on a single (mono) M/S channel."""
-    y = process(mono[:, None].astype(np.float32), sr, q,
-                progress_callback=progress)
+    """Run the fine-grid pass, then the STFT artifact engine, on a single
+    (mono) M/S channel.
+
+    The fine pass (1024/256) handles the fast events — flicker and
+    sibilant bursts — first, so the coarse pass sees a steadier signal.
+    When it runs, the Flicker Tamer is taken out of the coarse pass so
+    the same artifact is not compressed twice.
+    """
+    from .finepass import fine_pass, fine_pass_active
+    x1 = mono[:, None].astype(np.float32)
+    q_coarse = q
+    if fine_pass_active(q):
+        x1 = fine_pass(x1, sr, q)
+        if float(q.flicker_tame) > 1e-6:
+            q_coarse = replace(q, flicker_tame=0.0)
+    y = process(x1, sr, q_coarse, progress_callback=progress)
     y = np.asarray(y, dtype=np.float32)
     if y.ndim > 1:
         y = y[:, 0]

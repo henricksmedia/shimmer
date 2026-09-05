@@ -51,25 +51,154 @@ export async function initSingleTab() {
     const audioProc = $('audio-processed');
     const audioDiff = $('audio-diff');
     const metricsBox = $('metrics-box');
-    // Renders a slim strip of stat chips. Accepts a string or an array
-    // of strings; empty input hides the strip.
+    // Renders the stat readout. Accepts a string, an array of strings (one
+    // unlabeled row), or an array of {label, chips} groups (one labeled
+    // row each; empty groups are skipped). Empty input hides the box.
     function setMetrics(items) {
         metricsBox.innerHTML = '';
-        const arr = (items == null ? [] :
-            (Array.isArray(items) ? items : [String(items)]))
-            .map(s => String(s).trim())
-            .filter(s => s.length > 0);
-        for (const text of arr) {
-            const chip = document.createElement('span');
-            chip.className = 'metric-chip';
-            if (/^Error\b/i.test(text)) chip.classList.add('err');
-            chip.textContent = text;
-            chip.title = text;
-            metricsBox.appendChild(chip);
+        const list = items == null ? [] : (Array.isArray(items) ? items : [String(items)]);
+        const isGrouped = list.length > 0 &&
+            list.every(g => g && typeof g === 'object' && Array.isArray(g.chips));
+        const groups = isGrouped ? list : [{ label: '', chips: list }];
+        let count = 0;
+        for (const g of groups) {
+            const chips = g.chips.map(s => String(s).trim()).filter(s => s.length > 0);
+            if (!chips.length) continue;
+            const row = document.createElement('div');
+            row.className = 'metric-row';
+            if (g.label) {
+                const lab = document.createElement('span');
+                lab.className = 'metric-row-label';
+                lab.textContent = g.label;
+                row.appendChild(lab);
+            }
+            for (const text of chips) {
+                const chip = document.createElement('span');
+                chip.className = 'metric-chip';
+                if (/^Error\b/i.test(text)) chip.classList.add('err');
+                chip.textContent = text;
+                chip.title = text;
+                row.appendChild(chip);
+            }
+            metricsBox.appendChild(row);
+            count += chips.length;
         }
-        metricsBox.hidden = arr.length === 0;
+        metricsBox.hidden = count === 0;
     }
     const autoDetectResults = $('auto-detect-results');
+    // Step 2 in the dock: runs Analyze and jumps to the Analysis card,
+    // then shows the verdict as a green status. Same for the card header.
+    const analyzeDockBtn = $('analyze-dock-btn');
+    const analysisCard = $('analysis-card');
+    const analysisStatus = $('analysis-status');
+    function setAnalyzeDock(state, text = '') {
+        if (!analyzeDockBtn) return;
+        analyzeDockBtn.classList.toggle('busy', state === 'busy');
+        analyzeDockBtn.classList.toggle('done', state === 'done');
+        const label = analyzeDockBtn.querySelector('.adb-text');
+        const step = analyzeDockBtn.querySelector('.adb-step');
+        if (label) label.textContent = state === 'busy' ? 'Analyzing…'
+            : state === 'done' ? `Analysis ready · ${text}` : 'Analyze';
+        if (step) step.textContent = state === 'done' ? '✓' : '2';
+        analyzeDockBtn.title = state === 'done'
+            ? 'Analysis is done. Click to see the results.'
+            : 'Listens to your track and picks the best cleanup preset. Jumps to the Analysis card.';
+        if (analysisStatus) {
+            analysisStatus.hidden = state !== 'done';
+            analysisStatus.textContent = state === 'done' ? `Ready · ${text}` : '';
+        }
+        if (analysisExpandBtn) analysisExpandBtn.hidden = state !== 'done';
+        syncSheetStatus();
+    }
+    function jumpToAnalysis() {
+        if (!analysisCard) return;
+        analysisCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        analysisCard.classList.remove('flash');
+        void analysisCard.offsetWidth;   // restart the animation
+        analysisCard.classList.add('flash');
+    }
+    if (analyzeDockBtn) {
+        analyzeDockBtn.addEventListener('click', () => {
+            if (analyzeDockBtn.classList.contains('done')) {
+                openAnalysisSheet();
+                return;
+            }
+            jumpToAnalysis();
+            if (!analyzeDockBtn.classList.contains('busy')) autoBtn.click();
+        });
+    }
+
+    // ── Analysis workspace: the results slide up over the page ───────
+    // The result nodes are moved into the sheet while it is open and
+    // moved back into the card on close, so there is one copy and a
+    // re-run of Analyze while the sheet is open renders into the sheet.
+    const analysisSheet = $('analysis-sheet');
+    const analysisSheetBody = $('analysis-sheet-body');
+    const analysisSheetStatus = $('analysis-sheet-status');
+    const analysisSheetClose = $('analysis-sheet-close');
+    const analysisSheetLoop = $('analysis-sheet-loop');
+    const analysisHome = $('analysis-home');
+    const analysisExpandBtn = $('analysis-expand-btn');
+    const repairListHost = $('repair-list');
+    let sheetCloseTimer = null;
+
+    function placeAnalysisSheet() {
+        if (!analysisSheet) return;
+        const bridge = document.querySelector('.bridge');
+        const rail = document.querySelector('.rail');
+        const bottom = bridge ? bridge.getBoundingClientRect().height : 0;
+        const left = rail ? rail.getBoundingClientRect().width : 0;
+        analysisSheet.style.bottom = `${bottom}px`;
+        analysisSheet.style.left = `${left}px`;
+        analysisSheet.style.maxHeight = `calc(100dvh - ${bottom + 52}px)`;
+    }
+    function syncSheetStatus() {
+        if (!analysisSheetStatus || !analysisStatus) return;
+        analysisSheetStatus.hidden = analysisStatus.hidden;
+        analysisSheetStatus.textContent = analysisStatus.textContent;
+    }
+    function openAnalysisSheet() {
+        if (!analysisSheet || !analysisSheetBody) return;
+        if (sheetCloseTimer) { clearTimeout(sheetCloseTimer); sheetCloseTimer = null; }
+        placeAnalysisSheet();
+        analysisSheetBody.append(autoDetectResults, repairListHost);
+        syncSheetStatus();
+        analysisSheet.hidden = false;
+        requestAnimationFrame(() => analysisSheet.classList.add('open'));
+        if (analysisSheetClose) analysisSheetClose.focus();
+    }
+    function closeAnalysisSheet(immediate = false) {
+        if (!analysisSheet || analysisSheet.hidden) return;
+        analysisSheet.classList.remove('open');
+        const finish = () => {
+            sheetCloseTimer = null;
+            analysisSheet.hidden = true;
+            if (analysisHome) analysisHome.after(autoDetectResults, repairListHost);
+        };
+        if (immediate) finish();
+        else sheetCloseTimer = setTimeout(finish, 240);
+    }
+    if (analysisSheetClose) analysisSheetClose.addEventListener('click', () => closeAnalysisSheet());
+    if (analysisExpandBtn) analysisExpandBtn.addEventListener('click', openAnalysisSheet);
+    if (analysisSheetLoop) {
+        analysisSheetLoop.addEventListener('click', () => {
+            // Same as the auto anchor: Live on, loop parked on the worst
+            // stretch the analysis found.
+            previewState.anchorMode = 'auto';
+            if (!previewState.active) {
+                previewToggle.checked = true;
+                applyPreviewToggle(true);
+            } else {
+                doPreviewRender();
+            }
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && analysisSheet && !analysisSheet.hidden) closeAnalysisSheet();
+    });
+    window.addEventListener('resize', () => {
+        if (analysisSheet && !analysisSheet.hidden) placeAnalysisSheet();
+    });
     const downloadLink = $('download-link');
     const doneBanner = $('done-banner');
     const doneChips = $('done-chips');
@@ -446,6 +575,9 @@ export async function initSingleTab() {
         dropzone.classList.add('has-file');
         pickBtn.textContent = 'Change…';
         processBtn.disabled = false;
+        if (analyzeDockBtn) analyzeDockBtn.disabled = false;
+        closeAnalysisSheet(true);
+        setAnalyzeDock('idle');
         setWizardStep(0);
         lastAnalysis = null;
         lastTimeline = null;
@@ -619,6 +751,47 @@ export async function initSingleTab() {
         });
     }
 
+    // Three-way dialog for the master-once reminder. Resolves to 'off'
+    // (turn mastering off for this pass), 'master' (master anyway) or
+    // 'cancel' (run nothing). A browser confirm() only has two buttons,
+    // and "Cancel = master anyway" surprised people.
+    const secondPassModal = $('second-pass-modal');
+    function askSecondPass(label) {
+        return new Promise((resolve) => {
+            if (!secondPassModal) { resolve('master'); return; }
+            const text = $('second-pass-text');
+            if (text) {
+                text.textContent =
+                    `Analyze found a second pass worth running: ${label}. ` +
+                    'Mastering is on. If you master now, the next pass will ' +
+                    'clean a file that is already limited and set to its final ' +
+                    'loudness, then master it again. That can hurt the sound. ' +
+                    'Best plan: master only once, at the end.';
+            }
+            const btnOff = $('second-pass-off');
+            const btnMaster = $('second-pass-master');
+            const btnCancel = $('second-pass-cancel');
+            const finish = (choice) => {
+                secondPassModal.hidden = true;
+                btnOff.removeEventListener('click', onOff);
+                btnMaster.removeEventListener('click', onMaster);
+                btnCancel.removeEventListener('click', onCancel);
+                document.removeEventListener('keydown', onKey);
+                resolve(choice);
+            };
+            const onOff = () => finish('off');
+            const onMaster = () => finish('master');
+            const onCancel = () => finish('cancel');
+            const onKey = (e) => { if (e.key === 'Escape') finish('cancel'); };
+            btnOff.addEventListener('click', onOff);
+            btnMaster.addEventListener('click', onMaster);
+            btnCancel.addEventListener('click', onCancel);
+            document.addEventListener('keydown', onKey);
+            secondPassModal.hidden = false;
+            btnOff.focus();
+        });
+    }
+
     // Plain-language advice shown whenever Analyze suggests a second pass
     // and mastering is on. Mastering limits the sound and sets its
     // loudness; cleaning a mastered file and mastering it again hurts it.
@@ -650,10 +823,18 @@ export async function initSingleTab() {
             return;
         }
 
+        // Two groups so the workspace sheet can lay them out side by
+        // side: main = the ranked matches, side = second pass and notes.
+        // In the card they simply stack.
+        const main = document.createElement('div');
+        main.className = 'ad-main';
+        const side = document.createElement('div');
+        side.className = 'ad-side';
+
         const heading = document.createElement('div');
         heading.className = 'ad-cards-label';
         heading.textContent = ranked.length > 1 ? 'Best matches' : 'Best match';
-        autoDetectResults.appendChild(heading);
+        main.appendChild(heading);
 
         const list = document.createElement('div');
         list.className = 'ad-cards';
@@ -732,7 +913,7 @@ export async function initSingleTab() {
             list.appendChild(card);
         });
 
-        autoDetectResults.appendChild(list);
+        main.appendChild(list);
         setActive(0);  // top pick is auto-applied by the caller
 
         if (r.follow_up && r.follow_up.name) {
@@ -748,30 +929,83 @@ export async function initSingleTab() {
                 tip.textContent = secondPassMasteringTip();
                 fu.appendChild(tip);
             }
-            autoDetectResults.appendChild(fu);
+            side.appendChild(fu);
         }
         (Array.isArray(r.notes) ? r.notes : []).forEach((text) => {
             const n = document.createElement('div');
             n.className = 'ad-note';
             n.textContent = text;
-            autoDetectResults.appendChild(n);
+            side.appendChild(n);
         });
+        autoDetectResults.appendChild(main);
+        if (side.childElementCount > 0) autoDetectResults.appendChild(side);
 
         const tl = r.timeline && Array.isArray(r.timeline.intensity)
             ? r.timeline.intensity : [];
         if (tl.length > 0) {
-            const tlEl = document.createElement('div');
-            tlEl.className = 'ad-timeline';
-            for (const v of tl) {
+            const stepS = (r.timeline.step_s > 0) ? r.timeline.step_s : 1;
+            const totalS = tl.length * stepS;
+            const wrap = document.createElement('div');
+            wrap.className = 'ad-timeline-wrap';
+
+            // Caption row: title left, colour key right. Sits above the
+            // strip so it never runs through the bars.
+            const head = document.createElement('div');
+            head.className = 'ad-timeline-head';
+            const title = document.createElement('span');
+            title.className = 'ad-timeline-title';
+            title.textContent = 'Noise over time';
+            const key = document.createElement('span');
+            key.className = 'ad-timeline-key';
+            const hotSw = document.createElement('i'); hotSw.className = 'sw hot';
+            const coolSw = document.createElement('i'); coolSw.className = 'sw cool';
+            key.append(hotSw, ' worst stretches ', coolSw,
+                ' quieter · Live loop starts at the worst stretch · click to jump');
+            head.append(title, key);
+
+            const strip = document.createElement('div');
+            strip.className = 'ad-timeline';
+            for (let i = 0; i < tl.length; i++) {
+                const v = tl[i];
                 const bar = document.createElement('div');
                 bar.className = 'ad-timeline-bar';
                 if (v >= 0.4) bar.classList.add('hot');
-                const h = Math.max(2, Math.round(v * 24)); // px
-                bar.style.height = `${h}px`;
-                bar.title = `intensity ${(v * 100).toFixed(0)}%`;
-                tlEl.appendChild(bar);
+                bar.style.height = `${Math.max(4, Math.round(v * 100))}%`;
+                bar.title = `${fmtTime(i * stepS)} · noise ${(v * 100).toFixed(0)}%`;
+                strip.appendChild(bar);
             }
-            autoDetectResults.appendChild(tlEl);
+            // One listener for the whole strip: the click position maps
+            // to a time on the track.
+            strip.addEventListener('click', (ev) => {
+                const rect = strip.getBoundingClientRect();
+                if (rect.width <= 0) return;
+                const frac = (ev.clientX - rect.left) / rect.width;
+                jumpToTime(Math.max(0, Math.min(totalS, frac * totalS)));
+            });
+
+            // Time axis: start, quarter marks, end.
+            const axis = document.createElement('div');
+            axis.className = 'ad-timeline-axis';
+            for (let q = 0; q <= 4; q++) {
+                const tick = document.createElement('span');
+                tick.textContent = fmtTime(totalS * q / 4);
+                axis.appendChild(tick);
+            }
+
+            wrap.append(head, strip, axis);
+            autoDetectResults.appendChild(wrap);
+        }
+    }
+
+    // Timeline click: with Live on, move the loop window there (manual
+    // anchor, same as "Set from playhead"); otherwise seek the player.
+    function jumpToTime(t) {
+        if (previewState.active) {
+            previewState.anchorMode = 'manual';
+            previewState.anchorS = t;
+            doPreviewRender();
+        } else {
+            player.seek(t);
         }
     }
 
@@ -783,12 +1017,17 @@ export async function initSingleTab() {
         const originalLabel = autoBtn.textContent;
         autoBtn.textContent = 'Analyzing…';
         autoBtn.disabled = true;
+        setAnalyzeDock('busy');
+        let done = false;
         try {
             const r = await runAutoDetect(currentFile);
             lastFollowUp = (r.follow_up && r.follow_up.name) ? r.follow_up : null;
             if (r.repair_plan) setRepairPlan(r.repair_plan);
             applyDetectedPreset(r.preset, r.strength);
             renderAutoDetect(r);
+            const pct = Math.round((Number(r.strength) || 1) * 100);
+            setAnalyzeDock('done', `${labelOf(r.preset)} ${pct}%`);
+            done = true;
             if (r.timeline && Array.isArray(r.timeline.intensity) &&
                 r.timeline.intensity.length > 0) {
                 lastTimeline = r.timeline.intensity;
@@ -808,6 +1047,7 @@ export async function initSingleTab() {
         } finally {
             autoBtn.textContent = originalLabel;
             autoBtn.disabled = false;
+            if (!done) setAnalyzeDock('idle');
         }
     });
 
@@ -1240,18 +1480,13 @@ export async function initSingleTab() {
     processBtn.addEventListener('click', async () => {
         if (!currentFile) return;
         // Analyze found a second pass and mastering is on: ask before we
-        // master a file that still needs another cleaning pass.
+        // master a file that still needs another cleaning pass. Three
+        // real choices; Cancel means cancel.
         if (lastFollowUp && masterEnabled.checked) {
             const label = lastFollowUp.label || labelOf(lastFollowUp.name);
-            const turnOff = window.confirm(
-                `Analyze found a second pass worth running: ${label}.\n\n` +
-                'Mastering is on. If you master now, the second pass will ' +
-                'clean a file that is already limited and set to its final ' +
-                'loudness, and then master it again. That can hurt the sound.\n\n' +
-                'Best plan: master only once, at the end.\n\n' +
-                'OK = turn mastering off for this pass and keep Preserve volume on.\n' +
-                'Cancel = master now anyway.');
-            if (turnOff) {
+            const choice = await askSecondPass(label);
+            if (choice === 'cancel') return;
+            if (choice === 'off') {
                 masterEnabled.checked = false;
                 masterEnabled.dispatchEvent(new Event('change'));
                 preserveVol.checked = true;
@@ -1319,50 +1554,39 @@ export async function initSingleTab() {
             const m = await fetchMetrics(job.job_id);
             if (m && m.metrics) {
                 const mm = m.metrics;
-                const chips = [
-                    `Peak ${mm.input.peak_dbfs.toFixed(1)} → ${mm.output.peak_dbfs.toFixed(1)} dBFS`,
-                    `RMS ${mm.input.rms_dbfs.toFixed(1)} → ${mm.output.rms_dbfs.toFixed(1)} dBFS`,
-                    `${mm.duration_s.toFixed(1)}s · ${mm.sample_rate} Hz · ${mm.channels}ch`,
-                ];
-
-                if (mm.eq && mm.eq.enabled) {
-                    chips.push(`EQ: ${mm.eq.bands} band${mm.eq.bands === 1 ? '' : 's'}`);
-                }
-
-                // State the applied cut on the result, not just in the panel:
-                // the user should never wonder whether the trim went through.
-                if (mm.edge_trim && mm.edge_trim.applied) {
-                    const et = mm.edge_trim;
-                    const parts = [];
-                    if (et.cut_head_s > 0) parts.push(`${(et.cut_head_s * 1000).toFixed(0)} ms head`);
-                    if (et.cut_tail_s > 0) parts.push(`${(et.cut_tail_s * 1000).toFixed(0)} ms tail`);
-                    chips.push(`Trimmed ${parts.join(' + ')}`);
-                    bannerChips.push(`Trimmed ${parts.join(' + ')}`);
-                }
-
-                if (mm.trim && mm.trim.enabled) {
-                    const cut = (mm.trim.cut_head_s || 0) + (mm.trim.cut_tail_s || 0);
-                    chips.push(cut > 0.05
-                        ? `Export trims ${cut.toFixed(1)}s silence`
-                        : 'Export trim: no silence found');
-                }
+                // Grouped readout: loudness first (what a release check
+                // needs), then what the cleaning did, then the job facts.
+                // Warnings get their own unlabeled row at the end.
+                const loudness = [];
+                const cleaning = [];
+                const job = [];
+                const warnings = [];
+                const fmt = (v, digits = 2) =>
+                    (v == null || Number.isNaN(v)) ? 'n/a' : v.toFixed(digits);
+                const pctOf = (v) =>
+                    (v == null || Number.isNaN(v)) ? 'n/a' : `${Math.round(v * 100)}%`;
 
                 fullMatchDb = null;
                 const mast = mm.mastering;
                 if (mast && mast.enabled && mast.before && mast.after) {
-                    chips.push(
+                    loudness.push(
                         `LUFS ${mast.before.lufs_i?.toFixed(1)} → ${mast.after.lufs_i?.toFixed(1)} (target ${mast.target_lufs})`);
-                    chips.push(
+                    loudness.push(
                         `TP ${mast.before.true_peak_dbtp?.toFixed(1)} → ${mast.after.true_peak_dbtp?.toFixed(1)} dBTP`);
+                    if (typeof mast.after.lra === 'number' && typeof mast.before.lra === 'number') {
+                        loudness.push(`LRA ${mast.before.lra.toFixed(1)} → ${mast.after.lra.toFixed(1)} LU`);
+                    }
                     if (mast.limiter && mast.limiter.max_gain_reduction_db != null) {
                         const gr = mast.limiter.max_gain_reduction_db;
-                        chips.push(`Limiter ${gr.toFixed(1)} dB max GR`);
+                        loudness.push(gr > -0.05
+                            ? 'Limiter: no gain reduction'
+                            : `Limiter ${gr.toFixed(1)} dB max GR`);
                         // Warm tilt boosts the low end, which is what drives
                         // limiter pumping at loud targets — warn when the
                         // combination is actually working the limiter hard.
                         const warmTilt = mast.tilt === 'warm' || mast.tilt === 'warmer';
                         if (warmTilt && gr < -3) {
-                            chips.push(
+                            warnings.push(
                                 '⚠ Warm tilt + loud target is pushing the limiter — ' +
                                 'possible pumping. Try a lower loudness target.');
                         }
@@ -1375,6 +1599,9 @@ export async function initSingleTab() {
                     bannerChips.push(
                         `TP ${mast.after.true_peak_dbtp?.toFixed(1)} dBTP`);
                 }
+                loudness.push(
+                    `Peak ${mm.input.peak_dbfs.toFixed(1)} → ${mm.output.peak_dbfs.toFixed(1)} dBFS`,
+                    `RMS ${mm.input.rms_dbfs.toFixed(1)} → ${mm.output.rms_dbfs.toFixed(1)} dBFS`);
                 // Loudness match with mastering off: use the whole-file
                 // LUFS pair the server now measures on every run.
                 const loud = mm.loudness;
@@ -1387,26 +1614,61 @@ export async function initSingleTab() {
 
                 const diag = mm.diagnostic;
                 if (diag && diag.before && diag.after) {
-                    const fmt = (v, digits = 2) =>
-                        (v == null || Number.isNaN(v)) ? 'n/a' : v.toFixed(digits);
                     const b = diag.before;
                     const a = diag.after;
-                    chips.push(
-                        `5-8k energy ${fmt(b.band_5_8k_rms_db, 1)} → ${fmt(a.band_5_8k_rms_db, 1)} dB`);
-                    chips.push(
-                        `5-8k AM ${fmt(b.band_5_8k_am_depth)} → ${fmt(a.band_5_8k_am_depth)}`);
+                    cleaning.push(
+                        `5–8 kHz energy ${fmt(b.band_5_8k_rms_db, 1)} → ${fmt(a.band_5_8k_rms_db, 1)} dB`);
+                    cleaning.push(
+                        `Flicker depth ${pctOf(b.band_5_8k_am_depth)} → ${pctOf(a.band_5_8k_am_depth)}`);
                     if (Array.isArray(a.top_peaks) && a.top_peaks.length) {
                         const peaks = a.top_peaks
                             .slice(0, 3)
                             .map(pk => `${(pk.hz / 1000).toFixed(2)}k +${fmt(pk.excess_db, 1)}dB`)
                             .join(', ');
-                        chips.push(`Peaks left: ${peaks}`);
+                        cleaning.push(`Narrow peaks left: ${peaks}`);
                     } else {
-                        chips.push('Peaks left: none');
+                        cleaning.push('Narrow peaks left: none');
                     }
                 }
+                if (mm.declick && mm.declick.enabled) {
+                    cleaning.push(`Clicks fixed: ${mm.declick.clicks ?? 0}`);
+                }
+                if (mm.repair && mm.repair.enabled) {
+                    const n = mm.repair.notches ?? 0;
+                    cleaning.push(`Fixed tones notched: ${n}`);
+                }
+                if (mm.cutoff_hz > 0) {
+                    cleaning.push(`Top end stops at ${(mm.cutoff_hz / 1000).toFixed(1)} kHz`);
+                }
 
-                setMetrics(chips);
+                // State the applied cut on the result, not just in the panel:
+                // the user should never wonder whether the trim went through.
+                if (mm.edge_trim && mm.edge_trim.applied) {
+                    const et = mm.edge_trim;
+                    const parts = [];
+                    if (et.cut_head_s > 0) parts.push(`${(et.cut_head_s * 1000).toFixed(0)} ms head`);
+                    if (et.cut_tail_s > 0) parts.push(`${(et.cut_tail_s * 1000).toFixed(0)} ms tail`);
+                    job.push(`Trimmed ${parts.join(' + ')}`);
+                    bannerChips.push(`Trimmed ${parts.join(' + ')}`);
+                }
+                if (mm.trim && mm.trim.enabled) {
+                    const cut = (mm.trim.cut_head_s || 0) + (mm.trim.cut_tail_s || 0);
+                    job.push(cut > 0.05
+                        ? `Export trims ${cut.toFixed(1)}s silence`
+                        : 'Export trim: no silence found');
+                }
+                if (mm.eq && mm.eq.enabled) {
+                    job.push(`EQ: ${mm.eq.bands} band${mm.eq.bands === 1 ? '' : 's'}`);
+                }
+                const chStr = mm.channels === 1 ? 'mono' : (mm.channels === 2 ? 'stereo' : `${mm.channels} ch`);
+                job.push(`${fmtTime(mm.duration_s)} · ${(mm.sample_rate / 1000).toFixed(1)} kHz · ${chStr}`);
+
+                setMetrics([
+                    { label: 'Loudness', chips: loudness },
+                    { label: 'Cleaning', chips: cleaning },
+                    { label: 'Job', chips: job },
+                    { label: '', chips: warnings },
+                ]);
             }
 
             if (bannerChips.length === 0) bannerChips.push('Cleaned');

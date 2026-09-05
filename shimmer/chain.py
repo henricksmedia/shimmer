@@ -121,11 +121,15 @@ def _stage_descriptor(cls_name: str, p: Params) -> Dict[str, Any]:
             gloss="turns the band down when it gets too hot",
             badges=[_band(p.dh_start_hz, p.dh_end_hz),
                     f"ref {_band(p.dh_ref_start_hz, p.dh_ref_end_hz)}",
-                    f"{p.dh_max_att_db:.0f} dB max", _pct(p.deharsh)],
+                    f"{p.dh_max_att_db:.0f} dB max", _pct(p.deharsh),
+                    f"{_pct(p.dh_per_bin)} per-bin"],
             detail=("A dynamic EQ that compares the band with a reference "
                     "band. When the band gets too loud against the reference, "
-                    "it is turned down, like a de-esser. Vocal Glaze uses the "
-                    "low range of the voice as the reference."),
+                    "it is turned down. The cut is weighted per bin: the peaks "
+                    "that stand above the band's own spectrum take more of it, "
+                    "so the whole band is not dulled to catch a few glazed "
+                    "overtones. Vocal Glaze uses the low range of the voice as "
+                    "the reference."),
             adv=["deharsh"],
         )
     if cls_name == "FlickerTamerStage":
@@ -299,6 +303,44 @@ def build_chain(p: Params,
         badges=[f"Mid {p.ms_mid_scale:g}×", f"Side {p.ms_side_scale:g}×"],
     ))
 
+    # ── Fine pass (1024/256), before the coarse engine ──────────────────
+    from .finepass import fine_pass_active
+    fine_on = fine_pass_active(p)
+    fine_cat = f"Fine {int(p.fine_n_fft)}/{int(p.fine_hop)}"
+    ft_on = fine_on and float(p.flicker_tame) > 1e-6
+    modules.append(_mod(
+        "fine-flicker", fine_cat, "Flicker Tamer",
+        "compresses fast flicker in the hash band",
+        ("Splits the hash band into sub-bands and turns down the fast "
+         "flicker that makes AI hash sound like frying. It runs on a "
+         "short 23 ms window so it can see flicker at 10–50 Hz, and it "
+         "measures each burst against the band's floor, not its average, "
+         "so the bursts can really be pushed down. It only acts where a "
+         "band is flickering; steady cymbal wash is left alone, and a "
+         "transient hold protects drum hits."),
+        badges=[_band(p.ft_start_hz, p.ft_end_hz), f"{p.ft_n_bands} bands",
+                f"{p.ft_max_att_db:.0f} dB max", _pct(p.flicker_tame)],
+        active=ft_on,
+        off_reason=("fine pass is off" if not p.fine_pass
+                    else "this preset leaves the Flicker Tamer at zero"),
+    ))
+    de_on = fine_on and float(p.deess) > 1e-6
+    modules.append(_mod(
+        "fine-deess", fine_cat, "De-esser (spectral)",
+        f"tames sibilant bursts in {_band(p.de_start_hz, p.de_end_hz)}",
+        ("When the band jumps far above its reference (1–4 kHz), the "
+         "burst is turned down like a de-esser, but per bin: the peaks "
+         "that stand above the band's own spectrum take most of the cut, "
+         "the rest takes little. It is not held back on transients, "
+         "because a hard 's' is the transient it is there for."),
+        badges=[_band(p.de_start_hz, p.de_end_hz),
+                f"ref {_band(p.de_ref_start_hz, p.de_ref_end_hz)}",
+                f"{p.de_max_att_db:.0f} dB max", _pct(p.deess)],
+        active=de_on, adv=["deess"],
+        off_reason=("fine pass is off" if not p.fine_pass
+                    else "this preset leaves the De-esser at zero"),
+    ))
+
     # ── STFT engine ─────────────────────────────────────────────────────
     n_iter = int(max(1, min(3, int(p.iterations))))
     modules.append(_mod(
@@ -315,10 +357,16 @@ def build_chain(p: Params,
     for i, st in enumerate(stages, start=1):
         d = _stage_descriptor(type(st).__name__, p)
         active = bool(st.enabled(p))
+        off_reason = "" if active else "this preset leaves it at zero"
+        if type(st).__name__ == "FlickerTamerStage" and ft_on:
+            # Moved to the fine pass; the coarse copy is skipped so the
+            # same flicker is not compressed twice.
+            active = False
+            off_reason = "runs in the fine pass instead"
         modules.append(_mod(
             d["mid"], f"STFT {i}/{n}", d["name"], d["gloss"], d["detail"],
             badges=d["badges"], active=active, adv=d.get("adv"),
-            off_reason="" if active else "this preset leaves it at zero",
+            off_reason=off_reason,
         ))
 
     # ── Recombine ───────────────────────────────────────────────────────
@@ -442,6 +490,8 @@ def build_chain(p: Params,
     }
     summary = {
         "n_fft": int(p.n_fft), "hop": int(p.hop),
+        "fine_pass": bool(fine_on),
+        "fine_n_fft": int(p.fine_n_fft), "fine_hop": int(p.fine_hop),
         "iterations": n_iter, "pre_analyze": bool(p.pre_analyze),
         "crossover_hz": float(p.crossover_hz),
         "ms_mid_scale": float(p.ms_mid_scale),

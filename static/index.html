@@ -221,13 +221,17 @@
                         </div>
                     </div>
 
-                    <div class="card">
+                    <div class="card" id="analysis-card">
                         <div class="card-head">
                             <span class="title">Analysis</span><span class="gloss">listens for AI noise in your track</span>
+                            <span class="analysis-status" id="analysis-status" hidden></span>
                             <span class="spacer"></span>
+                            <button type="button" class="btn btn-ghost btn-sm" id="analysis-expand-btn" hidden
+                                    title="Open the analysis in a bigger workspace over the page">Expand</button>
                             <button type="button" class="btn btn-primary btn-sm" id="analyze-btn" title="Listens to your track, picks the best cleanup preset, and finds where the noise is worst">Analyze</button>
                         </div>
                         <div class="card-body">
+                            <div id="analysis-home" hidden></div>
                             <div id="auto-detect-results" class="auto-detect-results" hidden></div>
                             <div id="repair-list" class="repair-list" hidden></div>
                             <div class="analysis-hint" id="analysis-hint">
@@ -246,6 +250,10 @@
 
                 <div class="mcol" id="master-col-right">
                     <div class="process-dock" id="process-dock">
+                        <button type="button" class="btn analyze-dock-btn" id="analyze-dock-btn" disabled
+                                title="Listens to your track and picks the best cleanup preset. Jumps to the Analysis card.">
+                            <span class="adb-step">2</span><span class="adb-text">Analyze</span>
+                        </button>
                         <button type="button" class="btn btn-primary process-btn" id="process-btn" disabled>Clean &amp; Master</button>
                         <progress id="progress" value="0" max="1" hidden></progress>
                     </div>
@@ -642,7 +650,7 @@
             <span class="player-time" id="player-time">0:00 / 0:00</span>
         </div>
 
-        <div class="bz-sep"></div>
+        <div class="bz-sep bz-sep-1"></div>
 
         <div class="bz bz-monitor">
             <div class="bz-label">Monitor</div>
@@ -674,7 +682,7 @@
             </div>
         </div>
 
-        <div class="bz-sep"></div>
+        <div class="bz-sep bz-sep-2"></div>
 
         <div class="bz bz-loop">
             <div class="bz-label">Preview loop</div>
@@ -706,6 +714,34 @@
 </footer>
 
 </div><!-- /.app -->
+
+<!-- ───────────── Analysis workspace (slides up over the page) ───────────── -->
+<section id="analysis-sheet" class="analysis-sheet" hidden role="dialog" aria-labelledby="analysis-sheet-title">
+    <div class="analysis-sheet-head">
+        <span class="title" id="analysis-sheet-title">Analysis</span>
+        <span class="gloss">what Shimmer heard, and what to do about it</span>
+        <span class="analysis-status" id="analysis-sheet-status" hidden></span>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="analysis-sheet-loop"
+                title="Turn on Live and loop the worst stretch, so you hear the noise the analysis found">Loop the worst part</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="analysis-sheet-close">Close</button>
+    </div>
+    <div class="analysis-sheet-body" id="analysis-sheet-body"></div>
+</section>
+
+<!-- ───────────── Master-once reminder (second pass pending) ───────────── -->
+<div id="second-pass-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
+     aria-labelledby="second-pass-title">
+    <div class="process-modal card" role="document">
+        <div class="process-modal-title" id="second-pass-title">Master once, at the end</div>
+        <div class="process-modal-stage second-pass-text" id="second-pass-text"></div>
+        <div class="second-pass-actions">
+            <button type="button" class="btn btn-primary" id="second-pass-off">Turn mastering off for this pass</button>
+            <button type="button" class="btn btn-ghost" id="second-pass-master">Master anyway</button>
+            <button type="button" class="btn btn-ghost" id="second-pass-cancel">Cancel</button>
+        </div>
+    </div>
+</div>
 
 <!-- ───────────── Clean & Master progress modal ───────────── -->
 <div id="process-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"

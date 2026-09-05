@@ -348,6 +348,8 @@ class DeHarshStage(Stage):
         self.a_att = frame_coeff(hop, sr, p.dh_attack_ms)
         self.a_rel = frame_coeff(hop, sr, p.dh_release_ms)
         self.g_sm = 1.0
+        self.per_bin = float(np.clip(p.dh_per_bin, 0.0, 1.0))
+        self.med_bins = int(max(3, p.dh_bin_med_bins)) | 1
 
     def apply(self, spec, ctx):
         if self.idx.size == 0 or self.ref_idx.size == 0:
@@ -378,7 +380,20 @@ class DeHarshStage(Stage):
 
         nt = ctx["w_nontrans"]
         depth = self.strength * nt
-        g_eff = 1.0 - (depth * self.taper) * (1.0 - float(self.g_sm))
+        if self.per_bin > 1e-6 and self.g_sm < 0.999:
+            # Per-bin cut: bins above the band's own smoothed spectrum
+            # take more of it, bins below take less. This is what keeps
+            # a de-harsh from dulling the whole band to catch a few
+            # glazed overtones.
+            att_db = -20.0 * math.log10(max(float(self.g_sm), 1e-6))
+            L = 10.0 * np.log10(psd[self.idx] + eps)
+            env = median_filter(L, size=self.med_bins, mode="nearest")
+            w = 0.5 + np.clip(L - env, -6.0, 12.0) / 12.0        # 0 .. 1.5
+            w = (1.0 - self.per_bin) + self.per_bin * w
+            g_bin = 10.0 ** (-(att_db * w) / 20.0)
+            g_eff = 1.0 - (depth * self.taper) * (1.0 - g_bin)
+        else:
+            g_eff = 1.0 - (depth * self.taper) * (1.0 - float(self.g_sm))
         spec[self.idx, :] *= g_eff[:, None]
         return spec
 

@@ -241,6 +241,12 @@ def sibilance_rattle() -> Params:
         # mistaken for clicks (raise it by ear on crackly renders).
         declick=0.4,
 
+        # Spectral de-esser in the fine pass: the razor "sss" is a fast
+        # burst, and this stage is not gated by the transient hold.
+        deess=0.6,
+        de_start_hz=4500.0,
+        de_end_hz=10500.0,
+
         deharsh=0.65,
         dh_start_hz=5500.0,
         dh_end_hz=10500.0,
@@ -764,6 +770,7 @@ def deep_scrub() -> Params:
 
         # Clicks and crackle first (high band only), then everything else.
         declick=0.4,
+        deess=0.4,
 
         denoise=0.60,
         dn_start_hz=3000.0,
@@ -1017,10 +1024,12 @@ def vocal_glaze_plus() -> Params:
         dh_attack_ms=4.0,
         dh_release_ms=200.0,
 
+        # A light spectral de-esser (fine pass) for the razor consonants
+        # that ride the glaze.
+        deess=0.3,
         # PRIMARY 2: FlickerTamer (Suno Hash tool). Full strength,
         # 6 sub-bands across 4.5-12 kHz, capped at 18 dB per band.
-        # This is the only surgical attack on the AM-modulated hash;
-        # cymbals / vocal air pass through untouched.
+        # Runs in the fine 1024/256 pass so it can see 10-50 Hz flicker.
         flicker_tame=1.0,
         ft_start_hz=4500.0,
         ft_end_hz=12000.0,

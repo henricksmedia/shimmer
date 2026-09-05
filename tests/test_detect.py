@@ -40,9 +40,9 @@ FAST = dict(candidates=["cymbal_sheen", "laser_whistle", "suno_hash",
             window_s=4.0, tune_top=1, follow_up=False)
 
 
-def _music(seconds: float, seed: int = 0) -> np.ndarray:
+def _music(seconds: float, seed: int = 0, hits: bool = True) -> np.ndarray:
     """Stereo music-ish bed: bass, a chord that changes every half second,
-    drum-like hits, and low-level decorrelated HF noise."""
+    drum-like hits (optional), and low-level decorrelated HF noise."""
     rng = np.random.default_rng(seed)
     n = int(SR * seconds)
     t = np.arange(n) / SR
@@ -55,12 +55,13 @@ def _music(seconds: float, seed: int = 0) -> np.ndarray:
         seg_t = t[s0:s1]
         for h in range(1, 12):
             chord[s0:s1] += (0.12 / h) * np.sin(2 * np.pi * f0 * h * seg_t)
-    hits = np.zeros(n)
-    for i in range(int(seconds * 4)):
-        s0 = int(i * SR / 4)
-        dur = int(0.03 * SR)
-        env = np.exp(-np.arange(dur) / (0.008 * SR))
-        hits[s0:s0 + dur] += 0.5 * env * rng.standard_normal(dur)
+    hits_sig = np.zeros(n)
+    if hits:
+        for i in range(int(seconds * 4)):
+            s0 = int(i * SR / 4)
+            dur = int(0.03 * SR)
+            env = np.exp(-np.arange(dur) / (0.008 * SR))
+            hits_sig[s0:s0 + dur] += 0.5 * env * rng.standard_normal(dur)
     # Continuous top-end texture (cymbal wash / room) so the high band is
     # occupied between hits, as in a real mix, with a slow random level
     # drift rather than a flat floor.
@@ -69,8 +70,8 @@ def _music(seconds: float, seed: int = 0) -> np.ndarray:
     drift = 1.0 + 0.3 * np.sin(2 * np.pi * 0.7 * t)
     hf = np.stack([ss.sosfilt(sos, rng.standard_normal(n)) for _ in range(2)], axis=1)
     hf *= 0.03 * drift[:, None]
-    left = bass + chord + hits + hf[:, 0]
-    right = bass + chord + hits + hf[:, 1]
+    left = bass + chord + hits_sig + hf[:, 0]
+    right = bass + chord + hits_sig + hf[:, 1]
     return np.stack([left, right], axis=1).astype(np.float32)
 
 

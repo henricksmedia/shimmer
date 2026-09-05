@@ -7,6 +7,26 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **The suggested head cut no longer leaves a blip behind.** The cut
+  used to land a hair past the tick, on its decay, and the "detected"
+  box in the Trim view ended there too. The tick now ends where its slope
+  has reached the floor, and the box shows that. The gap between the
+  tick and the song is dead air, so the suggested IN point now sits 40 ms
+  before the music starts: the tick, its decay and the floor all go, and
+  the song keeps a short breath. When the gap is too short for that, the
+  cut lands where the floor has settled after the tick. Smaller ticks
+  after the main click, or a faint one before it, count as part of the
+  artifact, and the Trim notice says "plus 2 smaller ticks" when it found
+  them. Tails work the same way, mirrored.
+- **The player no longer piles up on narrow windows.** The transport bar
+  was a flex row whose Monitor and Preview-loop zones could shrink to
+  nothing, so the pills spilled over the loop controls and "Set from
+  playhead" ran off the edge. It is now one grid with named zones that
+  re-flows against the bar's own width: side by side on desktop, the loop
+  controls on a second row below about 940 px, and every zone on its own
+  row below about 580 px, where the pills and loop controls wrap. The bar
+  keeps its 104 px height on desktop and only grows when it stacks. The
+  top bar is now hidden on purpose below 1100 px instead of by accident.
 - **Processed monitor no longer drops by half in Live preview.** Mastering
   normalised each loop slice on its own, so a quiet section previewed at
   the full target level even though the full run leaves it quiet. The
@@ -17,6 +37,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
   match is doing, e.g. "Processed −2.2 dB". The export was never affected.
 - The progress window said "Cleaning & mastering" even with mastering off.
   It now says "Cleaning" when that is all the run does.
+- **Trim missed the click at the start of most AI renders.** The scan
+  looked for a gap of near-silence (below −75 dBFS) between the click
+  and the music. AI renders rarely start from silence; the head sits at
+  −60 to −70 dBFS, so the click and the song read as one piece and the
+  card said "edges clean". The scan now also measures the head's own
+  quiet level and looks for a short burst standing well above it, with
+  the music starting later. Verified on a track whose 15 ms click at
+  −41 dBFS was missed before and is now found, with the cut placed
+  inside the quiet run before the music.
 - **"Download WAV" could save a JSON file.** Results live in the server's
   memory. If the server had restarted since the run, the link answered
   with an error message and the browser saved that message as the
@@ -26,6 +55,43 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **The player gives its height to the view that earns it.** The waveform
+  is a navigation strip (seek, loop window, dynamics), so in Waveform view
+  it is now 150 px instead of 300. Spectrogram and Both keep the full
+  height, where vertical resolution shows hash as streaks in the shaded
+  band.
+- **The live analyzer is now a measuring tool.** It grew from 64 px to
+  170 px and gained a dB grid every 12 dB, labels at 100, 500, 1k, 2k,
+  5k, 10k and 20k, and a 4.5 dB per octave display tilt around 1 kHz, so
+  a normal mix reads close to flat and the top end, where the artifacts
+  live, is no longer crushed into the corner. The scale is calibrated so
+  a full-scale sine reads 0 dB. While Processed plays, the Original's
+  smoothed spectrum shows behind it as a dashed line (and the other way
+  round), so the difference is visible without flipping.
+- **The loudness strip now measures loudness.** It looks the same, but
+  the fill was plain RMS while its white marker was a LUFS target, two
+  different scales. It now fills with momentary loudness (ITU-R BS.1770
+  K-weighting, 400 ms) from the audio you are hearing, so the marker
+  means what it says. A 1 kHz sine at -20 dBFS reads -20.0 LUFS. Hover
+  the strip for the number.
+- **Analyze's noise timeline is readable and clickable.** The caption no
+  longer runs through the bars: "Noise over time" sits above the strip
+  with a colour key, and a time axis sits below. Clicking the strip jumps
+  there: with Live on it moves the loop window, otherwise it seeks the
+  player.
+- **The stat readout is grouped.** Chips now sit in three labeled rows:
+  Loudness (LUFS in to out against target, true peak, LRA, limiter gain
+  reduction, peak, RMS), Cleaning (5 to 8 kHz energy, flicker depth as a
+  percentage, narrow peaks left, clicks fixed, fixed tones notched, top-end
+  cutoff) and Job (trim, EQ, length as m:ss, rate, channels). "Limiter
+  0.0 dB max GR" now reads "Limiter: no gain reduction".
+- **The three frames now read apart.** The left rail, the page and the
+  transport bar all sat on nearly the same near-black. The page stays the
+  recessed work area; the rail is lifted one step above it and the
+  transport bar two steps, both with a cool tint, with a hairline top edge
+  and a soft shadow under the player. Rail buttons use translucent hover
+  and active layers and the session card is a darker well, so they keep
+  their contrast on the lifted deck. Cards and page controls are unchanged.
 - **The Signal Chain view is now drawn from the real settings.** It used
   to be a fixed list: right about the order, wrong about the numbers
   whenever a preset moved the crossover or the center-channel scale, and
@@ -66,6 +132,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Analyze in the dock, and an Analysis workspace.** Step 2 now has a
+  cyan Analyze button above Clean & Master, so the next action is always
+  in view. It runs Analyze and jumps to the Analysis card with a brief
+  ring. When the analysis is done it turns into a green "Analysis ready"
+  status naming the preset and strength, and the card header shows the
+  same. Clicking it then, or the card's Expand button, slides the analysis
+  up over the page as a workspace: the noise timeline across the top,
+  ranked matches on the left, second pass, notes and fixed tones on the
+  right, with "Loop the worst part" and Close in its header. The
+  transport stays visible under it. Escape closes it, and a new upload
+  closes it too.
+
 - **Fixed tones are cut first, on both channels, at full depth.** AI
   generators leave thin fixed-pitch lines (16–20 kHz on Suno, sometimes
   comb-spaced teeth) that never move for the whole song. Shimmer scans
@@ -85,12 +163,27 @@ Versions follow [Semantic Versioning](https://semver.org/).
   reports where the top end stops, the tone curve never boosts above it,
   and a lifting shelf (Dark Mix Rescue, Reverb Flutter) is capped there
   so it cannot lift pure residue.
+- **The Flicker Tamer can finally see the flicker.** AI hash flickers at
+  10–50 times a second. The cleaning engine works on 93 ms frames, so
+  anything faster than about 23 flickers a second averaged out inside a
+  frame and the tamer did little. It now runs in a fine pass on a short
+  23 ms window, on the high band, before the main engine, where it
+  sees the whole range. (Phase 2 of docs/PLAN.md.)
+- **A real de-esser.** A new spectral de-esser in the same fine pass
+  turns down sharp "s", "sh" and "t" bursts per frequency, so the rest
+  of the band keeps its brightness. It is not held back on transients,
+  which is exactly where the old de-harsh went quiet. On in Sibilance
+  Rattle, Deep Scrub and Vocal Glaze + Top End; a De-esser slider in
+  Advanced.
+- **De-harsh cuts the peaks, not the whole band.** Its cut is now
+  weighted per frequency: glazed overtones take more of it, the band
+  around them takes less, so a vocal keeps its air.
 - **A reminder to master once.** When Analyze suggests a second pass and
   mastering is still on, the second-pass card says so in plain words, and
-  Clean & Master asks before it runs: OK turns mastering off for this pass
-  and keeps Preserve volume on; Cancel masters now anyway. Cleaning a
-  mastered file and mastering it again hurts the sound, so master on the
-  last pass only.
+  Clean & Master asks before it runs with three choices: turn mastering
+  off for this pass (and keep Preserve volume on), master anyway, or
+  cancel and run nothing. Cleaning a mastered file and mastering it again
+  hurts the sound, so master on the last pass only.
 - **Trim — see and fix the blip at the start of a track.** Every file you
   load is now checked at both ends for the short glitch AI generators leave
   behind: usually 15–35 ms of noise at the very top of the render, before

@@ -12,7 +12,9 @@ body {
 .app {
     display: grid;
     grid-template-columns: var(--rail-w) 1fr;
-    grid-template-rows: var(--header-h) minmax(0, 1fr) var(--bridge-h);
+    /* The bridge row is content-sized: --bridge-h is its floor (set as a
+       min-height on .bridge), and it grows only when its zones stack. */
+    grid-template-rows: var(--header-h) minmax(0, 1fr) auto;
     grid-template-areas:
         "rail topbar"
         "rail page"
@@ -50,7 +52,7 @@ body {
 
 .rail {
     grid-area: rail;
-    background: var(--bg-0);
+    background: var(--bg-rail);
     border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
@@ -133,8 +135,10 @@ body {
     cursor: pointer;
     transition: background 120ms ease, color 120ms ease;
 }
-.nav-btn:hover { background: var(--bg-3); color: var(--fg-0); }
-.nav-btn.active { background: var(--bg-4); color: var(--fg-0); }
+/* Translucent state layers rather than fixed greys, so hover and active
+   stay visible whatever shade the rail deck is. */
+.nav-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--fg-0); }
+.nav-btn.active { background: rgba(255, 255, 255, 0.09); color: var(--fg-0); }
 .nav-btn .icon { width: 21px; height: 21px; flex: none; opacity: .9; }
 .nav-btn.active .icon { color: var(--amber); }
 .nav-btn[data-tab="remix"].active .icon { color: var(--purple); }
@@ -226,18 +230,37 @@ body {
 
 .bridge {
     grid-area: bridge;
-    background: var(--bg-0);
-    border-top: 1px solid var(--line);
+    background: var(--bg-bridge);
+    border-top: 1px solid var(--line-2);
+    /* Hairline highlight on the top edge plus a soft shadow onto the page:
+       the player reads as a deck lifted above the work area. */
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04),
+                0 -4px 14px rgba(0, 0, 0, 0.28);
     min-width: 0;
+    min-height: var(--bridge-h);
+    /* Single grid cell so .bridge-inner stretches to the full deck height
+       and can centre its zones; chrome.css lays out the zones inside. */
+    display: grid;
+    /* Zones respond to the bridge's own width (viewport minus rail), not
+       the viewport: see the @container rules in chrome.css. */
+    container-type: inline-size;
+    container-name: bridge;
 }
 
 /* ── Small screens: collapse rail to icons, page scrolls normally ───── */
 
 @media (max-width: 1100px) {
+    /* Two rows: the top bar is dropped on small screens (its view title
+       and shortcut hints are desktop conveniences) so the page keeps the
+       height. Stated explicitly here rather than left to track sizing. */
     .app {
         grid-template-columns: var(--rail-w-min) 1fr;
         grid-template-rows: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "rail page"
+            "rail bridge";
     }
+    .topbar { display: none; }
     .aurora-lockup { display: none; }
     .aurora-s { display: block; }
     .rail { padding: 14px 8px; }
@@ -249,5 +272,7 @@ body {
     /* Player first on small screens so results stay visible. */
     #tab-single .results-column { order: -1; }
     .player-canvas { flex: none; height: 240px; }
+    .player-canvas.mode-waveform { height: 130px; }
+    .spectrum-live, .viz-card .spectrum-live { height: 130px; }
     .batch-log { flex: none; max-height: 480px; }
 }

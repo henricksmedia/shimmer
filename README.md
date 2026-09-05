@@ -215,6 +215,15 @@ depth. Analyze lists them; untick any you want kept. A de-click stage runs
 first too, on the high end only, for crackle on "s" sounds and cymbals. And
 if a render's top end simply stops at 13 kHz, nothing will boost above it.
 
+### Fast noise gets a fast pass
+
+Some AI noise flickers 10 to 50 times a second. The main cleaning engine
+looks at the sound in 93 ms slices, which is too slow to see that. So the
+high end now gets a short fine pass first, on 23 ms slices, with two tools:
+a Flicker Tamer that pushes the flicker down toward the band's floor, and a
+real de-esser that tames sharp "s" and "t" sounds per frequency without
+dulling the rest. Drum hits are protected.
+
 ### 19 artifact presets, grouped by what you hear
 
 You don't need to know the science. Pick the group that matches your

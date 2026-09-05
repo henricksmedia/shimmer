@@ -244,6 +244,46 @@ lines (docs/PLAN.md Section 2, approved 2026-09-04).
   curve never boosts at or above 0.9× cutoff, and a positive shelf in the
   post filters is followed by a zero-phase low-pass at the cutoff.
 
+### Fine-grid dynamic pass — [finepass.py](finepass.py)
+
+Runs on each M/S high-band channel *before* the coarse 4096/1024 engine
+(docs/PLAN.md Section 2, placement approved 2026-09-04). A 1024-point
+window at hop 256 (about 23 ms / 6 ms at 44.1 kHz) catches fast events
+without smearing; the coarse pass then sees a steadier signal.
+
+- **Flicker Tamer** moves here (`flicker_tame`, `ft_*`). Two things
+  were wrong with the coarse version. At 4096/1024 the frame rate is
+  43 Hz, so modulation above about 23 Hz averaged out inside a frame; on
+  the fine grid it sees 10–50 Hz. And it measured the on-phases of the
+  flicker against the running mean, which a half-duty flicker sits only
+  3 dB above, so it could never cut more than about 1 dB. The fine
+  version measures each sub-band against a floor follower (drops at
+  once, rises `ft_floor_up_db_s` = 20 dB/s) and engages only where the
+  band's fine-time spread (std of the detrended dB envelope over
+  `ft_release_ms`, hits masked out) says flicker is present
+  (`ft_flicker_min_db` 1.5 → `ft_flicker_full_db` 4.0), so steady cymbal
+  wash is left alone. Gated by a fine-grid transient hold on the high
+  band (flux > 9 dB → 30 ms hold, 150 ms release). When the fine pass
+  runs, the coarse Flicker Tamer is disabled for that channel so the
+  same flicker is not compressed twice.
+- **Spectral de-esser** (`deess` 0..1, `de_start_hz` 4000, `de_end_hz`
+  10000, `de_ref_*` 1000–4000, `de_thr_db` 6, `de_slope` 0.6,
+  `de_max_att_db` 8, `de_attack_ms` 1, `de_release_ms` 40,
+  `de_bin_med_bins` 31, `de_bin_excess_db` 3). When the band rises more
+  than `de_thr_db` above its reference the band is cut like a de-esser,
+  weighted per bin: bins above the band's 31-bin median spectrum take up
+  to 1.5× the cut, bins below take down to 0×. Not gated by the transient
+  hold. On in Sibilance Rattle (0.6), Deep Scrub (0.4) and Vocal Glaze +
+  Top End (0.3); Advanced slider "De-esser". `deess` and `de_max_att_db`
+  are on the preset-strength whitelist.
+- `fine_pass` (default on), `fine_n_fft` 1024, `fine_hop` 256. Long files
+  are processed in 90 s chunks with a 0.5 s lead-in so the envelope
+  followers settle before each audible region.
+- **De-harsh per-bin weighting** (`dh_per_bin` 0.5 default,
+  `dh_bin_med_bins` 31): the coarse De-harsh keeps its band-level
+  trigger, but the cut is weighted per bin the same way, so a glazed
+  overtone is cut harder than the band around it.
+
 ### Pipeline-level controls
 
 - **Iterations** (`iterations`, 1–3): re-runs the full pipeline on the previous
@@ -515,6 +555,14 @@ Sources: [static/index.html](static/index.html) and the ES modules in
 - The Clean & Master button stays disabled until a file is selected.
 
 **Trim (top & tail)**
+- Detection is two-pass ([edges.py](edges.py)): an absolute pass wants a
+  gap below −75 dBFS between the burst and the music (renders with real
+  digital silence); a relative pass finds where the music proper starts
+  (within 20 dB of the scan's loudest point), estimates the head's own
+  quiet level as the 20th percentile of the peak envelope before it, and
+  looks for a burst standing ≥ 10 dB above that level with a quiet run
+  after it. AI renders usually need the relative pass: their heads sit
+  at −60 to −70 dBFS, never at silence.
 - Every upload is scanned at both ends for render artifacts — the short
   burst generators leave at the very top of a track, typically 15–35 ms
   around −50 dBFS. These sit *above* the −60 dBFS silence gate, so the
@@ -530,9 +578,11 @@ Sources: [static/index.html](static/index.html) and the ES modules in
 - Head/Tail toggle, zoom presets (250 ms / 1 s / 3 s / 10 s), click or drag
   to place the marker, ←/→ nudge 1 ms (Shift 10 ms), numeric ms fields, and
   Audition to play the original from the marker.
-- Suggested cuts land in the silent gap after the artifact and snap to the
-  nearest zero crossing; a 5 ms fade is applied at each new edge so the cut
-  itself cannot click.
+- Suggested cuts land 40 ms before the music starts, so the artifact, its
+  decay and the dead air after it all go and the song keeps a short
+  breath; a gap too short for that gets the cut where the floor has
+  settled after the artifact. Cuts snap to the nearest zero crossing, and
+  a 5 ms fade is applied at each new edge so the cut itself cannot click.
 - An armed cut shows in the card header while the panel is closed, and the
   applied cut is reported on the done banner ("Trimmed 40 ms head").
 - The cut is applied to the source *before* cleaning and mastering, so a
@@ -549,12 +599,23 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   trial-clean numbers). Below the cards: a second-pass suggestion when a
   runner-up still finds residue on the winner's output (with a
   master-once reminder when mastering is on), tonal-balance notes, and the
-  intensity-timeline sparkline. Takes roughly ten seconds.
+  "Noise over time" strip: one bar per second of top-end noise, amber for
+  the worst stretches, with a time axis. Click the strip to jump there
+  (moves the loop window while Live is on, seeks the player otherwise).
+  Takes roughly ten seconds.
+- Analyze also lives in the dock above Clean & Master (cyan, step 2). It
+  runs the analysis and jumps to the card; once done it becomes a green
+  "Analysis ready" status. Clicking it then, or the card's Expand button,
+  opens the Analysis workspace: a sheet that slides up over the page
+  (timeline on top, ranked matches left, second pass, notes and fixed
+  tones right) with "Loop the worst part" and Close. The transport stays
+  visible below it; Escape or a new upload closes it.
 - Preset strength slider 0–200% (step 5%): visible sliders re-scale live in
   the client, hidden amount keys scale server-side via the same whitelist.
 - Clean & Master with a pending second-pass suggestion and mastering on
-  asks first (OK: mastering off for this pass, Preserve volume on; Cancel:
-  master now). The progress window is titled "Cleaning" or
+  asks first with three choices: turn mastering off for this pass
+  (Preserve volume on), master anyway, or cancel (nothing runs; Escape
+  also cancels). The progress window is titled "Cleaning" or
   "Cleaning & mastering" to match the run.
 
 **Mastering controls**
@@ -578,9 +639,12 @@ Sources: [static/index.html](static/index.html) and the ES modules in
 - A green "Ready to download" banner appears with metric chips and the
   download link. Download filenames follow
   `{stem}_{preset}_{processed|removed}_{jobid8}{ext}`.
-- Metrics strip: peak/RMS in→out, duration, sample rate, channels, LUFS and
-  true peak before→after, limiter max gain reduction, and 5–8 kHz
-  energy/AM-depth diagnostics with top residual peaks.
+- Stat readout in three labeled rows. Loudness: LUFS in→out against the
+  target, true peak, LRA, limiter max gain reduction, peak and RMS in→out.
+  Cleaning: 5–8 kHz energy, flicker depth (AM depth as a percentage),
+  narrow peaks left, clicks fixed, fixed tones notched, top-end cutoff.
+  Job: edge trim, export trim, EQ bands, length (m:ss), sample rate,
+  channels. Warnings (limiter pumping) get their own row.
 
 **Advanced controls drawer**
 - Right-side modal drawer (closes via ×, backdrop click, or Escape) rendered
@@ -602,8 +666,15 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   **Spectrogram** (real 1024-point FFT, Hann window, log-frequency rows,
   Inferno colormap) with the current shimmer band drawn as overlay lines.
 - Click to seek; gold loop-window overlay during live preview.
-- While playing: a live log-frequency spectrum with shimmer-band shading and
-  an LUFS meter with a target marker tied to the mastering target.
+- Canvas height follows the mode: 150 px in Waveform (a navigation strip),
+  300 px in Spectrogram and Both, where vertical resolution matters.
+- While playing: a 170 px live log-frequency analyzer with a 12 dB grid
+  (0 dB = full-scale sine), frequency labels, a 4.5 dB/oct display tilt
+  around 1 kHz so a mix reads roughly flat, shimmer-band shading, and a
+  dashed ghost of the other A/B track's smoothed spectrum (Original behind
+  Processed and the reverse). Under it, a momentary-loudness strip
+  (BS.1770 K-weighting, 400 ms, from the audio being heard) with a target
+  marker tied to the mastering target; hover for the LUFS value.
 - Loudness-matched A/B toggle attenuates the louder track using the measured
   LUFS values (per-slice during Live preview, whole-file after a run),
   capped at 6 dB. The applied monitoring gain is shown next to the toggle
