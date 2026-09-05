@@ -1066,6 +1066,32 @@
                         one note per pass in the comment.</li>
                 </ol>
 
+                <h4 class="help-section-head">Remix: split the song into stems</h4>
+                <ol class="workflow-list">
+                    <li><span class="step">1</span>
+                        <b>Drop the track on the Remix tab.</b> Recent sessions with
+                        finished stems say so and reload in a second.</li>
+                    <li><span class="step">2</span>
+                        <b>Pick a quality and click Separate stems.</b> <b>Fast</b> is
+                        about 10 seconds on a GPU, <b>Best</b> is the fine-tuned model
+                        (about 25 seconds), <b>6 stems</b> adds guitar and piano. The
+                        window shows the engine's real progress. Stems are kept per
+                        track and quality, so the second time is instant.</li>
+                    <li><span class="step">3</span>
+                        <b>Mix in the lanes.</b> One lane per stem with its own
+                        waveform, mute, solo, fader and an <b>FX</b> rack (formant,
+                        saturation, doubler, reverb), plus a <b>Residual</b> lane that
+                        holds whatever the separator dropped, so the untouched mix is
+                        your original. Every move re-renders the loop; press <b>1</b>
+                        for the original and <b>2</b> for the remix. Quick mixes give
+                        you an instrumental, an acapella or a vocal lift in one click.</li>
+                    <li><span class="step">4</span>
+                        <b>Render &amp; Download</b> sums the lanes, runs artifact
+                        cleanup, masters and writes the file. <b>Stems</b> in the right
+                        column downloads the parts themselves as a ZIP of 24-bit WAVs,
+                        as separated or through your mix.</li>
+                </ol>
+
                 <div class="help-tip">
                     <b>The one habit worth building:</b> press <b>3</b> and listen to
                     the <b>Removed</b> track. That is only the noise Shimmer is taking
@@ -1368,14 +1394,33 @@
 
                 <div class="help-card">
                     <h4>First run downloads the separation engine</h4>
-                    <p>Splitting a song into vocals, drums, bass, and other needs a
-                    large one-time download (several GB). Shimmer installs it in its
-                    own separate folder so it never interferes with the rest of the
-                    app.</p>
+                    <p>Splitting a song into stems needs a large one-time download
+                    (several GB for the engine). Shimmer installs it in its own
+                    separate folder so it never interferes with the rest of the app.
+                    The <b>Best</b> quality tier fetches its own model the first time
+                    you pick it (about 330 MB); <b>Fast</b> and <b>6 stems</b> are
+                    about 80 MB each.</p>
                     <p>If you have an NVIDIA graphics card, separation uses it
-                    automatically and runs much faster. Without one it still works,
-                    just slower. Results are saved per track, so you only ever wait
-                    once for a given song.</p>
+                    automatically: a four-minute song takes about 10 seconds at Fast
+                    and 25 at Best. Without one it still works, just several times
+                    slower. Results are saved per track and per quality, so you only
+                    ever wait once for a given song. The Remix tab's empty screen
+                    says which engine and card it found.</p>
+                </div>
+                <div class="help-card">
+                    <h4>Which stems can it make?</h4>
+                    <p>The open separator Shimmer runs (Demucs) splits a mix into
+                    <b>vocals, drums, bass</b> and <b>other</b>; the 6-stem tier adds
+                    <b>guitar</b> and <b>piano</b>. Synths, keys, strings and effects
+                    all land in Other. There is no open model that pulls those apart,
+                    and tools that show a synth or strings lane for every song are
+                    regenerating parts rather than splitting your mix, which is why
+                    their lanes do not add back up to the original.</p>
+                    <p>Shimmer keeps a <b>Residual</b> lane instead: the mix minus
+                    every stem, which is whatever the separator dropped (reverb tails,
+                    room, most of the AI fizz). With it in the mix, an untouched remix
+                    is identical to your original; the null-test figure in the mixer
+                    says how much lives there.</p>
                 </div>
             </section>
 

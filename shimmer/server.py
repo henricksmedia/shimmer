@@ -34,6 +34,7 @@ import glob
 import json
 import os
 import struct
+import zipfile
 import tempfile
 import time
 from dataclasses import asdict
@@ -84,8 +85,8 @@ from .preview_store import PREVIEW_STORE, clamp_samples_for_preview
 from .settings_store import load_settings, save_settings
 from . import stems as stems_mod
 from .stem_effects import (
-    STEM_NAMES, apply_fx_only, apply_gain_mute, fx_signature,
-    remix_settings_from_json, render_remix,
+    apply_fx_only, apply_gain_mute, fx_signature,
+    remix_settings_from_json, render_remix, render_stems,
 )
 from .projects_store import list_projects, load_project, save_project
 
@@ -765,7 +766,7 @@ async def api_result(job_id: str, kind: str = "processed") -> FileResponse:
     media = {
         ".wav": "audio/wav", ".flac": "audio/flac",
         ".mp3": "audio/mpeg", ".ogg": "audio/ogg",
-        ".m4a": "audio/mp4",
+        ".m4a": "audio/mp4", ".zip": "application/zip",
     }.get(ext, "application/octet-stream")
     # Make download filenames informative + unique-per-run so successive
     # downloads of different presets / different songs don't all collide on
@@ -776,6 +777,9 @@ async def api_result(job_id: str, kind: str = "processed") -> FileResponse:
     short_id = job.id[:8]
     if kind == "original":
         download_name = f"{safe_stem}_original{ext}"
+    elif ext == ".zip":
+        # A stems bundle: {track}_stems_{model|mixed}_{id}.zip
+        download_name = f"{safe_stem}_{safe_preset}_{short_id}{ext}"
     else:
         suffix = {"diff": "removed", "trimmed": "trimmed"}.get(
             kind, "processed")
@@ -1211,6 +1215,7 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
         original_name=orig_name,
     )
     sess.track_analysis = track_analysis
+    sess.digest = digest
     # Whole-file scan for the generator's fixed lines: the static-repair
     # plan every preview slice and run for this session starts from.
     lines = await loop2.run_in_executor(None, scan_fixed_lines, x, sr)
@@ -1229,7 +1234,10 @@ async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
         "edges": edges,
         "repair": {"lines": lines, "plan": plan_from_lines(lines, sr).as_dict()},
         "digest": digest,
-        "stems_cached": stems_mod.cache_complete(digest),
+        # Any tier with a finished stem set for this exact file: the
+        # Remix tab separates instantly on those.
+        "stems_cached": bool(stems_mod.cached_models(digest)),
+        "stems_tiers": stems_mod.cached_tiers(digest),
         "project": load_project(digest),
     })
 
@@ -1499,38 +1507,113 @@ async def api_project_save(digest: str,
 # Stems / Remix — Demucs separation + per-stem effects
 # ───────────────────────────────────────────────────────────────────────────
 
+def _stem_order(sess) -> List[str]:
+    """Display/mix order of the session's stems (stems.measure_stems
+    decided it at separation; fall back to the canonical order)."""
+    if not sess.stems:
+        return []
+    order = (sess.stems_info or {}).get("order")
+    if order and all(n in sess.stems for n in order):
+        return [n for n in order if n in sess.stems]
+    return stems_mod.order_stems(sess.stems)
+
+
+# Files the separation worker reads directly with libsndfile. Anything
+# else (M4A/AAC needs ffmpeg) is handed over as a float WAV of the
+# already-decoded session audio.
+_SF_INPUT_EXTS = {".wav", ".flac", ".ogg", ".aiff", ".aif", ".mp3"}
+
+
+def _separation_input(sess) -> str:
+    ext = os.path.splitext(sess.original_path)[1].lower()
+    if ext in _SF_INPUT_EXTS and os.path.isfile(sess.original_path):
+        return sess.original_path
+    path = os.path.join(sess.workdir, "stems_input.wav")
+    if not os.path.isfile(path):
+        save_audio(path, sess.samples, sess.sr, subtype="FLOAT")
+    return path
+
+
+@app.get("/api/stems/engine")
+async def api_stems_engine(check: bool = True) -> JSONResponse:
+    """Engine state for the Remix tab before anything is uploaded: is
+    the side venv installed and importable, is there a GPU, and per
+    quality tier the model, its checkpoint state and a time estimate.
+    The import check costs a torch import, so it runs once per process."""
+    loop = asyncio.get_running_loop()
+    info = await loop.run_in_executor(None, stems_mod.engine_info, check)
+    return JSONResponse(info)
+
+
+@app.get("/api/stems/library")
+async def api_stems_library() -> JSONResponse:
+    """Every cached stem set on disk (digest, source name, models):
+    the Recent sessions list badges tracks whose stems are done."""
+    loop = asyncio.get_running_loop()
+    rows = await loop.run_in_executor(None, stems_mod.library)
+    return JSONResponse({"items": rows})
+
+
 @app.get("/api/stems/status/{session_id}")
 async def api_stems_status(session_id: str) -> JSONResponse:
     sess = PREVIEW_STORE.get(session_id)
     if sess is None:
         raise HTTPException(404, "Unknown session_id")
-    cached = False
-    try:
-        cached = stems_mod.cache_complete(
-            stems_mod.file_digest(sess.original_path))
-    except OSError:
-        pass
+    digest = sess.digest
+    if not digest:
+        try:
+            digest = stems_mod.file_digest(sess.original_path)
+        except OSError:
+            digest = ""
     return JSONResponse({
         "ready": sess.stems is not None,
-        "cached": cached,
+        "cached": bool(digest and stems_mod.cached_models(digest)),
+        "cached_tiers": stems_mod.cached_tiers(digest) if digest else [],
         "env_ready": stems_mod.stems_python() is not None,
         "cuda": stems_mod.has_cuda(),
+        "info": sess.stems_info or {},
     })
+
+
+@app.get("/api/stems/info/{session_id}")
+async def api_stems_info(session_id: str) -> JSONResponse:
+    """What the mixer draws after separation: tier and model, timing,
+    the stem order, per-stem level/peak/share and lane peaks, the mix's
+    peaks, the null-test figure and the suggested loop start."""
+    sess = PREVIEW_STORE.get(session_id)
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+    if not sess.stems:
+        raise HTTPException(409, "Stems not separated yet")
+    return JSONResponse(sess.stems_info or {})
 
 
 @app.post("/api/stems/separate")
 async def api_stems_separate(payload: Dict[str, Any]) -> JSONResponse:
-    """Kick off separation for an upload session. Returns a job_id whose
-    progress streams over the existing /api/progress SSE route. First run
-    may include a one-time engine install (several GB)."""
+    """Kick off separation for an upload session at a quality tier
+    (`tier`: fast | best | six; default per stems.default_tier). Returns
+    a job_id whose progress streams over the existing /api/progress SSE
+    route with stages setup (first run only: the engine install),
+    separate, load and null. When it finishes the session holds the
+    stems plus the residual (mix − stems) and /api/stems/info has the
+    measurements."""
     sid = payload.get("session_id") or ""
     sess = PREVIEW_STORE.get(sid)
     if sess is None:
         raise HTTPException(404, "Unknown session_id")
+    tier = stems_mod.resolve_tier(payload.get("tier"))
 
     job = JOB_STORE.create()
     job.source_stem = Path(sess.original_name).stem or "audio"
+    job.preset_name = tier.model
     loop = asyncio.get_running_loop()
+
+    details = {
+        "setup": "one-time install of the separation engine",
+        "separate": f"{tier.label} · {tier.model} · {tier.stems} stems",
+        "load": "reading the stems back at the session's sample rate",
+        "null": "residual = mix − stems · what the separator dropped",
+    }
 
     def _progress(frac: float, msg: str, stage: Optional[str] = None) -> None:
         job.progress = float(frac)
@@ -1538,20 +1621,31 @@ async def api_stems_separate(payload: Dict[str, Any]) -> JSONResponse:
         if stage:
             event["stage"] = stage
             event["status"] = msg
-            if stage == "separate":
-                event["detail"] = "vocals, drums, bass and other · a minute or two"
-            elif stage == "setup":
-                event["detail"] = "one-time install of the separation engine"
-            elif stage == "load":
-                event["detail"] = "reading the four stems back"
+            event["detail"] = details.get(stage, "")
         asyncio.run_coroutine_threadsafe(job.queue.put(event), loop)
 
     def _work() -> None:
-        sess.stems = stems_mod.separate(
-            sess.original_path, sess.sr, progress=_progress)
+        src = _separation_input(sess)
+        stems, info = stems_mod.separate(
+            src, sess.sr, tier=tier.key, progress=_progress,
+            digest=sess.digest or None)
         # Clamp stems to the preview cap like the main samples.
-        for k in list(sess.stems):
-            sess.stems[k] = clamp_samples_for_preview(sess.stems[k], sess.sr)
+        for k in list(stems):
+            stems[k] = clamp_samples_for_preview(stems[k], sess.sr)
+        # The residual is a stem of its own, so the unchanged mix nulls
+        # against the original exactly (docs/PLAN.md, decision 2).
+        _progress(0.95, "Null test · residual = mix − stems", "null")
+        residual, null_db = stems_mod.add_residual(stems, sess.samples)
+        stems[stems_mod.RESIDUAL] = residual
+        info.update(stems_mod.measure_stems(
+            stems, sess.samples, sess.sr, null_db=null_db))
+        info["name"] = sess.original_name
+        sess.stems = stems
+        sess.stems_info = info
+        # A new stem set invalidates every cached per-stem fx render.
+        sess._remix_fx_cache = {}
+        job.metrics = {k: v for k, v in info.items()
+                       if k not in ("stems", "mix_peaks")}
 
     async def _run() -> None:
         job.status = "running"
@@ -1559,6 +1653,87 @@ async def api_stems_separate(payload: Dict[str, Any]) -> JSONResponse:
             await loop.run_in_executor(None, _work)
             job.status = "done"
             job.progress = 1.0
+            await job.queue.put({"fraction": 1.0, "done": True})
+        except Exception as e:  # noqa: BLE001
+            job.status = "error"
+            job.error = str(e)
+            await job.queue.put({"error": str(e), "done": True})
+
+    asyncio.create_task(_run())
+    return JSONResponse({"job_id": job.id})
+
+
+@app.post("/api/stems/export")
+async def api_stems_export(payload: Dict[str, Any]) -> JSONResponse:
+    """Download the stems as a ZIP of 24-bit WAVs at the session's rate.
+
+    `processed: false` (default) writes them as separated, residual
+    included, so they sum back to the original. `processed: true`
+    writes each stem through its strip (gain, effects; muted or
+    un-soloed stems are left out), so a DAW session starts from the mix
+    built here. Returns a job_id; the ZIP comes from /api/result.
+    """
+    sid = payload.get("session_id") or ""
+    sess = PREVIEW_STORE.get(sid)
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+    if not sess.stems:
+        raise HTTPException(409, "Stems not separated yet")
+    processed = bool(payload.get("processed"))
+    names = _stem_order(sess)
+    settings = remix_settings_from_json(payload.get("stems") or {}, names)
+
+    job = JOB_STORE.create(output_ext=".zip")
+    job.source_stem = (Path(sess.original_name).stem or "audio") + "_stems"
+    job.preset_name = "mixed" if processed else str(
+        (sess.stems_info or {}).get("model") or "stems")
+    loop = asyncio.get_running_loop()
+    cb = _threadsafe_progress_pusher(job, loop)
+    stage_cb = getattr(cb, "stage", None)
+
+    def _stage(key: str, label: str, detail: str = "") -> None:
+        if stage_cb:
+            stage_cb(key, label, detail)
+
+    def _work() -> None:
+        sr = sess.sr
+        cb(0.05)
+        stems = {n: sess.stems[n] for n in names}
+        if processed:
+            _stage("mix", "Rendering each stem", "gain, effects and mutes from the mixer")
+            stems = {n: v for n, v in stems.items() if not settings[n].mute}
+            if not stems:
+                raise RuntimeError("Every stem is muted — nothing to export")
+            out = render_stems(stems, sr, settings)
+        else:
+            _stage("mix", "Collecting the stems", "as separated, residual included")
+            n = min(v.shape[0] for v in stems.values())
+            out = {k: v[:n] for k, v in stems.items()}
+        cb(0.25)
+        safe = _safe_filename_stem(Path(sess.original_name).stem) or "audio"
+        zip_path = os.path.join(job.workdir, "processed.zip")
+        _stage("export", "Packing the ZIP", f"{len(out)} × 24-bit WAV · {sr} Hz")
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_STORED) as zf:
+            for i, (name, arr) in enumerate(out.items()):
+                tmp = os.path.join(job.workdir, f"{name}.wav")
+                save_audio(tmp, arr, sr, subtype="PCM_24")
+                zf.write(tmp, arcname=f"{safe}_{name}.wav")
+                os.unlink(tmp)
+                cb(0.25 + 0.7 * (i + 1) / max(1, len(out)))
+        job.processed_path = zip_path
+        first = next(iter(out.values()))
+        job.metrics = {
+            "stems": list(out), "processed": processed, "sample_rate": sr,
+            "bit_depth": 24, "size_bytes": os.path.getsize(zip_path),
+            "duration_s": float(first.shape[0] / sr),
+        }
+        cb(1.0)
+
+    async def _run() -> None:
+        job.status = "running"
+        try:
+            await loop.run_in_executor(None, _work)
+            job.status = "done"
             await job.queue.put({"fraction": 1.0, "done": True})
         except Exception as e:  # noqa: BLE001
             job.status = "error"
@@ -1592,7 +1767,8 @@ async def api_remix_preview(payload: Dict[str, Any]) -> Response:
     except (TypeError, ValueError) as e:
         raise HTTPException(400, f"Invalid start_s/end_s: {e}")
 
-    settings = remix_settings_from_json(payload.get("stems") or {})
+    order = _stem_order(sess)
+    settings = remix_settings_from_json(payload.get("stems") or {}, order)
     master_json = payload.get("mastering") or {}
     mp = master_params_from_json(master_json)
     # No mastering block in the payload = old client = no mastering
@@ -1613,7 +1789,7 @@ async def api_remix_preview(payload: Dict[str, Any]) -> Response:
 
         out = None
         head_pad = audible_len = 0
-        for name in STEM_NAMES:
+        for name in order:
             arr = sess.stems.get(name)
             if arr is None:
                 continue
@@ -1709,7 +1885,8 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
     if not sess.stems:
         raise HTTPException(409, "Stems not separated yet")
 
-    settings = remix_settings_from_json(payload.get("stems") or {})
+    order = _stem_order(sess)
+    settings = remix_settings_from_json(payload.get("stems") or {}, order)
     mp = master_params_from_json(payload.get("mastering") or {})
     output_format = (payload.get("output_format") or "wav").lstrip(".").lower()
     output_ext = "." + output_format
@@ -1742,7 +1919,7 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
         sr = sess.sr
         cb(0.05)
         _stage("mix", "Mixing the stems", "each stem's effects, then the sum")
-        y = render_remix(sess.stems, sr, settings)
+        y = render_remix({n: sess.stems[n] for n in order}, sr, settings)
         cb(0.15)
 
         cleaning_info: Dict[str, Any] = {"enabled": do_clean}

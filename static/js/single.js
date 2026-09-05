@@ -1484,6 +1484,16 @@ export async function initSingleTab() {
         card.appendChild(mkEl('div', 'tone-title', verdict));
         const why = plan.why || (moves.length ? (plan.summary || '') : `Every region sits inside the ${plan.family_label} range.`);
         card.appendChild(mkEl('div', 'tone-summary', why));
+        const stateLine = mkEl('div', 'tone-applied-state');
+        card.appendChild(stateLine);
+        const syncStateLine = () => {
+            const st = toneApplyState(moves, ctx);
+            stateLine.textContent = st.text;
+            stateLine.className = `tone-applied-state ${st.kind}`;
+            stateLine.hidden = !st.text;
+        };
+        card._syncToneState = syncStateLine;
+        syncStateLine();
 
         // Six regions: where the track sits against the family range.
         const regions = mkEl('div', 'tone-regions');
@@ -1558,7 +1568,8 @@ export async function initSingleTab() {
             });
             amount.addEventListener('change', () => pushSettings());
             amountWrap.append(mkEl('span', 'ta-label', 'Amount'), amount, amountVal);
-            const apply = mkEl('button', 'btn ad-next-btn tone-apply', 'Apply to EQ');
+            const apply = mkEl('button', 'btn ad-next-btn tone-apply',
+                ctx.followUp && toneState.auto ? 'Apply to EQ now, for this pass' : 'Apply to EQ');
             apply.type = 'button';
             const remove = mkEl('button', 'btn btn-ghost btn-sm tone-remove', 'Remove from EQ');
             remove.type = 'button';
@@ -1605,6 +1616,28 @@ export async function initSingleTab() {
         return card;
     }
 
+    // What the plan's status is, in one sentence. `ctx.followUp` means a
+    // second pass is planned, so this run is pass 1 and stays EQ-free.
+    function toneApplyState(moves, ctx = {}) {
+        if (!moves || !moves.length) return { kind: 'none', text: '' };
+        if (toneApplied) return { kind: 'on', text: '\u2713 In the EQ for this run. Fine-tune it in the EQ card.' };
+        if (toneState.auto && ctx.followUp) {
+            return { kind: 'held', text: 'Held for pass 2. This run is pass 1, cleaning only; the plan is ' +
+                'made again on the cleaned file and goes into the EQ by itself when pass 2 runs. ' +
+                'Running only this one pass? Use Apply.' };
+        }
+        if (toneState.auto) return { kind: 'pending', text: 'Goes into the EQ on the final pass by itself.' };
+        return { kind: 'off', text: 'Not in the EQ. Use Apply, or turn on Use on the final pass.' };
+    }
+    function toneStripState(moves) {
+        if (!moves.length) return null;
+        if (toneApplied) return { text: '\u2713 In the EQ below', cls: 'on' };
+        const held = toneState.auto && !!(lastFollowUp && !priorPassPreset && !(passPlan && passPlan.status === 'loaded2'));
+        if (held) return { text: 'Held for pass 2 \u00b7 applied by itself when it runs', cls: 'held' };
+        if (toneState.auto) return { text: 'Applied on the final pass', cls: 'pending' };
+        return { text: 'Not in the EQ', cls: 'off' };
+    }
+
     function maybeAutoApplyTone(plan, followUp) {
         // Auto-apply only on a final pass: with a second pass ahead, pass 1
         // stays EQ-free and pass 2 plans its own on the cleaned file.
@@ -1628,7 +1661,10 @@ export async function initSingleTab() {
         return { enabled: cur.enabled, bands: cur.bands.filter((b) => b.source !== 'tone') };
     }
     function syncToneCards() {
-        document.querySelectorAll('.tone-card').forEach((c) => { if (c._syncTone) c._syncTone(); });
+        document.querySelectorAll('.tone-card').forEach((c) => {
+            if (c._syncTone) c._syncTone();
+            if (c._syncToneState) c._syncToneState();
+        });
         renderToneStrip();
         if (syncNextStep) syncNextStep();
     }
@@ -1685,14 +1721,15 @@ export async function initSingleTab() {
         toneStrip.appendChild(head);
         const row = mkEl('div', 'ts-row');
         if (moves.length) {
+            const st = toneStripState(moves);
+            if (st) row.appendChild(mkEl('span', `ts-state ${st.cls}`, st.text));
             if (toneApplied) {
-                row.appendChild(mkEl('span', 'ts-state', '✓ In the EQ below'));
                 const remove = mkEl('button', 'btn btn-ghost btn-sm', 'Remove');
                 remove.type = 'button';
                 remove.addEventListener('click', () => removeTonePlan());
                 row.appendChild(remove);
             } else {
-                const apply = mkEl('button', 'btn btn-sm ts-apply', 'Apply to EQ');
+                const apply = mkEl('button', 'btn btn-sm ts-apply', st && st.cls === 'held' ? 'Apply now' : 'Apply to EQ');
                 apply.type = 'button';
                 apply.addEventListener('click', () => applyTonePlan());
                 row.appendChild(apply);

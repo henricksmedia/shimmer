@@ -1660,6 +1660,20 @@ progress::-moz-progress-bar { background: var(--amber); }
 .tone-auto input { accent-color: var(--cyan); margin: 0; }
 .tone-title { font-size: 15px; font-weight: 650; color: var(--fg-0); margin-top: 6px; }
 .tone-summary { font-size: 12.5px; color: var(--fg-1); line-height: 1.5; margin-top: 3px; }
+/* Is the plan in the EQ? Said plainly, coloured by state. */
+.tone-applied-state {
+    margin-top: 8px; padding: 6px 10px; border-radius: 8px;
+    font-size: 12px; line-height: 1.45; color: var(--fg-1);
+    background: rgba(255, 255, 255, .04); border-left: 3px solid var(--fg-3);
+}
+.tone-applied-state[hidden] { display: none; }
+.tone-applied-state.on { border-left-color: var(--cyan); color: var(--cyan); background: rgba(34, 211, 238, .08); }
+.tone-applied-state.held { border-left-color: var(--amber); background: rgba(245, 165, 36, .08); }
+.tone-applied-state.pending { border-left-color: var(--cyan); }
+.tone-applied-state.off { border-left-color: var(--fg-3); color: var(--fg-2); }
+.tone-strip .ts-state.held { color: var(--amber); }
+.tone-strip .ts-state.pending { color: var(--fg-2); }
+.tone-strip .ts-state.off { color: var(--fg-3); }
 
 .tone-regions {
     display: grid;

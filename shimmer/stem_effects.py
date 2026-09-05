@@ -21,13 +21,20 @@ from __future__ import annotations
 from . import _winfix  # noqa: F401
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import numpy as np
 
 from .dsp import as_2d
 
 STEM_NAMES = ("vocals", "drums", "bass", "other")
+
+
+def _mix_order(stems: Dict[str, np.ndarray]) -> List[str]:
+    """The classic four first (stable output for old callers), then any
+    other lanes (guitar, piano, residual) in name order."""
+    return ([n for n in STEM_NAMES if n in stems]
+            + sorted(n for n in stems if n not in STEM_NAMES))
 
 
 @dataclass
@@ -88,11 +95,15 @@ def stem_settings_from_json(data: Optional[Dict[str, Any]]) -> StemSettings:
 
 
 def remix_settings_from_json(
-        data: Optional[Dict[str, Any]]) -> Dict[str, StemSettings]:
-    """Parse the full per-stem settings map; missing stems get defaults."""
+        data: Optional[Dict[str, Any]],
+        names: Optional[Iterable[str]] = None) -> Dict[str, StemSettings]:
+    """Parse the per-stem settings map for `names` (default: the classic
+    four); missing stems get defaults. The mixer may carry more lanes
+    than four (6-stem model, the residual), so callers pass the names
+    of the stems they actually hold."""
     data = data or {}
     return {name: stem_settings_from_json(data.get(name))
-            for name in STEM_NAMES}
+            for name in (names if names is not None else STEM_NAMES)}
 
 
 # ── Effects ──────────────────────────────────────────────────────────────
@@ -273,16 +284,24 @@ def apply_stem_effects(x: np.ndarray, sr: int,
     return apply_gain_mute(apply_fx_only(x, sr, s), s)
 
 
+def render_stems(stems: Dict[str, np.ndarray], sr: int,
+                 settings: Dict[str, StemSettings]
+                 ) -> Dict[str, np.ndarray]:
+    """Each stem through its own rack, gain and mute, trimmed to the
+    common length. What the stems export ZIP writes."""
+    if not stems:
+        raise ValueError("No stems to render")
+    n = min(v.shape[0] for v in stems.values())
+    return {name: apply_stem_effects(stems[name][:n], sr,
+                                     settings.get(name, StemSettings()))
+            for name in _mix_order(stems)}
+
+
 def render_remix(stems: Dict[str, np.ndarray], sr: int,
                  settings: Dict[str, StemSettings]) -> np.ndarray:
     """Apply each stem's rack and sum. Peak-protects the sum."""
-    n = min(v.shape[0] for v in stems.values())
     out = None
-    for name in STEM_NAMES:
-        if name not in stems:
-            continue
-        y = apply_stem_effects(stems[name][:n], sr,
-                               settings.get(name, StemSettings()))
+    for y in render_stems(stems, sr, settings).values():
         out = y if out is None else out + y
     if out is None:
         raise ValueError("No stems to mix")

@@ -50,9 +50,16 @@ class PreviewSession:
     # Fixed tonal lines found by the whole-file scan (repair.plan_from_lines
     # turns them into static notches for every preview slice and run).
     repair_lines: list = field(default_factory=list)
-    # Separated stems (vocals/drums/bass/other), populated by
+    # Content hash of the uploaded file: keys the stem cache and the
+    # per-track project store.
+    digest: str = ""
+    # Separated stems (vocals/drums/bass/other, plus guitar/piano from
+    # the 6-stem model and the residual), populated by
     # /api/stems/separate. Each is (n, ch) float32 at self.sr.
     stems: Optional[Dict[str, np.ndarray]] = None
+    # What the mixer shows about them: tier/model, per-stem levels and
+    # lane peaks, the null test, the loop hint (stems.measure_stems).
+    stems_info: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def duration_s(self) -> float:

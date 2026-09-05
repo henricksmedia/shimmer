@@ -141,6 +141,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
   940 px wide on a desktop, stage names on one line, the stage in
   19 px type, so it reads from across the room.
 
+- **The Suggested EQ card says whether it is in the EQ.** A state line under the verdict reads In the EQ, Held for pass 2 (this run is pass 1, cleaning only; the plan is made again on the cleaned file and applied by itself when pass 2 runs; use Apply to take it now), Goes into the EQ on the final pass, or Not in the EQ. The EQ strip shows the same state and its button says Apply now when the plan is held.
+
 - **The Remix tab's player lives in the bridge.** Its transport, A/B
   and loop controls used to sit in a card that scrolled away with the
   page while the bottom bar showed the Master tab's idle player. The

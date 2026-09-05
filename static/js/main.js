@@ -12,7 +12,7 @@ import { initRecents } from './recents.js';
 
 const VIEW_TITLES = {
     single: ['Master', 'clean AI artifacts · master for release'],
-    remix:  ['Remix', 'stems · per-part effects · rebuild the mix'],
+    remix:  ['Remix', 'split into stems · rebalance · render the mix or export the parts'],
     batch:  ['Batch', 'whole folders, one pass'],
     chain:  ['Signal Chain', 'what actually happens to your audio'],
 };
