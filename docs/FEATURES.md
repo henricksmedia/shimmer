@@ -578,11 +578,12 @@ Sources: [static/index.html](static/index.html) and the ES modules in
 - Head/Tail toggle, zoom presets (250 ms / 1 s / 3 s / 10 s), click or drag
   to place the marker, ←/→ nudge 1 ms (Shift 10 ms), numeric ms fields, and
   Audition to play the original from the marker.
-- Suggested cuts land 40 ms before the music starts, so the artifact, its
-  decay and the dead air after it all go and the song keeps a short
-  breath; a gap too short for that gets the cut where the floor has
-  settled after the artifact. Cuts snap to the nearest zero crossing, and
-  a 5 ms fade is applied at each new edge so the cut itself cannot click.
+- Suggested cuts land 10 ms past the point where the artifact's slope has
+  reached the floor (the middle of the gap's noise band), so the tick and
+  its decay go and the quiet floor stays; removing that floor is the
+  separate "Trim leading/trailing silence on export" setting, mirrored in
+  the Trim card. Cuts snap to the nearest zero crossing, and a 5 ms fade
+  is applied at each new edge so the cut itself cannot click.
 - An armed cut shows in the card header while the panel is closed, and the
   applied cut is reported on the done banner ("Trimmed 40 ms head").
 - The cut is applied to the source *before* cleaning and mastering, so a
@@ -593,22 +594,26 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   an expandable description under it.
 - Analyze button runs the verified auto-detect (Section 6) plus loudness
   analysis, applies the top preset *and its recommended strength*, and
-  shows up to six match cards: rank, name, confidence bar, a strength chip
-  (amber above 100%, cyan below), one-click Apply (which also moves the
-  Preset strength slider), and the reason text (evidence phrase plus the
-  trial-clean numbers). Below the cards: a second-pass suggestion when a
-  runner-up still finds residue on the winner's output (with a
-  master-once reminder when mastering is on), tonal-balance notes, and the
-  "Noise over time" strip: one bar per second of top-end noise, amber for
-  the worst stretches, with a time axis. Click the strip to jump there
-  (moves the loop window while Live is on, seeks the player otherwise).
-  Takes roughly ten seconds.
+  shows the result as a verdict. The applied match is a hero block: name,
+  strength as a big number, a solid amber Applied pill, the match bar and
+  the reason in full. It is whichever match is applied, so it moves when
+  you click Apply on another; the other matches (up to five) sit in a
+  quiet ranked table (rank, name, match bar, strength, Apply; reason on
+  hover). Apply also moves the Preset strength slider. When a runner-up
+  still finds residue on the winner's output, a "Next step" callout names
+  the second pass and offers "Set up second pass" (mastering off, Preserve
+  volume on) with what to do after this pass. Tonal-balance and cutoff
+  notes sit in a Details list. Below: the "Noise over time" strip, one bar
+  per second of top-end noise, amber for the worst stretches, with a time
+  axis; click it to jump there (moves the loop window while Live is on,
+  seeks the player otherwise). Takes roughly ten seconds.
 - Analyze also lives in the dock above Clean & Master (cyan, step 2). It
   runs the analysis and jumps to the card; once done it becomes a green
   "Analysis ready" status. Clicking it then, or the card's Expand button,
   opens the Analysis workspace: a sheet that slides up over the page
-  (timeline on top, ranked matches left, second pass, notes and fixed
-  tones right) with "Loop the worst part" and Close. The transport stays
+  (four status tiles on top: Applied, Second pass, Fixed tones, Top end;
+  then the timeline, the hero and table left, next step, details and
+  fixed tones right) with "Loop the worst part" and Close. The transport stays
   visible below it; Escape or a new upload closes it.
 - Preset strength slider 0–200% (step 5%): visible sliders re-scale live in
   the client, hidden amount keys scale server-side via the same whitelist.

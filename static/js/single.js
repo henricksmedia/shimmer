@@ -810,9 +810,18 @@ export async function initSingleTab() {
         autoDetectResults.appendChild(err);
     }
 
+    // Verdict first. The applied match is the hero; the other matches are
+    // a quiet table; the second pass is a call to action with a button;
+    // notes are a Details list. Four status tiles render too, shown only
+    // in the workspace sheet (CSS). Amber marks exactly two things: the
+    // applied choice and the next action.
+    let syncNextStep = null;   // re-checks the second-pass callout when mastering toggles
+    masterEnabled.addEventListener('change', () => { if (syncNextStep) syncNextStep(); });
+
     function renderAutoDetect(r) {
         autoDetectResults.hidden = false;
         autoDetectResults.innerHTML = '';
+        syncNextStep = null;
 
         const ranked = Array.isArray(r.ranked) ? r.ranked : [];
         if (ranked.length === 0) {
@@ -823,121 +832,134 @@ export async function initSingleTab() {
             return;
         }
 
-        // Two groups so the workspace sheet can lay them out side by
-        // side: main = the ranked matches, side = second pass and notes.
-        // In the card they simply stack.
-        const main = document.createElement('div');
-        main.className = 'ad-main';
-        const side = document.createElement('div');
-        side.className = 'ad-side';
-
-        const heading = document.createElement('div');
-        heading.className = 'ad-cards-label';
-        heading.textContent = ranked.length > 1 ? 'Best matches' : 'Best match';
-        main.appendChild(heading);
-
-        const list = document.createElement('div');
-        list.className = 'ad-cards';
-        const cards = [];
-
-        const setActive = (idx) => {
-            cards.forEach((c, i) => {
-                c.card.classList.toggle('active', i === idx);
-                c.apply.textContent = i === idx ? 'Applied' : 'Apply';
-                c.apply.disabled = i === idx;
-            });
+        const el = (tag, cls, text) => {
+            const e = document.createElement(tag);
+            if (cls) e.className = cls;
+            if (text != null) e.textContent = text;
+            return e;
         };
+        const matches = ranked.slice(0, 6);
+        const followUp = (r.follow_up && r.follow_up.name) ? r.follow_up : null;
+        const notches = (r.repair_plan && Array.isArray(r.repair_plan.notches))
+            ? r.repair_plan.notches.length : 0;
+        const cutoffHz = Number(r.evidence && r.evidence.cutoff_hz) || 0;
+        const pctOf = (v) => `${Math.round((Number.isFinite(v) ? v : 1) * 100)}%`;
+        const nameOf = (m) => m.label || labelOf(m.name);
 
-        ranked.slice(0, 6).forEach((entry, i) => {
-            const card = document.createElement('div');
-            card.className = 'ad-card' + (i >= 3 ? ' ad-card-more' : '');
+        // Status tiles (workspace only).
+        const tiles = el('div', 'ad-tiles');
+        const tile = (label, value, tone) => {
+            const t = el('div', `ad-tile ${tone}`);
+            t.append(el('div', 't-label', label), el('div', 't-value', value));
+            tiles.appendChild(t);
+            return t;
+        };
+        const appliedTile = tile('Applied', '', 'amber');
+        tile('Second pass',
+            followUp ? `Recommended · ${nameOf(followUp)}` : 'Not needed',
+            followUp ? 'orange' : 'green');
+        tile('Fixed tones',
+            notches ? `${notches} notched first` : 'None found',
+            notches ? 'cyan' : 'green');
+        tile('Top end',
+            cutoffHz > 0 ? `Stops at ${(cutoffHz / 1000).toFixed(1)} kHz` : 'Full range',
+            'grey');
 
-            const head = document.createElement('div');
-            head.className = 'ad-card-head';
+        // Hero + table. Re-rendered whenever Apply moves the choice, so
+        // the highlight follows the state, never the position.
+        const main = el('div', 'ad-main');
+        const hero = el('div', 'ad-hero');
+        const othersLabel = el('div', 'ad-others-label', 'Other matches');
+        const table = el('div', 'ad-table');
+        main.append(hero, othersLabel, table);
 
-            const rank = document.createElement('span');
-            rank.className = 'ad-card-rank';
-            rank.textContent = `${i + 1}`;
+        let applied = 0;
+        const renderMain = () => {
+            const m = matches[applied];
+            hero.innerHTML = '';
+            const top = el('div', 'ad-hero-top');
+            const strength = el('div', 'ad-hero-strength');
+            strength.append(el('span', 'v', pctOf(m.strength)), el('span', 'k', 'strength'));
+            top.append(el('div', 'ad-hero-name', nameOf(m)),
+                       el('span', 'ad-hero-pill', 'Applied'), strength);
+            const conf = el('div', 'ad-hero-conf');
+            const bar = el('div', 'ad-confidence');
+            const fill = el('div', 'ad-confidence-fill');
+            fill.style.width = pctOf(m.confidence || 0);
+            bar.appendChild(fill);
+            conf.append(bar, el('span', 'ad-confidence-pct', `${pctOf(m.confidence || 0)} match`));
+            hero.append(top, conf);
+            if (m.reason) hero.appendChild(el('div', 'ad-hero-reason', m.reason));
+            appliedTile.querySelector('.t-value').textContent =
+                `${nameOf(m)} · ${pctOf(m.strength)}`;
 
-            const name = document.createElement('div');
-            name.className = 'ad-name';
-            name.textContent = entry.label || labelOf(entry.name);
-            name.title = name.textContent;
-
-            const confWrap = document.createElement('div');
-            confWrap.className = 'ad-confidence-wrap';
-            const conf = document.createElement('div');
-            conf.className = 'ad-confidence';
-            const fill = document.createElement('div');
-            fill.className = 'ad-confidence-fill';
-            const pct = Math.round((entry.confidence || 0) * 100);
-            fill.style.width = `${pct}%`;
-            conf.appendChild(fill);
-            const pctText = document.createElement('div');
-            pctText.className = 'ad-confidence-pct';
-            pctText.textContent = `${pct}%`;
-            confWrap.appendChild(conf);
-            confWrap.appendChild(pctText);
-
-            const strengthVal = Number.isFinite(entry.strength) ? entry.strength : 1.0;
-            const strengthChip = document.createElement('span');
-            strengthChip.className = 'ad-strength'
-                + (strengthVal > 1.01 ? ' boost' : strengthVal < 0.99 ? ' gentle' : '');
-            strengthChip.textContent = `${Math.round(strengthVal * 100)}%`;
-            strengthChip.title = 'Recommended preset strength for this match';
-
-            const apply = document.createElement('button');
-            apply.type = 'button';
-            apply.className = 'btn btn-ghost ad-apply-btn';
-            apply.addEventListener('click', () => {
-                applyDetectedPreset(entry.name, strengthVal);
-                setActive(i);
+            table.innerHTML = '';
+            matches.forEach((entry, i) => {
+                if (i === applied) return;
+                const row = el('div', 'ad-row');
+                row.title = entry.reason || '';
+                const bar2 = el('div', 'ad-confidence');
+                const fill2 = el('div', 'ad-confidence-fill');
+                fill2.style.width = pctOf(entry.confidence || 0);
+                bar2.appendChild(fill2);
+                const btn = el('button', 'btn btn-ghost ad-apply-btn', 'Apply');
+                btn.type = 'button';
+                btn.addEventListener('click', () => {
+                    applied = i;
+                    applyDetectedPreset(entry.name,
+                        Number.isFinite(entry.strength) ? entry.strength : 1.0);
+                    renderMain();
+                });
+                row.append(el('span', 'ad-row-rank', String(i + 1)),
+                           el('span', 'ad-row-name', nameOf(entry)),
+                           bar2, el('span', 'ad-row-strength', pctOf(entry.strength)), btn);
+                table.appendChild(row);
             });
+            const none = table.childElementCount === 0;
+            othersLabel.hidden = none;
+            table.hidden = none;
+        };
+        renderMain();
 
-            head.appendChild(rank);
-            head.appendChild(name);
-            head.appendChild(confWrap);
-            head.appendChild(strengthChip);
-            head.appendChild(apply);
-            card.appendChild(head);
-
-            if (entry.reason) {
-                const reason = document.createElement('div');
-                reason.className = 'ad-card-reason';
-                reason.textContent = entry.reason;
-                reason.title = entry.reason;
-                card.appendChild(reason);
-            }
-
-            cards.push({card, apply});
-            list.appendChild(card);
-        });
-
-        main.appendChild(list);
-        setActive(0);  // top pick is auto-applied by the caller
-
-        if (r.follow_up && r.follow_up.name) {
-            const fu = document.createElement('div');
-            fu.className = 'ad-followup';
-            const b = document.createElement('b');
-            b.textContent = `Second pass: ${r.follow_up.label || labelOf(r.follow_up.name)}. `;
-            fu.appendChild(b);
-            fu.appendChild(document.createTextNode(r.follow_up.reason || ''));
-            if (masterEnabled.checked) {
-                const tip = document.createElement('div');
-                tip.className = 'ad-followup-tip';
-                tip.textContent = secondPassMasteringTip();
-                fu.appendChild(tip);
-            }
-            side.appendChild(fu);
+        // Side: next step (second pass) and details.
+        const side = el('div', 'ad-side');
+        if (followUp) {
+            const next = el('div', 'ad-next');
+            next.append(el('div', 'ad-next-kicker', 'Next step'),
+                        el('div', 'ad-next-title', `Second pass with ${nameOf(followUp)}`));
+            if (followUp.reason) next.append(el('div', 'ad-next-reason', followUp.reason));
+            const status = el('div', 'ad-next-status');
+            const btn = el('button', 'btn ad-next-btn', 'Set up second pass');
+            btn.type = 'button';
+            const readyText = 'Mastering is off and Preserve volume is on for this pass. ' +
+                `Run Clean & Master, then upload the result and run ${nameOf(followUp)}.`;
+            const syncNext = () => {
+                const on = masterEnabled.checked;
+                status.className = `ad-next-status ${on ? 'warn' : 'ok'}`;
+                status.textContent = on ? secondPassMasteringTip() : readyText;
+                btn.hidden = !on;
+            };
+            btn.addEventListener('click', () => {
+                masterEnabled.checked = false;
+                masterEnabled.dispatchEvent(new Event('change'));
+                preserveVol.checked = true;
+                preserveVol.dispatchEvent(new Event('change'));
+                syncNext();
+            });
+            syncNextStep = syncNext;
+            syncNext();
+            next.append(status, btn);
+            side.appendChild(next);
         }
-        (Array.isArray(r.notes) ? r.notes : []).forEach((text) => {
-            const n = document.createElement('div');
-            n.className = 'ad-note';
-            n.textContent = text;
-            side.appendChild(n);
-        });
-        autoDetectResults.appendChild(main);
+        const notes = Array.isArray(r.notes) ? r.notes : [];
+        if (notes.length) {
+            const details = el('div', 'ad-details');
+            details.appendChild(el('div', 'ad-details-label', 'Details'));
+            notes.forEach((t) => details.appendChild(el('div', 'ad-detail', t)));
+            side.appendChild(details);
+        }
+
+        autoDetectResults.append(tiles, main);
         if (side.childElementCount > 0) autoDetectResults.appendChild(side);
 
         const tl = r.timeline && Array.isArray(r.timeline.intensity)
@@ -1094,6 +1116,20 @@ export async function initSingleTab() {
         schedulePreviewRender();
     });
     trimSilence.addEventListener('change', pushSettings);
+    // The Trim card mirrors the export silence-trim setting, so the
+    // artifact cut and the floor trim sit together. Two-way sync with
+    // the checkbox in Output; one source of truth (#trim-silence).
+    const trimSilenceMirror = $('trim-silence-mirror');
+    if (trimSilenceMirror) {
+        trimSilenceMirror.checked = trimSilence.checked;
+        trimSilenceMirror.addEventListener('change', () => {
+            trimSilence.checked = trimSilenceMirror.checked;
+            trimSilence.dispatchEvent(new Event('change'));
+        });
+        trimSilence.addEventListener('change', () => {
+            trimSilenceMirror.checked = trimSilence.checked;
+        });
+    }
     if (rememberSettings) {
         rememberSettings.addEventListener('change', pushSettings);
     }

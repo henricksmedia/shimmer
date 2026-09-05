@@ -67,9 +67,9 @@
     <section id="tab-single" class="tab-panel active" role="tabpanel">
 
         <ol class="wizard-steps" aria-label="Workflow">
-            <li class="wizard-step active" id="step-upload"><span class="step-num">1</span> Upload</li>
-            <li class="wizard-step" id="step-analyze"><span class="step-num">2</span> Analyze</li>
-            <li class="wizard-step" id="step-process"><span class="step-num">3</span> Clean &amp; Master</li>
+            <li class="wizard-step active" id="step-upload"><span class="step-num">1</span><span class="step-label">Upload</span></li>
+            <li class="wizard-step" id="step-analyze"><span class="step-num">2</span><span class="step-label">Analyze</span></li>
+            <li class="wizard-step" id="step-process"><span class="step-num">3</span><span class="step-label">Clean &amp; Master</span></li>
         </ol>
 
         <!-- Empty state: hero dropzone, exactly like the demo -->
@@ -79,7 +79,7 @@
                 <div class="dropzone-inner">
                     <div class="dropzone-primary">Drop a track to clean &amp; master</div>
                     <div class="dropzone-secondary">Suno exports welcome — Shimmer removes AI artifacts, then masters for release.</div>
-                    <button type="button" class="btn btn-primary" id="pick-file-btn">Choose file…</button>
+                    <button type="button" class="btn btn-primary step-btn" data-step="1" id="pick-file-btn">Choose file…</button>
                     <div class="dropzone-formats">.wav · .mp3 · .flac · .ogg · .m4a</div>
                     <div class="selected-file" id="selected-file" hidden></div>
                 </div>
@@ -173,6 +173,11 @@
                             <canvas id="trim-canvas" class="trim-canvas" tabindex="0"
                                     aria-label="Level over time in dBFS. Click to place the marker, arrow keys to nudge."></canvas>
 
+                            <label class="checkbox-row trim-export-check"
+                                   title="The same setting as in Output. Removes the quiet floor below −60 dBFS from the start and end of the downloaded file, keeping a short natural pad. The head and tail cuts above only remove the artifact itself.">
+                                <input type="checkbox" id="trim-silence-mirror">
+                                <span>Also trim the quiet floor before and after the song on export</span>
+                            </label>
                             <div class="trim-foot">
                                 <span class="trim-hint">Click to place · ←/→ nudge 1 ms · Shift 10 ms</span>
                                 <span class="spacer"></span>
@@ -228,7 +233,7 @@
                             <span class="spacer"></span>
                             <button type="button" class="btn btn-ghost btn-sm" id="analysis-expand-btn" hidden
                                     title="Open the analysis in a bigger workspace over the page">Expand</button>
-                            <button type="button" class="btn btn-primary btn-sm" id="analyze-btn" title="Listens to your track, picks the best cleanup preset, and finds where the noise is worst">Analyze</button>
+                            <button type="button" class="btn btn-primary btn-sm step-btn" data-step="2" id="analyze-btn" title="Listens to your track, picks the best cleanup preset, and finds where the noise is worst">Analyze</button>
                         </div>
                         <div class="card-body">
                             <div id="analysis-home" hidden></div>
@@ -254,7 +259,7 @@
                                 title="Listens to your track and picks the best cleanup preset. Jumps to the Analysis card.">
                             <span class="adb-step">2</span><span class="adb-text">Analyze</span>
                         </button>
-                        <button type="button" class="btn btn-primary process-btn" id="process-btn" disabled>Clean &amp; Master</button>
+                        <button type="button" class="btn btn-primary process-btn step-btn" data-step="3" id="process-btn" disabled>Clean &amp; Master</button>
                         <progress id="progress" value="0" max="1" hidden></progress>
                     </div>
                     <div class="card insp">

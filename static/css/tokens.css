@@ -35,6 +35,12 @@
     --cyan:         #38bdf8;   /* analysis / detection */
     --teal:         #2dd4bf;   /* batch / data */
 
+    /* Workflow stages. One colour per stage, used everywhere its number
+       or its button appears: stepper, dropzone, Analysis card, dock. */
+    --stage-1:      var(--teal);    /* Upload */
+    --stage-2:      var(--cyan);    /* Analyze */
+    --stage-3:      var(--amber);   /* Clean & Master */
+
     /* Semantic */
     --success: #4ade80;
     --danger:  #f0526b;

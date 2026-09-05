@@ -172,6 +172,7 @@
    Cyan (analysis) against the amber Clean & Master; turns into a green
    "ready" status once Analyze has run. Clicking always jumps to the card. */
 .analyze-dock-btn {
+    --stage: var(--stage-2);
     width: 100%;
     display: flex;
     align-items: center;
@@ -179,44 +180,50 @@
     gap: 9px;
     padding: 9px 14px;
     font-size: 13px;
-    font-weight: 600;
-    color: var(--cyan);
-    background: rgba(56, 189, 248, 0.08);
-    border: 1px solid rgba(56, 189, 248, 0.45);
-    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    font-weight: 650;
+    color: #0b0d10;
+    background: var(--stage);
+    border: 1px solid transparent;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease, filter 120ms ease;
 }
 .analyze-dock-btn:hover:not(:disabled) {
-    background: rgba(56, 189, 248, 0.16);
-    border-color: var(--cyan);
-    color: #dff4ff;
+    background: var(--stage);
+    filter: brightness(1.08);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 0 18px rgba(56, 189, 248, .3);
 }
 .analyze-dock-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.analyze-dock-btn .adb-step {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 1.5px solid currentColor;
-    font-size: 11px;
-    font-weight: 700;
-}
 .analyze-dock-btn .adb-text {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.analyze-dock-btn.busy { color: var(--fg-1); border-color: var(--line-2); background: var(--bg-3); }
+.analyze-dock-btn.busy {
+    color: var(--fg-1);
+    border-color: var(--line-2);
+    background: var(--bg-3);
+    filter: none;
+    box-shadow: none;
+}
+/* Done: a green status, with the stage-2 badge kept in its own colour. */
 .analyze-dock-btn.done {
     color: var(--success);
     background: rgba(74, 222, 128, 0.08);
     border-color: rgba(74, 222, 128, 0.45);
+    filter: none;
+    box-shadow: none;
 }
 .analyze-dock-btn.done:hover:not(:disabled) {
     background: rgba(74, 222, 128, 0.14);
     border-color: var(--success);
     color: #e6ffef;
+    filter: none;
+    box-shadow: none;
+}
+.analyze-dock-btn.busy .adb-step,
+.analyze-dock-btn.done .adb-step {
+    background: var(--stage);
+    border-color: rgba(0, 0, 0, .38);
+    color: #0b0d10;
 }
 
 /* Status pill in the Analysis card header, mirrors the dock button. */
@@ -273,6 +280,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
     grid-template-areas:
+        "tiles    tiles"
         "timeline timeline"
         "main     side"
         "main     repair";
@@ -281,6 +289,13 @@
     min-height: 0;
 }
 .analysis-sheet-body #auto-detect-results { display: contents; }
+.analysis-sheet-body .ad-tiles {
+    grid-area: tiles;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+.analysis-sheet-body .ad-main + .ad-side { margin-top: 0; }
 .analysis-sheet-body .ad-timeline-wrap { grid-area: timeline; margin-top: 0; }
 .analysis-sheet-body .ad-timeline { height: 72px; }
 .analysis-sheet-body .ad-main { grid-area: main; }
@@ -290,8 +305,9 @@
 @media (max-width: 1100px) {
     .analysis-sheet-body {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "timeline" "main" "side" "repair";
+        grid-template-areas: "tiles" "timeline" "main" "side" "repair";
     }
+    .analysis-sheet-body .ad-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Brief ring on the Analysis card when the dock button jumps to it. */

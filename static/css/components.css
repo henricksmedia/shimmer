@@ -98,8 +98,8 @@
 /* ── Master screen layout ───────────────────────────────────────────── */
 
 .master-empty {
-    max-width: 680px;
-    margin: 4vh auto 0;
+    max-width: 760px;
+    margin: 6vh auto 0;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -136,72 +136,150 @@
     .master-3col, .remix-grid, .batch-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Wizard chips (demo style) ──────────────────────────────────────── */
+/* ── Workflow stepper ───────────────────────────────────────────────── */
+/* Three equal segments across the page. Each stage keeps its own colour
+   (--stage-1/2/3) everywhere; the stepper shows STATE by fill and
+   underline, not by hue: current = filled badge and full underline, done
+   = outlined badge and a faded underline, still to come = grey. */
+
+#step-upload  { --stage: var(--stage-1); }
+#step-analyze { --stage: var(--stage-2); }
+#step-process { --stage: var(--stage-3); }
 
 .wizard-steps {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    align-items: stretch;
+    gap: 10px;
     list-style: none;
-    margin: 0 0 2px;
+    margin: 0 0 6px;
     padding: 0;
 }
 .wizard-step {
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     align-items: center;
-    gap: 7px;
-    font-size: 12px;
+    gap: 10px;
+    padding: 8px 12px 10px;
+    border-bottom: 3px solid var(--line-2);
+    font-size: 14px;
+    font-weight: 600;
     color: var(--fg-3);
-    font-weight: 500;
     white-space: nowrap;
+    transition: color 160ms ease, border-color 160ms ease;
 }
-.wizard-step + .wizard-step::before {
-    content: "";
-    width: 26px;
-    height: 1px;
-    background: var(--line-2);
-    margin-right: 7px;
-}
+.wizard-step .step-label { overflow: hidden; text-overflow: ellipsis; }
 .wizard-step .step-num {
-    width: 20px;
-    height: 20px;
+    flex: none;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: var(--bg-4);
-    border: 1px solid var(--line-2);
-    font-size: 11px;
+    background: transparent;
+    border: 1.5px solid var(--line-2);
+    font-size: 12.5px;
+    font-weight: 700;
     font-family: var(--font-mono);
-    color: inherit;
+    color: var(--fg-3);
+    transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
-.wizard-step.active { color: var(--fg-0); }
+.wizard-step.active {
+    color: var(--fg-0);
+    border-bottom-color: var(--stage);
+    font-size: 15px;
+}
 .wizard-step.active .step-num {
-    background: var(--amber-soft);
-    border-color: var(--amber);
-    color: var(--amber);
+    background: var(--stage);
+    border-color: var(--stage);
+    color: #0b0d10;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage) 22%, transparent);
 }
-.wizard-step.done { color: var(--fg-2); }
+/* Done stages carry both classes; these rules win by order. */
+.wizard-step.done {
+    color: var(--fg-1);
+    border-bottom-color: color-mix(in srgb, var(--stage) 55%, transparent);
+    font-size: 14px;
+}
 .wizard-step.done .step-num {
-    background: rgba(74,222,128,.12);
-    border-color: rgba(74,222,128,.4);
-    color: var(--success);
+    background: color-mix(in srgb, var(--stage) 16%, transparent);
+    border-color: var(--stage);
+    color: var(--stage);
+    box-shadow: none;
 }
+@media (max-width: 1100px) {
+    .wizard-step { font-size: 13px; padding: 7px 8px 9px; gap: 8px; }
+    .wizard-step.active { font-size: 13.5px; }
+    .wizard-step .step-num { width: 22px; height: 22px; font-size: 11.5px; }
+}
+
+/* Stage buttons: the button takes its stage's colour (1 Choose file,
+   2 Analyze, 3 Clean & Master) and carries the number as a badge drawn
+   from data-step, so the number survives the text being swapped
+   ("Analyzing…"). The dock Analyze button uses the same look on a real
+   span (.adb-step). */
+.step-btn[data-step="1"] { --stage: var(--stage-1); }
+.step-btn[data-step="2"] { --stage: var(--stage-2); }
+.step-btn[data-step="3"] { --stage: var(--stage-3); }
+.btn-primary.step-btn { background: var(--stage); color: #0b0d10; }
+.btn-primary.step-btn:hover:not(:disabled) {
+    background: var(--stage);
+    filter: brightness(1.08);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 0 18px color-mix(in srgb, var(--stage) 30%, transparent);
+}
+/* Stage 3 keeps its amber-to-coral gradient (layout.css); still amber. */
+.process-btn.btn-primary.step-btn { background: linear-gradient(135deg, var(--amber), var(--gold)); }
+.process-btn.btn-primary.step-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ffb61f, #ff8a66);
+    filter: none;
+}
+.step-btn::before { content: attr(data-step); }
+.step-btn::before,
+.analyze-dock-btn .adb-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .18);
+    border: 1.5px solid rgba(0, 0, 0, .38);
+    color: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    line-height: 1;
+    flex: none;
+}
+.step-btn.btn-sm::before { width: 16px; height: 16px; font-size: 10px; }
 
 /* ── Dropzone (hero + compact) ──────────────────────────────────────── */
 
+/* The hero dropzone is the whole landing screen, so its type and its
+   stage-1 button are sized for that: a 24 px title, a 15 px button with
+   a 22 px badge. The compact form (after a file is loaded) overrides
+   these back down below. */
 .dropzone {
     border: 1.5px dashed var(--line-2);
-    border-radius: 14px;
-    padding: 42px 24px;
+    border-radius: 16px;
+    padding: 56px 32px 48px;
     text-align: center;
     cursor: pointer;
     transition: border-color 220ms ease, background 220ms ease;
-    background: radial-gradient(600px 200px at 50% 0%, rgba(245,165,36,.04), transparent);
+    background: radial-gradient(700px 240px at 50% 0%, rgba(45,212,191,.05), transparent);
 }
-.dropzone.drag-over { border-color: var(--amber); background: var(--amber-soft); }
-.dropzone-primary { font-size: 18px; font-weight: 650; color: var(--fg-0); margin-bottom: 6px; }
-.dropzone-secondary { color: var(--fg-2); font-size: 12.5px; margin-bottom: 16px; }
-.dropzone-formats { font-family: var(--font-mono); color: var(--fg-3); font-size: 11px; margin-top: 14px; }
+.dropzone.drag-over { border-color: var(--stage-1); background: rgba(45,212,191,.08); }
+.dropzone-primary { font-size: 24px; font-weight: 700; color: var(--fg-0); margin-bottom: 8px; letter-spacing: -.01em; }
+.dropzone-secondary { color: var(--fg-2); font-size: 14px; margin-bottom: 22px; }
+.dropzone:not(.dropzone-compact) .btn.step-btn {
+    font-size: 15px;
+    padding: 12px 28px;
+    min-width: 240px;
+    border-radius: 12px;
+    gap: 10px;
+}
+.dropzone:not(.dropzone-compact) .step-btn::before { width: 22px; height: 22px; font-size: 12.5px; }
+.dropzone-formats { font-family: var(--font-mono); color: var(--fg-1); font-size: 14px; letter-spacing: .02em; margin-top: 20px; }
 .selected-file {
     margin-top: 12px;
     display: inline-block;
@@ -232,8 +310,8 @@
 .dropzone-compact .dropzone-primary { flex-basis: 100%; font-size: 12.5px; margin-bottom: 0; }
 .dropzone-compact .dropzone-secondary,
 .dropzone-compact .dropzone-formats { display: none; }
-.dropzone-compact .btn { flex: none; padding: 4px 12px; font-size: 11.5px; }
-.dropzone-compact .selected-file { margin-top: 0; }
+.dropzone-compact .btn { flex: 1 1 100%; padding: 6px 12px; font-size: 12px; }
+.dropzone-compact .selected-file { margin-top: 0; flex: 1 1 100%; text-align: center; }
 
 /* ── Forms ──────────────────────────────────────────────────────────── */
 
@@ -687,116 +765,138 @@ progress::-webkit-progress-value {
 }
 progress::-moz-progress-bar { background: var(--amber); }
 
-/* ════ COMPAT: auto-detect ranked results (single.js-generated) ═════ */
+/* ════ COMPAT: auto-detect results (single.js-generated) ═════════════ */
+/* Verdict first: the applied match is the hero, the other matches a quiet
+   table, the second pass a call to action, notes a Details list. Amber is
+   used for exactly two things: the applied choice and the next action. */
 
-.ad-cards-label {
+.ad-reason { color: var(--fg-2); font-size: 11.5px; line-height: 1.45; }
+.ad-error { color: var(--danger); font-size: 12px; }
+
+.ad-hero {
+    background: linear-gradient(180deg, rgba(245, 165, 36, .14), rgba(245, 165, 36, .05));
+    border: 1px solid rgba(245, 165, 36, .5);
+    border-radius: 12px;
+    padding: 12px 14px 11px;
+}
+.ad-hero-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ad-hero-name {
+    font-size: 18px;
+    font-weight: 650;
+    color: var(--fg-0);
+    letter-spacing: -.01em;
+    min-width: 0;
+}
+.ad-hero-pill {
+    background: var(--amber);
+    color: #17130a;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.ad-hero-strength { margin-left: auto; display: flex; align-items: baseline; gap: 5px; }
+.ad-hero-strength .v { font-family: var(--font-mono); font-size: 22px; font-weight: 600; color: var(--amber); }
+.ad-hero-strength .k { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-3); }
+.ad-hero-conf { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.ad-hero-conf .ad-confidence { flex: 1; }
+.ad-hero-reason { margin-top: 8px; font-size: 12.5px; line-height: 1.5; color: var(--fg-1); }
+
+.ad-confidence { height: 4px; background: var(--bg-4); border-radius: 2px; overflow: hidden; min-width: 50px; }
+.ad-confidence-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--teal)); border-radius: 2px; }
+.ad-confidence-pct { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); white-space: nowrap; }
+
+.ad-others-label, .ad-cards-label {
+    margin: 12px 0 4px;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: .08em;
     color: var(--fg-3);
-    font-weight: 650;
-    margin-bottom: 6px;
+    font-weight: 700;
 }
-.ad-cards { display: flex; flex-direction: column; gap: 5px; }
-.ad-card {
-    border: 1px solid var(--line);
-    background: var(--bg-2);
-    border-radius: var(--radius);
-    padding: 6px 10px;
+.ad-table { display: flex; flex-direction: column; }
+.ad-row {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) 90px 44px auto;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    opacity: .72;
+    transition: opacity 120ms ease, background 120ms ease;
 }
-.ad-card:first-of-type {
-    border-color: rgba(56,189,248,.35);
-    background: rgba(56,189,248,.06);
-}
-.ad-card-head { display: flex; align-items: center; gap: 8px; }
-.ad-card-rank {
-    width: 18px; height: 18px;
+.ad-row:hover { opacity: 1; background: rgba(255, 255, 255, .03); }
+.ad-row-rank {
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
+    border: 1px solid var(--line-2);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-4);
-    border: 1px solid var(--line-2);
     font-family: var(--font-mono);
     font-size: 10px;
     color: var(--fg-2);
-    flex: none;
 }
-.ad-card:first-of-type .ad-card-rank { border-color: var(--cyan); color: var(--cyan); }
-.ad-name { font-weight: 600; font-size: 12.5px; color: var(--fg-0); }
-.ad-confidence-wrap {
-    flex: 1;
-    height: 4px;
-    border-radius: 2px;
-    background: #232a35;
-    overflow: hidden;
-    min-width: 40px;
-}
-.ad-confidence-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--teal)); border-radius: 2px; }
-.ad-confidence-pct { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); }
-.ad-card-reason, .ad-reason { color: var(--fg-2); font-size: 10.5px; margin-top: 2px; line-height: 1.45; }
-.ad-apply-btn {
-    background: transparent;
-    border: 1px solid var(--line-2);
-    border-radius: var(--radius-s);
-    color: var(--fg-1);
-    font: inherit;
-    font-size: 11px;
-    padding: 2px 9px;
-    cursor: pointer;
-    flex: none;
-}
+.ad-row-name { font-weight: 600; color: var(--fg-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-row-strength { font-family: var(--font-mono); font-size: 11px; color: var(--fg-2); text-align: right; }
+.ad-apply-btn { padding: 3px 10px; font-size: 11px; }
 .ad-apply-btn:hover { border-color: var(--amber); color: var(--fg-0); }
-.ad-error { color: var(--danger); font-size: 12px; }
 
-/* Recommended strength for each match (fed to the Preset strength slider
-   on Apply) and the verification-driven follow-up / balance notes. */
-.ad-strength {
-    flex: none;
-    font-size: 10.5px;
-    font-variant-numeric: tabular-nums;
-    color: var(--fg-2);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 1px 7px;
-    white-space: nowrap;
+.ad-next {
+    border-left: 3px solid var(--amber);
+    background: rgba(245, 165, 36, .07);
+    border-radius: 0 10px 10px 0;
+    padding: 10px 12px 11px;
 }
-.ad-strength.boost { color: var(--amber); border-color: rgba(251,191,36,.45); }
-.ad-strength.gentle { color: var(--cyan); border-color: rgba(56,189,248,.45); }
-.ad-card.ad-card-more { opacity: .85; }
-.ad-followup, .ad-note {
-    margin-top: 8px;
-    padding: 6px 10px;
-    border-radius: var(--radius);
-    font-size: 10.5px;
-    line-height: 1.45;
-    color: var(--fg-1);
-    border: 1px dashed var(--line-2);
+.ad-next-kicker { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--amber); font-weight: 700; }
+.ad-next-title { font-size: 14px; font-weight: 650; color: var(--fg-0); margin-top: 2px; }
+.ad-next-reason { font-size: 12px; color: var(--fg-1); line-height: 1.5; margin-top: 5px; }
+.ad-next-status { font-size: 11.5px; line-height: 1.45; margin-top: 7px; }
+.ad-next-status.warn { color: var(--amber); }
+.ad-next-status.ok { color: var(--success); }
+.btn.ad-next-btn {
+    margin-top: 9px;
+    background: var(--amber);
+    border-color: var(--amber);
+    color: #17130a;
+    font-weight: 650;
+    padding: 7px 12px;
 }
-.ad-followup { border-color: rgba(251,191,36,.45); }
-.ad-followup-tip { margin-top: 5px; color: var(--amber); }
+.btn.ad-next-btn:hover { background: #ffb61f; border-color: #ffb61f; }
+.ad-main + .ad-side { margin-top: 12px; }
 
-/* Master-once reminder: three real choices, Cancel means cancel. */
-.second-pass-text { text-align: left; line-height: 1.5; white-space: normal; }
-.second-pass-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; justify-content: flex-end; }
-
-/* Fixed tones the static-repair stage will notch first in the chain.
-   Each row is a checkbox so the user can keep a line. */
-.repair-list { margin-top: 8px; }
-.repair-list .ad-cards-label { margin-bottom: 4px; }
-.repair-row {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 11px; color: var(--fg-1);
-    padding: 3px 4px; border-radius: var(--radius-s);
+.ad-details { margin-top: 12px; }
+.ad-next + .ad-details { margin-top: 12px; }
+.ad-details-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-3); font-weight: 700; margin-bottom: 4px; }
+.ad-detail { position: relative; padding-left: 12px; font-size: 11.5px; color: var(--fg-2); line-height: 1.45; margin-top: 4px; }
+.ad-detail::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--cyan);
+    opacity: .7;
 }
-.repair-row:hover { background: var(--bg-3); }
-.repair-row input { margin: 0; }
-.repair-row .r-hz { font-variant-numeric: tabular-nums; min-width: 64px; color: var(--fg-0); }
-.repair-row .r-depth { font-variant-numeric: tabular-nums; color: var(--cyan); }
-.repair-row .r-kind { color: var(--fg-3); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
-.repair-row.off { opacity: .55; }
-.repair-empty { font-size: 11px; color: var(--fg-3); padding: 2px 4px; }
-.ad-followup b, .ad-note b { color: var(--fg-0); font-weight: 650; }
+
+/* Status tiles: rendered always, shown only in the workspace (chrome.css). */
+.ad-tiles { display: none; }
+.ad-tile { padding: 8px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-3); min-width: 0; }
+.ad-tile .t-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-3); font-weight: 700; }
+.ad-tile .t-value { font-size: 13px; font-weight: 600; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-tile.amber .t-value { color: var(--amber); }
+.ad-tile.orange .t-value { color: #fb923c; }
+.ad-tile.green .t-value { color: var(--success); }
+.ad-tile.cyan .t-value { color: var(--cyan); }
+.ad-tile.grey .t-value { color: var(--fg-1); }
+.ad-tile.amber { border-color: rgba(245, 165, 36, .4); }
+.ad-tile.orange { border-color: rgba(251, 146, 60, .45); }
 
 /* Noise-over-time strip: one thin bar per second, amber above the hot
    threshold. Caption above, time axis below, click to jump. */

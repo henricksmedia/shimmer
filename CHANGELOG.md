@@ -10,14 +10,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - **The suggested head cut no longer leaves a blip behind.** The cut
   used to land a hair past the tick, on its decay, and the "detected"
   box in the Trim view ended there too. The tick now ends where its slope
-  has reached the floor, and the box shows that. The gap between the
-  tick and the song is dead air, so the suggested IN point now sits 40 ms
-  before the music starts: the tick, its decay and the floor all go, and
-  the song keeps a short breath. When the gap is too short for that, the
-  cut lands where the floor has settled after the tick. Smaller ticks
-  after the main click, or a faint one before it, count as part of the
-  artifact, and the Trim notice says "plus 2 smaller ticks" when it found
-  them. Tails work the same way, mirrored.
+  has reached the floor (the middle of the noise band), the box shows
+  that, and the suggested IN point sits 10 ms past it. The quiet floor
+  between the tick and the song is left alone: that is the job of "Trim
+  leading/trailing silence on export", which the Trim card now mirrors
+  so the two sit together. Smaller ticks after the main click, or a
+  faint one before it, count as part of the artifact, and the Trim
+  notice says "plus 2 smaller ticks" when it found them. Tails work the
+  same way, mirrored.
 - **The player no longer piles up on narrow windows.** The transport bar
   was a flex row whose Monitor and Preview-loop zones could shrink to
   nothing, so the pills spilled over the loop controls and "Set from
@@ -54,6 +54,36 @@ Versions follow [Semantic Versioning](https://semver.org/).
   Run Clean & Master again.").
 
 ### Changed
+
+- **The workflow stepper fills its row and names the stage you are in.**
+  The three steps were small chips in a corner. They are now three equal
+  segments across the page: the current stage has an amber underline and
+  a filled amber number at 15 px, stages already done turn green, and the
+  ones still to come stay grey. Same three elements, more room.
+- **Stage numbers on every stage button, one colour per stage.** Choose
+  file carries 1, Analyze carries 2 in the card and in the dock, and Clean
+  & Master carries 3, so the buttons match the stepper. Each stage has
+  one colour everywhere it appears: 1 teal, 2 cyan, 3 amber. The stepper
+  shows state by fill and underline rather than hue (filled badge for the
+  current stage, outlined for done, grey for what is still to come), and
+  each stage button takes its stage's colour. The number stays while a
+  button reads "Analyzing…" or "Processing…". The compact dropzone's
+  Change button now spans the card, with the file name under it.
+
+- **Analyze results read as a verdict, not a list.** Six identical cards
+  gave no sense of what mattered, card 1 stayed highlighted by position
+  even after applying another match, and the second pass was a paragraph.
+  The applied match is now a hero block: the name at 18 px, the strength
+  as a big number, a solid amber Applied pill, the match bar and the
+  reason in full. It is whichever match is applied, so it moves when you
+  click Apply on another; the other five sit in a quiet ranked table
+  (rank, name, match bar, strength, Apply; the reason on hover). The
+  second pass is a "Next step" callout with an amber rule and one button,
+  "Set up second pass", that turns mastering off and Preserve volume on
+  and then says what to do after this pass. Notes are a small Details
+  list. In the workspace, four tiles run across the top: Applied, Second
+  pass, Fixed tones, Top end. Amber now marks exactly two things: the
+  applied choice and the next action.
 
 - **The player gives its height to the view that earns it.** The waveform
   is a navigation strip (seek, loop window, dynamics), so in Waveform view

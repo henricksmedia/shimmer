@@ -81,11 +81,6 @@ SETTLE_PCT = 50.0
 TICK_MAX_MS = 60.0
 ZONE_MAX_MS = 500.0
 
-# Lead-in kept before the music when the gap allows it. The suggested cut
-# sits this far ahead of the program, so the tick and all of the dead air
-# after it go, and the song still has a natural breath before it starts.
-PRE_ROLL_MS = 40.0
-
 
 def _envelope_db(mono: np.ndarray, sr: int) -> Tuple[np.ndarray, int]:
     """Peak envelope in dBFS, one value per HOP_MS. Returns (env, hop)."""
@@ -263,15 +258,13 @@ def _detect_in_envelope(env_db: np.ndarray, hop: int, x: np.ndarray, sr: int,
     # its quiet level (see SETTLE_*). If it never settles, cut right up
     # to the margin before the music; the gap is not program by
     # construction.
-    # The gap is dead air, so the cleanest edit takes all of it: land
-    # PRE_ROLL_MS before the music, which is well clear of the tick and
-    # its decay. A gap too short for that falls back to just past the
-    # settled point.
+    # Cut just past the tick: where its slope has reached the floor, plus
+    # a small margin. The floor between here and the music is left alone;
+    # that is the job of "Trim leading/trailing silence on export", which
+    # is a separate, explicit choice.
     settled = _settle_frame(env_db, a_end, p_start, f2s)
     margin = int(round(CUT_MARGIN_MS / 1000.0 / f2s))
-    pre_roll = int(round(PRE_ROLL_MS / 1000.0 / f2s))
-    cut_frame = max(settled + margin, p_start - pre_roll)
-    cut_frame = min(cut_frame, p_start - margin)
+    cut_frame = min(settled + margin, p_start - margin)
     cut_frame = max(cut_frame, a_end)
     cut_s = cut_frame * f2s
     cut_sample = _zero_crossing_near(x, int(round(cut_s * sr)), sr)
