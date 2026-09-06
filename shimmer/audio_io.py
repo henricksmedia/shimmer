@@ -346,7 +346,23 @@ def process_file(
             dither=use_dither)
 
         meas_out = measure(y2)
+        # The release check grades the export when it was mastered. Tags
+        # are written by the caller afterwards, which adds that check.
+        release = None
+        if use_mastering:
+            from .release import release_check
+            from .report import stereo_correlation
+            ext = os.path.splitext(output_path)[1].lstrip(".").lower()
+            release = release_check(
+                y2, sr, x_in=x, mastering=mastering_report,
+                export={"format": ext,
+                        "bit_depth": (24 if subtype.upper() == "PCM_24"
+                                      else 16 if subtype.upper() in ("PCM_16", "PCM16")
+                                      else None) if ext in ("wav", "flac") else None},
+                correlation=stereo_correlation(y2),
+                duration_s=float(y2.shape[0] / sr))
         return {
+            "release": release,
             "repair": pipe_report.get("static_repair", {"enabled": False}),
             "declick": pipe_report.get("declick", {"enabled": False}),
             "cutoff_hz": float(params.cutoff_hz or 0.0),

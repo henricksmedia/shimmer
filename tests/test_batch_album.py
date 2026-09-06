@@ -143,6 +143,9 @@ def test_album_mode_keeps_relative_levels(client, album_folder, tmp_path):
         stem = os.path.splitext(e["name"])[0]
         assert abs(e["lufs_out"] - loud[stem]["lufs_i"]) <= 0.1
         assert e["gain_db"] == pytest.approx(album["gain_db"])
+        # The release check grades each track against its album level, so
+        # sitting below the target by design is not a loudness problem.
+        assert e["release"] and "Loudness" not in e["release"]["flags"], e["release"]
     # No parked pass-1 files are left behind.
     assert not glob.glob(os.path.join(tempfile.gettempdir(), "shimmer_album_*"))
 

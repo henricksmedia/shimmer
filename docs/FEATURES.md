@@ -763,6 +763,19 @@ Sources: [static/index.html](static/index.html) and the ES modules in
 - A green "Ready to download" banner appears with metric chips and the
   download link. Download filenames follow
   `{stem}_{preset}_{processed|removed}_{jobid8}{ext}`.
+- **Release check** card ([release.py](release.py) grades, `single.js`
+  draws), shown after a mastered run above the numbers: one verdict
+  ("Ready to upload", "n things to look at", "Not ready"), one line per
+  check with its value and one line of advice, then "How loud it plays"
+  chips for Spotify, Apple Music, YouTube, Amazon Music, Tidal and
+  Deezer. Checks: loudness against the target (0.5 LU passes, 1 LU
+  warns, more fails), true peak against the ceiling, clipping in the
+  uploaded file, sample rate, format (WAV/FLAC pass, lossy warns),
+  silence at the start (over 1 s warns) and end (over 5 s warns), length
+  (under 30 s warns), DC offset, mono compatibility (negative
+  correlation warns), tags (title, artist, album) and the ISRC (noted).
+  The metrics carry it as `release` (`status`, counts, `checks[]`,
+  `platforms[]`); the green banner adds a "release check" chip.
 - The processing window ends on a **Download step**
   (`processModal.offerDownload` in `static/js/progress-chain.js`): the
   chain stays drawn as finished, and the progress lines give way to the
@@ -1242,7 +1255,8 @@ loudness matching plus `render_ms`.
 report, `loudness` (input/output integrated LUFS, populated whether or
 not mastering ran, so the client can loudness-match A/B in every state),
 and `export` (`format, subtype, bit_depth, dither, bitrate, tags:
-{written, form, fields, tags}`).
+{written, form, fields, tags}, saved, name, size_bytes`), plus `release`
+(the release check, or null when the run was not mastered).
 
 ---
 
@@ -1295,7 +1309,10 @@ Source: `api_batch` and `_batch_one` in [server.py](server.py)
   multiplies the detected strength (1.0 = trust the analysis) and the
   product goes through `apply_preset_strength`.
 - Optional mastering applies to every file. With mastering on, `file_done`
-  also carries `lufs_out`, `true_peak_out` and `limiter_gr_db`.
+  also carries `lufs_out`, `true_peak_out`, `limiter_gr_db` and a
+  `release` summary (`status`, counts, the flagged labels) from the
+  release check ([release.py](release.py)); the log prints the verdict
+  per file.
 - **Album mode** (`album_mode: true`, with mastering on): two passes.
   `_album_clean_one` runs `clean_and_master(..., defer_master=True)` for
   each file (tone curve included, mastering held back), parks the

@@ -98,6 +98,53 @@ export async function initSingleTab() {
         }
         metricsBox.hidden = count === 0;
     }
+    // The Release check card (shimmer/release.py grades, this draws): a
+    // verdict pill, one line per check, then how loud it plays on each
+    // service. Hidden when a run was not mastered.
+    const releaseCard = $('release-card');
+    const releaseVerdict = $('release-verdict');
+    const releaseList = $('release-list');
+    const releasePlatforms = $('release-platforms');
+    function releaseVerdictText(rel) {
+        if (rel.status === 'pass') return '✓ Ready to upload';
+        if (rel.status === 'fail') return `✕ Not ready · ${rel.failed} problem${rel.failed === 1 ? '' : 's'}`;
+        return `⚠ ${rel.warned} thing${rel.warned === 1 ? '' : 's'} to look at`;
+    }
+    function renderReleaseCard(rel) {
+        if (!releaseCard) return;
+        if (!rel || !Array.isArray(rel.checks) || !rel.checks.length) {
+            releaseCard.hidden = true;
+            return;
+        }
+        releaseVerdict.textContent = releaseVerdictText(rel);
+        releaseVerdict.className = `rc-verdict ${rel.status}`;
+        releaseList.innerHTML = '';
+        const glyph = { pass: '✓', warn: '!', fail: '✕', info: 'i' };
+        for (const c of rel.checks) {
+            const li = mkEl('li', `rc-row ${c.status}`);
+            // Value and advice flow together in one column, so the advice
+            // wraps under the value instead of into a sliver.
+            const text = mkEl('span', 'rc-text');
+            text.append(mkEl('span', 'rc-value', c.value || ''));
+            if (c.detail) text.append(mkEl('span', 'rc-detail', c.detail));
+            li.append(mkEl('span', 'rc-icon', glyph[c.status] || '·'),
+                      mkEl('span', 'rc-label', c.label),
+                      text);
+            releaseList.appendChild(li);
+        }
+        releasePlatforms.innerHTML = '';
+        const plats = Array.isArray(rel.platforms) ? rel.platforms : [];
+        releasePlatforms.hidden = plats.length === 0;
+        if (plats.length) {
+            releasePlatforms.appendChild(mkEl('span', 'rc-plat-label', 'How loud it plays'));
+            for (const p of plats) {
+                const chip = mkEl('span', 'rc-chip', `${p.name}: ${p.note}`);
+                chip.title = `${p.name} normalises to ${p.target_lufs} LUFS`;
+                releasePlatforms.appendChild(chip);
+            }
+        }
+        releaseCard.hidden = false;
+    }
     const autoDetectResults = $('auto-detect-results');
     // Step 2 in the dock: runs Analyze and jumps to the Analysis card,
     // then shows the verdict as a green status. Same for the card header.
@@ -2901,6 +2948,7 @@ export async function initSingleTab() {
         progressEl.value = 0;
         openProcessModal();
         setMetrics('Preparing…');
+        renderReleaseCard(null);
 
         try {
             const overrides = controls.getValues();
@@ -3120,6 +3168,11 @@ export async function initSingleTab() {
                     { label: '', chips: warnings },
                 ]);
                 report.show(mm.spectra);
+                renderReleaseCard(mm.release);
+                if (mm.release && mm.release.status) {
+                    bannerChips.push(mm.release.status === 'pass' ? 'release check ✓'
+                        : mm.release.status === 'fail' ? 'release check ✕' : 'release check ⚠');
+                }
             }
 
             if (bannerChips.length === 0) bannerChips.push('Cleaned');

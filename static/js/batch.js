@@ -242,6 +242,11 @@ export async function initBatchTab() {
                             line += ` · limiter ${f1(msg.limiter_gr_db)} dB`;
                         }
                     }
+                    if (msg.release && msg.release.status) {
+                        const r = msg.release;
+                        line += r.status === 'pass' ? '   release ✓'
+                            : `   release ${r.status === 'fail' ? '✕' : '⚠'} ${(r.flags || []).join(', ')}`;
+                    }
 
                     if (msg.detected_preset) {
                         const pct = msg.detected_confidence != null

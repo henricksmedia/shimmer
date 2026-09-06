@@ -293,6 +293,20 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Release check: is this file ready to upload? One verdict,
+                         one line per check, then how loud it plays on each service. -->
+                    <div class="card release-card" id="release-card" hidden>
+                        <div class="card-head">
+                            <span class="title">Release check</span>
+                            <span class="gloss">is this file ready to upload?</span>
+                            <span class="spacer"></span>
+                            <span class="rc-verdict" id="release-verdict"></span>
+                        </div>
+                        <div class="card-body">
+                            <ul class="rc-list" id="release-list"></ul>
+                            <div class="rc-platforms" id="release-platforms" hidden></div>
+                        </div>
+                    </div>
                     <div class="metrics-box" id="metrics-box" hidden></div>
                 </div>
 

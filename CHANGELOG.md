@@ -7,6 +7,20 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **A Release check after every mastered run.** The numbers under the
+  player said what the file measured; nothing said whether it was ready
+  to upload. A Release check card now gives one verdict, "Ready to
+  upload", "n things to look at" or "Not ready", with one line per
+  check, its value and one line of advice: loudness against the target
+  (within 0.5 LU passes, within 1 LU warns), true peak against the
+  ceiling, clipping already in the uploaded file, sample rate, format
+  (WAV or FLAC for a store; a lossy export warns), silence at the start
+  and the end, length under 30 seconds, DC offset, mono compatibility,
+  and the tags (title, artist, album; the ISRC is noted). Under it,
+  "How loud it plays" says how far Spotify, Apple Music, YouTube,
+  Amazon Music, Tidal and Deezer turn the file up or down. The green
+  banner carries the verdict as a chip, and every mastered file in a
+  Batch run logs its verdict with the flagged checks.
 - **Album mode in Batch.** Until now Batch normalised every track to the
   target on its own, so a quiet ballad came out as loud as the single.
   With Album mode on (under Master for release), the folder is mastered

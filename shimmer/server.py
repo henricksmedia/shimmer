@@ -60,6 +60,10 @@ from .audio_io import (
 )
 from .chain import folder_label
 from .engine import process, apply_post_filters
+from .release import (
+    add_check, count_clipped, release_check, summary as release_summary,
+    tags_check,
+)
 from .dsp import as_2d, trim_silence as dsp_trim_silence
 from .edges import apply_trim, detect_edge_artifacts
 from .repair import NotchPlan, estimate_cutoff_hz, plan_from_lines
@@ -496,8 +500,10 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
     # Silence trim is an export-only variant: the playback files above stay
     # full length so the synced A/B/C player keeps a shared clock.
     trim_report: Dict[str, Any] = {"enabled": False}
+    y_export = y2
     if trim_silence:
         y_trim, cut_head, cut_tail = dsp_trim_silence(y2, sr)
+        y_export = y_trim
         trimmed_path = os.path.join(job.workdir, f"trimmed{job.output_ext}")
         save_audio(trimmed_path, y_trim, sr)
         _tag_export(trimmed_path, upload_path, export_meta.get("tags"), note)
@@ -557,11 +563,25 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         "size_bytes": _file_size(job.trimmed_path if trim_silence else processed_path),
     }
 
+    # Release check: the verdict on the file the user downloads.
+    release = None
+    if use_mastering:
+        try:
+            release = release_check(
+                y_export, sr, x_in=x, mastering=mastering_report, export=export,
+                correlation=loudness.get("output_correlation"),
+                duration_s=float(y_export.shape[0] / sr),
+                tags=tags_report.get("tags"),
+                tags_written=bool(tags_report.get("written")))
+        except Exception:  # noqa: BLE001
+            release = None
+
     job.processed_path = processed_path
     job.diff_path = diff_path
     job.metrics = {
         "spectra": spectra,
         "export": export,
+        "release": release,
         "sample_rate": sr,
         "channels": int(x.shape[1]),
         "duration_s": float(x.shape[0] / sr),
@@ -1166,6 +1186,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
                             "true_peak_out": _finite_or_none(after.get("true_peak_dbtp")),
                             "limiter_gr_db": (r.get("mastering") or {}).get("limiter_gain_reduction"),
                             "gain_db": float(album["gain_db"]),
+                            "release": release_summary(r.get("release")),
                         })
                     except Exception as e:  # noqa: BLE001
                         yield _sse_event({"type": "file_error", "phase": "master",
@@ -1205,6 +1226,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
                     "true_peak_out": _finite_or_none(
                         ((r.get("mastering") or {}).get("after") or {}).get("true_peak_dbtp")),
                     "limiter_gr_db": (r.get("mastering") or {}).get("limiter_gain_reduction"),
+                    "release": release_summary(r.get("release")),
                 })
             except Exception as e:  # noqa: BLE001
                 yield _sse_event({
@@ -1310,6 +1332,9 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
         eq_bands=eq_bands)
     tag_rep = _tag_export(dst, src, tags_req, note)
     result["tags_written"] = bool(tag_rep.get("written"))
+    if result.get("release"):
+        result["release"] = add_check(
+            result["release"], tags_check(tag_rep.get("tags"), bool(tag_rep.get("written"))))
     return result
 
 
@@ -1345,6 +1370,7 @@ def _album_clean_one(src: str, tmp_dst: str, preset_name: str,
         "input": measure(x),
         "lufs_clean": _finite_or_none(loud.get("lufs_i")),
         "true_peak_clean": _finite_or_none(loud.get("true_peak_dbtp")),
+        "clipped_samples": count_clipped(x),
         "strength": float(strength),
         "eq_bands": len(eqp.active_bands(sr)) if eqp is not None and eqp.is_active(sr) else 0,
         "preset": detected_info.get("detected_preset") or preset_name,
@@ -1398,6 +1424,20 @@ def _album_master_one(info: Dict[str, Any], src: str, dst: str,
         float(master_params.target_lufs), float(master_params.ceiling_dbtp),
         eq_bands=int(info.get("eq_bands", 0)))
     tag_rep = _tag_export(dst, src, tags_req, note)
+    ext = os.path.splitext(dst)[1].lstrip(".").lower()
+    # This track's level under album mode: its cleaned loudness plus the
+    # album's one gain. The loudest track lands on the target; the rest
+    # sit below it by design, so the release check grades against that.
+    clean_lufs = _finite_or_none(info.get("lufs_clean"))
+    expected = (float(clean_lufs) + float(gain_db)) if clean_lufs is not None else None
+    release = release_check(
+        y2, sr, mastering=m_report,
+        export={"format": ext, "bit_depth": 24 if ext in ("wav", "flac") else None},
+        clipped_samples=info.get("clipped_samples"),
+        correlation=stereo_correlation(y2),
+        duration_s=float(y2.shape[0] / sr),
+        tags=tag_rep.get("tags"), tags_written=bool(tag_rep.get("written")),
+        expected_lufs=expected)
     return {
         "duration_s": float(y2.shape[0] / sr),
         "input": info.get("input") or {},
@@ -1405,6 +1445,7 @@ def _album_master_one(info: Dict[str, Any], src: str, dst: str,
         "mastering": m_report,
         "trim": trim_report,
         "tags_written": bool(tag_rep.get("written")),
+        "release": release,
     }
 
 

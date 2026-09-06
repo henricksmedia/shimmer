@@ -804,6 +804,45 @@ input[type=range]::-moz-range-thumb {
     font-size: 11px;
     color: var(--fg-2);
 }
+/* Release check card: one verdict, one line per check (icon, label,
+   value, advice), then how loud it plays on each service. */
+.rc-verdict {
+    font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--fg-1); white-space: nowrap;
+}
+.rc-verdict.pass { color: var(--success); border-color: rgba(74, 222, 128, .4); background: rgba(74, 222, 128, .08); }
+.rc-verdict.warn { color: var(--amber); border-color: rgba(245, 165, 36, .4); background: rgba(245, 165, 36, .08); }
+.rc-verdict.fail { color: var(--danger); border-color: rgba(240, 82, 107, .4); background: rgba(240, 82, 107, .08); }
+.rc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.rc-row {
+    display: grid; grid-template-columns: 16px 140px minmax(0, 1fr);
+    gap: 8px; align-items: baseline; font-size: 12px; color: var(--fg-1);
+}
+.rc-icon { font-weight: 700; text-align: center; font-size: 11px; }
+.rc-row.pass .rc-icon { color: var(--success); }
+.rc-row.warn .rc-icon { color: var(--amber); }
+.rc-row.fail .rc-icon { color: var(--danger); }
+.rc-row.info .rc-icon { color: var(--fg-3); }
+.rc-label { color: var(--fg-2); }
+.rc-text { min-width: 0; line-height: 1.45; }
+.rc-value { font-family: var(--font-mono); font-size: 11px; color: var(--fg-0); }
+.rc-detail { font-size: 11px; color: var(--fg-3); margin-left: 6px; }
+.rc-row.warn .rc-detail, .rc-row.fail .rc-detail { color: var(--fg-2); }
+.rc-platforms {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line);
+}
+.rc-platforms[hidden] { display: none; }
+.rc-plat-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-3); margin-right: 2px; }
+.rc-chip {
+    font-family: var(--font-mono); font-size: 10.5px; padding: 2px 9px; border-radius: 999px;
+    background: var(--bg-4); border: 1px solid var(--line); color: var(--fg-1);
+}
+@media (max-width: 900px) {
+    .rc-row { grid-template-columns: 16px minmax(0, 1fr); }
+    .rc-text { grid-column: 2; }
+}
+
 /* One labeled row per group: Loudness, Cleaning, Job. */
 .metric-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .metric-row-label {
