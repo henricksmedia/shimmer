@@ -4,7 +4,7 @@ import { renderControls, CONTROL_SPEC as ADV_SPEC, GROUPS as ADV_GROUPS } from '
 import { initPresetSelect, presetToSliderValues, runAutoDetect } from './preset.js';
 import {
     submitProcess, openSSE, fetchMetrics, resultUrl, fetchTonePlan, fetchToneFamilies,
-    uploadFile, dropSession, renderPreview,
+    uploadFile, dropSession, renderPreview, browseFolder, revealPath,
 } from './api.js';
 import { makeSettingsSaver, loadSettings } from './settings.js';
 import { openHelp } from './help.js';
@@ -45,6 +45,16 @@ export async function initSingleTab() {
     const trimSilence  = $('trim-silence');
     const rememberSettings = $('remember-settings');
     const outputFormat = $('output-format');
+    // Settings tab, Downloads: automatic download and the download
+    // location (the browser, or a folder the server writes into). Read
+    // through downloadPrefs() / activeSaveFolder().
+    const dlAuto        = $('dl-auto');
+    const dlLocBrowser  = $('dl-location-browser');
+    const dlLocFolder   = $('dl-location-folder');
+    const dlState       = $('dl-state');
+    const saveFolder    = $('save-folder');
+    const saveFolderRow = $('save-folder-row');
+    const browseSaveBtn = $('browse-save-btn');
     const processBtn   = $('process-btn');
     const progressEl   = $('progress');
     const strengthEl   = $('preset-strength');
@@ -113,6 +123,11 @@ export async function initSingleTab() {
         if (analysisExpandBtn) analysisExpandBtn.hidden = state !== 'done';
         syncSheetStatus();
     }
+    // The file in the workspace. Declared here, ahead of every helper
+    // that reads it: settings restore fires a preset change during
+    // startup, and that path (pushSettings -> syncDockStatus) used to
+    // hit "Cannot access 'currentFile' before initialization".
+    let currentFile = null;
     // What stage 3 will do, from the live controls (never a stale copy):
     // preset, strength, and master target or cleaning only.
     const dockStatus = $('dock-status');
@@ -696,6 +711,17 @@ export async function initSingleTab() {
     // Identity and preferences come back regardless of "remember
     // settings": the artist name and the Tone family are not run state.
     if (saved && saved.tags) restoreTagsDefaults(saved.tags);
+    // The Download preferences (Settings tab) are preferences too, so
+    // they come back with the tags: a folder set once stays set.
+    if (saved && saved.downloads && typeof saved.downloads === 'object') {
+        const d = saved.downloads;
+        if (dlAuto) dlAuto.checked = !!d.auto;
+        if (saveFolder && typeof d.folder === 'string') saveFolder.value = d.folder;
+        const useFolder = d.location === 'folder' && !!(saveFolder && saveFolder.value.trim());
+        if (dlLocFolder) dlLocFolder.checked = useFolder;
+        if (dlLocBrowser) dlLocBrowser.checked = !useFolder;
+        syncDownloadControls();
+    }
     if (saved && saved.tone) {
         if (typeof saved.tone.family === 'string') toneState.family = saved.tone.family;
         if (typeof saved.tone.auto === 'boolean') toneState.auto = saved.tone.auto;
@@ -799,7 +825,6 @@ export async function initSingleTab() {
         applyLoudnessMatch();
         pushSettings();
     });
-    let currentFile = null;
     renderToneStrip();
 
     function hideDoneBanner() {
@@ -1189,11 +1214,15 @@ export async function initSingleTab() {
     }
 
     // Continue: pass 1's result becomes the source, pass 2 is set up.
-    async function loadPass1Result() {
+    // `onStep(text)` hears each step by name (the processing window
+    // shows it while the hand-off runs).
+    async function loadPass1Result(onStep) {
         if (!passPlan || !passPlan.jobs[1]) return false;
+        const step = (text) => { if (onStep) onStep(text); };
         passPlan.status = 'loading';
         renderPassPlan();
         try {
+            step('loading the cleaned file…');
             const res = await fetch(resultUrl(passPlan.jobs[1], 'processed'));
             if (!res.ok) {
                 throw new Error('The pass 1 result is no longer on the server. Download it and upload it instead.');
@@ -1221,6 +1250,7 @@ export async function initSingleTab() {
             main.appendChild(mkEl('div', 'tone-card busy tone-placeholder', 'Planning the EQ for pass 2…'));
             autoDetectResults.insertBefore(main, side);
             jumpToAnalysis();
+            step(`planning the EQ for pass 2 · ${passPlan.pass2.label}…`);
             const plan = await replanTone();
             if (plan && toneState.auto) applyTonePlan();
             renderPassPlan();
@@ -1233,13 +1263,61 @@ export async function initSingleTab() {
         }
     }
 
+    // ── Between the passes ───────────────────────────────────────────
+    // Run both passes (and Continue) hand off to pass 2 by themselves.
+    // That hand-off used to look like the end: the window closed on
+    // pass 1, its result rendered with a Download button, and pass 2
+    // opened the window again a few seconds later. Now the window stays
+    // up the whole way: "Pass 1 done" over a busy bar while the cleaned
+    // file loads and the EQ is planned, then a big 3-2-1 in front of the
+    // pass-2 chain. Stop here (or Esc) keeps the loaded result in place
+    // and runs nothing. Resolves true when pass 2 should run now.
+    async function bridgeToPass2() {
+        if (!passPlan) return false;
+        const p2 = passPlan.pass2;
+        // Continue after the window has closed: draw pass 1's chain as
+        // done above the held line. Run both passes finds it still open,
+        // packet leaving through Out, and keeps it as it is.
+        const reopen = !processModal.isOpen();
+        processModal.hold({
+            stage: 'Pass 1 done',
+            detail: 'loading the cleaned file…',
+            ...(reopen ? { title: 'Cleaning · pass 1 of 2', phases: chainPhases(), planned: plannedPhases() } : {}),
+        });
+        if (!(await loadPass1Result((text) => processModal.detail(text)))) {
+            // The error is on the Analysis card.
+            processModal.close();
+            return false;
+        }
+        // Pass 2's settings are in place now (preset, mastering on):
+        // draw its chain, pending, and count it in.
+        const target = (masterTarget.options[masterTarget.selectedIndex] || {}).text || '';
+        const targetShort = target.includes(')') ? target.slice(0, target.indexOf(')') + 1) : target;
+        const go = await processModal.countdown({
+            seconds: 3,
+            modalTitle: 'Cleaning & mastering · pass 2 of 2',
+            kicker: 'Pass 2 of 2 · clean & master',
+            title: `${p2.label}${targetShort ? ` · ${targetShort}` : ''}`,
+            phases: chainPhases(),
+            planned: plannedPhases(),
+            stopLabel: 'Stop here',
+        });
+        if (!go) {
+            passPlan.auto = false;
+            processModal.close();
+            renderPassPlan();
+            return false;
+        }
+        return true;
+    }
+
     async function runBothPasses() {
         if (!passPlan) return;
         passPlan.auto = true;
         try {
             if (passPlan.status === 'idle' && !(await runPass(1))) return;
             if (!passPlan.auto) return;
-            if (passPlan.status === 'done1' && !(await loadPass1Result())) return;
+            if (passPlan.status === 'done1' && !(await bridgeToPass2())) return;
             if (!passPlan.auto) return;
             if (passPlan.status === 'loaded2') await runPass(2);
         } finally {
@@ -1317,7 +1395,10 @@ export async function initSingleTab() {
         const s2 = st === 'loaded2' ? ['next', 'active'] : st === 'running2' ? ['running…', 'active running']
             : st === 'done2' ? [`✓ done${lufs(2)}`, 'done'] : st === 'loading' ? ['loading…', 'active'] : ['waiting', ''];
         step('2', `Pass 2 · ${p2.label}`, `clean & master${toneState.auto ? ' · suggested EQ' : ''} · ${target.includes(')') ? target.slice(0, target.indexOf(')') + 1) : target}`, s2[0], s2[1]);
-        step('3', 'Download', 'the mastered file', st === 'done2' ? 'ready' : 'after pass 2', st === 'done2' ? 'active' : '');
+        const savingTo = activeSaveFolder();
+        step('3', savingTo ? 'Saved & download' : 'Download',
+             savingTo ? `the mastered file, saved to ${folderLabel(savingTo)}` : 'the mastered file',
+             st === 'done2' ? 'ready' : 'after pass 2', st === 'done2' ? 'active' : '');
         card.appendChild(steps);
 
         // Settings for the pass about to run, shown as state (the run
@@ -1363,18 +1444,19 @@ export async function initSingleTab() {
             button('Run both passes', 'ready', () => runBothPasses());
             button('Run pass 1 only', 'again', () => runPass(1));
             hint = 'Run both passes sets the settings, cleans, loads the result, applies ' +
-                   `${p2.label}${toneState.auto ? ' and the suggested EQ' : ''}, masters, and stops at Download.`;
+                   `${p2.label}${toneState.auto ? ' and the suggested EQ' : ''}, masters, and stops at Download` +
+                   (savingTo ? ` (the mastered file is saved to ${folderLabel(savingTo)} as well; pass 1 is not).` : '.');
         } else if (st === 'running1' || st === 'running2' || st === 'loading') {
             button(st === 'loading' ? 'Loading…' : `Running pass ${st === 'running1' ? 1 : 2}…`, 'ready', null, true);
             if (p.auto) button('Stop after this pass', 'again', () => { p.auto = false; renderPassPlan(); });
-            hint = p.auto ? 'Running on its own. The progress window shows each step.' : '';
+            hint = p.auto ? 'Running on its own. The processing window stays up between the passes and counts pass 2 in.' : '';
         } else if (st === 'done1') {
             button(`Continue: run pass 2 with ${p2.label}`, 'ready', async () => {
-                if (await loadPass1Result()) await runPass(2);
+                if (await bridgeToPass2()) await runPass(2);
             });
             button('Load the result, don\u2019t run yet', 'again', () => loadPass1Result());
             button('Run pass 1 again', 'again', () => runPass(1));
-            hint = 'Continue loads pass 1\u2019s result here, applies the pass-2 preset, turns mastering on and runs it.';
+            hint = 'Continue loads pass 1\u2019s result here, applies the pass-2 preset, turns mastering on, counts 3-2-1 and runs it.';
         } else if (st === 'loaded2') {
             button(`Run pass 2: ${p2.label} (Clean & Master)`, 'ready', () => runPass(2));
             button('Analyze this result first', 'again', () => autoBtn.click());
@@ -1792,7 +1874,8 @@ export async function initSingleTab() {
         if (stateEls.output) {
             const f = outputFormat.value.toUpperCase();
             const bits = outputFormat.value === 'wav' || outputFormat.value === 'flac' ? ' 24-bit' : '';
-            stateEls.output.textContent = `${f}${bits}${trimSilence.checked ? ' · trim' : ''}`;
+            const saving = activeSaveFolder() ? ' · saves to folder' : '';
+            stateEls.output.textContent = `${f}${bits}${trimSilence.checked ? ' · trim' : ''}${saving}`;
         }
         if (stateEls.tags) {
             const t = tagsDefaults();
@@ -2219,6 +2302,7 @@ export async function initSingleTab() {
             preserve_volume: preserveVol.checked && !masterEnabled.checked,
             trim_silence: trimSilence.checked,
             output_format: outputFormat.value,
+            save_folder: activeSaveFolder(),
             trim_armed: !!(t && (t.inS > 0 || t.outS != null)),
             repair: repairPayload(),
         };
@@ -2241,6 +2325,7 @@ export async function initSingleTab() {
             mastering: masteringPayload(),
             eq: eqPanel.getPayload(),
             ab_loudness_match: abLoudnessMatch.checked,
+            downloads: downloadPrefs(),
             tags: tagsDefaults(),
             tone: { family: toneState.family, auto: toneState.auto, amount: toneState.amount },
         });
@@ -2268,6 +2353,90 @@ export async function initSingleTab() {
         rememberSettings.addEventListener('change', pushSettings);
     }
     outputFormat.addEventListener('change', pushSettings);
+
+    // ── Settings · Downloads ──────────────────────────────────────────
+    // What the Download step at the end of a run does: start the browser
+    // download by itself, or have the server write the file into a
+    // folder. Saved with the tags (a preference, not run state).
+    function downloadPrefs() {
+        return {
+            auto: !!(dlAuto && dlAuto.checked),
+            location: (dlLocFolder && dlLocFolder.checked) ? 'folder' : 'browser',
+            folder: saveFolder ? saveFolder.value.trim() : '',
+        };
+    }
+    // The folder a run saves into, or '' when the location is the
+    // browser or no folder is set yet. Everything that mentions saving
+    // reads this.
+    function activeSaveFolder() {
+        const d = downloadPrefs();
+        return (d.location === 'folder' && d.folder) ? d.folder : '';
+    }
+    function folderLabel(path) {
+        const p = String(path || '').replace(/[\\/]+$/, '');
+        const parts = p.split(/[\\/]/);
+        return parts[parts.length - 1] || p;
+    }
+    function syncDownloadControls() {
+        const useFolder = !!(dlLocFolder && dlLocFolder.checked);
+        if (saveFolderRow) saveFolderRow.hidden = !useFolder;
+        if (!dlState) return;
+        const d = downloadPrefs();
+        if (d.location === 'folder' && d.folder) {
+            dlState.textContent = `Finished files are written to ${d.folder} as the run ends; the Download step offers Show in folder.`
+                + (d.auto ? ' A browser download is not needed in this mode, so "download automatically" does nothing here.' : '');
+        } else if (d.location === 'folder') {
+            dlState.textContent = 'Choose a folder, or the browser download is used.';
+        } else {
+            dlState.textContent = d.auto
+                ? 'Finished files download by themselves to your browser’s Downloads folder.'
+                : 'The processing window ends on a Download step; click it to save the file with your browser.';
+        }
+    }
+    async function pickSaveFolder() {
+        if (!browseSaveBtn || !saveFolder) return false;
+        browseSaveBtn.disabled = true;
+        try {
+            const path = await browseFolder({
+                initialDir: saveFolder.value.trim() || undefined,
+                title: 'Save finished files to',
+            });
+            if (path) saveFolder.value = path;
+            return !!path;
+        } catch (_) {
+            return false;
+        } finally {
+            browseSaveBtn.disabled = false;
+        }
+    }
+    function afterDownloadPrefsChange() {
+        syncDownloadControls();
+        pushSettings();
+        renderPassPlan();
+    }
+    if (dlLocFolder) dlLocFolder.addEventListener('change', async () => {
+        syncDownloadControls();
+        // Choosing "This folder" with no folder yet asks for one right
+        // away; a cancelled picker falls back to the browser rather than
+        // "a folder, nowhere".
+        if (dlLocFolder.checked && saveFolder && !saveFolder.value.trim()) {
+            const ok = await pickSaveFolder();
+            if (!ok && !saveFolder.value.trim() && dlLocBrowser) dlLocBrowser.checked = true;
+        }
+        afterDownloadPrefsChange();
+    });
+    if (dlLocBrowser) dlLocBrowser.addEventListener('change', afterDownloadPrefsChange);
+    if (dlAuto) dlAuto.addEventListener('change', afterDownloadPrefsChange);
+    if (browseSaveBtn) browseSaveBtn.addEventListener('click', async () => {
+        if (await pickSaveFolder()) afterDownloadPrefsChange();
+    });
+    if (saveFolder) saveFolder.addEventListener('change', afterDownloadPrefsChange);
+    // "…is in Settings" pointers elsewhere on the page open the tab.
+    document.querySelectorAll('[data-open-tab]').forEach((b) => b.addEventListener('click', () => {
+        const tab = document.querySelector(`.tab[data-tab="${b.dataset.openTab}"]`);
+        if (tab) tab.click();
+    }));
+    syncDownloadControls();
 
     // ── Live preview ──────────────────────────────────────────────────
     // Original keeps the full file; only Processed and Removed loop a
@@ -2575,11 +2744,18 @@ export async function initSingleTab() {
         else if (preserveVol.checked) set.add('level');
         return set;
     }
+    function chainPhases() {
+        return CHAIN_PHASES.map(([k, l, c]) => [k, l === 'Fine pass' ? 'Fine' : l, c]);
+    }
     function openProcessModal() {
+        // The title must say what this run actually does, and where it
+        // sits in a two-pass plan.
+        const job = masterEnabled.checked ? 'Cleaning & mastering' : 'Cleaning';
+        const pass = !passPlan ? '' : passPlan.status === 'running1' ? ' · pass 1 of 2'
+            : passPlan.status === 'running2' ? ' · pass 2 of 2' : '';
         processModal.open({
-            // The title must say what this run actually does.
-            title: masterEnabled.checked ? 'Cleaning & mastering' : 'Cleaning',
-            phases: CHAIN_PHASES.map(([k, l, c]) => [k, l === 'Fine pass' ? 'Fine' : l, c]),
+            title: job + pass,
+            phases: chainPhases(),
             planned: plannedPhases(),
             stage: 'Preparing…',
             detail: 'reading the file',
@@ -2587,16 +2763,72 @@ export async function initSingleTab() {
     }
     function closeProcessModal() { processModal.close(); }
     function failProcessModal(message) { processModal.fail(message); }
+    // The Download step at the end of a run, in the processing window.
+    // Browser location: a Download button, pressed for you when
+    // "download automatically" is on. Folder location: the file is
+    // already in the folder, so Show in folder leads and a copy can
+    // still be downloaded. `mm` is the job's metrics; `savedInfo` its
+    // export.saved block.
+    function offerDownloadStep(mm, savedInfo, savedOk) {
+        const ex = (mm && mm.export) || {};
+        const fmt = String(ex.format || outputFormat.value || 'wav').toUpperCase();
+        const stem = (currentFile && currentFile.name.replace(/\.[^.]+$/, '')) || 'track';
+        const name = ex.name || `${stem}.${String(ex.format || outputFormat.value || 'wav')}`;
+        const size = Number.isFinite(ex.size_bytes) ? ` · ${fmtBytes(ex.size_bytes)}` : '';
+        const prefs = downloadPrefs();
+        if (savedOk) {
+            processModal.offerDownload({
+                title: `Saved to ${folderLabel(savedInfo.folder)}`,
+                sub: `${savedInfo.name || name}${size} · ${savedInfo.path}`,
+                primary: { label: 'Show in folder', onClick: () => revealSaved(savedInfo.path) },
+                secondary: { label: 'Download a copy', onClick: () => downloadLink.click() },
+            });
+            return;
+        }
+        const failed = (savedInfo && savedInfo.enabled && savedInfo.error)
+            ? ` Could not save to ${savedInfo.folder}: ${savedInfo.error}.` : '';
+        if (prefs.auto) {
+            downloadLink.click();
+            processModal.offerDownload({
+                title: 'Downloading…',
+                sub: `Your browser is saving ${name}${size}.${failed} If it did not start, click Download again.`,
+                primary: { label: `Download ${fmt} again`, onClick: () => downloadLink.click() },
+                secondary: null,
+            });
+            return;
+        }
+        processModal.offerDownload({
+            title: 'Your file is ready',
+            sub: `${name}${size}${failed ? '.' + failed : ''}`,
+            primary: { label: `Download ${fmt}`, onClick: () => downloadLink.click() },
+            secondary: null,
+        });
+    }
+    function fmtBytes(n) {
+        if (n >= 1e9) return `${(n / 1e9).toFixed(2)} GB`;
+        if (n >= 1e6) return `${(n / 1e6).toFixed(1)} MB`;
+        if (n >= 1e3) return `${(n / 1e3).toFixed(0)} kB`;
+        return `${n} B`;
+    }
+    async function revealSaved(path) {
+        try {
+            await revealPath(path);
+        } catch (e) {
+            setMetrics(`Could not open the folder: ${e.message}`);
+        }
+    }
     function setProcessStage(key, label, detail) { processModal.stage(key, label, detail); }
     function updateProcessModal(frac) {
         // No stage events (an older server): say what the fraction means.
         processModal.progress(frac, (f) => (f < 0.85 ? 'Cleaning AI artifacts…'
             : (masterEnabled.checked ? 'Mastering & finalizing…' : 'Finalizing…')));
     }
+    const processModalClose = $('process-modal-close');
     document.addEventListener('keydown', (e) => {
         // Not dismissable while running (no cancel support); Esc closes only
-        // once the error Close button is offered.
-        if (e.key === 'Escape' && !processModal.hidden && !processModalClose.hidden) {
+        // once the error Close button is offered. Between the passes the
+        // countdown takes Esc itself and stops the hand-off.
+        if (e.key === 'Escape' && processModal.isOpen() && processModalClose && !processModalClose.hidden) {
             closeProcessModal();
         }
     });
@@ -2685,6 +2917,11 @@ export async function initSingleTab() {
 
             const wantTrim = trimSilence.checked;
             const edit = trimPanel ? trimPanel.getTrim() : null;
+            // Save to folder skips pass 1 of a two-pass plan: that file is
+            // a stepping stone, and only the final master belongs in the
+            // folder. Pass 2, and any single-pass run, is saved.
+            const isPassOneOfTwo = !!(lastFollowUp && !ranWithMastering && !priorPassPreset);
+            const saveTo = isPassOneOfTwo ? '' : activeSaveFolder();
             const job = await submitProcess(
                 currentFile,
                 paramsBody,
@@ -2692,6 +2929,7 @@ export async function initSingleTab() {
                 preserveVol.checked && !masterEnabled.checked,
                 wantTrim,
                 edit,
+                saveTo,
             );
 
             await new Promise((resolve, reject) => {
@@ -2863,6 +3101,17 @@ export async function initSingleTab() {
                     }
                     job.push(`Export ${line}`);
                 }
+                // Where the file went, when Save to folder was on.
+                const sv = mm.export && mm.export.saved;
+                if (sv && sv.enabled) {
+                    if (sv.error) {
+                        warnings.push(`Could not save to ${sv.folder}: ${sv.error}. Use Download instead.`);
+                    } else {
+                        job.push(`Saved to ${sv.folder}`);
+                    }
+                } else if (isPassOneOfTwo && activeSaveFolder()) {
+                    job.push('Not saved to folder: pass 1 of 2 (the final master will be)');
+                }
 
                 setMetrics([
                     { label: 'Loudness', chips: loudness },
@@ -2875,12 +3124,24 @@ export async function initSingleTab() {
 
             if (bannerChips.length === 0) bannerChips.push('Cleaned');
             bannerChips.push(outputFormat.value.toUpperCase());
+            const savedInfo = m && m.metrics && m.metrics.export && m.metrics.export.saved;
+            const savedOk = !!(savedInfo && savedInfo.enabled && !savedInfo.error);
+            if (savedOk) bannerChips.push(`saved to ${folderLabel(savedInfo.folder)}`);
             downloadLink.textContent =
                 `Download ${outputFormat.value.toUpperCase()}`;
+            const doneTitle = doneBanner.querySelector('.done-title');
+            if (doneTitle) doneTitle.textContent = savedOk ? '✓ Saved to your folder' : '✓ Ready to download';
             showDoneBanner(bannerChips);
-            // Success: let the packet leave through Out, then reveal the
-            // done banner.
-            setTimeout(closeProcessModal, 900);
+            // Success: the packet leaves through Out. The final file gets
+            // the Download step in the same window (Settings say whether
+            // it downloads by itself, and where). Pass 1 of a two-pass
+            // plan is a stepping stone: its window closes by itself, or
+            // the plan cancels that and holds it (bridgeToPass2).
+            if (isPassOneOfTwo) {
+                processModal.closeSoon(900);
+            } else {
+                offerDownloadStep(m && m.metrics ? m.metrics : null, savedInfo, savedOk);
+            }
             document.dispatchEvent(new CustomEvent('shimmer:run-complete', { detail: {
                 ok: true, jobId: job.job_id, masteringOn: ranWithMastering,
                 loudness: (m && m.metrics && m.metrics.loudness) || null,

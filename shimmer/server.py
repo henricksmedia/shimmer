@@ -33,6 +33,7 @@ import asyncio
 import glob
 import json
 import os
+import shutil
 import struct
 import zipfile
 import tempfile
@@ -56,6 +57,7 @@ from .audio_io import (
     load_audio, save_audio, measure, preserve_volume, clip_protect,
     process_file, encode_wav_bytes,
 )
+from .chain import folder_label
 from .engine import process, apply_post_filters
 from .dsp import as_2d, trim_silence as dsp_trim_silence
 from .edges import apply_trim, detect_edge_artifacts
@@ -265,6 +267,68 @@ def _tone_plan_for(x: np.ndarray, sr: int, analysis: Dict[str, Any],
     return plan
 
 
+def _download_name(job: Job, kind: str, ext: Optional[str] = None) -> str:
+    """The filename a download of `kind` gets, and the name a copy saved
+    into the user's folder gets, so the two never disagree:
+    `{stem}_{preset}_{processed|removed|trimmed}_{jobid8}{ext}`. The
+    short job id keeps successive runs of one song apart."""
+    ext = ext if ext is not None else job.output_ext
+    safe_stem = _safe_filename_stem(job.source_stem) or "audio"
+    safe_preset = _safe_filename_stem(job.preset_name) or "preset"
+    short_id = job.id[:8]
+    if kind == "original":
+        return f"{safe_stem}_original{ext}"
+    if ext == ".zip":
+        # A stems bundle: {track}_stems_{model|mixed}_{id}.zip
+        return f"{safe_stem}_{safe_preset}_{short_id}{ext}"
+    suffix = {"diff": "removed", "trimmed": "trimmed"}.get(kind, "processed")
+    return f"{safe_stem}_{safe_preset}_{suffix}_{short_id}{ext}"
+
+
+def _file_size(path: str) -> Optional[int]:
+    try:
+        return int(os.path.getsize(path)) if path and os.path.isfile(path) else None
+    except OSError:
+        return None
+
+
+def _reveal_in_file_manager(path: str) -> bool:
+    """Show `path` in the OS file manager, selected where the platform
+    can: Explorer on Windows, Finder on macOS, the folder elsewhere."""
+    import subprocess
+    try:
+        if sys.platform == "win32":
+            subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", "-R", path])
+        else:
+            subprocess.Popen(["xdg-open", os.path.dirname(path) or "."])
+        return True
+    except OSError:
+        return False
+
+
+# Swapped out by tests; the route reads it at call time.
+_REVEAL_LAUNCHER = _reveal_in_file_manager
+
+
+def _validated_save_folder(raw: str) -> str:
+    """Normalise the optional "Save to folder" target: '' when unset,
+    otherwise an existing (or just created) directory, or a 400 that
+    names the problem before a long run starts."""
+    folder = (raw or "").strip()
+    if not folder:
+        return ""
+    try:
+        os.makedirs(folder, exist_ok=True)
+    except OSError as e:
+        raise HTTPException(
+            400, f"Save folder not usable: {folder} ({e.strerror or e})")
+    if not os.path.isdir(folder):
+        raise HTTPException(400, f"Save folder is not a folder: {folder}")
+    return os.path.abspath(folder)
+
+
 def _tag_export(path: str, source_path: str, req: Optional[Dict[str, Any]],
                 note: str) -> Dict[str, Any]:
     """Write tags onto an export: the source's own tags, the user's
@@ -409,8 +473,11 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
     processed_path = os.path.join(
         job.workdir, f"processed{job.output_ext}")
     diff_path = os.path.join(job.workdir, f"removed{job.output_ext}")
+    save_folder = str(export_meta.get("save_folder") or "")
     _stage("export", "Writing the file",
-           f"{job.output_ext.lstrip('.').upper()} · tags" + (" · silence trim" if trim_silence else ""))
+           f"{job.output_ext.lstrip('.').upper()} · tags"
+           + (" · silence trim" if trim_silence else "")
+           + (f" · saving to {folder_label(save_folder)}" if save_folder else ""))
     save_audio(processed_path, y2, sr)
     save_audio(diff_path, diff, sr)
 
@@ -440,6 +507,26 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
             "cut_tail_s": round(cut_tail, 3),
         }
 
+    # Save to folder: the file the Download button would give, copied
+    # into the user's folder as part of the run (the trimmed variant is
+    # the export when silence trim is on). A copy that fails is reported,
+    # not fatal: the run's files are still on the server to download.
+    saved_report: Dict[str, Any] = {"enabled": False}
+    if save_folder:
+        src_kind = "trimmed" if trim_silence else "processed"
+        src_path = job.trimmed_path if trim_silence else processed_path
+        dest = os.path.join(save_folder, _download_name(job, src_kind))
+        try:
+            os.makedirs(save_folder, exist_ok=True)
+            shutil.copyfile(src_path, dest)
+            job.saved_path = dest
+            saved_report = {"enabled": True, "path": dest,
+                            "folder": save_folder,
+                            "name": os.path.basename(dest)}
+        except OSError as e:
+            saved_report = {"enabled": True, "folder": save_folder,
+                            "error": str(e.strerror or e)}
+
     # Report-stage numbers: band spectra before / after / removed, the
     # peak-to-loudness ratio and the stereo correlation, plus what the
     # export actually is. Measurement only.
@@ -463,6 +550,10 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         "dither": False,
         "bitrate": "320k" if ext == ".mp3" else None,
         "tags": tags_report,
+        "saved": saved_report,
+        # What the Download step shows: the download's filename and size.
+        "name": _download_name(job, "trimmed" if trim_silence else "processed"),
+        "size_bytes": _file_size(job.trimmed_path if trim_silence else processed_path),
     }
 
     job.processed_path = processed_path
@@ -575,6 +666,7 @@ async def api_chain(payload: Dict[str, Any]) -> JSONResponse:
         output_format=output_format,
         trim_armed=bool(data.get("trim_armed", False)),
         repair=data.get("repair"),
+        save_folder=str(data.get("save_folder") or ""),
     ))
 
 
@@ -606,6 +698,22 @@ async def api_browse_folder(payload: Dict[str, Any] = {}) -> JSONResponse:
     loop = asyncio.get_running_loop()
     selected = await loop.run_in_executor(None, _open_folder_dialog, initial_dir, title)
     return JSONResponse({"path": selected})
+
+
+@app.post("/api/reveal")
+async def api_reveal(payload: Dict[str, Any]) -> JSONResponse:
+    """Show a file the server wrote (a "Save to folder" export) in the OS
+    file manager. Shimmer runs on the user's own machine, so this is the
+    Download step's "Show in folder". `{"path": "..."}` → `{"ok": bool}`;
+    404 when the path does not exist."""
+    path = str((payload or {}).get("path") or "").strip()
+    if not path:
+        raise HTTPException(400, "No path given")
+    if not os.path.exists(path):
+        raise HTTPException(404, f"Not found: {path}")
+    loop = asyncio.get_running_loop()
+    ok = await loop.run_in_executor(None, _REVEAL_LAUNCHER, os.path.abspath(path))
+    return JSONResponse({"ok": bool(ok)})
 
 
 def _open_folder_dialog(initial_dir: str | None, title: str) -> str | None:
@@ -644,6 +752,7 @@ async def api_process(
     trim_silence: bool = Form(False),
     trim_in_s: float = Form(0.0),
     trim_out_s: Optional[float] = Form(None),
+    save_folder: str = Form(""),
 ) -> JSONResponse:
     try:
         params_data = json.loads(params)
@@ -662,6 +771,9 @@ async def api_process(
     output_ext = "." + output_format.lstrip(".").lower()
     if output_ext not in {".wav", ".flac", ".mp3", ".ogg", ".m4a"}:
         raise HTTPException(400, f"Unsupported output format: {output_format}")
+    # "Save to folder": checked now so a bad folder fails in a second,
+    # not after a full run.
+    save_folder = _validated_save_folder(save_folder)
 
     # Codec-aware true-peak ceiling: lossy encoders overshoot on decode,
     # so MP3/OGG/M4A exports get -1.5 dBTP unless the user explicitly
@@ -692,6 +804,7 @@ async def api_process(
     export_meta = {
         "tags": params_data.get("tags") if isinstance(params_data.get("tags"), dict) else None,
         "preset_strength": preset_strength,
+        "save_folder": save_folder,
     }
     asyncio.create_task(_run_job_async(
         job, job.original_path, p, preserve_volume, mp, mastering_analysis,
@@ -772,20 +885,7 @@ async def api_result(job_id: str, kind: str = "processed") -> FileResponse:
     # downloads of different presets / different songs don't all collide on
     # `processed.wav` in the user's Downloads folder. Filesystem-safe stem +
     # short job id so old/new runs are visually distinguishable.
-    safe_stem = _safe_filename_stem(job.source_stem) or "audio"
-    safe_preset = _safe_filename_stem(job.preset_name) or "preset"
-    short_id = job.id[:8]
-    if kind == "original":
-        download_name = f"{safe_stem}_original{ext}"
-    elif ext == ".zip":
-        # A stems bundle: {track}_stems_{model|mixed}_{id}.zip
-        download_name = f"{safe_stem}_{safe_preset}_{short_id}{ext}"
-    else:
-        suffix = {"diff": "removed", "trimmed": "trimmed"}.get(
-            kind, "processed")
-        download_name = (
-            f"{safe_stem}_{safe_preset}_{suffix}_{short_id}{ext}"
-        )
+    download_name = _download_name(job, kind, ext)
     return FileResponse(path, media_type=media, filename=download_name)
 
 

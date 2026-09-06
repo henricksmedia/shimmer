@@ -7,6 +7,27 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **A Download step ends every run, and a Settings tab says where the
+  file goes.** The processing window used to close by itself once the
+  file was written, leaving the Download button in the green banner
+  under the player, easy to miss among everything else on the page.
+  Now the window goes from "Writing the file" to a Download step: the
+  file's name and size, a big Download button, Close, and Escape. The
+  new Settings tab (in the rail, under Signal Chain) holds the two
+  choices such a step needs. **Download automatically** starts the
+  download the moment the run ends, with the step kept as a backup.
+  **Download location** is the browser's Downloads folder, or a folder
+  of yours that Shimmer writes the finished file into as the run ends
+  (the same picker Batch uses), under the same name a download gets,
+  tags included; the step then leads with **Show in folder** and still
+  offers a copy to download. Both apply to the final file only: pass 1
+  of a two-pass plan is never downloaded or saved, and its window closes
+  by itself as before. The choices come back on the next visit whether
+  or not Remember settings is on, like the Tags defaults. A folder that
+  cannot be created stops the run before it starts; a copy that fails
+  at the end is reported on the step and under the banner instead of
+  losing the run. The green banner keeps its Download button, and the
+  Signal Chain's Export stage shows the folder as a badge.
 - **The Remix tab is a lane mixer, and separation has quality tiers.**
   The tab now walks the same three stages as Master (1 Upload,
   2 Separate, 3 Mix & Render) with the same hero dropzone, a Recent
@@ -198,6 +219,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **A two-pass plan counts pass 2 in instead of going quiet.** Run both
+  passes (and Continue) used to close the processing window when pass 1
+  finished, render its result with a Download button, and open the
+  window again a few seconds later for pass 2; people took the gap for
+  the end. The window now stays up across the hand-off: "Pass 1 done"
+  over a busy bar while the cleaned file loads and the EQ is planned,
+  then a big 3-2-1 in front of the pass-2 chain (the wordmark's face in
+  the aurora gradient, an amber ring draining, Go in green) before pass 2
+  starts. Stop here, or Esc, keeps the loaded result and runs nothing.
+  Titles now carry the pass ("Cleaning · pass 1 of 2", "Cleaning &
+  mastering · pass 2 of 2"). Esc on the window no longer throws when the
+  Close button is not offered.
 - **The progress window shows the chain, live.** It used to say
   "Cleaning AI artifacts…" for most of the run. It now draws the Signal
   Chain as a wire with the eleven stages on it (Edit, Repair, Pre, Split,

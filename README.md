@@ -202,7 +202,10 @@ a second pass with another preset would still help, Analyze says so.
 when your finished file is ready — along with a **What changed** chart (the
 spectrum before and after, what was removed, and where) and the numbers
 behind it: loudness before and after, true peak, peak-to-loudness ratio,
-stereo correlation, and how hard the limiter worked.
+stereo correlation, and how hard the limiter worked. The window ends on a
+**Download** step; in **Settings** you can have the file download by
+itself, or land straight in a folder of yours with a **Show in folder**
+button.
 
 Want to hear your edits instantly? Turn on **Live** in the bottom bar. It
 loops a short section of your song and re-renders it in about a second, so

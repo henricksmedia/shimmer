@@ -368,8 +368,33 @@ class TestUIAPI:
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         html = open(os.path.join(root, "static", "index.html"),
                     encoding="utf-8").read()
-        # The removed tab ships disabled; JS enables it when data exists.
-        assert 'data-track="removed" disabled' in html
+        # The removed tab ships disabled (aria-disabled, so it stays
+        # focusable and can explain itself); JS enables it when data exists.
+        assert 'data-track="removed" aria-disabled="true"' in html
+
+    def test_pass_countdown_lives_in_process_window(self):
+        # A two-pass plan hands off to pass 2 inside the processing
+        # window: a held "Pass 1 done" line while the result loads, then
+        # a 3-2-1 count with a Stop here button, so the gap between the
+        # passes never reads as the end. The markup is static;
+        # progress-chain.js drives it and single.js routes both
+        # automatic hand-offs (Run both passes, Continue) through it.
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        html = open(os.path.join(root, "static", "index.html"),
+                    encoding="utf-8").read()
+        modal = html[html.index('id="process-modal"'):
+                     html.index('id="advanced-drawer-backdrop"')]
+        for el_id in ("process-modal-countdown", "process-modal-cd-digit",
+                      "process-modal-cd-sub", "process-modal-cd-stop",
+                      "process-modal-track"):
+            assert f'id="{el_id}"' in modal
+        chain_js = open(os.path.join(root, "static", "js", "progress-chain.js"),
+                        encoding="utf-8").read()
+        assert "function hold(" in chain_js
+        assert "function countdown(" in chain_js
+        single_js = open(os.path.join(root, "static", "js", "single.js"),
+                         encoding="utf-8").read()
+        assert single_js.count("await bridgeToPass2()") == 2
 
     def test_export_uses_codec_ceiling(self):
         soundfile = pytest.importorskip("soundfile")

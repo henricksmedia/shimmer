@@ -15,6 +15,7 @@ const VIEW_TITLES = {
     remix:  ['Remix', 'split into stems · rebalance · render the mix or export the parts'],
     batch:  ['Batch', 'whole folders, one pass'],
     chain:  ['Signal Chain', 'what actually happens to your audio'],
+    settings: ['Settings', 'downloads · where finished files go'],
 };
 
 function wireTabs() {

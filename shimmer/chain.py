@@ -31,6 +31,7 @@ Order (see docs/README.md "Architecture" and docs/PLAN.md Section 2):
 
 from __future__ import annotations
 
+import os
 from typing import Any, Dict, List, Optional
 
 from .edges import TRIM_FADE_MS
@@ -56,6 +57,15 @@ def _band(lo: float, hi: float) -> str:
 
 def _pct(v: float) -> str:
     return f"{float(v) * 100.0:.0f}%"
+
+
+def folder_label(path: str) -> str:
+    """The last part of a folder path, for a badge or a chip:
+    'D:\\Music\\Masters' -> 'Masters'. A bare drive stays as it is."""
+    p = str(path or "").strip()
+    if not p:
+        return ""
+    return os.path.basename(os.path.normpath(p)) or p
 
 
 # Phase per category: the view colours the wire and each card's rail by
@@ -224,7 +234,8 @@ def build_chain(p: Params,
                 trim_silence: bool = False,
                 output_format: str = "wav",
                 trim_armed: bool = False,
-                repair: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                repair: Optional[Dict[str, Any]] = None,
+                save_folder: str = "") -> Dict[str, Any]:
     """Describe the processing chain for these exact settings.
 
     Returns {"modules": [...], "gates": {...}, "summary": {...}}. Every
@@ -512,14 +523,18 @@ def build_chain(p: Params,
     exp_badges = [fmt.upper(), enc]
     if trim_silence:
         exp_badges.append("silence trim < −60 dBFS")
+    folder = str(save_folder or "").strip()
+    if folder:
+        exp_badges.append(f"saved to {folder_label(folder)}")
     modules.append(_mod(
         "export", "Export", "Encode + Export",
-        "format, bit depth, silence trim",
+        "format, bit depth, silence trim, save to folder",
         ("The finished file is written in your chosen format. Lossless "
          "exports are 24-bit; lossy formats go through ffmpeg. If Trim "
          "silence is on, a second copy with the leading and trailing "
          "silence removed is written next to it; the playback files are "
-         "not changed."),
+         "not changed. With Save to folder on, the file the Download "
+         "button gives is also copied into your folder as the run ends."),
         badges=exp_badges,
     ))
 

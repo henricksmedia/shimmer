@@ -36,6 +36,9 @@ class Job:
     # Silence-trimmed export variant; playback always streams processed_path
     # so the synced A/B/C player keeps a shared clock.
     trimmed_path: str = ""
+    # Copy of the export written into the user's chosen folder when
+    # "Save to folder" is on (the trimmed variant if silence trim is on).
+    saved_path: str = ""
     output_ext: str = ".wav"
     # Friendly stems used for the download Content-Disposition filenames so
     # successive downloads don't all collide on `processed.wav` in the user's

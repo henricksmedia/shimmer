@@ -700,7 +700,13 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   "Continue to pass 2" loads its result in place (named like an export,
   {stem}_{preset}_processed_{id}.wav), applies the pass-2 preset, turns
   mastering on and shows the pass-2 card immediately, ready to run, with
-  an optional "Analyze this result first" button. A loaded file whose name matches an export is treated as
+  an optional "Analyze this result first" button. Run both passes (and
+  Continue) hand off to pass 2 inside the processing window, which stays
+  up the whole way: "Pass 1 done" over a busy bar while the result loads
+  and the EQ is planned, then a big 3-2-1 count in front of the pass-2
+  chain (the wordmark's face in the aurora gradient, an amber ring
+  draining, Go in green), so the gap never reads as the end; Stop here
+  or Esc keeps the loaded result and runs nothing. A loaded file whose name matches an export is treated as
   pass 1's output: the dropzone notes "Shimmer output · pass 1 was …",
   and the card becomes "Pass 2: <follow-up>" (mastering on, Preserve
   volume off) whose button applies the pass-2 preset and runs
@@ -757,6 +763,28 @@ Sources: [static/index.html](static/index.html) and the ES modules in
 - A green "Ready to download" banner appears with metric chips and the
   download link. Download filenames follow
   `{stem}_{preset}_{processed|removed}_{jobid8}{ext}`.
+- The processing window ends on a **Download step**
+  (`processModal.offerDownload` in `static/js/progress-chain.js`): the
+  chain stays drawn as finished, and the progress lines give way to the
+  file's name and size (`export.name`, `export.size_bytes` in the
+  metrics), a primary button, an optional secondary one, Close and
+  Escape. What the step does comes from the Settings tab (below). Pass 1
+  of a two-pass plan gets no step: its window closes by itself, or the
+  plan holds it for the hand-off.
+- **Settings tab, Downloads** (`#tab-settings`): "Download automatically
+  when a run finishes" presses the Download step's button for you.
+  "Download location" is the browser's Downloads folder (default) or
+  "This folder": the client sends the folder as `save_folder`, the
+  server copies the export (the silence-trimmed variant when that is
+  on) there as the job ends under the download filename, tags included,
+  and the step leads with "Show in folder" (`POST /api/reveal`) with
+  "Download a copy" beside it. The picker is `/api/browse-folder`, as
+  in Batch. The banner says where the file went and keeps its Download
+  button; a copy that failed shows as a warning chip and the step falls
+  back to the browser download. Neither applies to pass 1 of a two-pass
+  plan (the client sends no `save_folder` for it). The Signal Chain's
+  Export stage carries a "saved to <folder>" badge, and the Output
+  section points at Settings.
 - "What changed" card ([report.py](report.py) measures,
   `static/js/report.js` draws): whole-file 1/6-octave spectra before and
   after the pass plus the removed signal, and a level-matched "after
@@ -1088,7 +1116,9 @@ open (`remember_settings`, `preset`, `preset_strength`, `sliders`,
 `preserve_volume`, `trim_silence`, `output_format`, `mastering`, `eq`,
 `ab_loudness_match`, `tags` (the Tags defaults: artist, album artist,
 album, genre, year, copyright, ISRC, keep, notes), `tone` (Suggested EQ
-family, "use on the final pass", amount)) so Batch can reuse the Master
+family, "use on the final pass", amount), `downloads` (`{auto, location:
+"browser"|"folder", folder}`, the Settings tab's Downloads choices,
+restored like `tags` regardless of `remember_settings`)) so Batch can reuse the Master
 tab's EQ, tags and family in the same session. On page load / refresh,
 the Single File tab restores the run settings only when
 `remember_settings` is true (the “Remember settings next time” checkbox
@@ -1118,6 +1148,7 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
 | GET | `/api/settings` | Load persisted UI settings |
 | POST | `/api/settings` | Save UI settings JSON |
 | POST | `/api/browse-folder` | Open the native (tkinter) folder picker; `{initial_dir?, title?}` → `{path}` or `{path: null}` |
+| POST | `/api/reveal` | Show a file the server wrote in the OS file manager (the Download step's "Show in folder"); `{path}` → `{ok}`, 404 when the path does not exist |
 | POST | `/api/process` | Start a full-file job → `{job_id}` |
 | GET | `/api/progress/{job_id}` | SSE stream of `{fraction}` progress events, `{fraction, stage, status, detail}` chain-stage events (stage keys match the Signal Chain phases: edit, repair, pre, split, fine, engine, recombine, post, level, master, export), then `{done}` or `{error}`; 15 s keepalives |
 | GET | `/api/metrics/{job_id}` | Job metrics; 202 while running, 500 on job error |
@@ -1157,6 +1188,13 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
   fade at each new edge. Omitted entirely when no trim is armed.
 - `preserve_volume` — bool, default true
 - `output_format` — `wav` | `flac` | `mp3` | `ogg` | `m4a`
+- `save_folder` — optional path. When set, the export (the trimmed
+  variant when `trim_silence` is on) is copied there as the job ends,
+  under the download filename. The folder is created if missing; a
+  path that cannot be a folder is a 400 before the run starts. The
+  metrics report it as `export.saved` (`{enabled, path, folder, name}`,
+  or `{enabled, folder, error}` when the copy failed; the job still
+  succeeds).
 
 `POST /api/batch` (JSON):
 

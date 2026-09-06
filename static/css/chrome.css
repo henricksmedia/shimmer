@@ -660,6 +660,107 @@
 .process-modal-error[hidden] { display: none; }
 .process-modal-close[hidden] { display: none; }
 .process-modal-close { align-self: center; margin-top: 2px; }
+
+/* ── Between the passes: hold, then the count ──────────────────────
+   A two-pass plan runs pass 1, loads its result and runs pass 2 by
+   itself. The window stays up the whole way so the gap never reads as
+   the end: "Pass 1 done" over a busy bar while the cleaned file loads,
+   then a big 3-2-1 in front of the pass-2 chain (progress-chain.js
+   hold() and countdown()). The digit wears the wordmark's face and the
+   title's aurora; the ring is the primary amber; zero goes green like
+   the chain's Out port. */
+.process-modal-stage.pm-done { color: var(--success); }
+.process-modal-stage.pm-done::before { content: "✓ "; }
+.process-modal-track.busy { position: relative; }
+.process-modal-track.busy .process-modal-fill {
+    position: absolute; top: 0; bottom: 0; left: -34%; width: 34%;
+    transition: none;
+    animation: ab-sweep 1.4s ease-in-out infinite;
+}
+.pm-countdown {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 2px 0 4px;
+}
+.pm-cd-kicker {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .14em;
+    color: var(--amber); font-weight: 700;
+}
+.pm-cd-dial {
+    position: relative; width: 172px; height: 172px; margin: 6px 0 2px;
+    display: grid; place-items: center;
+}
+.pm-cd-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.pm-cd-ring-track { fill: none; stroke: var(--line-2); stroke-width: 5; }
+.pm-cd-ring-arc {
+    fill: none; stroke: var(--amber); stroke-width: 5; stroke-linecap: round;
+    stroke-dasharray: 465; stroke-dashoffset: 0;            /* 2π · 74 */
+    filter: drop-shadow(0 0 6px rgba(245, 165, 36, .55));
+}
+.pm-countdown.counting .pm-cd-ring-arc { animation: pm-cd-drain var(--cd-total, 3s) linear forwards; }
+@keyframes pm-cd-drain { to { stroke-dashoffset: 465; } }
+.pm-cd-num { line-height: 1; transform-origin: center; }
+.pm-cd-num.pop { animation: pm-cd-pop 720ms cubic-bezier(.2, .9, .25, 1) both; }
+@keyframes pm-cd-pop {
+    0%   { transform: scale(1.5); opacity: 0; }
+    35%  { transform: scale(1); opacity: 1; }
+    100% { transform: scale(.94); opacity: .95; }
+}
+.pm-cd-num span {
+    display: block;
+    font-family: var(--font-logo);
+    font-size: 96px;
+    font-weight: 400;
+    background: linear-gradient(100deg,
+        var(--amber) 0%, #ffd97a 18%, var(--gold) 38%,
+        #f472b6 55%, var(--amber) 75%, #ffd97a 100%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: aurora-sweep 7s linear infinite;
+}
+/* Zero: the ring fills green and the digit says Go. */
+.pm-countdown.go .pm-cd-ring-arc {
+    animation: none; stroke: var(--success); stroke-dashoffset: 0;
+    filter: drop-shadow(0 0 8px rgba(74, 222, 128, .6));
+}
+.pm-countdown.go .pm-cd-num span {
+    font-size: 56px; background: none; animation: none;
+    -webkit-text-fill-color: var(--success); color: var(--success);
+    text-shadow: 0 0 18px rgba(74, 222, 128, .45);
+}
+.pm-cd-title { font-size: 19px; font-weight: 650; color: var(--fg-0); }
+.pm-cd-sub { font-size: 13.5px; color: var(--fg-2); min-height: 18px; }
+.pm-cd-stop { margin-top: 8px; }
+
+/* ── The end of the run: the Download step ─────────────────────────
+   The chain stays finished above (packet at Out, port green) and the
+   progress lines make way for the file's name, where it went, and the
+   buttons (progress-chain.js offerDownload()). The title goes green
+   like the Out port; the primary button is the same amber as Download
+   in the banner, so the eye lands on it. */
+.pm-download {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 4px 0 2px;
+}
+.pm-download[hidden] { display: none; }
+.pm-dl-title { font-size: 19px; font-weight: 650; color: var(--success); }
+.pm-dl-title::before { content: "✓ "; }
+.pm-dl-sub {
+    font-size: 13.5px; color: var(--fg-2); line-height: 1.5;
+    max-width: 640px; overflow-wrap: anywhere;
+}
+.pm-dl-actions {
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+    gap: 10px; margin-top: 6px;
+}
+.pm-dl-primary { font-size: 15px; padding: 10px 24px; }
+.pm-dl-secondary[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+    .pm-cd-num.pop, .pm-cd-num span, .pm-countdown.counting .pm-cd-ring-arc { animation: none; }
+    .process-modal-track.busy .process-modal-fill { animation: none; left: 0; width: 100%; }
+}
 @media (prefers-reduced-motion: reduce) {
     .process-modal-fill { transition: none; }
     .process-modal-backdrop { backdrop-filter: none; animation: none; }

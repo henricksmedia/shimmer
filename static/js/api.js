@@ -22,7 +22,7 @@ export async function saveSettings(payload) {
 }
 
 export async function submitProcess(file, paramsBody, outputFormat, preserveVolume,
-                                    trimSilence, trim) {
+                                    trimSilence, trim, saveFolder = '') {
     const form = new FormData();
     form.append('file', file);
     form.append('params', JSON.stringify(paramsBody));
@@ -33,12 +33,30 @@ export async function submitProcess(file, paramsBody, outputFormat, preserveVolu
     // untouched track keeps the exact request it sent before this existed.
     if (trim && trim.inS > 0) form.append('trim_in_s', String(trim.inS));
     if (trim && trim.outS != null) form.append('trim_out_s', String(trim.outS));
+    // "Save to folder": the server copies the export there as the run
+    // ends. Sent only when the user chose a folder for this run.
+    if (saveFolder) form.append('save_folder', saveFolder);
     const res = await fetch('/api/process', {method: 'POST', body: form});
     if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Process failed (${res.status})`);
     }
     return res.json();  // { job_id }
+}
+
+// Show a saved file in the OS file manager (the server runs on this
+// machine). Used by the Download step when the location is a folder.
+export async function revealPath(path) {
+    const res = await fetch('/api/reveal', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({path}),
+    });
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Reveal failed (${res.status})`);
+    }
+    return res.json();
 }
 
 export async function fetchMetrics(jobId) {
