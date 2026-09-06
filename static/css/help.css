@@ -71,17 +71,21 @@
     margin: 0 0 12px;
     padding: 0;
 }
+/* A block with the badge pinned at the left, not a flex row: a flex row
+   turns every <b> and text run in the step into a column of its own. */
 .workflow-list li {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    position: relative;
+    display: block;
+    padding-left: 26px;
     margin: 6px 0;
     font-size: 13px;
     color: var(--fg-1);
     line-height: 1.5;
 }
 .workflow-list .step {
-    flex: 0 0 18px;
+    position: absolute;
+    left: 0;
+    top: 1px;
     display: inline-block;
     width: 18px; height: 18px;
     line-height: 18px;
