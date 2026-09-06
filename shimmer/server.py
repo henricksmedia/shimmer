@@ -32,6 +32,7 @@ from . import _winfix  # noqa: F401  # must precede scipy/numpy import on Window
 import asyncio
 import glob
 import json
+import math
 import os
 import shutil
 import struct
@@ -40,7 +41,7 @@ import tempfile
 import time
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -1039,6 +1040,9 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     # Codec-aware ceiling unless the user explicitly chose one.
     if (payload.get("mastering") or {}).get("ceiling_dbtp") is None:
         mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
+    # Album mode: one gain for the whole folder (see _album_gain). Only
+    # meaningful with mastering on.
+    album_mode = bool(payload.get("album_mode", False)) and bool(mp.enabled)
 
     # Preset strength: parse and clamp to [0, 2].
     raw_strength = payload.get("preset_strength")
@@ -1077,12 +1081,100 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
             "total": len(files),
             "output_folder": output_folder,
             "preset": "auto-detect" if auto_detect else preset,
+            "album_mode": album_mode,
         })
         if not files:
             yield _sse_event({"type": "end",
                               "message": "No audio files found"})
             return
         loop = asyncio.get_running_loop()
+
+        if album_mode:
+            # Two passes. Pass 1 cleans every track with mastering held
+            # back and parks the pre-master signal on disk; the album's
+            # gain is then decided from the loudest track; pass 2
+            # masters each track with that one gain. The parked files
+            # go when the run ends, however it ends.
+            tmp_dir = tempfile.mkdtemp(prefix="shimmer_album_")
+            try:
+                infos: List[Dict[str, Any]] = []
+                yield _sse_event({
+                    "type": "phase", "phase": "clean", "total": len(files),
+                    "message": "Pass 1 of 2: cleaning every track; mastering waits until the album's level is known",
+                })
+                for i, src in enumerate(files):
+                    name = os.path.basename(src)
+                    yield _sse_event({"type": "file_start", "phase": "clean",
+                                      "index": i, "name": name})
+                    tmp = os.path.join(tmp_dir, f"{i:03d}.wav")
+                    try:
+                        info = await loop.run_in_executor(
+                            None, _album_clean_one, src, tmp, preset,
+                            auto_detect, preset_strength, mp, eqp,
+                            static_repair, auto_eq, tone_family)
+                        info.update({"index": i, "name": name, "src": src})
+                        infos.append(info)
+                        yield _sse_event({
+                            "type": "file_done", "phase": "clean",
+                            "index": i, "name": name,
+                            "duration_s": info["duration_s"],
+                            "lufs_clean": info["lufs_clean"],
+                            "true_peak_clean": info["true_peak_clean"],
+                            "peak_in_db": info["input"]["peak_dbfs"],
+                            "tone_moves": info.get("tone_moves"),
+                            "tone_summary": info.get("tone_summary"),
+                            "detected_preset": info.get("detected_preset"),
+                            "detected_label": info.get("detected_label"),
+                            "detected_confidence": info.get("detected_confidence"),
+                            "detected_strength": info.get("detected_strength"),
+                            "effective_strength": info.get("effective_strength"),
+                        })
+                    except Exception as e:  # noqa: BLE001
+                        yield _sse_event({"type": "file_error", "phase": "clean",
+                                          "index": i, "name": name, "error": str(e)})
+                album = _album_gain(infos, float(mp.target_lufs))
+                yield _sse_event({"type": "album", "target_lufs": float(mp.target_lufs),
+                                  "tracks": len(infos), **album})
+                if not infos:
+                    yield _sse_event({"type": "end", "total": len(files),
+                                      "message": "No track could be cleaned"})
+                    return
+                yield _sse_event({
+                    "type": "phase", "phase": "master", "total": len(infos),
+                    "message": "Pass 2 of 2: mastering every track with the album's gain",
+                })
+                for info in infos:
+                    i, name, src = info["index"], info["name"], info["src"]
+                    dst = os.path.join(
+                        output_folder, os.path.splitext(name)[0] + "." + output_format)
+                    yield _sse_event({"type": "file_start", "phase": "master",
+                                      "index": i, "name": name})
+                    try:
+                        r = await loop.run_in_executor(
+                            None, _album_master_one, info, src, dst, mp,
+                            float(album["gain_db"]), trim_silence, tags_req)
+                        after = (r.get("mastering") or {}).get("after") or {}
+                        yield _sse_event({
+                            "type": "file_done", "phase": "master",
+                            "index": i, "name": name,
+                            "duration_s": r["duration_s"],
+                            "tags_written": r.get("tags_written"),
+                            "trim": r.get("trim"),
+                            "peak_in_db": (r.get("input") or {}).get("peak_dbfs"),
+                            "peak_out_db": r["output"]["peak_dbfs"],
+                            "lufs_out": _finite_or_none(after.get("lufs_i")),
+                            "true_peak_out": _finite_or_none(after.get("true_peak_dbtp")),
+                            "limiter_gr_db": (r.get("mastering") or {}).get("limiter_gain_reduction"),
+                            "gain_db": float(album["gain_db"]),
+                        })
+                    except Exception as e:  # noqa: BLE001
+                        yield _sse_event({"type": "file_error", "phase": "master",
+                                          "index": i, "name": name, "error": str(e)})
+                yield _sse_event({"type": "end", "total": len(files)})
+            finally:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            return
+
         for i, src in enumerate(files):
             name = os.path.basename(src)
             dst = os.path.join(
@@ -1107,6 +1199,12 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
                     "detected_confidence": r.get("detected_confidence"),
                     "detected_strength": r.get("detected_strength"),
                     "effective_strength": r.get("effective_strength"),
+                    # Per-file verification when mastering ran.
+                    "lufs_out": _finite_or_none(
+                        ((r.get("mastering") or {}).get("after") or {}).get("lufs_i")),
+                    "true_peak_out": _finite_or_none(
+                        ((r.get("mastering") or {}).get("after") or {}).get("true_peak_dbtp")),
+                    "limiter_gr_db": (r.get("mastering") or {}).get("limiter_gain_reduction"),
                 })
             except Exception as e:  # noqa: BLE001
                 yield _sse_event({
@@ -1118,15 +1216,16 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 
-def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
-               auto_detect: bool = False, preset_strength: float = 1.0,
-               master_params: Optional[MasterParams] = None,
-               trim_silence: bool = False,
-               eq_params: Optional[EqParams] = None,
-               static_repair: bool = True,
-               auto_eq: bool = False,
-               tone_family: str = "neutral",
-               tags_req: Optional[Dict[str, Any]] = None):
+def _batch_prepare(src: str, preset_name: str, auto_detect: bool,
+                   preset_strength: float,
+                   master_params: Optional[MasterParams],
+                   eq_params: Optional[EqParams],
+                   auto_eq: bool, tone_family: str
+                   ) -> Tuple[Params, Optional[EqParams], Dict[str, Any], float]:
+    """The per-file choices every batch pass makes before touching the
+    audio: the preset (fixed, or auto-detected with its own strength),
+    the strength scaling, and the suggested EQ judged after that file's
+    cleaning. Returns (params, eq_params, detected_info, strength)."""
     detected_info: Dict[str, Any] = {}
 
     if auto_detect:
@@ -1173,6 +1272,21 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
             base = eq_params.bands if (eq_params is not None and eq_params.enabled) else []
             merged = eq_params_from_json(moves_to_eq_payload(moves))
             eq_params = EqParams(enabled=True, bands=list(base) + list(merged.bands))
+    return params, eq_params, detected_info, preset_strength
+
+
+def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
+               auto_detect: bool = False, preset_strength: float = 1.0,
+               master_params: Optional[MasterParams] = None,
+               trim_silence: bool = False,
+               eq_params: Optional[EqParams] = None,
+               static_repair: bool = True,
+               auto_eq: bool = False,
+               tone_family: str = "neutral",
+               tags_req: Optional[Dict[str, Any]] = None):
+    params, eq_params, detected_info, preset_strength = _batch_prepare(
+        src, preset_name, auto_detect, preset_strength, master_params,
+        eq_params, auto_eq, tone_family)
 
     result = process_file(
         input_path=src, output_path=dst,
@@ -1197,6 +1311,101 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
     tag_rep = _tag_export(dst, src, tags_req, note)
     result["tags_written"] = bool(tag_rep.get("written"))
     return result
+
+
+# ── Album mode ───────────────────────────────────────────────────────────
+# A folder mastered as one record. Normalising each track on its own
+# flattens the album: the quiet song ends up as loud as the single.
+# Album mode cleans every track first (pass 1), parks the pre-master
+# signal, decides one gain from the loudest track, and masters each
+# track with that gain (pass 2), so the tracks keep their distance and
+# no track is limited harder than it would be on its own.
+
+def _album_clean_one(src: str, tmp_dst: str, preset_name: str,
+                     auto_detect: bool, preset_strength: float,
+                     master_params: MasterParams,
+                     eq_params: Optional[EqParams], static_repair: bool,
+                     auto_eq: bool, tone_family: str) -> Dict[str, Any]:
+    """Pass 1 for one file: clean with mastering deferred, park the
+    pre-master signal as a float WAV, and measure its loudness."""
+    params, eqp, detected_info, strength = _batch_prepare(
+        src, preset_name, auto_detect, preset_strength, master_params,
+        eq_params, auto_eq, tone_family)
+    x, sr = load_audio(src)
+    plan = plan_from_lines(scan_fixed_lines(x, sr), sr) if static_repair else None
+    params.cutoff_hz = float(estimate_cutoff_hz(x, sr).get("cutoff_hz") or 0.0)
+    y, _removed, rep = clean_and_master(
+        x, sr, params, master_params=master_params, eq_params=eqp,
+        repair=plan, defer_master=True)
+    save_audio(tmp_dst, y, sr, subtype="FLOAT")
+    loud = (rep.get("mastering") or {}).get("before") or measure_loudness(y, sr)
+    info: Dict[str, Any] = {
+        "tmp": tmp_dst, "sr": sr,
+        "duration_s": float(x.shape[0] / sr),
+        "input": measure(x),
+        "lufs_clean": _finite_or_none(loud.get("lufs_i")),
+        "true_peak_clean": _finite_or_none(loud.get("true_peak_dbtp")),
+        "strength": float(strength),
+        "eq_bands": len(eqp.active_bands(sr)) if eqp is not None and eqp.is_active(sr) else 0,
+        "preset": detected_info.get("detected_preset") or preset_name,
+    }
+    info.update(detected_info)
+    return info
+
+
+def _album_gain(infos: List[Dict[str, Any]], target_lufs: float) -> Dict[str, Any]:
+    """One gain for the whole album: the loudest cleaned track lands on
+    the target and every other track keeps its distance below it. Also
+    reports the album's overall loudness (the duration-weighted energy
+    mean of the tracks' integrated loudness, close to a gated
+    measurement of the record played end to end) and the spread."""
+    rows = [(i, float(i["lufs_clean"]), float(i.get("duration_s") or 0.0))
+            for i in infos if i.get("lufs_clean") is not None]
+    if not rows:
+        return {"gain_db": 0.0, "loudest": None, "loudest_lufs": None,
+                "album_lufs": None, "spread_lu": None}
+    loudest = max(rows, key=lambda r: r[1])
+    total = sum(d for _, _, d in rows) or 1.0
+    energy = sum(d * 10.0 ** (l / 10.0) for _, l, d in rows) / total
+    return {
+        "gain_db": float(target_lufs - loudest[1]),
+        "loudest": loudest[0].get("name"),
+        "loudest_lufs": loudest[1],
+        "album_lufs": float(10.0 * math.log10(max(energy, 1e-20))),
+        "spread_lu": float(loudest[1] - min(l for _, l, _ in rows)),
+    }
+
+
+def _album_master_one(info: Dict[str, Any], src: str, dst: str,
+                      master_params: MasterParams, gain_db: float,
+                      trim_silence: bool,
+                      tags_req: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Pass 2 for one file: master the parked track with the album's
+    gain (shaper and limiter still per track), trim, write, tag."""
+    y, sr = load_audio(info["tmp"])
+    y2, m_report = master(y, sr, master_params, fixed_gain_db=gain_db)
+    trim_report: Dict[str, Any] = {"enabled": False}
+    if trim_silence:
+        y2, cut_head, cut_tail = dsp_trim_silence(y2, sr)
+        trim_report = {"enabled": True, "cut_head_s": round(cut_head, 3),
+                       "cut_tail_s": round(cut_tail, 3)}
+    save_audio(dst, y2, sr)
+    chosen = str(info.get("preset") or "generic")
+    note = shimmer_note(
+        f"Shimmer {SHIMMER_VERSION}", _pass_label(src),
+        label_for(chosen) if chosen in PRESET_NAMES else chosen,
+        float(info.get("effective_strength", info.get("strength", 1.0))), True,
+        float(master_params.target_lufs), float(master_params.ceiling_dbtp),
+        eq_bands=int(info.get("eq_bands", 0)))
+    tag_rep = _tag_export(dst, src, tags_req, note)
+    return {
+        "duration_s": float(y2.shape[0] / sr),
+        "input": info.get("input") or {},
+        "output": measure(y2),
+        "mastering": m_report,
+        "trim": trim_report,
+        "tags_written": bool(tag_rep.get("written")),
+    }
 
 
 # ───────────────────────────────────────────────────────────────────────────

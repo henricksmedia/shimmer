@@ -810,6 +810,11 @@
                                 <option value="warm">Warm</option>
                                 <option value="warmer">Warmer</option>
                             </select>
+                            <label class="checkbox-row" id="batch-album-row"
+                                   title="Masters the folder as one record. Every track is cleaned first, then one gain brings the loudest track to the target and the others keep their distance below it, so a quiet song stays quieter than the single. Off, every track is brought to the target on its own.">
+                                <input type="checkbox" id="batch-album-mode">
+                                <span>Album mode <small class="pv-note">keeps the tracks' relative levels; the loudest lands on the target</small></span>
+                            </label>
                         </div>
                         <button type="button" class="btn btn-primary batch-btn" id="batch-btn">Process All</button>
                     </div>

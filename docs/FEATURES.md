@@ -1084,10 +1084,20 @@ See [Section 11](#11-batch-processing) for the backend. UI features:
   picker, **Write tags from the Master tab** (the Tags defaults on every
   export, title from each file's tags or its name), and a full mastering
   block (enable/target/intensity/tilt) mirroring the single-file tab.
+- **Album mode** (under Master for release; greyed when mastering is
+  off): the folder is mastered as one record. Pass 1 cleans every track
+  with mastering held back, then one gain is decided from the loudest
+  track and pass 2 masters each track with it, so the tracks keep their
+  relative levels and the loudest lands on the target. Off, every track
+  is normalised to the target on its own.
 - Process All streams a color-coded log: header lines in gold, per-file
-  successes in green (duration, peak in→out, detected preset + confidence in
-  auto mode, the number of suggested-EQ moves, "tags written"), failures
-  in red, then a completion summary.
+  successes in green (duration, peak in→out, and with mastering on the
+  output's integrated LUFS, true peak and limiter gain reduction; detected
+  preset + confidence in auto mode, the number of suggested-EQ moves,
+  "tags written"), failures in red, then a completion summary. In album
+  mode the log shows the two passes, each track's cleaned loudness, and
+  an album line: the loudest track, the one gain, the album's overall
+  loudness and the spread from loudest to quietest.
 
 ### Help system ([static/js/help.js](static/js/help.js))
 
@@ -1208,6 +1218,7 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
   "output_format": "wav",
   "auto_detect": false,
   "mastering": {"enabled": true, "target_lufs": -14.0, "intensity": "med"},
+  "album_mode": false,
   "auto_eq": false,
   "tone_family": "neutral",
   "tags": {"enabled": true, "artist": "The Treq", "mode": "fill", "notes": true}
@@ -1283,10 +1294,26 @@ Source: `api_batch` and `_batch_one` in [server.py](server.py)
   `effective_strength`. In auto mode the request's `preset_strength`
   multiplies the detected strength (1.0 = trust the analysis) and the
   product goes through `apply_preset_strength`.
-- Optional mastering applies to every file.
+- Optional mastering applies to every file. With mastering on, `file_done`
+  also carries `lufs_out`, `true_peak_out` and `limiter_gr_db`.
+- **Album mode** (`album_mode: true`, with mastering on): two passes.
+  `_album_clean_one` runs `clean_and_master(..., defer_master=True)` for
+  each file (tone curve included, mastering held back), parks the
+  pre-master signal as a float WAV in a temp folder and measures it;
+  `_album_gain` picks one gain, `target − loudest track's LUFS`, and
+  reports the album's overall loudness (duration-weighted energy mean of
+  the tracks' integrated loudness) and the spread; `_album_master_one`
+  masters each parked track with `master(..., fixed_gain_db=gain)` (the
+  shaper and limiter still run per track), trims, writes and tags it.
+  The temp folder is removed when the run ends.
 - SSE event stream: `start` (total count, output folder, preset or
-  "auto-detect"), `file_start`, `file_done` (duration, peak in/out, detection
-  info), `file_error`, `end`.
+  "auto-detect", `album_mode`), `file_start`, `file_done` (duration, peak
+  in/out, detection info, output loudness), `file_error`, `end`. Album
+  mode adds `phase` (`clean` | `master`, with a message), a `phase` field
+  on the per-file events (pass-1 `file_done` carries `lufs_clean` and
+  `true_peak_clean`; pass-2 `file_done` carries the output loudness and
+  `gain_db`), and one `album` event (`loudest`, `loudest_lufs`,
+  `gain_db`, `album_lufs`, `spread_lu`, `target_lufs`, `tracks`).
 
 ---
 

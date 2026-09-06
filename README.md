@@ -373,7 +373,14 @@ model, author and licence.
 Point Shimmer at a folder and let it work. Use one preset for everything, or
 let it auto-detect the right preset *and* strength for each track (the
 strength slider then scales what it found; 100% means trust the analysis).
-Results stream in file by file as it goes.
+Results stream in file by file as it goes, with each file's loudness and
+true peak when mastering is on.
+
+**Album mode** masters the folder as one record. Every track is cleaned
+first, then one gain brings the loudest track to the target and the others
+keep their distance below it, so a quiet song stays quieter than the single
+instead of every track being pushed to the same level. The log shows the
+loudest track, the gain, and the album's overall loudness.
 
 Batch can also plan a **Suggested EQ** for each file on its own, judged after
 that file's cleaning, and write your **Tags** defaults onto every export.

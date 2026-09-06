@@ -35,7 +35,18 @@ export async function initBatchTab() {
     const masterTarget = $('batch-master-target');
     const masterIntensity = $('batch-master-intensity');
     const masterTilt = $('batch-master-tilt');
+    const albumMode  = $('batch-album-mode');
+    const albumRow   = $('batch-album-row');
     const runBtn       = $('batch-btn');
+
+    // Album mode only means something when mastering is on.
+    function syncAlbumRow() {
+        const on = !!(masterEnabled && masterEnabled.checked);
+        if (albumRow) albumRow.classList.toggle('is-off', !on);
+        if (albumMode) albumMode.disabled = !on;
+    }
+    if (masterEnabled) masterEnabled.addEventListener('change', syncAlbumRow);
+    syncAlbumRow();
     const logEl        = $('batch-log');
     const strengthEl   = $('batch-strength');
     const strengthValEl = $('batch-strength-value');
@@ -153,6 +164,7 @@ export async function initBatchTab() {
                 intensity: masterIntensity ? masterIntensity.value : 'med',
                 tilt: masterTilt ? masterTilt.value : 'neutral',
             },
+            album_mode: !!(albumMode && albumMode.checked && masterEnabled && masterEnabled.checked),
         };
         if (eqPayload) payload.eq = eqPayload;
         payload.auto_eq = !!(autoEq && autoEq.checked);
@@ -172,6 +184,8 @@ export async function initBatchTab() {
             payload.tags = { enabled: false };
         }
 
+        const f1 = (v) => (v == null || !Number.isFinite(v)) ? 'n/a' : v.toFixed(1);
+        const signed = (v) => (v > 0 ? '+' : '') + v.toFixed(1);
         postBatchStream(payload, {
             onMessage: (msg) => {
                 if (msg.type === 'start') {
@@ -186,12 +200,48 @@ export async function initBatchTab() {
                     if (eqPayload) {
                         append(`EQ: ${eqPayload.bands.length} band(s) from Single File tab`);
                     }
+                    if (msg.album_mode) {
+                        append('Album mode: one gain for the whole record; the loudest track lands on the target and the others keep their distance.');
+                    }
+                } else if (msg.type === 'phase') {
+                    append(msg.message || `Pass: ${msg.phase}`, 'head');
+                } else if (msg.type === 'album') {
+                    if (msg.loudest_lufs == null) {
+                        append('Album: no track could be measured.', 'err');
+                    } else {
+                        append(`Album: loudest is ${msg.loudest} at ${f1(msg.loudest_lufs)} LUFS → ` +
+                               `one gain of ${signed(msg.gain_db)} dB brings it to ${f1(msg.target_lufs)} LUFS` +
+                               `   album loudness ${f1(msg.album_lufs)} LUFS` +
+                               (msg.spread_lu != null ? `   ${f1(msg.spread_lu)} LU from loudest to quietest` : ''), 'head');
+                    }
                 } else if (msg.type === 'file_start') {
                     append(`[${msg.index + 1}]  ${msg.name} …`);
+                } else if (msg.type === 'file_done' && msg.phase === 'clean') {
+                    let line = `   cleaned  ${msg.duration_s.toFixed(1)}s   ` +
+                        `${f1(msg.lufs_clean)} LUFS · TP ${f1(msg.true_peak_clean)} dBTP`;
+                    if (msg.detected_preset) {
+                        const pct = msg.detected_confidence != null
+                            ? ` (${Math.round(msg.detected_confidence * 100)}%)`
+                            : '';
+                        line += `   preset: ${msg.detected_label || msg.detected_preset}${pct}`;
+                        if (Number.isFinite(msg.effective_strength)) {
+                            line += ` @ ${Math.round(msg.effective_strength * 100)}%`;
+                        }
+                    }
+                    if (msg.tone_moves != null) {
+                        line += `   EQ: ${msg.tone_moves} move${msg.tone_moves === 1 ? '' : 's'}`;
+                    }
+                    append(line, 'ok');
                 } else if (msg.type === 'file_done') {
                     let line =
                         `   done  ${msg.duration_s.toFixed(1)}s   ` +
                         `peak ${msg.peak_in_db.toFixed(1)} → ${msg.peak_out_db.toFixed(1)} dBFS`;
+                    if (msg.lufs_out != null) {
+                        line += `   ${f1(msg.lufs_out)} LUFS · TP ${f1(msg.true_peak_out)} dBTP`;
+                        if (Number.isFinite(msg.limiter_gr_db) && msg.limiter_gr_db < -0.05) {
+                            line += ` · limiter ${f1(msg.limiter_gr_db)} dB`;
+                        }
+                    }
 
                     if (msg.detected_preset) {
                         const pct = msg.detected_confidence != null

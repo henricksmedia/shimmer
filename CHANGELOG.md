@@ -7,6 +7,19 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Album mode in Batch.** Until now Batch normalised every track to the
+  target on its own, so a quiet ballad came out as loud as the single.
+  With Album mode on (under Master for release), the folder is mastered
+  as one record: pass 1 cleans every track with mastering held back,
+  one gain is decided from the loudest track, and pass 2 masters each
+  track with that gain, so the tracks keep their relative levels and
+  the loudest lands on the target. The limiter still runs per track,
+  so nothing passes the ceiling and no track is limited harder than it
+  would be alone. The log shows both passes, each track's cleaned
+  loudness, and an album line: the loudest track, the gain, the
+  album's overall loudness, and the spread from loudest to quietest.
+  Every mastered batch, album or not, now logs each file's output
+  loudness, true peak and limiter gain reduction next to its peaks.
 - **A Download step ends every run, and a Settings tab says where the
   file goes.** The processing window used to close by itself once the
   file was written, leaving the Download button in the green banner

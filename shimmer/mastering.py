@@ -475,9 +475,15 @@ def tpdf_dither(x: np.ndarray, bits: int = 16) -> np.ndarray:
 def master(x: np.ndarray, sr: int, mp: MasterParams,
            analysis: Dict[str, Any] | None = None,
            eq_bands_db: List[float] | None = None,
-           loudness_ref: Dict[str, float] | None = None
+           loudness_ref: Dict[str, float] | None = None,
+           fixed_gain_db: float | None = None
            ) -> Tuple[np.ndarray, Dict[str, Any]]:
     """Run the single-pass mastering chain. Returns (audio, report dict).
+
+    `fixed_gain_db` is for album mode: the static gain was decided
+    outside (one gain for every track, from the loudest track's
+    loudness) and is applied as given. The shaper and the limiter still
+    run per track, so no track can pass the ceiling.
 
     Chain: HP/DC -> one static LUFS gain -> soft peak shaper ->
     one 4x-oversampled lookahead true-peak limiter.
@@ -517,7 +523,11 @@ def master(x: np.ndarray, sr: int, mp: MasterParams,
     ref = loudness_ref or {}
     whole = ref.get("whole_lufs")
     sl = ref.get("slice_lufs")
-    if (whole is not None and sl is not None
+    if fixed_gain_db is not None and math.isfinite(float(fixed_gain_db)):
+        gain_db = float(fixed_gain_db)
+        y = (y * float(db_to_lin(gain_db))).astype(np.float32)
+        gain_source = "fixed"
+    elif (whole is not None and sl is not None
             and math.isfinite(float(whole)) and math.isfinite(float(sl))
             and math.isfinite(before["lufs_i"])):
         est_whole = float(whole) + (before["lufs_i"] - float(sl))

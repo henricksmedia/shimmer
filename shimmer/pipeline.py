@@ -46,6 +46,7 @@ from .mastering import (
     apply_tone_curve,
     compute_tone_curve,
     master,
+    measure_loudness,
     resolve_eq_strength,
 )
 from .params import MasterParams, Params, apply_preset_strength
@@ -118,6 +119,7 @@ def clean_and_master(
     master_loudness_ref: Optional[Dict[str, float]] = None,
     repair: Optional["NotchPlan"] = None,
     stage_callback: Optional[StageCallback] = None,
+    defer_master: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
     """Run the full safe pipeline.
 
@@ -144,6 +146,12 @@ def clean_and_master(
             each chain stage starts (keys match the Signal Chain phases:
             repair, pre, split, fine, engine, recombine, post, master), so
             a UI can show where the audio is in the chain.
+        defer_master: with mastering on, run everything up to the
+            mastering stage (tone curve included) and return the
+            pre-master signal; the report's `mastering` block says
+            `deferred` and carries that signal's loudness. Album mode in
+            Batch uses this to decide one gain for every track before
+            mastering any of them (see mastering.master fixed_gain_db).
 
     Returns:
         (processed, removed, report)
@@ -292,7 +300,13 @@ def clean_and_master(
         report["eq"] = {"enabled": False}
 
     # ── 8. Mastering (single-pass, true-peak safe) ───────────────────────
-    if use_mastering:
+    if use_mastering and defer_master:
+        report["mastering"] = {
+            "enabled": True, "deferred": True,
+            "target_lufs": float(master_params.target_lufs),
+            "before": measure_loudness(y, sr),
+        }
+    elif use_mastering:
         _stage("master", "Mastering",
                f"level to {float(master_params.target_lufs):g} LUFS · peak shaper · true-peak limiter")
         y, m_report = master(
