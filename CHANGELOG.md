@@ -7,6 +7,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **A release copy: WAV 16-bit at 44.1 kHz, dithered.** Exports were
+  24-bit at the source rate, so a Suno track came out at 48 kHz and the
+  16-bit option lived only in the CLI. Format now offers "WAV release
+  copy (16-bit · 44.1 kHz · dithered)" on the Master, Batch and Remix
+  tabs. The rate change happens before the chain runs, so cleaning,
+  mastering and the true-peak limiter all work at the delivery rate and
+  a resample afterwards cannot push peaks back over the ceiling; the
+  file is written as 16-bit with TPDF dither. The CLI gets `--release`
+  (the same thing) and `--sample-rate`. The Signal Chain's Export stage,
+  the results readout and the Release check all say what was written.
 - **A Release check after every mastered run.** The numbers under the
   player said what the file measured; nothing said whether it was ready
   to upload. A Release check card now gives one verdict, "Ready to

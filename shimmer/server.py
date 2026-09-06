@@ -56,7 +56,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .audio_io import (
     load_audio, save_audio, measure, preserve_volume, clip_protect,
-    process_file, encode_wav_bytes,
+    process_file, encode_wav_bytes, resolve_output_format, resample_to,
 )
 from .chain import folder_label
 from .engine import process, apply_post_filters
@@ -399,6 +399,12 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
     """CPU-bound worker: runs in a thread executor."""
     x, sr = load_audio(upload_path)
     export_meta = export_meta or {}
+    # The export spec (format key, subtype, delivery rate). A release
+    # copy is resampled here, before anything runs, so the chain and the
+    # true-peak limiter work at the delivery rate.
+    out_spec = export_meta.get("output") or resolve_output_format(job.output_ext)
+    x, sr = resample_to(x, sr, out_spec.get("sr"))
+    out_dither = bool(out_spec.get("dither"))
     stage_cb = getattr(progress_cb, "stage", None)
 
     def _stage(key: str, label: str, detail: str = "") -> None:
@@ -483,8 +489,8 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
            f"{job.output_ext.lstrip('.').upper()} · tags"
            + (" · silence trim" if trim_silence else "")
            + (f" · saving to {folder_label(save_folder)}" if save_folder else ""))
-    save_audio(processed_path, y2, sr)
-    save_audio(diff_path, diff, sr)
+    save_audio(processed_path, y2, sr, subtype=out_spec["subtype"], dither=out_dither)
+    save_audio(diff_path, diff, sr, subtype=out_spec["subtype"], dither=out_dither)
 
     # Tags: the source's own, the user's defaults, and one note per pass.
     eq_bands = len(eq_params.active_bands(sr)) if eq_params is not None and eq_params.is_active(sr) else 0
@@ -505,7 +511,7 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
         y_trim, cut_head, cut_tail = dsp_trim_silence(y2, sr)
         y_export = y_trim
         trimmed_path = os.path.join(job.workdir, f"trimmed{job.output_ext}")
-        save_audio(trimmed_path, y_trim, sr)
+        save_audio(trimmed_path, y_trim, sr, subtype=out_spec["subtype"], dither=out_dither)
         _tag_export(trimmed_path, upload_path, export_meta.get("tags"), note)
         job.trimmed_path = trimmed_path
         trim_report = {
@@ -552,9 +558,11 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
     ext = job.output_ext.lower()
     export = {
         "format": ext.lstrip("."),
-        "subtype": "PCM_24" if ext in (".wav", ".flac") else None,
-        "bit_depth": 24 if ext in (".wav", ".flac") else None,
-        "dither": False,
+        "format_key": out_spec.get("key", ext.lstrip(".")),
+        "subtype": out_spec["subtype"] if ext in (".wav", ".flac") else None,
+        "bit_depth": out_spec.get("bit_depth"),
+        "dither": out_dither,
+        "sample_rate": int(sr),
         "bitrate": "320k" if ext == ".mp3" else None,
         "tags": tags_report,
         "saved": saved_report,
@@ -789,9 +797,11 @@ async def api_process(
     eqp = _eq_params_from_request(params_data)
     mastering_analysis = params_data.get("mastering_analysis")
 
-    output_ext = "." + output_format.lstrip(".").lower()
-    if output_ext not in {".wav", ".flac", ".mp3", ".ogg", ".m4a"}:
-        raise HTTPException(400, f"Unsupported output format: {output_format}")
+    try:
+        out_spec = resolve_output_format(output_format)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    output_ext = out_spec["ext"]
     # "Save to folder": checked now so a bad folder fails in a second,
     # not after a full run.
     save_folder = _validated_save_folder(save_folder)
@@ -800,7 +810,7 @@ async def api_process(
     # so MP3/OGG/M4A exports get -1.5 dBTP unless the user explicitly
     # chose a ceiling.
     if (params_data.get("mastering") or {}).get("ceiling_dbtp") is None:
-        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
+        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_ext)
 
     job = JOB_STORE.create(output_ext=output_ext)
     job.preset_name = params_data.get("preset") or "generic"
@@ -826,6 +836,7 @@ async def api_process(
         "tags": params_data.get("tags") if isinstance(params_data.get("tags"), dict) else None,
         "preset_strength": preset_strength,
         "save_folder": save_folder,
+        "output": out_spec,
     }
     asyncio.create_task(_run_job_async(
         job, job.original_path, p, preserve_volume, mp, mastering_analysis,
@@ -1049,6 +1060,10 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     preset = payload.get("preset") or "generic"
     preserve_vol = bool(payload.get("preserve_volume", True))
     output_format = (payload.get("output_format") or "wav").lstrip(".").lower()
+    try:
+        out_spec = resolve_output_format(output_format)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     auto_detect = bool(payload.get("auto_detect", False))
     trim_silence = bool(payload.get("trim_silence", False))
     static_repair = bool(payload.get("static_repair", True))
@@ -1059,7 +1074,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     tags_req = payload.get("tags") if isinstance(payload.get("tags"), dict) else None
     # Codec-aware ceiling unless the user explicitly chose one.
     if (payload.get("mastering") or {}).get("ceiling_dbtp") is None:
-        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
+        mp.ceiling_dbtp = get_export_ceiling_dbtp(out_spec["ext"])
     # Album mode: one gain for the whole folder (see _album_gain). Only
     # meaningful with mastering on.
     album_mode = bool(payload.get("album_mode", False)) and bool(mp.enabled)
@@ -1131,7 +1146,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
                         info = await loop.run_in_executor(
                             None, _album_clean_one, src, tmp, preset,
                             auto_detect, preset_strength, mp, eqp,
-                            static_repair, auto_eq, tone_family)
+                            static_repair, auto_eq, tone_family, out_spec["sr"])
                         info.update({"index": i, "name": name, "src": src})
                         infos.append(info)
                         yield _sse_event({
@@ -1166,13 +1181,14 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
                 for info in infos:
                     i, name, src = info["index"], info["name"], info["src"]
                     dst = os.path.join(
-                        output_folder, os.path.splitext(name)[0] + "." + output_format)
+                        output_folder, os.path.splitext(name)[0] + out_spec["ext"])
                     yield _sse_event({"type": "file_start", "phase": "master",
                                       "index": i, "name": name})
                     try:
                         r = await loop.run_in_executor(
                             None, _album_master_one, info, src, dst, mp,
-                            float(album["gain_db"]), trim_silence, tags_req)
+                            float(album["gain_db"]), trim_silence, tags_req,
+                            out_spec["subtype"])
                         after = (r.get("mastering") or {}).get("after") or {}
                         yield _sse_event({
                             "type": "file_done", "phase": "master",
@@ -1199,13 +1215,14 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
         for i, src in enumerate(files):
             name = os.path.basename(src)
             dst = os.path.join(
-                output_folder, os.path.splitext(name)[0] + "." + output_format)
+                output_folder, os.path.splitext(name)[0] + out_spec["ext"])
             yield _sse_event({"type": "file_start", "index": i, "name": name})
             try:
                 r = await loop.run_in_executor(
                     None, _batch_one, src, dst, preset, preserve_vol,
                     auto_detect, preset_strength, mp, trim_silence, eqp,
-                    static_repair, auto_eq, tone_family, tags_req)
+                    static_repair, auto_eq, tone_family, tags_req,
+                    out_spec["subtype"], out_spec["sr"])
                 yield _sse_event({
                     "type": "file_done", "index": i, "name": name,
                     "duration_s": r["duration_s"],
@@ -1305,7 +1322,9 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
                static_repair: bool = True,
                auto_eq: bool = False,
                tone_family: str = "neutral",
-               tags_req: Optional[Dict[str, Any]] = None):
+               tags_req: Optional[Dict[str, Any]] = None,
+               subtype: str = "PCM_24",
+               target_sr: Optional[int] = None):
     params, eq_params, detected_info, preset_strength = _batch_prepare(
         src, preset_name, auto_detect, preset_strength, master_params,
         eq_params, auto_eq, tone_family)
@@ -1317,6 +1336,8 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
         trim_silence=trim_silence,
         eq_params=eq_params,
         static_repair=static_repair,
+        subtype=subtype,
+        target_sr=target_sr,
     )
     result.update(detected_info)
 
@@ -1350,13 +1371,15 @@ def _album_clean_one(src: str, tmp_dst: str, preset_name: str,
                      auto_detect: bool, preset_strength: float,
                      master_params: MasterParams,
                      eq_params: Optional[EqParams], static_repair: bool,
-                     auto_eq: bool, tone_family: str) -> Dict[str, Any]:
+                     auto_eq: bool, tone_family: str,
+                     target_sr: Optional[int] = None) -> Dict[str, Any]:
     """Pass 1 for one file: clean with mastering deferred, park the
     pre-master signal as a float WAV, and measure its loudness."""
     params, eqp, detected_info, strength = _batch_prepare(
         src, preset_name, auto_detect, preset_strength, master_params,
         eq_params, auto_eq, tone_family)
     x, sr = load_audio(src)
+    x, sr = resample_to(x, sr, target_sr)
     plan = plan_from_lines(scan_fixed_lines(x, sr), sr) if static_repair else None
     params.cutoff_hz = float(estimate_cutoff_hz(x, sr).get("cutoff_hz") or 0.0)
     y, _removed, rep = clean_and_master(
@@ -1405,7 +1428,8 @@ def _album_gain(infos: List[Dict[str, Any]], target_lufs: float) -> Dict[str, An
 def _album_master_one(info: Dict[str, Any], src: str, dst: str,
                       master_params: MasterParams, gain_db: float,
                       trim_silence: bool,
-                      tags_req: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+                      tags_req: Optional[Dict[str, Any]],
+                      subtype: str = "PCM_24") -> Dict[str, Any]:
     """Pass 2 for one file: master the parked track with the album's
     gain (shaper and limiter still per track), trim, write, tag."""
     y, sr = load_audio(info["tmp"])
@@ -1415,7 +1439,8 @@ def _album_master_one(info: Dict[str, Any], src: str, dst: str,
         y2, cut_head, cut_tail = dsp_trim_silence(y2, sr)
         trim_report = {"enabled": True, "cut_head_s": round(cut_head, 3),
                        "cut_tail_s": round(cut_tail, 3)}
-    save_audio(dst, y2, sr)
+    save_audio(dst, y2, sr, subtype=subtype,
+               dither=str(subtype).upper() in ("PCM_16", "PCM16"))
     chosen = str(info.get("preset") or "generic")
     note = shimmer_note(
         f"Shimmer {SHIMMER_VERSION}", _pass_label(src),
@@ -1432,7 +1457,9 @@ def _album_master_one(info: Dict[str, Any], src: str, dst: str,
     expected = (float(clean_lufs) + float(gain_db)) if clean_lufs is not None else None
     release = release_check(
         y2, sr, mastering=m_report,
-        export={"format": ext, "bit_depth": 24 if ext in ("wav", "flac") else None},
+        export={"format": ext,
+                "bit_depth": ((16 if str(subtype).upper() in ("PCM_16", "PCM16") else 24)
+                              if ext in ("wav", "flac") else None)},
         clipped_samples=info.get("clipped_samples"),
         correlation=stereo_correlation(y2),
         duration_s=float(y2.shape[0] / sr),
@@ -2240,11 +2267,13 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
     settings = remix_settings_from_json(payload.get("stems") or {}, order)
     mp = master_params_from_json(payload.get("mastering") or {})
     output_format = (payload.get("output_format") or "wav").lstrip(".").lower()
-    output_ext = "." + output_format
-    if output_ext not in {".wav", ".flac", ".mp3", ".ogg", ".m4a"}:
-        raise HTTPException(400, f"Unsupported output format: {output_format}")
+    try:
+        out_spec = resolve_output_format(output_format)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    output_ext = out_spec["ext"]
     if (payload.get("mastering") or {}).get("ceiling_dbtp") is None:
-        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
+        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_ext)
 
     clean_choice = str((payload.get("cleaning") or {}).get("preset")
                        or "off").lower()
@@ -2271,6 +2300,8 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
         cb(0.05)
         _stage("mix", "Mixing the stems", "each stem's effects, then the sum")
         y = render_remix({n: sess.stems[n] for n in order}, sr, settings)
+        # A release copy runs the rest of the chain at the delivery rate.
+        y, sr = resample_to(y, sr, out_spec.get("sr"))
         cb(0.15)
 
         cleaning_info: Dict[str, Any] = {"enabled": do_clean}
@@ -2319,7 +2350,8 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
 
         processed = os.path.join(job.workdir, f"processed{job.output_ext}")
         _stage("export", "Writing the file", job.output_ext.lstrip(".").upper())
-        save_audio(processed, y, sr)
+        save_audio(processed, y, sr, subtype=out_spec["subtype"],
+                   dither=bool(out_spec.get("dither")))
         job.processed_path = processed
         if m_report.get("enabled"):
             out_lufs = _finite_or_none((m_report.get("after") or {}).get("lufs_i"))

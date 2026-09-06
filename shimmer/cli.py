@@ -215,6 +215,12 @@ def _build_parser() -> argparse.ArgumentParser:
                      help="Don't match output peak to input peak")
     out.add_argument("--subtype", type=str, default="PCM_24",
                      help="SoundFile subtype: PCM_16, PCM_24, FLOAT")
+    out.add_argument("--sample-rate", type=int, default=None,
+                     help="Resample to this rate before processing (e.g. 44100), "
+                          "so the limiter works at the delivery rate")
+    out.add_argument("--release", action="store_true",
+                     help="Release copy: 16-bit at 44.1 kHz with TPDF dither "
+                          "(same as --subtype PCM_16 --sample-rate 44100)")
     out.add_argument("--write-diff", type=str, default=None,
                      help="Write the removed signal to this file")
 
@@ -460,7 +466,8 @@ def main() -> int:
         params=params,
         write_diff=args.write_diff,
         do_preserve_volume=not args.no_preserve_volume,
-        subtype=args.subtype,
+        subtype="PCM_16" if args.release else args.subtype,
+        target_sr=44100 if args.release else args.sample_rate,
         progress_callback=_progress_bar,
         master_params=master_params,
         use_pipeline=not args.legacy_engine,

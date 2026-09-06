@@ -36,6 +36,56 @@ class AudioIOError(RuntimeError):
     """Raised when an audio file cannot be read or written."""
 
 
+# ── Output formats ────────────────────────────────────────────────────
+# The keys the UI, the API and the CLI accept. Lossless exports are
+# 24-bit at the source rate; "wav16" is the release copy the stores ask
+# for: 16-bit WAV at 44.1 kHz with TPDF dither. The rate change happens
+# before the chain runs, so the limiter's true-peak control holds at the
+# delivery rate instead of being undone by a resample afterwards.
+OUTPUT_FORMATS: Dict[str, Dict[str, Any]] = {
+    "wav":   {"ext": ".wav",  "subtype": "PCM_24", "sr": None,  "bit_depth": 24,
+              "label": "WAV 24-bit"},
+    "wav16": {"ext": ".wav",  "subtype": "PCM_16", "sr": 44100, "bit_depth": 16,
+              "label": "WAV 16-bit 44.1 kHz"},
+    "flac":  {"ext": ".flac", "subtype": "PCM_24", "sr": None,  "bit_depth": 24,
+              "label": "FLAC"},
+    "mp3":   {"ext": ".mp3",  "subtype": "PCM_24", "sr": None,  "bit_depth": None,
+              "label": "MP3 320 kbps"},
+    "ogg":   {"ext": ".ogg",  "subtype": "PCM_24", "sr": None,  "bit_depth": None,
+              "label": "OGG Vorbis"},
+    "m4a":   {"ext": ".m4a",  "subtype": "PCM_24", "sr": None,  "bit_depth": None,
+              "label": "M4A (AAC)"},
+}
+
+
+def resolve_output_format(fmt: str) -> Dict[str, Any]:
+    """The export spec for an output-format key or extension ('wav16',
+    'mp3', '.flac'). Raises ValueError for anything else."""
+    key = str(fmt or "wav").strip().lower().lstrip(".")
+    spec = OUTPUT_FORMATS.get(key)
+    if spec is None:
+        raise ValueError(f"Unsupported output format: {fmt}")
+    out = dict(spec)
+    out["key"] = key
+    out["dither"] = spec["subtype"] == "PCM_16"
+    return out
+
+
+def resample_to(x: np.ndarray, sr: int,
+                target_sr: Optional[int]) -> Tuple[np.ndarray, int]:
+    """Resample (samples, channels) audio to `target_sr` with a polyphase
+    filter. Returns (audio, rate); a no-op when no target is given or the
+    rate already matches."""
+    if not target_sr or int(target_sr) == int(sr):
+        return x, int(sr)
+    from fractions import Fraction
+    from scipy.signal import resample_poly
+    frac = Fraction(int(target_sr), int(sr)).limit_denominator(1000)
+    x2 = as_2d(np.asarray(x, dtype=np.float64))
+    y = resample_poly(x2, frac.numerator, frac.denominator, axis=0, padtype="line")
+    return y.astype(np.float32), int(target_sr)
+
+
 def _ffmpeg_path() -> str:
     return shutil.which("ffmpeg") or "ffmpeg"
 
@@ -273,8 +323,13 @@ def process_file(
     eq_params: Optional["EqParams"] = None,
     static_repair: bool = True,
     repair_plan: Optional["NotchPlan"] = None,
+    target_sr: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Read an audio file, process it, write the result.
+
+    `target_sr` resamples the source before anything runs (the release
+    copy: 44.1 kHz), so cleaning, mastering and the true-peak limiter
+    all work at the delivery rate.
 
     `static_repair=True` scans the whole file for the generator's fixed
     tonal lines and notches them first in the chain (see repair.py);
@@ -293,6 +348,7 @@ def process_file(
     from .engine import apply_post_filters
 
     x, sr = load_audio(input_path)
+    x, sr = resample_to(x, sr, target_sr)
 
     meas_in = measure(x)
     mastering_report: Dict[str, Any] = {"enabled": False}

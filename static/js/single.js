@@ -1919,8 +1919,9 @@ export async function initSingleTab() {
             }
         }
         if (stateEls.output) {
-            const f = outputFormat.value.toUpperCase();
-            const bits = outputFormat.value === 'wav' || outputFormat.value === 'flac' ? ' 24-bit' : '';
+            const fv = outputFormat.value;
+            const f = fv === 'wav16' ? 'WAV 16-bit · 44.1 kHz' : fv.toUpperCase();
+            const bits = fv === 'wav' || fv === 'flac' ? ' 24-bit' : '';
             const saving = activeSaveFolder() ? ' · saves to folder' : '';
             stateEls.output.textContent = `${f}${bits}${trimSilence.checked ? ' · trim' : ''}${saving}`;
         }
@@ -2818,7 +2819,7 @@ export async function initSingleTab() {
     // export.saved block.
     function offerDownloadStep(mm, savedInfo, savedOk) {
         const ex = (mm && mm.export) || {};
-        const fmt = String(ex.format || outputFormat.value || 'wav').toUpperCase();
+        const fmt = formatLabel(ex.format_key || ex.format || outputFormat.value || 'wav');
         const stem = (currentFile && currentFile.name.replace(/\.[^.]+$/, '')) || 'track';
         const name = ex.name || `${stem}.${String(ex.format || outputFormat.value || 'wav')}`;
         const size = Number.isFinite(ex.size_bytes) ? ` · ${fmtBytes(ex.size_bytes)}` : '';
@@ -2850,6 +2851,10 @@ export async function initSingleTab() {
             primary: { label: `Download ${fmt}`, onClick: () => downloadLink.click() },
             secondary: null,
         });
+    }
+    // The short name of an output-format key for chips and buttons.
+    function formatLabel(v) {
+        return v === 'wav16' ? 'WAV 16-bit' : String(v || 'wav').toUpperCase();
     }
     function fmtBytes(n) {
         if (n >= 1e9) return `${(n / 1e9).toFixed(2)} GB`;
@@ -3176,12 +3181,12 @@ export async function initSingleTab() {
             }
 
             if (bannerChips.length === 0) bannerChips.push('Cleaned');
-            bannerChips.push(outputFormat.value.toUpperCase());
+            bannerChips.push(formatLabel(outputFormat.value));
             const savedInfo = m && m.metrics && m.metrics.export && m.metrics.export.saved;
             const savedOk = !!(savedInfo && savedInfo.enabled && !savedInfo.error);
             if (savedOk) bannerChips.push(`saved to ${folderLabel(savedInfo.folder)}`);
             downloadLink.textContent =
-                `Download ${outputFormat.value.toUpperCase()}`;
+                `Download ${formatLabel(outputFormat.value)}`;
             const doneTitle = doneBanner.querySelector('.done-title');
             if (doneTitle) doneTitle.textContent = savedOk ? '✓ Saved to your folder' : '✓ Ready to download';
             showDoneBanner(bannerChips);

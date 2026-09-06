@@ -386,6 +386,7 @@
                                     <select id="output-format" class="select"
                                             title="True-peak ceiling adapts to the format: −1.0 dBTP for lossless (WAV/FLAC), −1.5 dBTP for lossy (MP3/OGG/M4A) so the encoder can't clip on decode.">
                                         <option value="wav" selected>WAV (24-bit PCM) · −1.0 dBTP</option>
+                                        <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered) · −1.0 dBTP</option>
                                         <option value="flac">FLAC · −1.0 dBTP</option>
                                         <option value="mp3">MP3 (320 kbps) · −1.5 dBTP</option>
                                         <option value="ogg">OGG Vorbis · −1.5 dBTP</option>
@@ -660,6 +661,7 @@
                                     <select id="remix-format" class="select"
                                             title="True-peak ceiling adapts to the format: −1.0 dBTP for lossless (WAV/FLAC), −1.5 dBTP for lossy (MP3/OGG/M4A) so the encoder can't clip on decode.">
                                         <option value="wav" selected>WAV (24-bit PCM) · −1.0 dBTP</option>
+                                        <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered) · −1.0 dBTP</option>
                                         <option value="flac">FLAC · −1.0 dBTP</option>
                                         <option value="mp3">MP3 (320 kbps) · −1.5 dBTP</option>
                                         <option value="ogg">OGG Vorbis · −1.5 dBTP</option>
@@ -764,6 +766,7 @@
                         <label class="label">Output format</label>
                         <select id="batch-format" class="select">
                             <option value="wav" selected>WAV (24-bit PCM)</option>
+                            <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then each file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered)</option>
                             <option value="flac">FLAC</option>
                             <option value="mp3">MP3 (320 kbps)</option>
                             <option value="ogg">OGG Vorbis</option>

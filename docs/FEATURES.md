@@ -757,7 +757,11 @@ Sources: [static/index.html](static/index.html) and the ES modules in
   changes re-render the live preview like any other control.
 
 **Output and processing**
-- Output format: WAV 24-bit, FLAC, MP3 320k, OGG, M4A.
+- Output format: WAV 24-bit, WAV release copy (`wav16`: 16-bit at
+  44.1 kHz with TPDF dither; the source is resampled before the chain
+  runs, so cleaning, mastering and the true-peak limiter work at the
+  delivery rate), FLAC, MP3 320k, OGG, M4A. `OUTPUT_FORMATS` /
+  `resolve_output_format()` in [audio_io.py](audio_io.py) hold the specs.
 - Clean & Master runs full-file processing with an SSE-driven progress bar,
   then loads the results into the player.
 - A green "Ready to download" banner appears with metric chips and the
@@ -1210,7 +1214,10 @@ Source: [server.py](server.py). All endpoints are served by FastAPI on
   view. Applied to the source before cleaning and mastering, with a 5 ms
   fade at each new edge. Omitted entirely when no trim is armed.
 - `preserve_volume` — bool, default true
-- `output_format` — `wav` | `flac` | `mp3` | `ogg` | `m4a`
+- `output_format` — `wav` | `wav16` (the release copy: 16-bit WAV at
+  44.1 kHz, dithered, chain run at 44.1 kHz) | `flac` | `mp3` | `ogg` |
+  `m4a`. The metrics' `export` block reports `format_key`, `bit_depth`,
+  `dither` and `sample_rate`.
 - `save_folder` — optional path. When set, the export (the trimmed
   variant when `trim_silence` is on) is copied there as the job ends,
   under the download filename. The folder is created if missing; a
@@ -1279,7 +1286,7 @@ Source: [shimmer.py](shimmer.py). Flags grouped as in `--help`:
 | Downward expander | `--expander`, `--exp-start-hz`, `--exp-end-hz`, `--exp-threshold-db`, `--exp-ratio`, `--exp-attack-ms`, `--exp-release-ms` |
 | Post-STFT filters | `--high-shelf-hz`, `--high-shelf-db`, `--subsonic-hz`, `--presence-hz`, `--presence-db` |
 | Mastering | `--master`, `--no-master`, `--target {streaming,loud,cd}`, `--target-lufs`, `--ceiling` (default: codec-aware from the output extension), `--master-intensity {low,med,high}`, `--master-tilt {brightest,bright,neutral,warm,warmer}` |
-| Output | `--no-pad`, `--fade-ms`, `--no-preserve-volume`, `--subtype {PCM_16,PCM_24,FLOAT}` (default PCM_24), `--write-diff FILE` |
+| Output | `--no-pad`, `--fade-ms`, `--no-preserve-volume`, `--subtype {PCM_16,PCM_24,FLOAT}` (default PCM_24), `--sample-rate HZ` (resample before processing), `--release` (16-bit at 44.1 kHz with dither), `--write-diff FILE` |
 | Misc | `--seed`, `--debug` |
 
 Explicit flags always override the chosen preset. Mastering is off by default

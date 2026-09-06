@@ -518,9 +518,10 @@ def build_chain(p: Params,
     ))
 
     # ── Export ──────────────────────────────────────────────────────────
-    enc = {"wav": "24-bit PCM", "flac": "24-bit FLAC", "aiff": "24-bit PCM"}.get(
+    enc = {"wav": "24-bit PCM", "wav16": "16-bit PCM · 44.1 kHz · TPDF dither",
+           "flac": "24-bit FLAC", "aiff": "24-bit PCM"}.get(
         fmt, f"ffmpeg {fmt.upper()}")
-    exp_badges = [fmt.upper(), enc]
+    exp_badges = ["WAV" if fmt == "wav16" else fmt.upper(), enc]
     if trim_silence:
         exp_badges.append("silence trim < −60 dBFS")
     folder = str(save_folder or "").strip()
