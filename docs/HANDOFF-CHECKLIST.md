@@ -95,13 +95,30 @@ count.
       question and stays at the 6.58 dB measured after the target swap on
       its 8 sources.
 
-- [ ] **3. Preset harness — all 19.**
+- [x] **3. Preset harness — all 19.**
       *Done when:* a script produces the full damage matrix, a committed
       cached result, and tests asserting *relations* (clean material damages
       less than hashed; monotonic in strength; surgical group below broadband
       group) rather than invented thresholds. **Also dropped once.** It is the
       acceptance criteria the next model builds against, and it is what would
       have caught the two hand-found defects.
+      **DONE 2026-09-08**, together with item 6 and by the same script:
+      `scripts/efficacy_harness.py`, cached in `docs/efficacy-harness.json`
+      (1470 rows: 5 clean hosts x 7 modelled artifacts x 2 levels x 19
+      presets + the static repair) and `docs/efficacy-strength.json` (7
+      presets at 50/100/200 %). `tests/test_efficacy.py` asserts relations:
+      Generic reads as inert (0 efficacy, 0 cost); the static repair removes
+      a fixed line; for each modelled artifact some aimed preset beats
+      Generic; Deep Scrub costs more than every surgical preset; the
+      artifact does not make a preset take more music than it takes from a
+      clean host; tilt on the clean host rises with strength. Three of those
+      relations are false for named presets and are recorded as *strict*
+      expected failures with the measured reason, so a fix flips them:
+      Sibilance Rattle, Reverb Flutter, Checkerboard Grid (see item 6).
+      "Clean material damages less than hashed" was not asserted: net of the
+      artifact's own masking, every preset costs *less* on the render than
+      on the clean host, because the artifact absorbs part of what the
+      preset removes — the relation that holds is the one above.
 
 - [ ] **4. One listening round.**
       *Done when:* current chain vs fixed chain vs reference, level-matched
@@ -139,7 +156,7 @@ count.
       0 everywhere (tilt 12-26 against a ceiling of 3) with no policy.
       *Not settled by this:* see items 10-11 below.
 
-- [ ] **6. Measure efficacy, not just cost. Then re-judge every preset.**
+- [x] **6. Measure efficacy, not just cost. Then re-judge every preset.**
       *Done when:* the harness reports BOTH "did the artifact drop" and "what
       did it cost", for all 19 presets, using an artifact measure that is not
       the detector's own prior. `scripts/preset_harness.py` does the shape of
@@ -148,6 +165,52 @@ count.
       circular. **Everything built before this measured cost alone**, which is
       backwards for a repair tool and made the presets look surgical when
       several are inert.
+      **DONE 2026-09-08.** *The independent measure:* ground truth. A
+      finished master with no measurable hash (5 hosts: 4 service masters
+      and the reference "Hey", loudest 8 s) plus a modelled artifact
+      (`shimmer/artifacts.py`: hash, fixed line, intermittent whistle, comb,
+      steady fizz, signal-following residue, centred sibilance), scaled by
+      the hearing model to inject 0.5 or 2.0 sones of audible content.
+      Efficacy = 1 - added(preset(host), preset(render)) / added(host,
+      render): the artifact's audible footprint after cleaning, relative
+      to the cleaned clean host so the cleaner's own alterations cancel.
+      Cost = music removed from the host, net of the artifact's masking.
+      The detector is not consulted. *The re-judgement, at 2.0 sones, mean
+      over hosts, efficacy on the artifact each preset is aimed at, then
+      cost on the clean host:*
+      - Static repair: line **96 %**, comb 28 %, intermittent whistle 17 %.
+        Cymbal Sheen line 27 %, Laser Whistle whistle 28 %, both at ~0
+        cost. The tone killer does a quarter of what the notch plan does.
+      - Vocal Glaze + Top End: hash **29 %** at 0.106 sones on a clean host,
+        the best on hash. Deep Scrub: hash 24 %, fizz 27 %, line 89 %,
+        residue 12 %, at 0.164 and tilt 2.0 — it works by taking the most.
+      - **Suno Hash: hash 12 % (9 % at 0.5 sones), inert on its own
+        target.** Measured at every modulation rate from 8 to 40 Hz and in
+        both 4.5-12 and 5-9 kHz: 7-22 %. The FlickerTamer flattens the
+        flicker; the added noise stays and the hearing model still hears it.
+      - Inert on their targets: Broadband Fizz 6 % of fizz; Air Brittle 2 %
+        of fizz; Checkerboard Grid **-1 %** of comb while taking 0.146 sones
+        of music (0.004 on the clean host); Sibilance Rattle **-2 %** of
+        centred sibilance at the highest cost of any single preset (0.120
+        on a clean host, tilt 1.3); the four residue presets Echo Sheen 5 %,
+        Presence Haze 7 %, Harsh Veil 4 %, Vocal Glaze 4 %, Phantom Cymbal
+        2 %. Reverb Flutter and Cymbal Chatter have no model (phase
+        incoherence, periodic chatter) and are *not covered*, not inert;
+        Reverb Flutter does take 0.089 sones from renders against 0.008
+        from a clean host. Muddy/Boxy and Dark Mix Rescue are static EQ
+        with no artifact aimed at them; as expected of a tone move they
+        register as tilt (11.1 and 8.6) and 0.167 / 0.231 sones on a clean
+        host, and ~0 efficacy on every model.
+      - *The old harness's efficacy was noise:* over the 125 aimed rows
+        where the prior saw the artifact, the drop in the preset's own
+        prior correlates **+0.22** with ground-truth efficacy. And the
+        priors barely see a 16 kHz line (Cymbal Sheen 0.04 -> 0.04 when one
+        is injected) that the static scan removes at 96 %.
+      *Scope, stated plainly:* these are models of the artifacts built
+      from PRESET_REVIEW.md §1, on five hosts. A preset that fails the
+      model has failed the model; a listening round (item 4) is what ties
+      the model to the real thing. What this settles regardless: the
+      product's answer for a hashed track is not the preset named for it.
 
 - [ ] **7. Composite preset: handle 3+ artifacts in one pass.**
       *Done when:* a track showing several artifacts gets one `Params` built

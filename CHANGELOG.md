@@ -7,6 +7,28 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **An efficacy harness that measures whether the artifact went, against
+  ground truth.** `scripts/efficacy_harness.py` adds a modelled artifact
+  (`shimmer/artifacts.py`: hash, fixed line, intermittent whistle, comb,
+  steady fizz, signal-following residue, centred sibilance) to a finished
+  master that carries none, at a level the hearing model sets, runs every
+  preset, and reports how much of the artifact's audible footprint is left
+  and how much music went, both in sones. Nothing in it consults the
+  detector. Cached result in `docs/efficacy-harness.json`; relations in
+  `tests/test_efficacy.py`. What it found: the static notch plan removes
+  96 % of a fixed line where the tone-killer presets remove a quarter;
+  Suno Hash removes 12 % of the modelled hash at any modulation rate;
+  Checkerboard Grid and Sibilance Rattle remove none of their targets while
+  costing more than most; the old harness's prior-based "fixed" figure
+  correlates 0.22 with the truth. Full table in the handoff checklist.
+
+- **The tilt gap re-measured on one reference setting.** `scripts/tilt_gap.py`
+  pairs every MediumNeutral service master in the catalogue with a Shimmer
+  master of the same song, checks each pair is the same performance, and
+  measures the 800 Hz to 6.3 kHz tilt difference: 35 pairs, mean 6.3 dB,
+  spread 2.9, 34 of 35 duller than the reference. The earlier "11 dB" came
+  from six songs against references on mixed settings.
+
 - **The export note records the run, not just the preset.** A finished file
   said "Vocal Glaze + Top End 100%, EQ 2 bands" — enough to name the preset,
   not enough to reproduce the master, because the sliders the user moved, the

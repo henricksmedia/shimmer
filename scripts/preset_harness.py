@@ -1,6 +1,12 @@
 """
 preset_harness.py — Does each preset fix what it targets, and what does it cost?
 
+SUPERSEDED for the efficacy question by scripts/efficacy_harness.py
+(2026-09-08). The efficacy here is the drop in the preset's own prior, and
+measured against ground truth that figure correlates +0.22 with the truth:
+it is the detector judging itself. Kept for the cost columns on real renders,
+which the new harness cannot give (it needs a clean host).
+
 TWO questions, and the first one matters more.
 
   EFFICACY   Did the artifact go away? A repair tool that leaves the shimmer

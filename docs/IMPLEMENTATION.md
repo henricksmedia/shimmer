@@ -180,7 +180,10 @@ recommended on them at high confidence is a failure.
 
 Full detail with numbers is in `docs/HANDOFF-CHECKLIST.md`. Summary:
 
-**6. Measure efficacy, not just cost.** Everything built so far measures what
+**6. Measure efficacy, not just cost.** *(DONE 2026-09-08 with item 3:
+`scripts/efficacy_harness.py`, ground truth from modelled artifacts on
+clean hosts; results and the re-judgement in the checklist. Item 2 also
+done: `scripts/tilt_gap.py`, 6.3 dB over 35 pairs.)* Everything built so far measures what
 presets *remove*. Nothing measures whether the artifact went away — which is
 backwards for a repair tool. `scripts/preset_harness.py` has the right shape
 but measures efficacy using the detector's own priors, which are the
