@@ -125,11 +125,11 @@ def main(argv: list) -> int:
         x, sr = load_audio(f)
         rows += measure(os.path.splitext(base)[0], x, sr)
         print(base, "done", flush=True)
-        json.dump(rows, open(out, "w"), indent=1)
+        json.dump(rows, open(out, "w", newline="\n"), indent=1)
     for name, x, sr in synthetic():
         rows += measure(name, x, sr)
         print(name, "done", flush=True)
-    json.dump(rows, open(out, "w"), indent=1)
+    json.dump(rows, open(out, "w", newline="\n"), indent=1)
     summarise(rows)
     print(f"\nwrote {os.path.relpath(out, ROOT)}")
     return 0
