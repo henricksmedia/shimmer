@@ -96,9 +96,7 @@ def tone_sets():
             [("old target (service curve)", old),
              ("new target (research + captures)", new)],
             sr,
-            note=("Same song, same preset, same mastering. The only "
-                  "difference is the tone target. The new one sits about "
-                  "8 dB darker through presence and air."),
+            note='Same song, same preset, same mastering. The only thing that differs is the tone target the chain aimed at.',
             residual_of=("old target (service curve)",
                          "new target (research + captures)"),
             residual_kind="eq")
@@ -162,10 +160,7 @@ def service_sets():
             [("Shimmer, current chain", ours[:n], sr),
              ("the automated service's master", theirs[:n], sr2)],
             sr,
-            note=("The comparison this investigation was founded on, with the "
-                  "level matched. Unmatched, the service master is 2.7 LU "
-                  "louder, 3.4 dB heavier in the bass and 8.8 dB brighter — "
-                  "all three flatter on a quick listen."))
+            note="Our current chain against an automated mastering service's master of the same song, matched for loudness, so neither can win on volume alone. This is the comparison the whole investigation was founded on, and it has never been made fairly until now.")
         made.append(m["id"])
         print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
     use(DERIVED)
@@ -191,9 +186,7 @@ def era_sets():
              ("service curve (retracted)", master(ref, sr, RETRACTED)),
              ("derived (shipping now)", master(ref, sr, DERIVED))],
             sr,
-            note=("Every tone target this tool has aimed at, same song, same "
-                  "everything else. The first made the masters that started "
-                  "this investigation."))
+            note='Every tone target this tool has aimed at, on one song, with everything else held identical. They are in random order.')
         made.append(m["id"])
         print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
     use(DERIVED)

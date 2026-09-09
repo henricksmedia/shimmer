@@ -198,6 +198,119 @@ button kbd { opacity: .55; font-size: 11px; }
                font-family: var(--font-mono); font-size: 12px;
                white-space: pre-wrap; word-break: break-word; }
 .loading { color: var(--fg-2); }
+
+/* ── recovered from builder 1 ─────────────────────────────── */
+.round { margin: 0 0 var(--gap-5); }
+.round-top { display: flex; align-items: baseline; gap: var(--gap-3);
+             flex-wrap: wrap; }
+.round-group { color: var(--fg-0); font-weight: 600; font-size: 13.5px; }
+.round-what { color: var(--fg-3); font-size: 12.5px; }
+.round-count { margin-left: auto; font-family: var(--font-mono);
+               font-size: 12.5px; color: var(--fg-2); white-space: nowrap; }
+
+/* One pip per set in the group: the count above says how many, these say
+   which ones, and clicking is the fastest way back to a set. */
+.pips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: var(--gap-2); }
+.pip { width: 26px; height: 26px; padding: 0; border-radius: var(--radius-s);
+       font-family: var(--font-mono); font-size: 11.5px; font-weight: 500;
+       background: var(--bg-2); border: 1px solid var(--line); color: var(--fg-3); }
+.pip:hover:not(:disabled) { background: var(--bg-3); border-color: var(--line-2); }
+.pip[data-judged="true"] { background: rgba(74,222,128,.12);
+                           border-color: rgba(74,222,128,.40); color: var(--success); }
+.pip[aria-current="true"] { border-color: var(--amber); color: var(--amber);
+                            box-shadow: 0 0 0 1px rgba(245,165,36,.35); }
+
+.advice { display: flex; align-items: center; gap: var(--gap-2);
+          flex-wrap: wrap; margin: var(--gap-3) 0 0; font-size: 12.5px;
+          color: var(--success); }
+button.tiny { padding: 3px 9px; font-size: 12px; }
+
+/* The panel lives inside the strip, so it must not inherit the page's
+   "folded away at the bottom" rule. */
+.round details { margin-top: var(--gap-3); border-top: 0; padding-top: 0; }
+.sofar td.lab { color: var(--fg-0); }
+.sofar td.when { color: var(--fg-3); }
+.sofar td.note { font-family: var(--font-ui); color: var(--fg-2); }
+.sofar label.chk { margin-bottom: var(--gap-2); display: inline-flex; }
+
+select#sets { max-width: 360px; }
+@media (max-width: 620px) {
+  .round-count { margin-left: 0; }
+  select#sets { max-width: 100%; flex: 1 1 100%; }
+}
+
+/* ── recovered from builder 3 ─────────────────────────────── */
+.abx { margin-top: var(--gap-5); padding-top: var(--gap-4);
+       border-top: 1px solid var(--line); }
+.abx h2 { font-size: 14px; color: var(--fg-0); margin: 0; font-weight: 650; }
+.abx h2 .abx-sub { font-family: var(--font-mono); font-size: 11px;
+        color: var(--fg-3); font-weight: 500; margin-left: 8px;
+        letter-spacing: .08em; }
+.abx-why { color: var(--fg-2); font-size: 12.5px; margin: 4px 0 0;
+           max-width: 62ch; }
+.abx-head { display: flex; gap: var(--gap-4); align-items: flex-start;
+            flex-wrap: wrap; }
+.abx-setup { display: flex; align-items: center; gap: var(--gap-3);
+             margin-left: auto; flex-wrap: wrap; }
+.abx-setup select { padding: 5px 8px; font-size: 12px; }
+.abx-setup input[type=number] { width: 58px; background: var(--bg-2);
+        color: var(--fg-0); border: 1px solid var(--line-2);
+        border-radius: var(--radius-s); padding: 5px 8px; font: inherit;
+        font-size: 12px; font-family: var(--font-mono); }
+.abx-vs { color: var(--fg-3); font-size: 12px; margin: 0 2px; }
+
+.abx-prog { display: flex; align-items: center; gap: var(--gap-3);
+            margin-top: var(--gap-4); flex-wrap: wrap; }
+.abx-prog #abxCount { font-family: var(--font-mono); font-size: 12.5px;
+                      color: var(--fg-1); min-width: 108px; }
+.abx-dots { display: flex; gap: 4px; flex-wrap: wrap; margin-right: auto; }
+.abx-dots i { width: 9px; height: 9px; border-radius: 50%;
+              background: var(--bg-4); border: 1px solid var(--line-2);
+              display: block; }
+.abx-dots i.done { background: var(--fg-3); border-color: transparent; }
+.abx-dots i.now { background: var(--amber); border-color: transparent;
+                  box-shadow: 0 0 8px rgba(245,165,36,.5); }
+
+/* Three ways to listen. X reads as its own thing so you never lose track
+   of which one is the unknown. */
+.abx-switch { display: grid; grid-template-columns: 1fr 1fr 1fr;
+              gap: var(--gap-2); margin-top: var(--gap-3); }
+.abx-switch button { padding: 15px 8px; font-size: 15px; font-weight: 650;
+                     font-family: var(--font-mono); }
+.abx-switch button kbd { margin-left: 8px; opacity: .5; font-weight: 400; }
+.abx-switch button[aria-pressed="true"] { border-color: var(--amber);
+        background: var(--amber-soft); color: var(--amber);
+        box-shadow: 0 0 0 1px rgba(245,165,36,.35); }
+.abx-switch button.isx { border-color: rgba(56,189,248,.4); color: var(--cyan); }
+.abx-switch button.isx[aria-pressed="true"] { border-color: var(--cyan);
+        background: rgba(56,189,248,.12); color: var(--cyan);
+        box-shadow: 0 0 0 1px rgba(56,189,248,.35); }
+
+.abx-ask { font-size: 13px; color: var(--fg-2); margin: var(--gap-4) 0 var(--gap-2); }
+.abx-answer { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-2); }
+.abx-answer button { padding: 13px 8px; font-size: 13.5px; }
+.abx-answer button kbd { margin-left: 8px; opacity: .5; }
+
+.abx-score { font-family: var(--font-mono); font-size: 15px; color: var(--fg-0);
+             margin: var(--gap-4) 0 6px; }
+.abx-score.pass { color: var(--success); }
+.abx-score.fail { color: var(--amber); }
+.abx-plain { color: var(--fg-1); font-size: 13px; margin: 0 0 var(--gap-2);
+             max-width: 62ch; }
+.abx-seq { font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-3);
+           margin: 0 0 var(--gap-3); word-break: break-all; }
+.abx-seq b { color: var(--success); font-weight: 500; }
+.abx-seq s { color: var(--danger); text-decoration: none; }
+.abx-flag { color: var(--fg-2); font-size: 12.5px; margin: var(--gap-3) 0 0;
+            max-width: 62ch; border-left: 2px solid var(--amber);
+            padding-left: 10px; }
+
+@media (max-width: 620px) {
+  .abx-setup { margin-left: 0; }
+  .abx-switch { grid-template-columns: 1fr 1fr; }
+  .abx-switch button.isx { grid-column: 1 / -1; }
+  .abx-answer { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -296,15 +409,16 @@ button kbd { opacity: .55; font-size: 11px; }
       <div class="abx-head">
         <div>
           <h2>Listening check <span class="abx-sub">ABX</span></h2>
-          <p class="abx-why">X is secretly A or B. Say which one it matches, a
-          dozen times. Getting it right often enough proves the two versions
-          really do sound different — until then a preference is a guess.</p>
+          <p class="abx-why" id="abxWhy">X is secretly one of the two you
+          pick. Say which one it matches, several times over. Getting it right
+          often enough proves the two really do sound different — until then a
+          preference is a guess.</p>
         </div>
         <div class="abx-setup" id="abxSetup">
           <label class="chk" id="abxPair" hidden>pair
             <select id="abxA"></select><span class="abx-vs">vs</span>
             <select id="abxB"></select></label>
-          <label class="chk">trials <input type="number" id="abxN" min="4"
+          <label class="chk">trials <input type="number" id="abxN" min="8"
             max="50" step="1" value="12"></label>
           <button class="primary" id="abxStart">Start check</button>
         </div>
@@ -317,14 +431,14 @@ button kbd { opacity: .55; font-size: 11px; }
           <button class="quiet" id="abxStop">Stop</button>
         </div>
         <div class="abx-switch" id="abxSwitch">
-          <button data-listen="0" aria-pressed="false">A <kbd>A</kbd></button>
-          <button data-listen="1" aria-pressed="false">B <kbd>B</kbd></button>
+          <button data-listen="0" aria-pressed="false">A <kbd>1</kbd></button>
+          <button data-listen="1" aria-pressed="false">B <kbd>2</kbd></button>
           <button data-listen="x" class="isx" aria-pressed="false">X <kbd>X</kbd></button>
         </div>
         <p class="abx-ask">Which one is X?</p>
         <div class="abx-answer">
-          <button data-ans="0">X is A <kbd>⇧A</kbd></button>
-          <button data-ans="1">X is B <kbd>⇧B</kbd></button>
+          <button data-ans="0">X is A <kbd>⇧1</kbd></button>
+          <button data-ans="1">X is B <kbd>⇧2</kbd></button>
         </div>
       </div>
 
@@ -367,7 +481,7 @@ button kbd { opacity: .55; font-size: 11px; }
       <summary>Keys, and what "Difference" can and cannot tell you</summary>
       <div class="body">
         <p><kbd>space</kbd> play · <kbd>S</kbd> swap · <kbd>D</kbd> difference ·
-           <kbd>L</kbd> loop the last 4 s · <kbd>0</kbd> restart ·
+           <kbd>L</kbd> loop the last 4 s · <kbd>0</kbd> back to loop start ·
            <kbd>←</kbd> <kbd>→</kbd> previous / next comparison</p>
         <p style="margin-top:10px"><strong class="warn">Difference</strong> plays
         what one version has and the other does not. It tells you whether the
@@ -402,7 +516,7 @@ async function loadSet(id) {
   buffers = await loadBuffers(id, files);
 
   endLoad();
-  $('title').textContent = cur.title;
+  $('title').textContent = cur.title || cur.id;
   $('note').textContent = cur.note || '';
   $('diffbtn').hidden = !cur.residual;
   // "Difference" means two different things depending on the set, and calling
@@ -413,8 +527,9 @@ async function loadSet(id) {
     $('diffbtn').innerHTML = esc(cur.residual.label || 'Difference') +
       ' <kbd>D</kbd>';
     $('diffwhat').innerHTML = esc(cur.residual.explain || '') +
-      ` <span style="color:var(--fg-3)">(${cur.residual.song_correlation} ` +
-      `correlated with the music)</span>` +
+      ` <span style="color:var(--fg-3)">It matches the music ` +
+      `${Math.round(cur.residual.song_correlation * 100)}% — a removal ` +
+      `matches it hardly at all, a tone change matches it closely.</span>` +
       (cur.residual.kind_disagrees
         ? ' <span class="warn">— this set is labelled wrongly; the signal ' +
           'does not match the kind it claims.</span>' : '');
@@ -498,7 +613,10 @@ function build() {
 
 function select(i) {
   if (i === active) return;
-  switches++; active = i;
+  // Switches made inside a listening check belong to the check, not to the
+  // comparison, and counting them made the saved figure meaningless.
+  if (!abxRunning()) switches++;
+  active = i;
   const t = ctx ? ctx.currentTime : 0;
   gains.forEach((g, j) => {
     g.gain.cancelScheduledValues(t);
@@ -576,8 +694,17 @@ function arm() {
   clearInterval(autoTimer); autoTimer = null;
   if (!$('auto').checked || !cur) return;
   const s = +$('every').value;
-  autoTimer = setInterval(() => { if (playing) $('swap').click(); },
-                          (s > 0 ? s : Math.max(loopB - loopA, 1)) * 1000);
+  autoTimer = setInterval(() => {
+    // Never during a listening check: the timer would pull you off X
+    // mid-trial, and the answer you then give is about the wrong audio.
+    if (playing && !abxRunning()) $('swap').click();
+  }, (s > 0 ? s : Math.max(loopB - loopA, 1)) * 1000);
+}
+
+/* True while a listening check is in progress. Anything that moves the
+   listener between arms on its own has to stand down for the duration. */
+function abxRunning() {
+  return typeof abx === 'object' && abx && abx.started && !abx.done;
 }
 
 $('save').onclick = async () => {
@@ -588,8 +715,8 @@ $('save').onclick = async () => {
       note: $('notes').value, switches, seconds: listened,
       abx: abxPayload(),
       revealed_first: !!$('answer').textContent})});
-  $('saved').textContent = 'saved';
-  await afterSave();
+  await afterSave();   // the advice line reports the save; a tick here
+                       // is wiped by the set change before it can be read
 };
 $('revealbtn').onclick = async () => {
   const k = await api('reveal/' + encodeURIComponent(cur.id));
@@ -721,17 +848,26 @@ function renderArms() {
    scanning four cards. */
 function paintArms() {
   const onDiff = !!(cur.residual && active === cur.arms.length);
+  const onX = typeof xIndex === 'function' && active === xIndex();
   $('stage').querySelectorAll('.cand').forEach(c => {
-    const live = !onDiff && +c.dataset.i === active;
+    const live = !onDiff && !onX && +c.dataset.i === active;
     c.setAttribute('aria-pressed', live);
     c.querySelector('.state').textContent = live ? 'playing' : 'silent';
   });
   const arm = cur.arms[active];
-  $('livearm').textContent = onDiff ? '±' : (arm ? arm.letter : '—');
-  $('livewhat').textContent = onDiff
-    ? (cur.residual.label || 'Difference') + ' is playing'
-    : (arm ? 'is playing' : 'nothing is playing');
-  $('live').classList.toggle('diffmode', onDiff);
+  // Say what is sounding AND whether it is actually sounding. The old text
+  // read "A is playing" on a stopped page and "nothing is playing" while X
+  // was audible — both false, and the second one during the one task this
+  // page exists for.
+  const letter = onX ? 'X' : onDiff ? '±' : (arm ? arm.letter : '—');
+  let what;
+  if (!playing) what = arm || onX || onDiff ? 'is next — press play' : 'nothing loaded';
+  else if (onX) what = 'the unknown one is playing';
+  else if (onDiff) what = (cur.residual.label || 'Difference') + ' is playing';
+  else what = arm ? 'is playing' : 'nothing is playing';
+  $('livearm').textContent = letter;
+  $('livewhat').textContent = what;
+  $('live').classList.toggle('diffmode', onDiff || onX);
 }
 
 /* ── loading audio, with every failure named ──────────────────────── */
@@ -789,29 +925,6 @@ const api = (p, opts) => fetch('/api/dev/ab/' + p, opts).then(
   e => { throw new BenchError('The server could not be reached.',
                               '/api/dev/ab/' + p + ' — ' + e); });
 
-async function boot() {
-  let d;
-  try {
-    d = await api('sets');
-  } catch (err) {
-    const why = err.why || err.message || '';
-    showFailure('', new BenchError(
-      'The bench could not list any comparisons. ' + why,
-      (err.detail || '') +
-        '\nIs the Shimmer server still running in the terminal you ' +
-        'started it from?'));
-    return;
-  }
-  ids = d.sets.map(s => s.id);
-  if (!ids.length) { showEmpty(); return; }
-  $('sets').disabled = false;
-  $('prev').disabled = false;
-  $('next').disabled = false;
-  $('sets').innerHTML = d.sets.map(s =>
-    '<option value="' + esc(s.id) + '">' + esc(s.title) +
-    (s.judged ? '  ✓' : '') + '</option>').join('');
-  await open_(ids[0]);
-}
 
 async function open_(id) {
   try {
@@ -865,6 +978,15 @@ async function refreshSets() {
   if (cur && byId_.has(cur.id)) { idx = ids.indexOf(cur.id); renderRound(cur.id); }
 }
 
+/* The group heading already names the comparison, so the option only has
+   to name the song. Titles read "Round 8 · algorithms lure"; everything
+   before the separator duplicates the heading. */
+function songOf(r) {
+  const t = r.title || r.id;
+  const i = t.indexOf(' · ');
+  return i >= 0 ? t.slice(i + 3) : t;
+}
+
 function renderPicker() {
   const out = [];
   for (const g of GROUPS.concat([OTHER])) {
@@ -874,7 +996,7 @@ function renderPicker() {
     out.push(
       `<optgroup label="${esc(g.name)} — ${done} of ${rs.length} judged">` +
       rs.map(r => `<option value="${esc(r.id)}">${r.judged ? '✓' : '·'} ` +
-                  `${esc(r.title || r.id)}</option>`).join('') +
+                  `${esc(songOf(r))}</option>`).join('') +
       `</optgroup>`);
   }
   $('sets').innerHTML = out.join('');
@@ -1223,11 +1345,21 @@ function abxPaint() {
       const want = b.dataset.listen === 'x' ? xIndex() : abx.pair[+b.dataset.listen];
       b.setAttribute('aria-pressed', active === want);
     });
+    // The key shown must be the key that works. These buttons used to
+    // read "C" with a hint of "A", because A meant "first of the pair"
+    // rather than the arm called A. Arms answer to their own number key
+    // everywhere else, so show that.
     $('abxSwitch').children[0].firstChild.nodeValue = abx.letters[0] + ' ';
     $('abxSwitch').children[1].firstChild.nodeValue = abx.letters[1] + ' ';
+    const pk = $('abxSwitch').querySelectorAll('kbd');
+    if (pk[0]) pk[0].textContent = String(abx.pair[0] + 1);
+    if (pk[1]) pk[1].textContent = String(abx.pair[1] + 1);
     const ans = document.querySelectorAll('.abx-answer button');
     ans[0].firstChild.nodeValue = 'X is ' + abx.letters[0] + ' ';
     ans[1].firstChild.nodeValue = 'X is ' + abx.letters[1] + ' ';
+    const ak = document.querySelectorAll('.abx-answer kbd');
+    if (ak[0]) ak[0].textContent = '⇧' + (abx.pair[0] + 1);
+    if (ak[1]) ak[1].textContent = '⇧' + (abx.pair[1] + 1);
   }
 }
 
@@ -1250,15 +1382,26 @@ $('abxSwitch').querySelectorAll('button').forEach(b => b.onclick = () => {
 document.querySelectorAll('.abx-answer button').forEach(b =>
   b.onclick = () => abxAnswer(+b.dataset.ans));
 
-/* A / B / X to listen, shift+A / shift+B to answer. Plain letters, so
-   pressing a key never accidentally casts a vote. */
+/* X to listen to the unknown one; the arm's own number key to listen to it,
+   the same key that works outside a check; shift and that number to answer.
+   Shift is required so a key press can never cast a vote by accident.
+
+   The pair's keys are the arms' real numbers rather than a fixed A and B.
+   With a C-versus-D pair the buttons used to read "C" and hint "A", which
+   is the same class of mistake as a label that does not match its control. */
 addEventListener('keydown', e => {
-  if (!abx || abx.done) return;
+  if (!abx || abx.done || !abx.started) return;
   if (['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName)) return;
   const k = e.key.toLowerCase();
-  if (k !== 'a' && k !== 'b' && k !== 'x') return;
-  if (e.shiftKey) { if (k !== 'x') abxAnswer(k === 'a' ? 0 : 1); return; }
-  select(k === 'x' ? xIndex() : abx.pair[k === 'a' ? 0 : 1]);
+  if (k === 'x' && !e.shiftKey) { select(xIndex()); return; }
+  const n = parseInt(e.key, 10) - 1;               // shift+2 gives "2" on some
+  const alt = '!@#$%^&*('.indexOf(e.key);          // layouts and a symbol on others
+  const arm = Number.isInteger(n) && n >= 0 ? n : (alt >= 0 ? alt : -1);
+  if (arm < 0) return;
+  const slot = abx.pair.indexOf(arm);
+  if (slot < 0) return;                            // not one of the two on trial
+  if (e.shiftKey || alt >= 0) { abxAnswer(slot); e.preventDefault(); }
+  else select(arm);
 });
 
 boot();
