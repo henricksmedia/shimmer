@@ -219,6 +219,21 @@ count.
       (c) *The tone target is backwards* — see item 12.
       The service master beat Shimmer **16 times out of 16** across
       `service` and `r8`.
+      **Full record with its conditions and limits: `docs/listening/`,
+      rebuilt by `scripts/listening_report.py`.** Read that before citing any
+      number here. Two conditions in it change how much weight this round
+      carries. The listener wrote the tool and knew what each outcome would
+      mean — blind to the arms, not blind to the hypothesis. And everything
+      was heard on **one system, the listener's everyday computer speakers**.
+      That is a real consumer-playback check this project had never done, and
+      it is also the only system tested, so the round cannot separate "this
+      curve is better" from "this curve suits these speakers". It also means
+      the +0.6 dB above 12.5 kHz was probably never audible: small speakers
+      give up below that, so the preference was most likely carried by the
+      2-8 kHz lift and the 1.2 dB low-mid cut. **The cheap test that would
+      settle it is three of the same songs judged again on headphones.** If
+      the direction holds the target is right; if it flattens, the target is
+      bending to fit one pair of speakers.
       *Limits of this round, so it is not over-read:* one preferred pick
       per round, no rankings, so "the chain never won" is known but its
       placing is not; auditions were short on the tone sets (4-9 s on six
