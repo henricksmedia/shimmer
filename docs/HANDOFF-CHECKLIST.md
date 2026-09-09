@@ -533,6 +533,55 @@ count.
       longer done: the target that ships is the one that lost. Do not
       re-derive it from a better corpus before establishing why the
       measured-best curve is the least preferred one.
+      **REVERTED 2026-09-09** in `shimmer/mastering.py`; 402 tests pass.
+      `_REF_SHAPE_DB` is the curve that won. Read the size of the result
+      correctly, because the curves overstate it: the chain applies only
+      part of a target, so the ~8 dB gap between these two curves through
+      presence and air delivered about **2 dB** of audible change. Measured
+      from the judged bench files themselves, the preference is 250 Hz-1 kHz
+      **-1.2 dB**, 2-4 kHz **+1.6**, 4-8 kHz **+2.0**, 8-12.5 kHz **+1.7**,
+      12.5-20 kHz **+0.6** — less low-mid, modestly more presence and air.
+      An earlier reading of this session claimed 7-10 dB; that was the gap
+      between the target curves, not the gap heard, and it is withdrawn.
+      *Internal check on the verdicts:* the song whose two arms measure most
+      alike (the-little-things) is the one scored a tie, so the scores track
+      the audio.
+      *The conflict this creates, recorded rather than hidden:* GOALS.md
+      lists "not a clone of any service's house sound" as an anti-goal and
+      this curve is one service's median. Reaching the preferred delivered
+      sound from the derived curve needs roughly this much correction
+      through the top anyway, so what ships is the measured preference, not
+      an endorsement of the vendor. **The open job is a target that earns
+      this shape from evidence.** Do not treat the revert as that job done.
+      *What the audit found so far:* the derivation takes its shape from the
+      published curve and corrects it toward 13 captures. The published
+      curve is much darker at the top than the captures are (8 kHz -14.4 vs
+      -10.3; 10 kHz -16.6 vs -10.6), and the correction that would close
+      that gap is smoothed over an octave before it is applied, which
+      systematically under-corrects at the top band, where there is no
+      higher neighbour to average with and the raw correction is largest
+      (10 kHz raw +5.93 applied +4.74; 12.5 kHz raw +6.01 applied +4.38).
+      The shape is therefore inherited from the paper and the captures are
+      only allowed to move it part of the way. That is the mechanism to
+      examine first when the target is rebuilt.
+      *Second defect, found by the revert and fixed the same day:*
+      `make_bench_set.py` defined `DERIVED = M._REF_SHAPE_DB.copy()`, so the
+      name meant "whatever ships today" rather than a fixed curve. The
+      moment the shipping target changed, the tone and era sets began
+      comparing a curve against itself — a verification run measured
+      **0.00 dB in every band** between the two arms. Any round built after
+      a target change would have been a null test that looked like a real
+      one. The three historical curves are now pinned literals and a
+      separate `SHIPPING` constant carries the live target; arms that mean
+      "as it ships" use that. Verified after the fix: the reverted chain
+      delivers 250 Hz-1 kHz **-1.36 dB**, 2-4 kHz **+2.00**, 4-8 kHz
+      **+2.76**, 8-12.5 kHz **+2.63**, 12.5-20 kHz **+1.13** against the
+      derived curve — the preferred direction in every band.
+      *A control worth keeping:* run a finished commercial master through
+      the chain and require it to come out close to unchanged. Both targets
+      currently pull its top end down relative to the mids, the shipping one
+      by ~2.4 dB and the restored one by ~2.0 dB, so neither passes cleanly
+      and this is a live defect independent of which curve is used.
 
 - [ ] **13. Put the percussion-invariant slope in the test suite.**
       (Added 2026-09-08.) Elowsson & Friberg §4.2/§6.3: the PSD slope from
@@ -868,6 +917,44 @@ count.
       residual first and describe it before modelling it. Model 3 is the
       right one for the round-8 renders regardless (efficacy up, cost
       down).
+      **CORRECTION 2026-09-09 — the "it does nothing" reading above is
+      withdrawn; the instrument was wrong, not the model.** Flicker depth is
+      measured across a whole band the music dominates, so material 36-56 dB
+      below the source cannot move it however audible it is. The residual is
+      the instrument with power here, and by the bench's own
+      song-correlation scale (0.001-0.115 = removed material; 0.16-0.52 =
+      the song through a filter) every remover removes junk and only junk:
+
+      | residual | correlation | below source | energy |
+      |---|---|---|---|
+      | leave-the-world-behind, model 3 | 0.084 | 36 dB | 95 % in 4.5-12.5 kHz |
+      | leave-the-world-behind, model 2 | 0.078 | 38 dB | 100 % in 4.5-12.5 kHz |
+      | the-little-things, model 2 | 0.009 | 50 dB | 100 % in 4.5-12.5 kHz |
+      | kindling, model 2 | 0.009 | 56 dB | 100 % in 4.5-12.5 kHz |
+
+      None has energy below 2 kHz, and the author confirms hearing shimmer,
+      high-pitched sheen and pops when auditioning the removed part. The
+      question is therefore not whether the stage removes hash — it does,
+      cleanly — but whether it removes **enough**. That is under-removal,
+      and it has different fixes than mis-removal.
+      *The clean round's four ties are explained by this, not evidence
+      against it:* material 37-56 dB down, in a masked band, judged on the
+      loudest 30 s, is a test with no power. Rebuilt as `quiet-*` sets on
+      the passage each song's own residual says is most exposed (+6.6 dB
+      exposure on average, +20.1 dB on kindling), asking "which still has
+      the shimmer" rather than "which sounds better".
+      **Defect found and fixed 2026-09-09** in `hash_learn/infer.py`:
+      `g = 1 - strength*(1 - g)` was unclamped, so any strength above 1
+      drove bins negative wherever the mask read below `1 - 1/strength`,
+      flipping their phase and writing the artifact back inverted instead of
+      attenuating it. Every strength above 1.0 measured before this date
+      carried it. Now clipped to [0, 1].
+      *Strength sweep on model 3, clamped, measured by residual:* the model
+      is very timid. On leave-the-world-behind it takes -24.3 dB of the
+      4.5-12.5 kHz band at strength 1 and only -12.5 dB at strength 8, for a
+      band-level drop of 0.15 dB and 0.70 dB; on kindling, -36.2 dB and
+      -24.1 dB for a 0.01-0.07 dB drop. Strength is not the limiting factor
+      and there is large headroom before the cost could be audible.
 
 ## DEFERRED — the 80% stake
 
