@@ -81,12 +81,37 @@ _REF_FREQS = np.array([
     800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000,
     10000, 12500, 16000, 20000,
 ], dtype=np.float64)
+# RESTORED 2026-09-09 BY LISTENING. The derived curve that sat here — the
+# one built from the paper plus 13 captures, recorded in docs/tone-target.json
+# — lost a level-matched blind comparison on 7 of 8 songs, with 1 tie and no
+# wins, and lost again to both alternatives in the three-way era test. The
+# curve below won. GOALS.md rule 4 makes listening final over measurement,
+# and this is the first time the two have been put against each other on
+# this question.
+#
+# Read the result precisely, because it is smaller than the curves suggest.
+# The chain applies only part of a target, so an 8 dB gap between these two
+# curves through presence and air delivered about 2 dB of audible change.
+# Measured from the bench files actually judged, what was preferred is:
+# 250 Hz-1 kHz -1.2 dB, 2-4 kHz +1.6, 4-8 kHz +2.0, 8-12.5 kHz +1.7,
+# 12.5-20 kHz +0.6. Less low-mid, modestly more presence and air. The song
+# whose two arms measured most alike (the-little-things) is the one scored a
+# tie, which is the internal check that these verdicts track the audio.
+#
+# The tension this creates, stated rather than hidden: GOALS.md lists "not a
+# clone of any service's house sound" as an anti-goal, and this curve is one
+# service's median on AI renders. The defence is that reaching the preferred
+# delivered sound from the derived curve needs roughly this much correction
+# through the top anyway, so this is the measured preference and not an
+# endorsement of the vendor. The proper fix is a target that earns this shape
+# from evidence; until one exists and is heard, shipping the curve that lost
+# is the worse option.
 _REF_SHAPE_DB = np.array([
-    -0.5, 2.0, 4.9, 6.4, 6.7, 6.0, 4.3,
-    2.8, 2.1, 1.9, 1.7, 1.1, 0.5, 0.0,
-    -0.7, -1.5, -2.4, -3.4, -4.5, -5.4, -6.2,
-    -7.3, -8.3, -9.4, -10.5, -12.0, -14.6, -18.4,
-    -25.0,
+    -3.7, 4.3, 8.3, 8.8, 7.9, 7.4, 7.4,
+    6.3, 4.5, 2.1, 0.3, -0.7, 0.0, 0.5,
+    -1.5, -1.5, -1.4, -0.7, 0.0, 0.6, 0.7,
+    1.1, -0.1, -1.0, -0.4, -1.5, -5.8, -13.1,
+    -25.4,
 ], dtype=np.float64)
 
 # How far a real master may sit from the target and still be normal, per band:
