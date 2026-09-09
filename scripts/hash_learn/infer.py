@@ -51,7 +51,13 @@ class Remover:
                 g = self.net(t - t.mean())
                 g = g * self.band + (1.0 - self.band)
             g = g[0, 0].cpu().numpy()
-            g = 1.0 - strength * (1.0 - g)
+            # Clamped, because it is not: at strength > 1 the unclamped form
+            # 1 - s(1 - g) goes negative wherever g < 1 - 1/s (at s = 3, any
+            # bin the network masked below 0.67), and a negative gain does not
+            # attenuate — it flips the phase of that bin and writes the
+            # artifact back in inverted. Every strength above 1.0 measured
+            # before 2026-09-09 carried this.
+            g = np.clip(1.0 - strength * (1.0 - g), 0.0, 1.0)
             G = np.ones(Z.shape, dtype=np.float32); G[ctx] = g
             _, y = ss.istft(Z * G, fs=sr, nperseg=N_FFT, noverlap=N_FFT - HOP, input_onesided=True, boundary=True)
             out[:, c] = y[:x.shape[0]]
