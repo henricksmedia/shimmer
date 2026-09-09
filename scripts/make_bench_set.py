@@ -88,6 +88,31 @@ def loudest(x, sr, seconds=SECONDS):
     return np.ascontiguousarray(x[at:at + n])
 
 
+def next_loudest(x, sr, seconds=SECONDS):
+    """The loudest passage that does NOT overlap the one `loudest` picks.
+
+    For asking a question a second time. Re-judging the same audio is worth
+    little once the listener has read the first result: he is no longer
+    blind to what the answer was, and he may simply remember the clip. A
+    different passage of the same song, freshly shuffled, keeps the
+    comparison and drops most of that memory.
+    """
+    n = int(seconds * sr)
+    m = x.mean(axis=1) if x.ndim > 1 else x
+    if len(m) <= 2 * n:
+        return np.ascontiguousarray(x[:n])
+    c = np.concatenate([[0.0], np.cumsum(m.astype(np.float64) ** 2)])
+    hop = int(sr)
+    st = np.arange(0, len(m) - n, hop)
+    e = c[st + n] - c[st]
+    first = int(st[int(np.argmax(e))])
+    ok = (st + n <= first) | (st >= first + n)
+    if not ok.any():
+        return np.ascontiguousarray(x[first:first + n])
+    at = int(st[ok][int(np.argmax(e[ok]))])
+    return np.ascontiguousarray(x[at:at + n])
+
+
 def _band(x, sr, lo=4500.0, hi=12500.0):
     """The 4.5-12.5 kHz band, where every measured residual puts its energy."""
     F = np.fft.rfft(x)
@@ -184,6 +209,48 @@ def clean_sets():
             residual_kind="removed")
         made.append(m["id"])
         print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
+    return made
+
+
+def tonecheck_sets():
+    """The tone question again, on a second system.
+
+    The 2026-09-09 round chose a tone target on one playback system: the
+    listener's everyday computer speakers. That is a fair check on the kind
+    of speakers most AI music is played on, and it is also the only system
+    tested, so it cannot tell "this curve is better" apart from "this curve
+    suits these speakers". About 0.6 dB of the change sits above 12.5 kHz,
+    which small speakers do not reach, so that part was likely never heard.
+
+    Three songs, on a passage the listener has not judged, freshly shuffled.
+    Judge these on headphones. If the same target wins, the result is about
+    the music. If it flattens to ties, the target was fitting the speakers.
+    """
+    songs = ["algorithms-lure", "we-were-meant-for-the-stars", "falling-for-you"]
+    made = []
+    for song in songs:
+        p = os.path.join(ROOT, "sources", f"suno-{song}.wav")
+        if not os.path.exists(p):
+            print(f"  (missing {os.path.basename(p)})")
+            continue
+        x, sr = load_audio(p)
+        ref = next_loudest(x, sr)
+        m = abtest.build(
+            f"tonecheck-{song}", f"Tone on headphones · {song.replace('-', ' ')}",
+            [("restored target (shipping now)", master(ref, sr, SHIPPING)),
+             ("derived target (reverted)", master(ref, sr, DERIVED))],
+            sr,
+            note=("Play this on headphones, not on speakers. Same song, same "
+                  "preset, same mastering — the only difference is the tone "
+                  "target. This is a different passage from the earlier round "
+                  "and the letters are shuffled again. The question is whether "
+                  "the same one still wins when the playback changes."),
+            residual_of=("restored target (shipping now)",
+                         "derived target (reverted)"),
+            residual_kind="eq")
+        made.append(m["id"])
+        print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
+    use(SHIPPING)
     return made
 
 
@@ -316,7 +383,8 @@ GROUPS = {"service": ("Ours vs the service (the founding question):", service_se
           "chain": ("Untouched render vs the full chain:", chain_sets),
           "tone": ("Tone target, retracted vs derived:", tone_sets),
           "clean": ("Cleaning only, untouched vs cleaned:", clean_sets),
-          "quiet": ("Cleaning, on the passage where it can be heard:", quiet_sets)}
+          "quiet": ("Cleaning, on the passage where it can be heard:", quiet_sets),
+          "tonecheck": ("The tone question again, for headphones:", tonecheck_sets)}
 
 if __name__ == "__main__":
     what = sys.argv[1:] or ["all"]
