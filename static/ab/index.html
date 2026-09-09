@@ -523,18 +523,21 @@ async function loadSet(id) {
   beginLoad(id);
   const got = await api('set/' + encodeURIComponent(id));
   if (gen !== loadGen) return;    // a newer set was asked for; drop this one
-  cur = got;
   ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
 
-  const files = cur.arms.map(a => a.file);
-  if (cur.residual) files.push(cur.residual.file);
-  sayLoadSize(files, cur.seconds, cur.sr);
+  const files = got.arms.map(a => a.file);
+  if (got.residual) files.push(got.residual.file);
+  sayLoadSize(files, got.seconds, got.sr);
   const decoded = await loadBuffers(id, files);
   if (gen !== loadGen) return;    // and again after the slow part
+  // Only now: everything that reads `cur` assumes a matching buffer exists.
+  cur = got;
   buffers = decoded;
 
   endLoad();
-  $('title').textContent = cur.title || cur.id;
+  // The strip above already names the comparison. Repeating the round
+  // prefix here gave the same group two different names on one screen.
+  $('title').textContent = songOf({title: cur.title, id: cur.id});
   $('note').textContent = cur.note || '';
   $('diffbtn').hidden = !cur.residual;
   // "Difference" means two different things depending on the set, and calling
@@ -618,9 +621,10 @@ async function loadSet(id) {
     `<button aria-pressed="false" data-p="${a.letter}">${a.letter} was better</button>`)
     .join('') + '<button aria-pressed="false" data-p="tie">No preference</button>';
   $('picks').querySelectorAll('button').forEach(b => b.onclick = () => {
-    picked = b.dataset.p; $('saved').textContent = '';
+    picked = b.dataset.p;
     $('picks').querySelectorAll('button').forEach(x =>
       x.setAttribute('aria-pressed', x === b));
+    sayPickCover();
   });
   $('notes').value = ''; $('saved').textContent = ''; $('answer').textContent = '';
   revealed = false;
@@ -647,6 +651,7 @@ async function loadSet(id) {
    a couple of dB, so one envelope describes both. */
 function drawWave() {
   const cv = $('cv'), b = buffers[0];
+  if (!b) return;                  // resizing mid-load used to throw here
   const w = cv.clientWidth || 800, h = cv.clientHeight || 92, dpr = devicePixelRatio || 1;
   cv.width = w * dpr; cv.height = h * dpr;
   const g = cv.getContext('2d'); g.scale(dpr, dpr);
@@ -710,7 +715,8 @@ function select(i) {
   paint();
 }
 
-function play() { if (!cur) return; ctx.resume(); build(); playing = true;
+function play() { if (!cur || !buffers.length) return;
+                  ctx.resume(); build(); playing = true;
                   $('play').innerHTML = '❚❚ Pause <kbd>space</kbd>'; }
 function stop() {
   if (playing && ctx) startOffset = pos();
@@ -838,6 +844,7 @@ $('save').onclick = async () => {
                        // is wiped by the set change before it can be read
 };
 $('revealbtn').onclick = async () => {
+  if (!cur) return;
   let k;
   try {
     k = await api('reveal/' + encodeURIComponent(cur.id));
@@ -911,7 +918,7 @@ function beginLoad(id) {
   const lost = unsavedWork();
   const mid = typeof abxRunning === 'function' && abxRunning();
   if (lost || mid) {
-    const what = cur ? (cur.title || cur.id) : 'that set';
+    const what = cur ? songOf(cur) : 'that set';
     const bits = [];
     if (lost & 1) bits.push('a pick');
     if (lost & 2) bits.push('a note');
@@ -923,6 +930,12 @@ function beginLoad(id) {
   }
   stop();
   cur = null; buffers = []; sources = []; gains = [];
+  // Nothing is loaded, so nothing may still read as playing. These sit under
+  // the loading panel rather than on top of it, but they are the last set's
+  // and a slow load is exactly when someone looks.
+  $('clock').textContent = '0:00 / 0:00';
+  $('livearm').textContent = '\u2013';
+  $('livewhat').textContent = 'nothing is playing';
   idx = Math.max(0, ids.indexOf(id));
   if (ids.indexOf(id) >= 0) $('sets').value = id;
   // The picker moves as soon as you choose; the pips have to move with it,
@@ -932,8 +945,8 @@ function beginLoad(id) {
   $('failure').hidden = true;
   $('empty').hidden = true;
   $('main').hidden = true;
-  $('loadingid').textContent =
-    (byId_ && byId_.get && byId_.get(id) && byId_.get(id).title) || id;
+  const lrow = byId_ && byId_.get && byId_.get(id);
+  $('loadingid').textContent = lrow ? songOf(lrow) : id;
   // Say the real size or say nothing. The old line claimed 44 MB for every
   // set; nothing on the bench is 44 MB.
   $('loadingsize').textContent = '';
@@ -954,14 +967,23 @@ function showFailure(id, err) {
   const skip = document.getElementById('failskip');
   if (skip) skip.hidden = !id;
   stop();
+  // A check cannot continue against audio that failed to load. Shift+1 still
+  // advanced the trial counter on this screen, under a line saying no set is
+  // loaded.
+  if (typeof abxRunning === 'function' && abxRunning()) abxStopRun();
+  // And nothing that describes the set you were on may stay on screen: the
+  // round strip, its pips and the advice line all outlived the set itself.
+  // The picker stays enabled on purpose — it is the way back.
+  $('round').hidden = true;
+  clearSay();
   cur = null; buffers = [];
   $('loading').hidden = true;
   $('main').hidden = true;
   $('empty').hidden = true;
   $('failure').hidden = false;
+  const frow = byId_ && byId_.get && byId_.get(id);
   $('failtitle').textContent = id
-    ? ((byId_ && byId_.get && byId_.get(id) && byId_.get(id).title) || id) +
-      ' did not load'
+    ? (frow ? songOf(frow) : id) + ' did not load'
     : 'The bench did not load';
   $('failwhy').textContent =
     (err && (err.why || err.message)) || 'Something went wrong.';
@@ -1082,7 +1104,9 @@ async function loadBuffers(id, files) {
     }
     if (!r.ok) {
       throw new BenchError(
-        'An audio file for this set is missing: ' + f +
+        (r.status === 404
+          ? 'An audio file for this set is missing: ' + f
+          : 'An audio file for this set could not be read: ' + f) +
           ' (the server answered ' + r.status + ').',
         u + '\nLook in listening-test\\ab\\' + id +
           '\\ then build the set again.');
@@ -1286,32 +1310,36 @@ async function afterSave() {
   if (row) row.judged = (row.judged || 0) + 1;
   renderPicker();
   renderRound(id);
-  const rs = row ? inGroup(row.group) : [];
+  // Ask the server before saying anything about counts. Writing the sentence
+  // from the local rows and refreshing afterwards left "every set on the
+  // bench has a verdict" standing beside a picker reading "0 of 8 judged".
+  await refreshSets().catch(() => {});
+  const row2 = byId_.get(id) || row;
+  const rs = row2 ? inGroup(row2.group) : [];
   const done = rs.filter(r => r.judged).length;
   const nxt = nextUnjudged(id);
   if (nxt) {
     clearVerdictForm();     // before the move, or leaving reports it as lost
     await open_(nxt.id);
     say(`Saved. ${done} of ${rs.length} judged in this group. ` +
-        `Now on ${nxt.title || nxt.id}.`);
-  } else if (row) {
+        `Now on ${songOf(nxt)}.`);
+  } else if (row2) {
     // Nothing to advance to, so this set stays on screen. Clear the form the
     // way a set change would, or the pick sits armed, a second click appends
     // a duplicate verdict, and leaving afterwards claims work was lost that
     // had in fact been saved twice.
     clearVerdictForm();
-    const g2 = nextGroupWithWork(row.group);
+    const g2 = nextGroupWithWork(row2.group);
     if (g2) {
       const first = firstUnjudged(g2);
-      say(`Saved. All ${rs.length} judged in ${row.group.name}.`,
+      say(`Saved. All ${rs.length} judged in ${row2.group.name}.`,
           {label: `Start ${g2.name} (${inGroup(g2).filter(r => !r.judged).length} left)`,
            id: first.id});
     } else {
-      say(`Saved. All ${rs.length} judged in ${row.group.name}, ` +
+      say(`Saved. All ${rs.length} judged in ${row2.group.name}, ` +
           `and every set on the bench has a verdict.`);
     }
   }
-  refreshSets().catch(() => {});   // trust the server's count over the local one
 }
 
 /* Round so far. Preferred LETTERS are shown by default; what those letters
@@ -1319,20 +1347,33 @@ async function afterSave() {
    the next set in the same group is the bias this bench exists to remove. */
 /* Did this verdict come with proof the difference was audible? Without
    this column the record cannot answer the question the check exists for. */
-function evidence(row) {
+function evidence(row, arms) {
   let a = row && row.abx;
   if (!a || !a.trials) return '<span class="warn">coin flip</span>';
   // Prefer the run that actually covers the pick. The headline run is just
   // the last one, so a passing check on the pair you preferred was being
   // reported as "not this pick" while the file held the proof.
   const want = row.preferred_letter;
+  let tries = 1;
   if (Array.isArray(a.runs) && want) {
     const covering = a.runs.filter(r => Array.isArray(r.pair) &&
                                         r.pair.includes(want));
-    const passed = covering.find(r => r.audible);
-    const use = passed || covering[covering.length - 1];
-    if (use) a = Object.assign({}, a, use,
-      {run_count: covering.length, runs: a.runs});
+    const best = covering.slice().sort(
+      (x, y) => (x.p_value || 1) - (y.p_value || 1))[0];
+    const use = best || covering[covering.length - 1];
+    if (use) {
+      tries = covering.length || 1;
+      // The chance of the BEST of k independent runs looking this good is
+      // 1 - (1 - p)^k, not p. Reporting the winning run's own p made
+      // re-running until something passed look like proof; the page warns
+      // about that while a check is going, and the record has to agree.
+      const pEff = tries > 1
+        ? 1 - Math.pow(1 - (use.p_value || 1), tries)
+        : use.p_value;
+      a = Object.assign({}, a, use, {p_value: pEff, adjusted: tries > 1,
+                                     run_count: tries, runs: a.runs});
+      a.audible = pEff <= ABX_ALPHA;
+    }
   }
   const p = typeof a.p_value === 'number'
     ? fmtP(a.p_value)
@@ -1343,15 +1384,26 @@ function evidence(row) {
   const pair = Array.isArray(a.pair) ? a.pair.join(' v ') : '?';
   const covers = Array.isArray(a.pair) && row.preferred_letter &&
                  a.pair.includes(row.preferred_letter);
-  const many = a.run_count > 1 ? ` <small>${a.run_count} runs</small>` : '';
+  const many = a.run_count > 1
+    ? ` <small>best of ${a.run_count} runs, p adjusted for that</small>` : '';
   const body = `${a.correct}/${a.trials}, p ${p} <small>(${esc(pair)})</small>${many}`;
   if (!a.audible) return `<span class="warn">${body}</span>`;
-  return covers ? `<span class="ok">${body}</span>`
-                : `<span class="warn">${body} — not this pick</span>`;
+  if (!covers) return `<span class="warn">${body} — not this pick</span>`;
+  // A pass on A against B says nothing about A against C. On a four-arm set
+  // a green tick with no qualifier reads as "A won", which was never tested.
+  const rest = (arms || []).filter(L => L !== '' && a.pair.indexOf(L) < 0);
+  return rest.length
+    ? `<span class="ok">${body}</span> <small class="warn">${
+        esc(rest.join(', '))} not compared</small>`
+    : `<span class="ok">${body}</span>`;
 }
 
+let sofarAgain = false;
 async function renderSoFar() {
-  if (sofarBusy) return;
+  // One render at a time, but never lose the request: the table takes one
+  // HTTP round trip per judged row, and a tick landing inside that window
+  // used to be thrown away with the checkbox left on and the column absent.
+  if (sofarBusy) { sofarAgain = true; return; }
   sofarBusy = true;
   try {
     const row = cur ? byId_.get(cur.id) : null;
@@ -1369,27 +1421,31 @@ async function renderSoFar() {
     const got = await Promise.all(rs.map(async r => {
       try {
         const m = await api('set/' + encodeURIComponent(r.id));
-        return {r, rounds: (m.scores || [])};
+        return {r, rounds: (m.scores || []),
+                arms: (m.arms || []).map(a => a.letter)};
       } catch (e) { return {r, rounds: null}; }
     }));
     $('sofartable').innerHTML =
       `<table><thead><tr><th>Set</th><th>Preferred</th>` +
       (reveal ? `<th>Which was that</th>` : ``) +
       `<th>Heard it?</th><th>When</th><th>Note</th></tr></thead><tbody>` +
-      got.map(({r, rounds}) => {
-        if (rounds === null) return `<tr><td>${esc(r.title || r.id)}</td>` +
+      got.map(({r, rounds, arms}) => {
+        if (rounds === null) return `<tr><td>${esc(songOf(r))}</td>` +
           `<td colspan="${reveal ? 5 : 4}" class="warn">could not read</td></tr>`;
         const last = rounds[rounds.length - 1] || {};
         const again = rounds.length > 1 ? ` (${rounds.length} times)` : '';
-        return `<tr><td>${esc(r.title || r.id)}${again}</td>` +
+        return `<tr><td>${esc(songOf(r))}${again}</td>` +
           `<td>${esc(last.preferred_letter === 'tie' ? 'no preference'
                      : last.preferred_letter || '—')}</td>` +
           (reveal ? `<td class="lab">${esc(last.preferred_label || '—')}</td>` : ``) +
-          `<td>${evidence(last)}</td>` +
+          `<td>${evidence(last, arms)}</td>` +
           `<td class="when">${esc((last.at || '').replace('T', ' ').slice(5, 16))}</td>` +
           `<td class="note">${esc((last.note || '').slice(0, 80))}</td></tr>`;
       }).join('') + `</tbody></table>`;
-  } finally { sofarBusy = false; }
+  } finally {
+    sofarBusy = false;
+    if (sofarAgain) { sofarAgain = false; renderSoFar(); }
+  }
 }
 
 $('sofar').addEventListener('toggle', () => { if ($('sofar').open) renderSoFar(); });
@@ -1550,10 +1606,14 @@ function abxStart() {
   // failure; 5 of 5 is 1/32 = 0.031 and passes. An earlier version put this
   // floor at 8 and told the listener fewer could never pass, which was
   // simply false for 5, 6 and 7.
-  const n = Math.max(5, Math.min(50, Math.round(+$('abxN').value) || 12));
-  const asked = Math.round(+$('abxN').value) || 12;
+  const typed = $('abxN').value.trim();
+  const asked = Math.round(+typed);
+  const n = Math.max(5, Math.min(50, asked || 12));
   $('abxN').value = n;
-  if (asked !== n) {
+  if (!typed || !asked) {
+    $('abxFlag').hidden = false;
+    $('abxFlag').textContent = 'Using ' + n + ' trials, the usual number.';
+  } else if (asked !== n) {
     $('abxFlag').hidden = false;
     $('abxFlag').textContent = asked < n
       ? 'Using ' + n + ' trials. With fewer, even a perfect score is ' +
@@ -1571,6 +1631,27 @@ function abxStart() {
   select(a);
   if (!playing) play();
   abxNextTrial();
+}
+
+/* Does a finished check cover the arm just picked? "C and D sound
+   different to you, and a preference between them counts as evidence" was
+   sitting on the same screen as a click on "A was better", and the mismatch
+   was only reported later, in the record, after the verdict was written. */
+function sayPickCover() {
+  const el = $('saved');
+  if (!picked || picked === 'tie') { el.textContent = ''; return; }
+  if (!abxRuns.length) {
+    el.textContent = 'No listening check yet, so this is saved as a coin flip.';
+    return;
+  }
+  const covering = abxRuns.filter(r => r.pair.indexOf(picked) >= 0);
+  el.textContent = !covering.length
+    ? 'No check compared ' + picked + '. The check you ran was ' +
+      abxRuns[abxRuns.length - 1].pair.join(' against ') +
+      ', so this preference is saved as a coin flip.'
+    : covering.some(r => r.audible) ? ''
+    : 'The check on ' + covering[0].pair.join(' against ') + ' did not pass, ' +
+      'so this preference is saved as a coin flip.';
 }
 
 /* A fresh coin flip every trial. Balancing the sequence so each arm comes up
@@ -1619,6 +1700,7 @@ function abxFinish() {
                : 'less than once in 1,000';
   abxRuns.push({pair: abx.letters.slice(), trials: abx.n, correct: abx.correct,
                 p_value: +abx.p.toPrecision(6), audible: abx.audible});
+  sayPickCover();          // a finished check can change what an old pick means
   $('abxScore').className = 'abx-score ' + (abx.audible ? 'pass' : 'fail');
   $('abxScore').textContent =
     `${abx.correct} of ${abx.n}, p = ${pTxt} — ` +
@@ -1678,6 +1760,10 @@ function abxStopRun() {
 
 function abxPaint() {
   const live = abx && !abx.done;
+  // Swap moves off the pair, and auto-swap arms a timer that can never fire
+  // while X owns the routing. Both stayed enabled and simply did nothing.
+  $('swap').disabled = !!live;
+  $('auto').disabled = !!live;
   $('abxCount').textContent = live
     ? `Trial ${abx.i + 1} of ${abx.n}` : '';
   if (live) {
