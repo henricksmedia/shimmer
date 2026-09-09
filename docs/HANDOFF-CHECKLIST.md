@@ -549,13 +549,33 @@ count.
         the clean host alone.** Music in that band moves with the band
         too (cymbals, transients), so coherence does not separate hash
         from music either.
-      *What follows:* the four existing stages cannot reach this artifact
-      by level or by band dynamics, and coherence alone cannot either.
-      Candidates not yet measured: an aperiodic hash model first; then
-      separation by *both* coherence and spectral flatness per bin
-      (cymbal partials are peaky, hash is flat), or stem-split cleaning
-      (the review's own recommendation), each judged by the harness. This
-      is the product's core problem and the largest open item.
+      - Stem-split cleaning (the review's own recommendation) tried and
+        rejected, same day: Demucs `htdemucs` on host and render, hash at
+        0.5 and 2.0 sones, two hosts. The hash does not land in one stem:
+        per-stem audible footprint on "Hey" at 2.0 sones is drums 6.5,
+        residual 1.5, bass 1.3, other 1.0, vocals 0.4 against 2.0 injected
+        — the separator reacts to the hash and redistributes music, so the
+        drums stem alone carries more audible change than the whole mix.
+        Cleaning the hash-bearing stems with the strongest existing
+        cleaner and remixing: best **39 %** (Deep Scrub on drums, "Hey",
+        tilt 7.4), Suno Hash at 200 % on drums 10-17 %, everything on the
+        other host **≤ 8 %**. Stems are a route for *protecting* vocals
+        while cleaning, not for finding the hash.
+      *What follows:* three routes measured, none reaches the artifact:
+      band-envelope ducking (the shipped stage), per-bin coherence
+      weighting, and stem separation. The hash is added noise whose
+      level per bin rises and falls with a coherent, aperiodic gate; what
+      has not been built is a **per-bin subtraction** stage: track each
+      bin's level at the band's coherent minima (the off phases), take
+      the on-phase excess per bin as the hash's spectrum there, and
+      subtract that excess in power, per bin, leaving the off-phase
+      level — a fine-grid spectral subtraction keyed by the gate the
+      tamer already detects, at bin rather than sub-band resolution. It
+      may fail the same way; the harness will say in one run. Before it,
+      replace the periodic model with an aperiodic gate matched to the
+      measured modulation spectrum (2-2.6 dB rms flat over 2-50 Hz), so
+      the design is not fitted to a rate the corpus does not contain.
+      This is the product's core problem and the largest open item.
 
 ## DEFERRED — the 80% stake
 
