@@ -393,7 +393,7 @@ count.
       before moving either number; do not rescale to make the bars look
       like they used to.
 
-- [ ] **12. Derive the tone target from contemporary commercial music.**
+- [x] **12. Derive the tone target from contemporary commercial music.**
       (Added 2026-09-08. Supersedes the two Done items restatused above.
       Evidence: `BRIGHTNESS-ASSESSMENT.md` §7.) `_REF_SHAPE_DB` is ~6.7 dB
       hot in presence (2–5 kHz) and ~8.5 dB hot in air (6.3–12.5 kHz).
@@ -439,6 +439,37 @@ count.
       more than their CI; and the tilt gap is re-measured against captured
       commercial masters rather than the service's curve. Item 14 still lands
       first, so the capture set stays clean as it grows. More captures remain
+      **DONE 2026-09-08 — but measured only, not heard. Read the last
+      paragraph before quoting this.** `scripts/derive_tone_target.py` builds
+      `_REF_SHAPE_DB` and `_REF_TOL_DB` from the published shape plus a
+      measured correction, writing `docs/tone-target.json` with every band's
+      correction, standard error and shrink weight. Verified against captured
+      commercial masters by `scripts/tilt_vs_commercial.py`, running the real
+      chain over 8 sources twice with only the target changed:
+      **mean gap +3.10 → −0.03 dB, absolute mean 4.62 → 2.43 dB, median
+      +4.71 → +0.46.** The chain is now unbiased against real records where
+      it used to sit 3 dB bright. Target is also smoother than the one it
+      replaces (largest step between bands 12.30 → 6.63 dB) and falls
+      monotonically above 315 Hz where the old one rose again nine times.
+      Two things this exposed, both open. *One:* three sources that were
+      already darker than commercial got darker still
+      (`couldve-been-stories` −0.70 → −3.46). The bright target had been
+      masking how much high end the cleaner removes; with an honest target
+      that loss is visible, and it belongs to the cleaning side, not here.
+      *Two:* the percussion-invariant slope moved −4.28 → −5.53 against a
+      published −4.53. Within the honest ±1.5 dB/oct tolerance and inherited
+      from the captures, which read −5.31, but it is the one number that went
+      the wrong way.
+      **The goal is not met yet.** This item's evidence is entirely spectral.
+      The complaint that started the whole investigation was that masters
+      *sounded* dull, and nobody has listened to a master made with this
+      target. The measurement says Shimmer was 3 dB brighter than commercial
+      music while sounding dull, which most likely means the comparison was
+      against the service's masters — 7 dB bright — rather than against
+      records. That is an explanation, not evidence. **Item 4 is now the
+      blocking item, not a nicety:** a level-matched blind listen against
+      commercial references decides whether any of this worked.
+      More captures remain
       welcome — a handful of non-electronic tracks as a **hold-out test** of
       the finished target is worth more than another twenty inputs.
 

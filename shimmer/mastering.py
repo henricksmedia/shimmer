@@ -37,51 +37,75 @@ from .params import MasterParams, LOUDNESS_TARGETS, intensity_to_eq_strength
 # tone decision is measured against this, so being wrong here makes every
 # decision wrong in the same direction.
 #
-# MEASURED, from 135 contemporary masters (docs/tone-reference.json, built by
-# scripts/build_tone_reference.py from 309 masters labelled by the setting
-# used). The per-track rows are stored in that file, so this array can be
-# re-derived without the audio.
+# DERIVED — do not hand-edit. Regenerate with:
+#     ./.venv/Scripts/python.exe scripts/derive_tone_target.py
+# which writes docs/tone-target.json alongside it, carrying the correction
+# applied to every band, its standard error, and how far it was trusted.
 #
-# What it replaced, and why. The previous array came from the AES study of
-# released music (Pestana, Ma, Reiss, Barbosa, Black, "Spectral characteristics
-# of popular commercial recordings 1950-2010", AES 135, 2013). It was faithful
-# to that study: its 100 Hz - 4 kHz slope of -4.5 dB/oct PSD matches both the
-# paper and an independent LTAS corpus almost exactly. The problem was not the
-# transcription, it was the source — that study averages sixty years of
-# recordings and itself reports the spectrum flattening since the 2000s, so a
-# present-day master measured against it read as too bright by 5-9 dB from
-# 4 kHz up, and every automatic decision came out a cut. See
-# docs/BRIGHTNESS-ASSESSMENT.md §2.1.
+# Shape from published research; level correction from measurement.
 #
-# The shape of the difference: real masters hold roughly level from 315 Hz to
-# 10 kHz and then fall off a cliff, where the old curve sloped down the whole
-# way. They also carry 3-5 dB more below 200 Hz.
+# The shape is Elowsson & Friberg, "Long-term Average Spectrum in Popular
+# Music and its Relation to the Level of the Percussion", AES 142nd Convention
+# (2017), paper 9762 — 12,345 tracks, their Eq. 5 and Eq. 6. Their fit was
+# checked against their own measured curve and is faithful to 0.26 dB over
+# 2.5-12.5 kHz. That corpus leans toward folk and classic-rock CD masters, so
+# it is dated in two documented ways: bass has risen in popular music since
+# (Hove, Vuust & Stupacher, JASA 145, 2019), and percussive material sits
+# above the mean at both ends (the paper's own §4.1). Both are corrections to
+# a level, not to a shape, which is why measurement enters only there.
 #
-# Scope: masters of AI renders from one catalogue, processed by one automated
-# service on its neutral setting. That makes this the right target for this
-# tool's material rather than a general commercial reference — an honest
-# specific in place of a wrong universal.
+# The correction comes from validated commercial captures, smoothed across an
+# octave so it cannot follow per-band noise or introduce a step, then shrunk
+# toward the published shape by its own uncertainty.
+#
+# THIS ARRAY HAS BEEN WRONG TWICE, in opposite directions, and both times it
+# was a hand-placed constant nobody could re-derive:
+#
+#   1. A sixty-year average (Pestana et al., AES 135, 2013, 772 recordings)
+#      used as a present-day target. That study itself reports the spectrum
+#      flattening since the 2000s, so contemporary masters read as too bright
+#      and every automatic decision came out a cut.
+#   2. The median of 135 masters that one automated service produced from AI
+#      renders. AI renders are bright before anything touches them, so a curve
+#      fitted to masters of them inherits that: it measured about 7 dB hot
+#      through presence and air against real commercial music, and Shimmer
+#      spent that whole period pushing tracks toward a vendor's house sound.
+#
+# The comment here used to state, as fact, that "real masters hold roughly
+# level from 315 Hz to 10 kHz". They do not — they fall about 15.7 dB across
+# that span. What holds level there is the service's own output. One
+# algorithm's behaviour was written down as a property of music, and
+# everything downstream inherited it. Full account: BRIGHTNESS-ASSESSMENT.md §7.
 _REF_FREQS = np.array([
     31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630,
     800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000,
     10000, 12500, 16000, 20000,
 ], dtype=np.float64)
 _REF_SHAPE_DB = np.array([
-    -3.7, 4.3, 8.3, 8.8, 7.9, 7.4, 7.4, 6.3, 4.5, 2.1, 0.3, -0.7, 0.0, 0.5,
-    -1.5, -1.5, -1.4, -0.7, 0.0, 0.6, 0.7, 1.1, -0.1, -1.0, -0.4,
-    -1.5, -5.8, -13.1, -25.4,
+    -0.5, 2.0, 4.9, 6.4, 6.7, 6.0, 4.3,
+    2.8, 2.1, 1.9, 1.7, 1.1, 0.5, 0.0,
+    -0.7, -1.5, -2.4, -3.4, -4.5, -5.4, -6.2,
+    -7.3, -8.3, -9.4, -10.5, -12.0, -14.6, -18.4,
+    -25.0,
 ], dtype=np.float64)
 
 # How far a real master may sit from the target and still be normal, per band:
-# half the 16th-84th percentile spread of the same 135 masters. Tolerance is
-# not uniform — 1.6 dB at 500 Hz, 4.1 dB at 6.3 kHz, 11 dB at 20 kHz — and
-# treating it as flat is why the Tone step kept prescribing air trims on
-# tracks that were inside the normal range. Not yet consumed by
-# compute_tone_curve, which has no deadband; see HANDOFF-CHECKLIST.md.
+# half the 16th-84th spread of the captures that measured that band. Derived
+# by the same script as the target above; do not hand-edit.
+#
+# Tolerance is not uniform, and treating it as flat is why the Tone step kept
+# prescribing air trims on tracks that were already inside the normal range.
+# A band no capture measured gets the widest tolerance of its neighbours and
+# never less than 6 dB — not knowing must widen the band, not narrow it.
+#
+# Still not consumed by compute_tone_curve, which has no deadband. That is a
+# live defect with its own checklist item, not an oversight here.
 _REF_TOL_DB = np.array([
-    6.1, 6.1, 4.4, 2.7, 2.8, 3.0, 2.8, 2.9, 2.7, 2.8, 2.7, 1.9, 1.6, 1.7,
-    1.8, 1.8, 1.9, 1.9, 2.4, 3.0, 3.0, 3.4, 3.5, 4.1, 3.5,
-    3.4, 3.6, 4.2, 11.1,
+    7.0, 7.0, 5.9, 3.6, 4.0, 3.9, 4.9,
+    2.8, 2.9, 3.4, 1.8, 3.4, 1.8, 1.5,
+    1.5, 2.5, 2.2, 2.4, 2.9, 3.0, 3.0,
+    4.0, 3.2, 4.0, 4.2, 4.3, 5.4, 5.5,
+    7.3,
 ], dtype=np.float64)
 
 _MID_BANDS = (_REF_FREQS >= 200.0) & (_REF_FREQS <= 2000.0)
