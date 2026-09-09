@@ -1,0 +1,709 @@
+{
+ "floor_db": 0.5,
+ "rows": [
+  {
+   "song": "Ah",
+   "path": "D:\\MusicVault\\Singles\\Ah\\Mixea_MediumNeutral_Ah.wav",
+   "seconds": 265.4,
+   "sr": 44100,
+   "flicker_excess_db": -0.29,
+   "usable": true
+  },
+  {
+   "song": "Air Above Bass Below",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Leave The World Behind\\Air Above, Bass Below\\distribute\\Mixea_MediumNeutral_Air Above Bass Below.wav",
+   "seconds": 200.8,
+   "sr": 44100,
+   "flicker_excess_db": -0.0,
+   "usable": true
+  },
+  {
+   "song": "Algorithm's Lure",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Algorithm's Lure.wav",
+   "seconds": 209.8,
+   "sr": 44100,
+   "flicker_excess_db": -0.19,
+   "usable": true
+  },
+  {
+   "song": "Algorithm's Lure - Copy",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_hd_Algorithm's Lure - Copy.wav",
+   "seconds": 209.8,
+   "sr": 48000,
+   "flicker_excess_db": 0.41,
+   "usable": true
+  },
+  {
+   "song": "A Light That Forgives",
+   "path": "D:\\MusicVault\\Singles\\A Light That Forgives\\masters\\Mixea_MediumNeutral_A Light That Forgives.wav",
+   "seconds": 196.5,
+   "sr": 44100,
+   "flicker_excess_db": 1.51,
+   "usable": false
+  },
+  {
+   "song": "A Thousand Words",
+   "path": "D:\\MusicVault\\Avey Kay\\albums\\Notes from the Aftermath\\A Thousand Words\\masters\\Mixea_MediumNeutral_A Thousand Words.wav",
+   "seconds": 225.9,
+   "sr": 44100,
+   "flicker_excess_db": 1.07,
+   "usable": false
+  },
+  {
+   "song": "Bare Hands",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Bare Hands.wav",
+   "seconds": 264.7,
+   "sr": 44100,
+   "flicker_excess_db": -0.91,
+   "usable": true
+  },
+  {
+   "song": "Beneath The Stars (GOOD)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Leave The World Behind\\Beneath The Stars\\masters\\Mixea_MediumNeutral_Beneath The Stars (GOOD).wav",
+   "seconds": 226.8,
+   "sr": 44100,
+   "flicker_excess_db": 0.87,
+   "usable": false
+  },
+  {
+   "song": "BEST - Crosscut_vocal_glaze_plus_processed_6a574d92",
+   "path": "D:\\MusicVault\\Jackson Ryle\\albums\\Uncharted Roads\\Crosscut\\masters\\Mixea_MediumNeutral_BEST - Crosscut_vocal_glaze_plus_processed_6a574d92.wav",
+   "seconds": 271.8,
+   "sr": 44100,
+   "flicker_excess_db": -1.47,
+   "usable": true
+  },
+  {
+   "song": "Boots Crack the Dust Beneath Us - Desolation Remixes (Ridgeline)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Boots Crack The Dust Beneath Us - Desolation Remixes\\masters\\Mixea_MediumNeutral_Boots Crack the Dust Beneath Us - Desolation Remixes (Ridgeline).wav",
+   "seconds": 359.0,
+   "sr": 44100,
+   "flicker_excess_db": 0.27,
+   "usable": true
+  },
+  {
+   "song": "Boots Crack the Dust Beneath Us - Desolation Remixes (Salt)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Boots Crack The Dust Beneath Us - Desolation Remixes\\masters\\Mixea_MediumNeutral_Boots Crack the Dust Beneath Us - Desolation Remixes (Salt).wav",
+   "seconds": 310.0,
+   "sr": 44100,
+   "flicker_excess_db": 0.25,
+   "usable": true
+  },
+  {
+   "song": "Borrowed Ground",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Borrowed Ground.wav",
+   "seconds": 217.8,
+   "sr": 44100,
+   "flicker_excess_db": 0.33,
+   "usable": true
+  },
+  {
+   "song": "Breathe Again (Better Ending)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\The Unfinished Map\\04 - Breathe Again\\masters\\Mixea_MediumNeutral_Breathe Again (Better Ending).wav",
+   "seconds": 234.2,
+   "sr": 44100,
+   "flicker_excess_db": 1.53,
+   "usable": false
+  },
+  {
+   "song": "Crooked Run",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Crooked Run.wav",
+   "seconds": 228.1,
+   "sr": 44100,
+   "flicker_excess_db": -0.94,
+   "usable": true
+  },
+  {
+   "song": "Crossing Paths",
+   "path": "D:\\MusicVault\\Jackson Ryle\\albums\\Uncharted Roads\\Crossing Paths\\masters\\Mixea_MediumNeutral_Crossing Paths.wav",
+   "seconds": 197.0,
+   "sr": 44100,
+   "flicker_excess_db": 0.37,
+   "usable": true
+  },
+  {
+   "song": "Crossing Paths (1)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Crossing Paths (1).wav",
+   "seconds": 197.0,
+   "sr": 44100,
+   "flicker_excess_db": 0.37,
+   "usable": true
+  },
+  {
+   "song": "Crossing Wires - Backroads and Tides (Susan)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Backroads and Tides (Susan).wav",
+   "seconds": 114.9,
+   "sr": 44100,
+   "flicker_excess_db": -0.52,
+   "usable": true
+  },
+  {
+   "song": "Crossing Wires - Backroads and Tides (Thomas)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Backroads and Tides (Thomas).wav",
+   "seconds": 111.9,
+   "sr": 44100,
+   "flicker_excess_db": 1.48,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Cascading After Dark",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Cascading After Dark.wav",
+   "seconds": 171.2,
+   "sr": 44100,
+   "flicker_excess_db": 1.14,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Crossing Wires",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Crossing Wires.wav",
+   "seconds": 173.1,
+   "sr": 44100,
+   "flicker_excess_db": 8.54,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Empty Sky Farewell ",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Empty Sky Farewell .wav",
+   "seconds": 135.1,
+   "sr": 44100,
+   "flicker_excess_db": 3.95,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Neon Horizons (Alernate Mix)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Neon Horizons (Alernate Mix).wav",
+   "seconds": 239.7,
+   "sr": 44100,
+   "flicker_excess_db": 0.77,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Run Wild",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Run Wild.wav",
+   "seconds": 220.1,
+   "sr": 44100,
+   "flicker_excess_db": 3.48,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Sonic Stardust (Interlude)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters\\Mixea_MediumNeutral_Crossing Wires - Sonic Stardust (Interlude).wav",
+   "seconds": 115.1,
+   "sr": 44100,
+   "flicker_excess_db": 2.69,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Stories Gather",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Stories Gather.wav",
+   "seconds": 145.2,
+   "sr": 44100,
+   "flicker_excess_db": 0.76,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Temple of the Rave",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Crossing Wires - Temple of the Rave.wav",
+   "seconds": 400.1,
+   "sr": 44100,
+   "flicker_excess_db": -1.37,
+   "usable": true
+  },
+  {
+   "song": "Crossing Wires - Temple of the Rave (1)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Temple of the Rave (1).wav",
+   "seconds": 400.1,
+   "sr": 44100,
+   "flicker_excess_db": -0.2,
+   "usable": true
+  },
+  {
+   "song": "Crossing Wires - Temple of the Rave (2)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Temple of the Rave (2).wav",
+   "seconds": 400.1,
+   "sr": 44100,
+   "flicker_excess_db": -0.2,
+   "usable": true
+  },
+  {
+   "song": "Crossing Wires - Temple of the Rave (3)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Temple of the Rave (3).wav",
+   "seconds": 400.1,
+   "sr": 44100,
+   "flicker_excess_db": -0.2,
+   "usable": true
+  },
+  {
+   "song": "Crossing Wires - Temple of the Rave (4)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Temple of the Rave (4).wav",
+   "seconds": 400.1,
+   "sr": 44100,
+   "flicker_excess_db": -0.24,
+   "usable": true
+  },
+  {
+   "song": "Crossing Wires - Temple of the Rave (5)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Temple of the Rave (5).wav",
+   "seconds": 400.1,
+   "sr": 44100,
+   "flicker_excess_db": -0.24,
+   "usable": true
+  },
+  {
+   "song": "Crossing Wires - Temple of the Rave (6)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Temple of the Rave (6).wav",
+   "seconds": 400.1,
+   "sr": 44100,
+   "flicker_excess_db": -0.24,
+   "usable": true
+  },
+  {
+   "song": "Crossing Wires - The Cabin",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - The Cabin.wav",
+   "seconds": 180.9,
+   "sr": 44100,
+   "flicker_excess_db": 2.2,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Tribal Circuit",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters - 2026-5-14\\Mixea_MediumNeutral_Crossing Wires - Tribal Circuit.wav",
+   "seconds": 185.0,
+   "sr": 44100,
+   "flicker_excess_db": 2.77,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Wildlight",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters\\Mixea_MediumNeutral_Crossing Wires - Wildlight.wav",
+   "seconds": 175.2,
+   "sr": 44100,
+   "flicker_excess_db": 0.74,
+   "usable": false
+  },
+  {
+   "song": "Crossing Wires - Wildlight (Cover)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Crossing Wires\\masters\\Mixea_MediumNeutral_Crossing Wires - Wildlight (Cover).wav",
+   "seconds": 192.1,
+   "sr": 44100,
+   "flicker_excess_db": 0.18,
+   "usable": true
+  },
+  {
+   "song": "Crossthread",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Crossthread.wav",
+   "seconds": 241.4,
+   "sr": 44100,
+   "flicker_excess_db": 0.01,
+   "usable": true
+  },
+  {
+   "song": "Crow Country",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Crow Country.wav",
+   "seconds": 248.3,
+   "sr": 44100,
+   "flicker_excess_db": 0.74,
+   "usable": false
+  },
+  {
+   "song": "Dawn Through Smoke",
+   "path": "D:\\MusicVault\\The Treq\\albums\\The Fifth Direction\\masters\\Mixea_MediumNeutral_hd_Dawn Through Smoke.wav",
+   "seconds": 194.6,
+   "sr": 48000,
+   "flicker_excess_db": 0.24,
+   "usable": true
+  },
+  {
+   "song": "Decay",
+   "path": "D:\\MusicVault\\Singles\\Decay\\masters\\Mixea_MediumNeutral_Decay.wav",
+   "seconds": 291.6,
+   "sr": 44100,
+   "flicker_excess_db": -0.0,
+   "usable": true
+  },
+  {
+   "song": "Dirt On Their Hands",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Dirt On Their Hands.wav",
+   "seconds": 347.8,
+   "sr": 44100,
+   "flicker_excess_db": 0.37,
+   "usable": true
+  },
+  {
+   "song": "Dirt On Their Hands (1)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Dirt On Their Hands (1).wav",
+   "seconds": 347.8,
+   "sr": 44100,
+   "flicker_excess_db": 0.37,
+   "usable": true
+  },
+  {
+   "song": "Don't Fight It (GOOD)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Leave The World Behind\\Don't Fight It\\masters\\Mixea_MediumNeutral_Don't Fight It (GOOD).wav",
+   "seconds": 194.4,
+   "sr": 44100,
+   "flicker_excess_db": 3.14,
+   "usable": false
+  },
+  {
+   "song": "Drift",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Leave The World Behind\\Drift\\masters\\Mixea_MediumNeutral_Drift.wav",
+   "seconds": 251.6,
+   "sr": 44100,
+   "flicker_excess_db": 2.44,
+   "usable": false
+  },
+  {
+   "song": "Drift_vocal_glaze_plus_processed_eaf5a446",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Leave The World Behind\\Drift\\shimmer\\Mixea_MediumNeutral_hd_Drift_vocal_glaze_plus_processed_eaf5a446.wav",
+   "seconds": 251.6,
+   "sr": 48000,
+   "flicker_excess_db": -0.18,
+   "usable": true
+  },
+  {
+   "song": "Eight Seconds",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Eight Seconds.wav",
+   "seconds": 216.0,
+   "sr": 44100,
+   "flicker_excess_db": -1.78,
+   "usable": true
+  },
+  {
+   "song": "Eight Seconds (1)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Eight Seconds (1).wav",
+   "seconds": 216.0,
+   "sr": 44100,
+   "flicker_excess_db": -1.78,
+   "usable": true
+  },
+  {
+   "song": "Eight Seconds (2)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Eight Seconds (2).wav",
+   "seconds": 216.0,
+   "sr": 44100,
+   "flicker_excess_db": -1.78,
+   "usable": true
+  },
+  {
+   "song": "Falling For You (Male)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Falling For You (Male).wav",
+   "seconds": 281.4,
+   "sr": 44100,
+   "flicker_excess_db": 1.08,
+   "usable": false
+  },
+  {
+   "song": "Fire Control Without Intent",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Fire Control Without Intent.wav",
+   "seconds": 190.0,
+   "sr": 44100,
+   "flicker_excess_db": 0.6,
+   "usable": false
+  },
+  {
+   "song": "Fire Control Without Intent (1)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Fire Control Without Intent (1).wav",
+   "seconds": 190.0,
+   "sr": 44100,
+   "flicker_excess_db": 0.6,
+   "usable": false
+  },
+  {
+   "song": "Fire Control Without Intent (2)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Fire Control Without Intent (2).wav",
+   "seconds": 190.0,
+   "sr": 44100,
+   "flicker_excess_db": 0.6,
+   "usable": false
+  },
+  {
+   "song": "Go Under",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Leave The World Behind\\Go Under\\masters\\Mixea_MediumNeutral_Go Under.wav",
+   "seconds": 161.0,
+   "sr": 44100,
+   "flicker_excess_db": 0.74,
+   "usable": false
+  },
+  {
+   "song": "Heroes in the Shadows",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Heroes in the Shadows.wav",
+   "seconds": 129.9,
+   "sr": 44100,
+   "flicker_excess_db": 0.48,
+   "usable": true
+  },
+  {
+   "song": "Hold My Place",
+   "path": "D:\\MusicVault\\Singles\\Hold My Place\\masters\\Mixea_MediumNeutral_Hold My Place.wav",
+   "seconds": 194.9,
+   "sr": 44100,
+   "flicker_excess_db": 5.46,
+   "usable": false
+  },
+  {
+   "song": "In This Moment (STUDIO FINAL)",
+   "path": "D:\\MusicVault\\Singles\\In This Moment\\masters\\Mixea_MediumNeutral_In This Moment (STUDIO FINAL).wav",
+   "seconds": 212.5,
+   "sr": 44100,
+   "flicker_excess_db": 1.77,
+   "usable": false
+  },
+  {
+   "song": "Kickback",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Kickback.wav",
+   "seconds": 231.7,
+   "sr": 44100,
+   "flicker_excess_db": 1.64,
+   "usable": false
+  },
+  {
+   "song": "Kickback (1)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Kickback (1).wav",
+   "seconds": 231.7,
+   "sr": 44100,
+   "flicker_excess_db": 1.64,
+   "usable": false
+  },
+  {
+   "song": "Mission Unstoppable (Cover)",
+   "path": "D:\\DownloadVault\\A Team\\Mixea_MediumNeutral_Mission Unstoppable (Cover).wav",
+   "seconds": 191.8,
+   "sr": 44100,
+   "flicker_excess_db": 0.08,
+   "usable": true
+  },
+  {
+   "song": "Out Past The Last Light (LYRICS) (STUDIO) v4",
+   "path": "D:\\MusicVault\\Jackson Ryle\\albums\\Uncharted Roads\\Last Light\\masters\\Mixea_MediumNeutral_Out Past The Last Light (LYRICS) (STUDIO) v4.wav",
+   "seconds": 214.9,
+   "sr": 44100,
+   "flicker_excess_db": 1.08,
+   "usable": false
+  },
+  {
+   "song": "Pilot Light",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Pilot Light.wav",
+   "seconds": 229.7,
+   "sr": 44100,
+   "flicker_excess_db": 0.49,
+   "usable": true
+  },
+  {
+   "song": "PNW Pulse - Dance In Rain",
+   "path": "D:\\MusicVault\\The Treq\\albums\\The Unfinished Map\\02 - Dance In Rain\\masters\\OLD\\Mixea_MediumNeutral_PNW Pulse - Dance In Rain.wav",
+   "seconds": 252.2,
+   "sr": 44100,
+   "flicker_excess_db": 2.99,
+   "usable": false
+  },
+  {
+   "song": "Silver Chase (STUDIO)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Leave The World Behind\\Move Through Me\\masters\\Mixea_MediumNeutral_Silver Chase (STUDIO).wav",
+   "seconds": 247.8,
+   "sr": 44100,
+   "flicker_excess_db": 0.66,
+   "usable": false
+  },
+  {
+   "song": "Single - Speak No More",
+   "path": "D:\\MusicVault\\Singles\\Speak No More\\masters\\Mixea_MediumNeutral_Single - Speak No More.wav",
+   "seconds": 178.2,
+   "sr": 44100,
+   "flicker_excess_db": 0.79,
+   "usable": false
+  },
+  {
+   "song": "Skew",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Still Unfinished\\masters\\Mixea_MediumNeutral_Skew.wav",
+   "seconds": 165.0,
+   "sr": 44100,
+   "flicker_excess_db": 1.78,
+   "usable": false
+  },
+  {
+   "song": "Skewed",
+   "path": "D:\\MusicVault\\Singles\\Skewed\\masters\\Mixea_MediumNeutral_Skewed.wav",
+   "seconds": 165.0,
+   "sr": 44100,
+   "flicker_excess_db": 1.78,
+   "usable": false
+  },
+  {
+   "song": "Stitched From Two Directions",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Stitched From Two Directions.wav",
+   "seconds": 248.2,
+   "sr": 44100,
+   "flicker_excess_db": 0.38,
+   "usable": true
+  },
+  {
+   "song": "The best indie industrial song made on e (Cover) (Cover) (Remastered)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_The best indie industrial song made on e (Cover) (Cover) (Remastered).wav",
+   "seconds": 179.5,
+   "sr": 44100,
+   "flicker_excess_db": -0.2,
+   "usable": true
+  },
+  {
+   "song": "The Breath Between",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_The Breath Between.wav",
+   "seconds": 261.8,
+   "sr": 44100,
+   "flicker_excess_db": 1.8,
+   "usable": false
+  },
+  {
+   "song": "The Map to Nowhere",
+   "path": "D:\\MusicVault\\The Treq\\albums\\The Fifth Direction\\masters\\Mixea_MediumNeutral_hd_The Map to Nowhere.wav",
+   "seconds": 323.3,
+   "sr": 48000,
+   "flicker_excess_db": 0.51,
+   "usable": false
+  },
+  {
+   "song": "The Way You Say Goodbye",
+   "path": "D:\\MusicVault\\Jackson Ryle\\albums\\Uncharted Roads\\The Way You Say Goodbye\\masters\\Mixea_MediumNeutral_The Way You Say Goodbye.wav",
+   "seconds": 229.3,
+   "sr": 44100,
+   "flicker_excess_db": -0.35,
+   "usable": true
+  },
+  {
+   "song": "Trail Ahead EP - Return (Suno) - QnrmqCovcU4tAPQd (Train Sound)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Trail Ahead\\masters\\Mixea_MediumNeutral_Trail Ahead EP - Return (Suno) - QnrmqCovcU4tAPQd (Train Sound).wav",
+   "seconds": 214.8,
+   "sr": 44100,
+   "flicker_excess_db": 1.58,
+   "usable": false
+  },
+  {
+   "song": "Untitled (2)",
+   "path": "D:\\DownloadVault\\A Portfolio\\Mixea_MediumNeutral_Untitled (2).wav",
+   "seconds": 251.6,
+   "sr": 44100,
+   "flicker_excess_db": 2.44,
+   "usable": false
+  },
+  {
+   "song": "Wedge",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Wedge.wav",
+   "seconds": 237.9,
+   "sr": 44100,
+   "flicker_excess_db": 0.92,
+   "usable": false
+  },
+  {
+   "song": "Weight of Breath",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Still Unfinished\\masters\\Mixea_MediumNeutral_Weight of Breath.wav",
+   "seconds": 217.5,
+   "sr": 44100,
+   "flicker_excess_db": 0.36,
+   "usable": true
+  },
+  {
+   "song": "Weight of Breath (1)",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Weight of Breath (1).wav",
+   "seconds": 217.5,
+   "sr": 44100,
+   "flicker_excess_db": 0.36,
+   "usable": true
+  },
+  {
+   "song": "We_Were_Meant_For_The_Stars_laser_whistle_processed_44ca81fc",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Leave The World Behind\\We Were Meant for the Stars\\masters\\Mixea_MediumNeutral_We_Were_Meant_For_The_Stars_laser_whistle_processed_44ca81fc.wav",
+   "seconds": 269.8,
+   "sr": 44100,
+   "flicker_excess_db": 0.22,
+   "usable": true
+  },
+  {
+   "song": "What I Tried To Carry",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_What I Tried To Carry.wav",
+   "seconds": 233.1,
+   "sr": 44100,
+   "flicker_excess_db": 1.28,
+   "usable": false
+  },
+  {
+   "song": "What I Tried To Carry (STUDIO v1)",
+   "path": "D:\\MusicVault\\Jackson Ryle\\albums\\Uncharted Roads\\What I Tried To Carry\\masters\\Mixea_MediumNeutral_What I Tried To Carry (STUDIO v1).wav",
+   "seconds": 233.2,
+   "sr": 44100,
+   "flicker_excess_db": 2.03,
+   "usable": false
+  },
+  {
+   "song": "What You Gave Me",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_What You Gave Me.wav",
+   "seconds": 196.6,
+   "sr": 44100,
+   "flicker_excess_db": -0.14,
+   "usable": true
+  },
+  {
+   "song": "When I'm With You (STUDIO)",
+   "path": "D:\\MusicVault\\The Treq\\albums\\Leave The World Behind\\Colors Never Fade\\masters\\Mixea_MediumNeutral_When I'm With You (STUDIO).wav",
+   "seconds": 160.0,
+   "sr": 44100,
+   "flicker_excess_db": 1.12,
+   "usable": false
+  },
+  {
+   "song": "When the World Turns Rough",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_When the World Turns Rough.wav",
+   "seconds": 218.0,
+   "sr": 44100,
+   "flicker_excess_db": -0.53,
+   "usable": true
+  },
+  {
+   "song": "Where They Left It",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_Where They Left It.wav",
+   "seconds": 147.4,
+   "sr": 44100,
+   "flicker_excess_db": 1.05,
+   "usable": false
+  },
+  {
+   "song": "Without You (BEST) (STUDIO v1)",
+   "path": "D:\\MusicVault\\Singles\\Without You\\masters - v1\\Mixea_MediumNeutral_Without You (BEST) (STUDIO v1).wav",
+   "seconds": 127.5,
+   "sr": 44100,
+   "flicker_excess_db": 3.7,
+   "usable": false
+  },
+  {
+   "song": "Without You (BEST) (STUDIO v1) (1)",
+   "path": "D:\\MusicVault\\Singles\\Without You\\masters - v1\\Mixea_MediumNeutral_Without You (BEST) (STUDIO v1) (1).wav",
+   "seconds": 127.5,
+   "sr": 44100,
+   "flicker_excess_db": 3.7,
+   "usable": false
+  },
+  {
+   "song": "You Are the One",
+   "path": "D:\\MusicVault\\Singles\\You Are The One\\masters\\Mixea_MediumNeutral_You Are the One.wav",
+   "seconds": 309.7,
+   "sr": 44100,
+   "flicker_excess_db": -0.08,
+   "usable": true
+  },
+  {
+   "song": "You Call Me Once, You Call Me Twice",
+   "path": "D:\\DownloadVault\\Mixea_MediumNeutral_You Call Me Once, You Call Me Twice.wav",
+   "seconds": 242.8,
+   "sr": 44100,
+   "flicker_excess_db": 0.49,
+   "usable": true
+  },
+  {
+   "song": "You Know How to Rock That Body",
+   "path": "D:\\MusicVault\\The Treq\\albums\\The Unfinished Map\\11 - You Know How to Rock That Body\\masters\\Mixea_MediumNeutral_You Know How to Rock That Body.wav",
+   "seconds": 194.7,
+   "sr": 44100,
+   "flicker_excess_db": 2.67,
+   "usable": false
+  }
+ ]
+}
