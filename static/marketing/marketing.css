@@ -1,0 +1,366 @@
+/* marketing.css — the Shimmer marketing pages.
+   Message reference, plan, and the posts. Colours, type and radii come
+   from the app's own tokens.css, so these pages stay in step with the
+   product. Everything else lives here; the app's layout CSS is not
+   loaded, because these pages are documents, not the app shell.
+
+   They work two ways: served by the app at /static/marketing/ and
+   opened straight off disk, so every path here is relative. Each page
+   links ../css/tokens.css itself, ahead of this file; a plain link
+   loads in more places than an @import does, opening off disk
+   included. */
+
+body {
+    background: var(--bg-1);
+    color: var(--fg-1);
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+/* ── Top bar ────────────────────────────────────────────────────────
+   The app's rail is a tool for working; a document needs a header. Same
+   wordmark, laid on its side. */
+.mk-bar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: var(--gap-6);
+    padding: 12px 28px;
+    background: color-mix(in srgb, var(--bg-rail) 92%, transparent);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+}
+.mk-brand { display: flex; align-items: baseline; gap: 12px; text-decoration: none; }
+.mk-brand:hover { text-decoration: none; }
+.aurora-wm {
+    font-weight: 750;
+    text-transform: uppercase;
+    font-size: 20px;
+    letter-spacing: .26em;
+    margin-right: -.26em;
+    background: linear-gradient(100deg,
+        var(--amber) 0%, #ffd97a 18%, var(--gold) 38%,
+        #f472b6 55%, var(--amber) 75%, #ffd97a 100%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: aurora-sweep 7s linear infinite;
+}
+@keyframes aurora-sweep { to { background-position: -220% 0; } }
+.mk-brand small {
+    color: var(--fg-3);
+    font-size: 9.5px;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.mk-nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.mk-nav a {
+    padding: 6px 13px;
+    border-radius: var(--radius-s);
+    color: var(--fg-2);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+}
+.mk-nav a:hover { color: var(--fg-0); background: var(--bg-3); text-decoration: none; }
+.mk-nav a.here {
+    color: var(--amber);
+    background: var(--amber-soft);
+    border-color: rgba(245, 165, 36, .35);
+}
+
+/* ── Page frame ─────────────────────────────────────────────────── */
+.mk-page { max-width: 920px; margin: 0 auto; padding: 40px 28px 96px; }
+.mk-hero { padding: 18px 0 34px; border-bottom: 1px solid var(--line); margin-bottom: 34px; }
+.mk-kicker {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .16em;
+    font-weight: 700;
+    color: var(--amber);
+}
+.mk-hero h1 {
+    font-size: 38px;
+    line-height: 1.15;
+    font-weight: 800;
+    color: var(--fg-0);
+    margin: 10px 0 12px;
+    letter-spacing: -.01em;
+}
+.mk-hero p { font-size: 17px; color: var(--fg-1); margin: 0; max-width: 62ch; }
+.mk-hero .mk-stamp { margin-top: 16px; font-size: 12px; color: var(--fg-3); }
+
+h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--fg-0);
+    margin: 52px 0 6px;
+    letter-spacing: -.01em;
+    scroll-margin-top: 80px;
+}
+h2:first-of-type { margin-top: 8px; }
+h2 .mk-num {
+    display: inline-block;
+    min-width: 27px;
+    margin-right: 10px;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--amber);
+}
+h3 {
+    font-size: 16px;
+    font-weight: 650;
+    color: var(--fg-0);
+    margin: 26px 0 6px;
+}
+.mk-page p { max-width: 68ch; }
+.mk-lede { font-size: 16px; color: var(--fg-1); margin-bottom: 20px; max-width: 68ch; }
+strong, b { color: var(--fg-0); font-weight: 650; }
+hr { border: none; border-top: 1px solid var(--line); margin: 44px 0; }
+
+/* ── Cards ──────────────────────────────────────────────────────── */
+.mk-card {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin: 16px 0;
+}
+.mk-card.accent { border-color: rgba(245, 165, 36, .32); background: rgba(245, 165, 36, .05); }
+.mk-card.cyan { border-color: rgba(56, 189, 248, .3); background: rgba(56, 189, 248, .05); }
+.mk-card h3 { margin-top: 0; }
+.mk-card > :last-child { margin-bottom: 0; }
+.mk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 16px 0; }
+.mk-grid .mk-card { margin: 0; }
+
+/* A quoted line of copy, ready to lift. */
+.mk-copy-block {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--fg-0);
+    background: var(--bg-3);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 var(--radius-s) var(--radius-s) 0;
+    padding: 14px 18px;
+    margin: 12px 0;
+    white-space: pre-wrap;
+}
+
+/* ── Lists ──────────────────────────────────────────────────────── */
+.mk-page ul, .mk-page ol { max-width: 68ch; padding-left: 22px; }
+.mk-page li { margin: 7px 0; }
+.mk-page li::marker { color: var(--fg-3); }
+ul.mk-plain { list-style: none; padding-left: 0; }
+ul.mk-plain li {
+    position: relative;
+    padding-left: 26px;
+    margin: 10px 0;
+}
+ul.mk-plain li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 9px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--amber);
+}
+ul.mk-yes li::before { background: var(--success); }
+ul.mk-no li::before {
+    background: none;
+    left: 2px;
+    top: 0;
+    width: auto;
+    height: auto;
+    content: "\00d7";
+    color: var(--danger);
+    font-weight: 800;
+    font-size: 15px;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────── */
+.mk-table-wrap { overflow-x: auto; margin: 16px 0; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 520px;
+}
+th, td {
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+}
+th {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--fg-3);
+    font-weight: 700;
+    border-bottom-color: var(--line-2);
+}
+tbody tr:last-child td { border-bottom: none; }
+td:first-child { color: var(--fg-0); font-weight: 550; }
+
+/* ── Chips ──────────────────────────────────────────────────────── */
+.mk-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.mk-chip {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--bg-4);
+    border: 1px solid var(--line-2);
+    color: var(--fg-2);
+    white-space: nowrap;
+}
+.mk-chip.amber { background: var(--amber-soft); border-color: rgba(245, 165, 36, .35); color: var(--amber); }
+.mk-chip.cyan { background: rgba(56, 189, 248, .12); border-color: rgba(56, 189, 248, .35); color: var(--cyan); }
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.mk-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    background: var(--bg-4);
+    border: 1px solid var(--line-2);
+    color: var(--fg-0);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.mk-btn:hover { background: #232a35; border-color: #3d4756; text-decoration: none; color: var(--fg-0); }
+.mk-btn.primary { background: var(--amber); border-color: transparent; color: #17130a; font-weight: 650; }
+.mk-btn.primary:hover { background: var(--amber); filter: brightness(1.08); }
+.mk-btn.done, .mk-btn.done:hover {
+    background: rgba(74, 222, 128, .12);
+    border-color: rgba(74, 222, 128, .5);
+    color: var(--success);
+}
+.mk-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 18px 0 8px; }
+
+/* ── Posts ──────────────────────────────────────────────────────── */
+.mk-post {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin: 18px 0;
+    overflow: hidden;
+    scroll-margin-top: 80px;
+}
+.mk-post-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 15px 20px 0;
+}
+.mk-post-n {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--amber);
+    background: var(--amber-soft);
+    border: 1px solid rgba(245, 165, 36, .3);
+    border-radius: var(--radius-s);
+    padding: 1px 8px;
+}
+.mk-post-head h3 { margin: 0; font-size: 16px; flex: 1 1 auto; }
+.mk-post-head a.mk-anchor { color: var(--fg-3); font-size: 13px; text-decoration: none; }
+.mk-post-head a.mk-anchor:hover { color: var(--amber); text-decoration: none; }
+.mk-post-where { padding: 8px 20px 0; }
+.mk-post-text {
+    margin: 12px 20px;
+    padding: 16px 18px;
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    color: var(--fg-0);
+    font-size: 15px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+.mk-post-foot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 0 20px 16px;
+}
+.mk-count { font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-3); }
+.mk-count.over { color: var(--amber); }
+.mk-post-note {
+    font-size: 12.5px;
+    color: var(--fg-2);
+    padding: 0 20px 16px;
+    max-width: none;
+}
+.mk-post-note b { color: var(--fg-1); }
+
+/* ── Table of contents ──────────────────────────────────────────── */
+.mk-toc {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 8px;
+}
+.mk-toc ol { margin: 8px 0 0; columns: 2; column-gap: 28px; padding-left: 20px; }
+.mk-toc li { margin: 4px 0; break-inside: avoid; }
+.mk-toc a { color: var(--fg-1); font-size: 14px; }
+.mk-toc a:hover { color: var(--cyan); }
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.mk-foot {
+    border-top: 1px solid var(--line);
+    margin-top: 60px;
+    padding-top: 20px;
+    font-size: 12.5px;
+    color: var(--fg-3);
+}
+.mk-foot a { color: var(--fg-2); }
+.mk-foot a:hover { color: var(--cyan); }
+
+/* A quiet line that says where a fact comes from. */
+.mk-source { font-size: 12.5px; color: var(--fg-3); margin-top: 8px; }
+.mk-source code { color: var(--fg-2); }
+
+@media (max-width: 720px) {
+    .mk-page { padding: 28px 18px 72px; }
+    .mk-hero h1 { font-size: 29px; }
+    .mk-bar { padding: 10px 16px; gap: var(--gap-3); }
+    .mk-brand small { display: none; }
+    .mk-toc ol { columns: 1; }
+}
+/* Phone: keep the bar on one line. The wordmark shrinks before the nav
+   does, because the three links are how you get around. */
+@media (max-width: 480px) {
+    .mk-bar { padding: 9px 12px; gap: 8px; }
+    .aurora-wm { font-size: 16px; letter-spacing: .18em; margin-right: -.18em; }
+    .mk-nav { flex-wrap: nowrap; gap: 2px; }
+    .mk-nav a { padding: 5px 9px; font-size: 12.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .aurora-wm { animation: none; }
+}
+@media print {
+    .mk-bar, .mk-actions, .mk-btn { display: none !important; }
+    body { background: #fff; color: #111; }
+    .mk-page { max-width: none; }
+    .mk-card, .mk-post, .mk-post-text, .mk-copy-block { border-color: #ccc; background: #fafafa; }
+    h1, h2, h3, strong, b, td:first-child { color: #000; }
+}
