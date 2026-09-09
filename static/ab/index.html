@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listening bench · Shimmer</title>
+<link rel="stylesheet" href="/static/marketing/marketing.css">
+<style>
+  .wrap { max-width: 980px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .lede { max-width: 64ch; }
+  .panel { border: 1px solid #2a2f3a; border-radius: 10px;
+           padding: 1.1rem 1.25rem; margin: 1.25rem 0; background: #171a21; }
+  .row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  button { background: #2b6cb0; color: #fff; border: 0; border-radius: 6px;
+           padding: .5rem .9rem; font: inherit; cursor: pointer; }
+  button.ghost { background: transparent; border: 1px solid #2a2f3a;
+                 color: inherit; }
+  button:disabled { opacity: .4; cursor: default; }
+  button.on { background: #4ade80; color: #08130c; font-weight: 700; }
+  button.res { background: #6b46c1; }
+  button.big { font-size: 1.35rem; padding: 1rem 2.2rem; min-width: 6rem; }
+  select, input[type=text], textarea { background: #10131a; color: inherit;
+      border: 1px solid #2a2f3a; border-radius: 6px; padding: .45rem .6rem;
+      font: inherit; }
+  textarea { width: 100%; min-height: 4rem; }
+  table { width: 100%; border-collapse: collapse; margin-top: .75rem; }
+  th, td { text-align: left; padding: .4rem .5rem;
+           border-bottom: 1px solid #232833; font-variant-numeric: tabular-nums; }
+  th { font-weight: 600; opacity: .75; font-size: .85rem; }
+  .muted { color: #9aa4b2; }
+  body { background:#0f1218; color:#e6e9ee; }
+  h1,h2,h3 { color:#f3f5f8; }
+  .warn { color: #f0b429; } .ok { color: #4ade80; }
+  kbd { background:#10131a; border:1px solid #2a2f3a; border-bottom-width:2px;
+        border-radius:4px; padding:.05rem .35rem; font-size:.85em; }
+  .bar { position: relative; height: 46px; background:#10131a;
+         border:1px solid #2a2f3a; border-radius:6px; cursor: pointer;
+         overflow: hidden; }
+  .bar .loop { position:absolute; top:0; bottom:0; background:#2b6cb033;
+               border-left:2px solid #2b6cb0; border-right:2px solid #2b6cb0; }
+  .bar .head { position:absolute; top:0; bottom:0; width:2px; background:#4ade80; }
+  .arms { display:flex; gap:.5rem; flex-wrap:wrap; margin:.4rem 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Listening bench</h1>
+<p class="muted" style="margin:.2rem 0 1.2rem;font-size:.9rem">Developer pages: <a href="/static/ab/" style="color:#7aa7d9">Listening bench</a> &middot; <a href="/static/references/" style="color:#7aa7d9">Reference library</a> &middot; <a href="/" style="color:#7aa7d9">back to Shimmer</a></p>
+<p class="lede">
+  Two versions of the same music, both playing at once. The button swaps which
+  one reaches your ears — same instant, no gap, no restart. Levels are matched
+  before anything is written, so you are hearing the difference and not the
+  volume. Developer tooling; not part of the app.
+</p>
+
+<div class="panel">
+  <div class="row">
+    <select id="sets"><option>loading…</option></select>
+    <button id="load">Open</button>
+    <span id="setnote" class="muted"></span>
+  </div>
+</div>
+
+<div class="panel" id="player" hidden>
+  <h2 id="title" style="margin:.1rem 0 .3rem"></h2>
+  <p class="muted" id="sub" style="margin:0 0 .9rem"></p>
+
+  <div class="row" style="justify-content:center;margin-bottom:.8rem">
+    <button id="play" class="big">▶ Play</button>
+    <button id="swap" class="big">Swap A / B</button>
+  </div>
+  <div class="arms" id="armbtns"></div>
+
+  <div class="bar" id="bar" title="click to jump; drag to set a loop">
+    <div class="loop" id="loopbox" hidden></div>
+    <div class="head" id="head" style="left:0"></div>
+  </div>
+  <div class="row" style="margin-top:.6rem">
+    <span class="muted" id="clock">0:00</span>
+    <button class="ghost" id="clearloop">Whole track</button>
+    <label class="muted"><input type="checkbox" id="auto"> auto-swap every</label>
+    <select id="every">
+      <option value="2">2 s</option><option value="3" selected>3 s</option>
+      <option value="5">5 s</option><option value="0">each loop</option>
+    </select>
+    <button class="res ghost" id="resbtn" hidden>Hear what was removed</button>
+  </div>
+</div>
+
+<div class="panel" id="verdict" hidden>
+  <h3 style="margin:.1rem 0 .5rem">Which sounded better?</h3>
+  <div class="row" id="pick"></div>
+  <div class="row" style="margin-top:.6rem">
+    <select id="conf">
+      <option value="clear">clear difference</option>
+      <option value="slight" selected>slight difference</option>
+      <option value="none">could not tell them apart</option>
+    </select>
+  </div>
+  <textarea id="note" placeholder="What did you hear? (optional)"
+            style="margin-top:.6rem"></textarea>
+  <div class="row" style="margin-top:.6rem">
+    <button id="save">Save verdict</button>
+    <button class="ghost" id="revealbtn">Reveal what they were</button>
+    <span id="saved" class="ok"></span>
+  </div>
+  <div id="answer" class="muted" style="margin-top:.7rem"></div>
+</div>
+
+<div class="panel" id="fair" hidden>
+  <h3 style="margin:.1rem 0 .4rem">Proof this is a fair comparison</h3>
+  <table id="fairtable"><thead><tr>
+    <th>Arm</th><th>Its own loudness</th><th>Gain applied</th><th>Now</th>
+  </tr></thead><tbody></tbody></table>
+  <p class="muted" style="margin:.6rem 0 0;font-size:.9rem">
+    Everything is matched to the quietest arm, so nothing is ever turned up
+    and nothing clips. The louder file always wins an unmatched comparison —
+    that is how this project got its first wrong answer.
+  </p>
+</div>
+
+<div class="panel">
+  <h3 style="margin:.1rem 0 .4rem">Keys</h3>
+  <p class="muted"><kbd>space</kbd> play / pause · <kbd>S</kbd> swap ·
+  <kbd>R</kbd> what was removed · <kbd>L</kbd> loop the last 4 seconds ·
+  <kbd>0</kbd> back to the start</p>
+  <p class="muted" style="font-size:.9rem;margin:.5rem 0 0">
+    <strong class="warn">About "what was removed":</strong> it tells you
+    whether the thing taken out was noise or music. It cannot tell you whether
+    too much was taken. Removed air sounds like <em>shhh</em> on its own and
+    never like music, so a track can lose real openness while the removed part
+    still sounds like nothing. Judge how much by comparing A and B, not by
+    listening to the difference.
+  </p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let ctx, cur = null, buffers = [], gains = [], sources = [];
+let active = 0, playing = false, startedAt = 0, startOffset = 0;
+let loopA = 0, loopB = 0, autoTimer = null, switches = 0, listened = 0;
+
+async function api(path, opts) {
+  const r = await fetch('/api/dev/ab/' + path, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function listSets() {
+  const d = await api('sets');
+  const s = $('sets');
+  s.innerHTML = d.sets.length
+    ? d.sets.map(x => `<option value="${esc(x.id)}">${esc(x.title)}` +
+        (x.judged ? ` — judged ${x.judged}×` : '') + `</option>`).join('')
+    : '<option value="">nothing built yet</option>';
+}
+
+async function open_(id) {
+  stop();
+  cur = await api('set/' + encodeURIComponent(id));
+  ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+
+  const files = cur.arms.map(a => a.file);
+  if (cur.residual) files.push(cur.residual.file);
+  buffers = await Promise.all(files.map(async f => {
+    const r = await fetch(`/api/dev/ab/audio/${encodeURIComponent(id)}/${f}`);
+    return ctx.decodeAudioData(await r.arrayBuffer());
+  }));
+
+  $('title').textContent = cur.title;
+  $('sub').innerHTML = esc(cur.note || '') +
+    `<br>${cur.seconds.toFixed(1)} s · all arms matched to ` +
+    `${cur.matched_lufs.toFixed(1)} LUFS`;
+  $('player').hidden = false; $('verdict').hidden = false; $('fair').hidden = false;
+  $('resbtn').hidden = !cur.residual;
+
+  $('armbtns').innerHTML = cur.arms.map((a, i) =>
+    `<button class="ghost" data-i="${i}">${a.letter}</button>`).join('');
+  $('armbtns').querySelectorAll('button').forEach(b =>
+    b.onclick = () => select(+b.dataset.i));
+  $('pick').innerHTML = cur.arms.map(a =>
+    `<button class="ghost" data-p="${a.letter}">${a.letter} was better</button>`)
+    .join('') + '<button class="ghost" data-p="tie">no preference</button>';
+  let picked = '';
+  $('pick').querySelectorAll('button').forEach(b => b.onclick = () => {
+    picked = b.dataset.p;
+    $('pick').querySelectorAll('button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  });
+  $('save').onclick = async () => {
+    if (!picked) { $('saved').textContent = 'pick one first'; return; }
+    await api('score/' + encodeURIComponent(id), {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({preferred: picked, confidence: $('conf').value,
+        note: $('note').value, switches, seconds: listened,
+        revealed_first: !!$('answer').textContent})});
+    $('saved').textContent = 'saved';
+    listSets();
+  };
+  $('revealbtn').onclick = async () => {
+    const k = await api('reveal/' + encodeURIComponent(id));
+    $('answer').innerHTML = '<strong>Answer:</strong> ' +
+      Object.entries(k.answer).map(([l, v]) => `${l} = ${esc(v)}`).join(' · ');
+  };
+
+  const tb = $('fairtable').querySelector('tbody');
+  tb.innerHTML = cur.arms.map(a => `<tr><td>${a.letter}</td>` +
+    `<td>${a.lufs_before.toFixed(1)} LUFS</td>` +
+    `<td>${a.gain_db > 0 ? '+' : ''}${a.gain_db.toFixed(1)} dB</td>` +
+    `<td>${cur.matched_lufs.toFixed(1)} LUFS</td></tr>`).join('');
+
+  loopA = 0; loopB = cur.seconds; switches = 0; listened = 0;
+  $('loopbox').hidden = true; active = 0; startOffset = 0;
+  paint();
+}
+
+function build() {
+  sources.forEach(s => { try { s.stop(); } catch (e) {} });
+  sources = []; gains = [];
+  const t = ctx.currentTime + 0.05;
+  buffers.forEach((b, i) => {
+    const s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = b; s.loop = true; s.loopStart = loopA; s.loopEnd = loopB;
+    g.gain.value = (i === active) ? 1 : 0;
+    s.connect(g).connect(ctx.destination);
+    s.start(t, Math.min(Math.max(startOffset, loopA), loopB - 0.01));
+    sources.push(s); gains.push(g);
+  });
+  startedAt = t;
+}
+
+function select(i) {
+  if (i === active) return;
+  if (i !== active) switches++;
+  active = i;
+  const t = ctx ? ctx.currentTime : 0;
+  gains.forEach((g, j) => {
+    g.gain.cancelScheduledValues(t);
+    g.gain.setValueAtTime(g.gain.value, t);
+    // 15 ms: short enough not to hear as a fade, long enough not to click.
+    g.gain.linearRampToValueAtTime(j === i ? 1 : 0, t + 0.015);
+  });
+  paint();
+}
+
+function play() {
+  if (!cur) return;
+  ctx.resume();
+  build(); playing = true; $('play').textContent = '❚❚ Pause';
+}
+
+function stop() {
+  if (playing && ctx) startOffset = pos();
+  sources.forEach(s => { try { s.stop(); } catch (e) {} });
+  sources = []; playing = false;
+  if ($('play')) $('play').textContent = '▶ Play';
+}
+
+function pos() {
+  if (!playing || !ctx) return startOffset;
+  const span = Math.max(loopB - loopA, 0.01);
+  const gone = ctx.currentTime - startedAt;
+  const from = Math.min(Math.max(startOffset, loopA), loopB);
+  return loopA + ((from - loopA) + gone) % span;
+}
+
+function paint() {
+  if (!cur) return;
+  const p = pos() / cur.seconds;
+  $('head').style.left = (p * 100).toFixed(2) + '%';
+  $('clock').textContent = fmt(pos()) + ' / ' + fmt(cur.seconds);
+  const lb = $('loopbox');
+  if (loopA > 0 || loopB < cur.seconds) {
+    lb.hidden = false;
+    lb.style.left = (100 * loopA / cur.seconds) + '%';
+    lb.style.width = (100 * (loopB - loopA) / cur.seconds) + '%';
+  } else lb.hidden = true;
+  $('armbtns').querySelectorAll('button').forEach(b =>
+    b.classList.toggle('on', +b.dataset.i === active));
+  const onRes = cur.residual && active === cur.arms.length;
+  $('resbtn').classList.toggle('on', !!onRes);
+}
+const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+$('play').onclick = () => playing ? (stop(), paint()) : play();
+$('swap').onclick = () => select((active + 1) % cur.arms.length);
+$('resbtn').onclick = () => select(active === cur.arms.length ? 0 : cur.arms.length);
+$('clearloop').onclick = () => { loopA = 0; loopB = cur.seconds;
+  sources.forEach(s => { s.loopStart = loopA; s.loopEnd = loopB; }); paint(); };
+
+let dragFrom = null;
+$('bar').addEventListener('mousedown', e => {
+  const r = $('bar').getBoundingClientRect();
+  dragFrom = (e.clientX - r.left) / r.width * cur.seconds;
+});
+$('bar').addEventListener('mouseup', e => {
+  if (!cur) return;
+  const r = $('bar').getBoundingClientRect();
+  const to = (e.clientX - r.left) / r.width * cur.seconds;
+  if (dragFrom != null && Math.abs(to - dragFrom) > 0.4) {
+    loopA = Math.max(0, Math.min(dragFrom, to));
+    loopB = Math.min(cur.seconds, Math.max(dragFrom, to));
+    startOffset = loopA;
+  } else { startOffset = to; }
+  dragFrom = null;
+  if (playing) play(); else paint();
+});
+
+$('auto').onchange = arm;
+$('every').onchange = arm;
+function arm() {
+  clearInterval(autoTimer); autoTimer = null;
+  if (!$('auto').checked) return;
+  const secs = +$('every').value;
+  const period = secs > 0 ? secs : Math.max(loopB - loopA, 1);
+  autoTimer = setInterval(() => {
+    if (playing) select((active + 1) % cur.arms.length);
+  }, period * 1000);
+}
+
+addEventListener('keydown', e => {
+  if (['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName)) return;
+  const k = e.key.toLowerCase();
+  if (k === ' ') { e.preventDefault(); $('play').click(); }
+  else if (k === 's') $('swap').click();
+  else if (k === 'r' && cur && cur.residual) $('resbtn').click();
+  else if (k === 'l' && cur) { loopA = Math.max(0, pos() - 4); loopB = pos() + 0.2;
+    startOffset = loopA; if (playing) play(); else paint(); arm(); }
+  else if (k === '0' && cur) { startOffset = loopA; if (playing) play(); paint(); }
+});
+
+setInterval(() => { if (playing) { listened += 0.1; paint(); } }, 100);
+$('load').onclick = () => $('sets').value && open_($('sets').value);
+listSets();
+</script>
+</div>
+</body>
+</html>

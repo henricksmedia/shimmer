@@ -123,3 +123,8 @@ scripts/tone-evidence/
 # hash_data/      : generated training pairs for the learned hash remover (large, regenerable)
 hash_data*/
 scripts/hash_learn/*.pt
+
+# Generated listening-bench sets: audio plus the answer keys that blind
+# them. Regenerate with scripts/make_bench_set.py; committing the manifests
+# without their audio would ship broken sets and leak the blinding.
+listening-test/ab/

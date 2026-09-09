@@ -786,6 +786,50 @@ async def api_ref_delete(payload: Dict[str, Any]) -> JSONResponse:
     return JSONResponse(refs.delete(int(payload.get("index", -1))))
 
 
+# ── Listening bench (dev) ───────────────────────────────────────────────
+# Instant, level-matched, blind A/B. The answer key is behind its own route
+# so the page cannot leak it by accident.
+
+@app.get("/api/dev/ab/sets")
+async def api_ab_sets() -> JSONResponse:
+    from . import abtest
+    return JSONResponse({"sets": abtest.sets()})
+
+
+@app.get("/api/dev/ab/set/{set_id}")
+async def api_ab_set(set_id: str) -> JSONResponse:
+    from . import abtest
+    m = abtest.manifest(set_id)
+    if not m:
+        return JSONResponse({"error": "no such set"}, status_code=404)
+    m["scores"] = abtest.scores(set_id).get("rounds", [])
+    return JSONResponse(m)
+
+
+@app.get("/api/dev/ab/audio/{set_id}/{filename}")
+async def api_ab_audio(set_id: str, filename: str) -> Response:
+    from . import abtest
+    p = abtest.audio_path(set_id, filename)
+    if not p:
+        return JSONResponse({"error": "no such file"}, status_code=404)
+    return FileResponse(p, media_type="audio/wav")
+
+
+@app.get("/api/dev/ab/reveal/{set_id}")
+async def api_ab_reveal(set_id: str) -> JSONResponse:
+    from . import abtest
+    k = abtest.reveal(set_id)
+    if not k:
+        return JSONResponse({"error": "no such set"}, status_code=404)
+    return JSONResponse(k)
+
+
+@app.post("/api/dev/ab/score/{set_id}")
+async def api_ab_score(set_id: str, payload: Dict[str, Any]) -> JSONResponse:
+    from . import abtest
+    return JSONResponse(abtest.score(set_id, payload or {}))
+
+
 @app.get("/api/settings")
 async def api_settings_get() -> JSONResponse:
     return JSONResponse(load_settings())
