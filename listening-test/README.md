@@ -38,6 +38,13 @@ different from the last one.
   better. Built by `scripts/make_round5.py`; `KEY.json` gives each file's
   hearing-model and flicker readings. Item 15 rests on the answer.
 
+- **round-6** — the learned hash remover on real renders. Per Suno render
+  (hot 8 s): the untouched file and the same passage through the network
+  from `scripts/hash_learn` at 100 %, nothing else in the chain. Blind, two
+  letters per song, -18 LUFS. `renders/*-removed.wav` is what it took,
+  unblinded. Built by `scripts/make_round6.py` (render under .venv-stems,
+  then `--blind-only` under .venv).
+
 ## How to listen
 
 1. Play a song's four `*-master-*.wav` back to back. They are level-matched to

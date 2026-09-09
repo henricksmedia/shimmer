@@ -687,6 +687,33 @@ count.
       problem. The next build is the learned remover and detector trained
       on clean-master-plus-model pairs, judged by the harness on held-out
       hosts and by a listening round on real renders.
+      **First learned remover, 2026-09-08 evening.** `scripts/hash_learn/`:
+      1462 pairs of 3 s from 43 catalogue masters that read hash-free
+      (`docs/host-census.json`; 88 MediumNeutral masters, 43 below the
+      0.5 dB floor), aperiodic model at band SNR -25 to -3 dB, a 129k-
+      parameter convolutional mask over 2-16 kHz on the 1024/256 grid,
+      30 epochs in 9 minutes. Training is capped and throttled after the
+      first run coincided with a machine crash (peak 0.84 GB of GPU
+      memory, ~57 % utilisation, 69 C max; the trainer's docstring lists
+      the limits). *Harness on the two held-out hosts, aperiodic hash:*
+      Alive Again **28 % / 18 %** at 0.5 / 2.0 sones, net music cost
+      0.008 / 0.000; Hey **46 % / 69 %**, cost 0.060 / 0.016; control
+      cost on the clean hosts 0.006 / 0.078, both under the 0.10 ceiling.
+      On the periodic model it was not trained on: 37-57 % at 0.5 sones,
+      but -7 % with tilt 10.9 on Alive Again at 2.0 — it does not
+      generalise to a modulation it never saw, which is the argument for
+      training on both. Against every prior route this is the first that
+      removes a real share (Suno Hash 12 %) at an acceptable price (the
+      subtraction prototype needed 0.19-0.47 sones of music for 52-61 %).
+      *Round 6 built for the real test:* `listening-test/round-6/blind`,
+      six Suno renders, untouched vs the network at 100 %, blind;
+      `renders/*-removed.wav` is what it took. Hearing model on the real
+      renders, cleaned vs untouched: missing 0.012-0.218 sones, tilt
+      0.04-0.36 — the-little-things (the hashiest, +2.6 dB) has the most
+      taken out (0.218), which is either the hash going or music going,
+      and only the listener can say which. The weights (1.6 MB) are not
+      committed until round 6 says they earn it; the plan if they do is
+      inference in numpy/scipy so users install nothing.
 
 ## DEFERRED — the 80% stake
 

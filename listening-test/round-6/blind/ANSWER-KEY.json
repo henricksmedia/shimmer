@@ -1,0 +1,159 @@
+{
+ "how_to_listen": [
+  "For each song, play its letters back to back. They are matched to",
+  "the same loudness, so none can win by being louder.",
+  "Ask one question: which sounds most open and finished?",
+  "Rank them, write it down, THEN read 'songs' below.",
+  "One letter per song is the untouched render. If it wins, say so \u2014",
+  "that is a real result, not a mistake."
+ ],
+ "songs": {
+  "suno-algorithms-lure": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the learned hash remover at 100%, nothing else",
+    "variant": "new"
+   }
+  ],
+  "suno-falling-for-you": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the learned hash remover at 100%, nothing else",
+    "variant": "new"
+   }
+  ],
+  "suno-kindling": [
+   {
+    "letter": "A",
+    "what_it_is": "the learned hash remover at 100%, nothing else",
+    "variant": "new"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the untouched render (hidden anchor)",
+    "variant": "source"
+   }
+  ],
+  "suno-leave-the-world-behind": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the learned hash remover at 100%, nothing else",
+    "variant": "new"
+   }
+  ],
+  "suno-the-little-things": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the learned hash remover at 100%, nothing else",
+    "variant": "new"
+   }
+  ],
+  "suno-we-were-meant-for-the-stars": [
+   {
+    "letter": "A",
+    "what_it_is": "the learned hash remover at 100%, nothing else",
+    "variant": "new"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the untouched render (hidden anchor)",
+    "variant": "source"
+   }
+  ]
+ },
+ "readings": {
+  "suno-the-little-things": {
+   "damage_vs_source": {
+    "lin_dist": 0.361,
+    "missing": 0.2184,
+    "added": 0.0649,
+    "asym": 0.174,
+    "frames": 374,
+    "gated_frames": 350,
+    "level_gain_db": 0.0
+   },
+   "strength": 1.0
+  },
+  "suno-kindling": {
+   "damage_vs_source": {
+    "lin_dist": 0.0884,
+    "missing": 0.0392,
+    "added": 0.0259,
+    "asym": 0.0455,
+    "frames": 374,
+    "gated_frames": 350,
+    "level_gain_db": 0.0
+   },
+   "strength": 1.0
+  },
+  "suno-leave-the-world-behind": {
+   "damage_vs_source": {
+    "lin_dist": 0.1133,
+    "missing": 0.0252,
+    "added": 0.0214,
+    "asym": 0.034,
+    "frames": 374,
+    "gated_frames": 350,
+    "level_gain_db": 0.008
+   },
+   "strength": 1.0
+  },
+  "suno-algorithms-lure": {
+   "damage_vs_source": {
+    "lin_dist": 0.0883,
+    "missing": 0.0539,
+    "added": 0.0553,
+    "asym": 0.0822,
+    "frames": 374,
+    "gated_frames": 350,
+    "level_gain_db": 0.002
+   },
+   "strength": 1.0
+  },
+  "suno-we-were-meant-for-the-stars": {
+   "damage_vs_source": {
+    "lin_dist": 0.0813,
+    "missing": 0.02,
+    "added": 0.0396,
+    "asym": 0.0496,
+    "frames": 374,
+    "gated_frames": 350,
+    "level_gain_db": 0.006
+   },
+   "strength": 1.0
+  },
+  "suno-falling-for-you": {
+   "damage_vs_source": {
+    "lin_dist": 0.0382,
+    "missing": 0.0117,
+    "added": 0.0151,
+    "asym": 0.021,
+    "frames": 374,
+    "gated_frames": 350,
+    "level_gain_db": 0.002
+   },
+   "strength": 1.0
+  }
+ },
+ "note": "Two letters per song. The question: is the shimmer gone, and is the music intact? The -removed files in ../renders are what it took, unblinded."
+}
