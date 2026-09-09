@@ -147,6 +147,20 @@ count.
       *Done when:* current chain vs fixed chain vs reference, level-matched
       and blind, judged by the author. Only he can close this. Both previous
       rounds changed the diagnosis.
+      *2026-09-08, built, not judged.* `listening-test/round-4/blind`, made
+      by `scripts/make_round4.py`. It tests the scorer change (items 5 and
+      10), which alters *which preset the automatic flow applies*: per song
+      the untouched file, what the purity-based scorer applied (Sibilance
+      Rattle at 50-100 % on four files including the reference "Hey", Harsh
+      Veil at 125 % on the reference "Leave The World Behind", Vocal Glaze +
+      Top End, Suno Hash) and what the net-benefit scorer applies (Generic on
+      six files, Suno Hash on the two `the-little-things` files). Cleaning
+      only, no mastering, so the retracted tone target (item 12) plays no
+      part. Loudest 30 s, -18 LUFS, blind; `ANSWER-KEY.json` names the picks.
+      Eight songs, 22 files. The "fixed chain vs reference" comparison this
+      item also asks for waits on item 12, because the chain's mastering
+      half is what item 12 changes; `round-3` is that comparison against
+      the now-retracted target.
 
 - [x] **5. Fix the verified score. (Highest-value single change.)**
       *Done when:* a preset can no longer score well by removing a lot.
@@ -383,6 +397,25 @@ count.
       exactly the way `purity` was.
       *Done when:* a test asserts the invariant on `_REF_SHAPE_DB` with a
       stated tolerance, and its docstring states what it cannot catch.
+      **Scope cut the same day it was written — reason:** seven independent
+      reviews showed this test is far weaker than the caveat above admits,
+      and as originally specified it would have shipped a metric that cannot
+      fail. Two findings. (i) The ±0.055 dB/oct figure is **not a
+      tolerance**: it is the SD between eleven group *means* of ~1122 tracks
+      each, and it is the argmin of a 2-D endpoint search. Per-track SD
+      measured here is 0.744 dB/oct on the service masters and 1.085 on the
+      captures — 13 to 20 times larger. Against an honest tolerance the
+      target (−4.281), the service masters (−4.404) and the paper (−4.412)
+      are indistinguishable. (ii) The blindness is worse than "a symmetric
+      smile": the target's error against the paper is +9.36 dB at 89 Hz and
+      +10.10 dB at 4.5 kHz, so the secant sees 0.74 dB while the RMS
+      residual across that span is 4.82 dB, and the *pre*-`97609c0` target
+      scores −4.545 — closer to the paper than the current one — while
+      sitting ~4.9 dB above it everywhere. This is `purity` again (§2.5).
+      **Revised done-when:** keep it only as a coarse tilt check at ±1.5
+      dB/oct, and only if the test name and docstring say it cannot detect a
+      level or shape error. If that is not worth writing, do not write it —
+      a test this weak is worse than none, because it will be cited.
 
 - [ ] **14. Make the References tool's report trustworthy.**
       (Added 2026-09-08.) It reported "8.4 dB darker" as a headline from a
@@ -402,6 +435,17 @@ count.
       excerpt-bias correction; broken captures are rejected with a reason
       shown on the page; and re-running it on the existing 15 reproduces the
       13/2 split.
+      **Two corrections, same day.** (i) The −1.35 dB excerpt figure is weak
+      — n=8, se 0.78, 95% CI [−3.19, +0.50], and the captures' brightness
+      correlates with duration the *wrong* way (r = −0.362). Use
+      **−0.6 ± 0.4 dB**, which is what the on-chain control measures.
+      (ii) The capture path is now validated end to end and needs no further
+      doubt: eight service masters that exist on disk were played through
+      Spotify and captured, giving **−0.57 dB ± 0.38 over 2.5–12.5 kHz with
+      a flat per-band difference** (`scripts/tone-evidence/spotify_control.py`).
+      That closes the "maybe Spotify colours it" objection. Re-run that
+      script after any change to the capture path — it is the regression test
+      for this whole feature, and it costs one playback.
 
 ---
 

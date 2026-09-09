@@ -1,0 +1,179 @@
+{
+ "how_to_listen": [
+  "For each song, play its letters back to back. They are matched to",
+  "the same loudness, so none can win by being louder.",
+  "Ask one question: which sounds most open and finished?",
+  "Rank them, write it down, THEN read 'songs' below.",
+  "One letter per song is the untouched render. If it wins, say so \u2014",
+  "that is a real result, not a mistake."
+ ],
+ "songs": {
+  "distrokid-the-little-things": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched file (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "what the net-benefit scorer applies to this song (cleaning only)",
+    "variant": "new"
+   }
+  ],
+  "reference-hey": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched file (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "what the purity-based scorer applied to this song (cleaning only)",
+    "variant": "old"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "what the net-benefit scorer applies to this song (cleaning only)",
+    "variant": "new"
+   }
+  ],
+  "reference-leave-the-world-behind": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched file (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "what the net-benefit scorer applies to this song (cleaning only)",
+    "variant": "new"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "what the purity-based scorer applied to this song (cleaning only)",
+    "variant": "old"
+   }
+  ],
+  "suno-algorithms-lure": [
+   {
+    "letter": "A",
+    "what_it_is": "what the net-benefit scorer applies to this song (cleaning only)",
+    "variant": "new"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "what the purity-based scorer applied to this song (cleaning only)",
+    "variant": "old"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "the untouched file (hidden anchor)",
+    "variant": "source"
+   }
+  ],
+  "suno-alive-again": [
+   {
+    "letter": "A",
+    "what_it_is": "what the net-benefit scorer applies to this song (cleaning only)",
+    "variant": "new"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the untouched file (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "what the purity-based scorer applied to this song (cleaning only)",
+    "variant": "old"
+   }
+  ],
+  "suno-couldve-been-stories": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched file (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "what the net-benefit scorer applies to this song (cleaning only)",
+    "variant": "new"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "what the purity-based scorer applied to this song (cleaning only)",
+    "variant": "old"
+   }
+  ],
+  "suno-falling-for-you": [
+   {
+    "letter": "A",
+    "what_it_is": "what the purity-based scorer applied to this song (cleaning only)",
+    "variant": "old"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the untouched file (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "what the net-benefit scorer applies to this song (cleaning only)",
+    "variant": "new"
+   }
+  ],
+  "suno-the-little-things": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched file (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "what the net-benefit scorer applies to this song (cleaning only)",
+    "variant": "new"
+   }
+  ]
+ },
+ "picks": {
+  "reference-hey": {
+   "old": "Sibilance Rattle at 50%",
+   "new": "Generic at 100%",
+   "notches": 0
+  },
+  "reference-leave-the-world-behind": {
+   "old": "Harsh Veil at 125%",
+   "new": "Generic at 100%",
+   "notches": 0
+  },
+  "suno-algorithms-lure": {
+   "old": "Sibilance Rattle at 75%",
+   "new": "Generic at 100%",
+   "notches": 3
+  },
+  "suno-alive-again": {
+   "old": "Vocal Glaze + Top End at 50%",
+   "new": "Generic at 100%",
+   "notches": 1
+  },
+  "suno-couldve-been-stories": {
+   "old": "Sibilance Rattle at 100%",
+   "new": "Generic at 100%",
+   "notches": 0
+  },
+  "suno-falling-for-you": {
+   "old": "Suno Hash (5-12 kHz Flicker) at 75%",
+   "new": "Generic at 100%",
+   "notches": 0
+  },
+  "suno-the-little-things": {
+   "new": "Suno Hash (5-12 kHz Flicker) at 100%",
+   "notches": 0
+  },
+  "distrokid-the-little-things": {
+   "new": "Suno Hash (5-12 kHz Flicker) at 100%",
+   "notches": 0
+  }
+ },
+ "note": "No mastering, no EQ: the tone target plays no part. Loudest 30 s. The question is whether the old pick took something audible from the music that the new pick leaves in, and whether anything the old pick removed was worth removing."
+}

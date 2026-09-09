@@ -20,6 +20,16 @@ different from the last one.
   loudness survives. This is the first round whose residuals can be compared
   to each other.
 
+- **round-3** — old tone target vs the measured one vs the reference master,
+  per song. Built before the measured target was retracted (checklist item
+  12), so its "new" is the disputed curve.
+- **round-4** — the scorer change (items 5 and 10): per song, the untouched
+  file, what the old purity-based scorer applied, and what the net-benefit
+  scorer applies, cleaning only, no mastering, so the tone target plays no
+  part. Loudest 30 s, matched to -18 LUFS, blind. Built by
+  `scripts/make_round4.py`. Listen in `round-4/blind`; `round-4/renders` is
+  the unblinded audio.
+
 ## How to listen
 
 1. Play a song's four `*-master-*.wav` back to back. They are level-matched to
