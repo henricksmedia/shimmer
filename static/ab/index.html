@@ -17,23 +17,64 @@
 
 body { background: var(--bg-0); color: var(--fg-1); font-family: var(--font-ui);
        font-size: 14px; line-height: 1.5; }
-.shell { max-width: 860px; margin: 0 auto; padding: 20px 20px 64px; }
+.shell { max-width: 1600px; margin: 0 auto; padding: 14px 22px 28px; }
+
+/* Two columns from 1120 px: listen on the left, decide on the right. Below
+   that width there is no room for a rail and the whole thing stacks, which
+   is the layout this page had everywhere before. */
+.cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap-5); }
+@media (min-width: 1120px) {
+  .cols { grid-template-columns: minmax(0, 1fr) 402px; gap: 30px;
+          align-items: start; }
+  .colB { position: sticky; top: 14px; }
+}
+@media (min-width: 1560px) { .cols { grid-template-columns: minmax(0, 1fr) 440px; } }
+.colA, .colB { min-width: 0; }
+
+/* In the rail each block is a surface of its own. Down the single column
+   they were separated by rules, which is right when they follow each other
+   and wrong when they sit side by side. */
+@media (min-width: 1120px) {
+  .colB > .abx, .colB > .verdict {
+    margin: 0 0 var(--gap-3); padding: var(--gap-4);
+    border: 1px solid var(--line); border-top: 1px solid var(--line);
+    border-radius: var(--radius); background: var(--bg-1); }
+  .colB > details { margin-top: 0; }
+}
 a { color: var(--cyan); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ── header ─────────────────────────────────────────────────────── */
 .top { display: flex; align-items: center; gap: var(--gap-3);
-       padding-bottom: var(--gap-4); border-bottom: 1px solid var(--line);
-       margin-bottom: var(--gap-5); flex-wrap: wrap; }
+       padding-bottom: var(--gap-3); border-bottom: 1px solid var(--line);
+       margin-bottom: var(--gap-3); flex-wrap: wrap; }
 .mark { font-weight: 700; color: var(--fg-0); font-size: 15px;
-        letter-spacing: .2px; margin-right: auto; }
+        letter-spacing: .2px; flex: none; }
+
+/* The group, in the space the header was wasting. It truncates rather than
+   wraps: the bar must stay one line high at every width above a phone. */
+.topgroup { display: flex; align-items: baseline; gap: var(--gap-2);
+            flex: 1 1 auto; min-width: 0; padding-left: var(--gap-4);
+            border-left: 1px solid var(--line); }
+.navgroup { display: flex; align-items: center; gap: var(--gap-3);
+            flex: none; margin-left: auto; }
+
+/* prev / picker / next read as one control because they do one job. Bare
+   chevrons at 34 px with no border are neither a target nor a hint. */
+.seg { display: flex; align-items: stretch; }
+.seg > button { border-radius: 0; width: 36px; padding: 0; font-size: 16px;
+                line-height: 1; }
+.seg > button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.seg > button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.seg > select { border-radius: 0; border-left-color: transparent;
+                border-right-color: transparent; min-width: 190px; }
+.seg > select:focus-visible { position: relative; z-index: 1; }
 .mark span { color: var(--fg-3); font-weight: 500; margin-left: 8px;
              font-size: 12.5px; }
 select { background: var(--bg-2); color: var(--fg-0);
          border: 1px solid var(--line-2); border-radius: var(--radius-s);
          padding: 7px 10px; font: inherit; font-size: 13px; max-width: 320px; }
-.nav { display: flex; gap: 2px; }
-.nav button { width: 34px; padding: 7px 0; }
+
 
 /* ── buttons ────────────────────────────────────────────────────── */
 button { display: inline-flex; align-items: center; justify-content: center;
@@ -54,7 +95,7 @@ button.quiet:hover:not(:disabled) { color: var(--fg-0); border-color: var(--line
 /* ── the two candidates: the whole point of the screen ──────────── */
 .cand { position: relative; border: 1px solid var(--line);
         background: var(--bg-2); border-radius: var(--radius);
-        padding: 26px 16px 20px; text-align: center; cursor: pointer;
+        padding: 18px 16px 14px; text-align: center; cursor: pointer;
         transition: border-color .12s, background .12s, box-shadow .12s;
         user-select: none; }
 .cand:hover { border-color: var(--line-2); }
@@ -68,12 +109,13 @@ button.quiet:hover:not(:disabled) { color: var(--fg-0); border-color: var(--line
 .cand[aria-pressed="true"] .letter { color: var(--amber); }
 .cand[aria-pressed="true"] .state { color: var(--amber); }
 
-.swap { margin-top: var(--gap-3); width: 100%; padding: 16px;
-        font-size: 15px; font-weight: 650; letter-spacing: .2px; }
+/* Swap was a full-width 56 px bar of its own. It is one control among the
+   transport's controls, and the cards above it already switch versions. */
+.swap { padding: 7px 16px; font-weight: 650; }
 .swap kbd { opacity: .55; font-size: 11px; }
 
 /* ── waveform ───────────────────────────────────────────────────── */
-.wave { position: relative; margin-top: var(--gap-5); height: 92px;
+.wave { position: relative; margin-top: var(--gap-4); height: 104px;
         background: var(--bg-2); border: 1px solid var(--line);
         border-radius: var(--radius); overflow: hidden; cursor: crosshair; }
 .wave canvas { position: absolute; inset: 0; width: 100%; height: 100%;
@@ -102,7 +144,7 @@ label.chk { display: inline-flex; align-items: center; gap: 6px;
             color: var(--fg-2); font-size: 12.5px; cursor: pointer; }
 
 /* ── verdict, inline so you never scroll away mid-listen ────────── */
-.verdict { margin-top: var(--gap-6); padding-top: var(--gap-5);
+.verdict { margin-top: var(--gap-4); padding-top: var(--gap-4);
            border-top: 1px solid var(--line); }
 .q { font-size: 13px; color: var(--fg-2); margin: 0 0 var(--gap-3); }
 .picks { display: grid; gap: var(--gap-2);
@@ -135,6 +177,13 @@ kbd { font-family: var(--font-mono); background: var(--bg-3);
       border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--fg-1); }
 .ok { color: var(--success); } .warn { color: var(--amber); }
 .matched { color: var(--fg-2); font-size: 12.5px; }
+/* Naming the versions in a set does not break the blind — the list is
+   sorted, so it says what is here and never which letter is which. Without
+   it a listener can judge four arms without knowing one of them is the
+   master this tool shipped yesterday. */
+.roster { margin: 0 0 var(--gap-4); font-size: 12.5px; color: var(--fg-3);
+          max-width: 70ch; }
+.roster b { color: var(--fg-1); font-weight: 500; }
 @media (max-width: 620px) { .picks { grid-template-columns: 1fr; } }
 /* ── the stage: two arms or four, one rule ─────────────────────────
    auto-fit collapses the tracks it does not need, so two arms fill the
@@ -200,17 +249,22 @@ button kbd { opacity: .55; font-size: 11px; }
 .loading { color: var(--fg-2); }
 
 /* ── recovered from builder 1 ─────────────────────────────── */
-.round { margin: 0 0 var(--gap-5); }
-.round-top { display: flex; align-items: baseline; gap: var(--gap-3);
+.round { margin: 0 0 var(--gap-4); }
+.round-top:empty, .round-top > .pips:empty { display: none; }
+.round-top { display: flex; align-items: center; gap: var(--gap-3);
              flex-wrap: wrap; }
+/* The group name, what it compares, the pips and the count used to take
+   three stacked rows for about forty characters of information. */
+.round-what { flex: 1 1 auto; min-width: 0; overflow: hidden;
+              text-overflow: ellipsis; white-space: nowrap; }
 .round-group { color: var(--fg-0); font-weight: 600; font-size: 13.5px; }
 .round-what { color: var(--fg-3); font-size: 12.5px; }
-.round-count { margin-left: auto; font-family: var(--font-mono);
-               font-size: 12.5px; color: var(--fg-2); white-space: nowrap; }
+.round-count { font-family: var(--font-mono); font-size: 12.5px;
+               color: var(--fg-2); white-space: nowrap; }
 
 /* One pip per set in the group: the count above says how many, these say
    which ones, and clicking is the fastest way back to a set. */
-.pips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: var(--gap-2); }
+.pips { display: flex; flex-wrap: wrap; gap: 4px; flex: none; }
 .pip { width: 26px; height: 26px; padding: 0; border-radius: var(--radius-s);
        font-family: var(--font-mono); font-size: 11.5px; font-weight: 500;
        background: var(--bg-2); border: 1px solid var(--line); color: var(--fg-3); }
@@ -236,13 +290,20 @@ button.tiny { padding: 3px 9px; font-size: 12px; }
 .sofar label.chk { margin-bottom: var(--gap-2); display: inline-flex; }
 
 select#sets { max-width: 360px; }
+@media (max-width: 900px) {
+  /* No room for the group beside the brand; it goes under, still one line. */
+  .topgroup { order: 3; flex-basis: 100%; padding-left: 0; border-left: 0; }
+  .navgroup { margin-left: auto; }
+}
 @media (max-width: 620px) {
-  .round-count { margin-left: 0; }
-  select#sets { max-width: 100%; flex: 1 1 100%; }
+  .seg { flex: 1 1 100%; }
+  .seg > select { flex: 1 1 auto; min-width: 0; }
+  select#sets { max-width: 100%; }
+  .navgroup { flex: 1 1 100%; flex-wrap: wrap; }
 }
 
 /* ── recovered from builder 3 ─────────────────────────────── */
-.abx { margin-top: var(--gap-5); padding-top: var(--gap-4);
+.abx { margin-top: 0; padding-top: var(--gap-4);
        border-top: 1px solid var(--line); }
 .abx h2 { font-size: 14px; color: var(--fg-0); margin: 0; font-weight: 650; }
 .abx h2 .abx-sub { font-family: var(--font-mono); font-size: 11px;
@@ -320,19 +381,25 @@ select#sets { max-width: 360px; }
 
   <div class="top">
     <div class="mark">Listening bench<span>Shimmer dev</span></div>
-    <div class="nav">
-      <button id="prev" class="quiet" title="previous">‹</button>
-      <button id="next" class="quiet" title="next">›</button>
+    <div class="topgroup" id="topgroup" hidden>
+      <span class="round-group" id="roundgroup">…</span>
+      <span class="round-what" id="roundwhat"></span>
     </div>
-    <select id="sets"><option>loading…</option></select>
+    <div class="navgroup">
+      <span class="round-count" id="roundcount"></span>
+      <div class="seg">
+        <button id="prev" class="quiet" title="Previous comparison (left arrow)"
+                aria-label="Previous comparison">‹</button>
+        <select id="sets" aria-label="Comparison"><option>loading…</option></select>
+        <button id="next" class="quiet" title="Next comparison (right arrow)"
+                aria-label="Next comparison">›</button>
+      </div>
+    </div>
   </div>
 <div class="round" id="round" hidden>
     <div class="round-top">
-      <span class="round-group" id="roundgroup">…</span>
-      <span class="round-what" id="roundwhat"></span>
-      <span class="round-count" id="roundcount"></span>
+      <div class="pips" id="pips"></div>
     </div>
-    <div class="pips" id="pips"></div>
     <p class="advice" id="advice" hidden></p>
     <details class="sofar" id="sofar">
       <summary>Round so far</summary>
@@ -376,16 +443,17 @@ select#sets { max-width: 360px; }
   </div>
 
   <main id="main" hidden>
+   <div class="cols">
+    <section class="colA">
     <h1 id="title" style="font-size:19px;color:var(--fg-0);margin:0 0 4px">…</h1>
-    <p id="note" style="color:var(--fg-2);font-size:13px;margin:0 0 var(--gap-5);max-width:70ch"></p>
+    <p id="note" style="color:var(--fg-2);font-size:13px;margin:0 0 var(--gap-2);max-width:70ch"></p>
+    <p id="roster" class="roster" hidden></p>
 
     <div class="stage" id="stage"></div>
     <div class="live" id="live" aria-live="polite">
       <span class="val" id="livearm">–</span>
       <span class="lbl" id="livewhat">nothing is playing</span>
     </div>
-    <button class="primary swap" id="swap">Swap &nbsp;⇄&nbsp; <kbd>S</kbd></button>
-
     <div class="wave" id="wave">
       <canvas id="cv"></canvas>
       <div class="dim" id="dimL" hidden></div>
@@ -396,6 +464,7 @@ select#sets { max-width: 360px; }
 
     <div class="bar">
       <button class="primary" id="play" style="min-width:116px">▶ Play <kbd>space</kbd></button>
+      <button class="primary swap" id="swap">Swap ⇄ <kbd>S</kbd></button>
       <span class="time" id="clock">0:00 / 0:00</span>
       <button class="quiet" id="whole" hidden>Whole excerpt</button>
       <span class="spacer"></span>
@@ -408,6 +477,9 @@ select#sets { max-width: 360px; }
       <button class="diff" id="diffbtn" aria-pressed="false" hidden>Difference <kbd>D</kbd></button>
     </div>
     <p id="diffwhat" class="matched" style="margin:var(--gap-2) 0 0;max-width:70ch" hidden></p>
+    </section>
+
+    <aside class="colB">
 <section class="abx" id="abx">
       <div class="abx-head">
         <div>
@@ -475,7 +547,8 @@ select#sets { max-width: 360px; }
     <details>
       <summary id="fairsum">Level match</summary>
       <div class="body">
-        <table id="fair"><thead><tr><th>Arm</th><th>Own loudness</th>
+        <p id="fairblind" hidden></p>
+        <table id="fair" hidden><thead><tr><th>Arm</th><th>Own loudness</th>
           <th>Gain applied</th><th>Playing at</th></tr></thead><tbody></tbody></table>
         <p>The versions are matched to the quietest of them, so none is
         turned up and none clips. The louder file usually wins an unmatched
@@ -498,6 +571,8 @@ select#sets { max-width: 360px; }
         <p id="diffhelp" style="margin-top:10px" hidden></p>
       </div>
     </details>
+    </aside>
+   </div>
   </main>
 </div>
 
@@ -512,6 +587,7 @@ const fmt = s => { const t = Math.max(0, s || 0);
 
 let ctx, cur = null, buffers = [], gains = [], sources = [];
 let revealed = false;      // a failed reveal must not count as one
+let revealedArms = null;   // the per-arm rows, once the answer key brings them
 let ids = [], idx = 0, active = 0, playing = false, startedAt = 0, startOffset = 0;
 let loopA = 0, loopB = 0, autoTimer = null, switches = 0, listened = 0, picked = '';
 
@@ -539,6 +615,12 @@ async function loadSet(id) {
   // prefix here gave the same group two different names on one screen.
   $('title').textContent = songOf({title: cur.title, id: cur.id});
   $('note').textContent = cur.note || '';
+  const roster = Array.isArray(cur.roster) ? cur.roster : [];
+  $('roster').hidden = !roster.length;
+  if (roster.length) {
+    $('roster').innerHTML = 'In this set, shuffled: ' +
+      roster.map(r => '<b>' + esc(r) + '</b>').join(' &nbsp;·&nbsp; ');
+  }
   $('diffbtn').hidden = !cur.residual;
   // "Difference" means two different things depending on the set, and calling
   // both of them the same is how a listener ends up hearing the whole song
@@ -627,14 +709,9 @@ async function loadSet(id) {
     sayPickCover();
   });
   $('notes').value = ''; $('saved').textContent = ''; $('answer').textContent = '';
-  revealed = false;
+  revealed = false; revealedArms = null;
 
-  $('fairsum').innerHTML = `Level match — all arms at ` +
-    `${cur.matched_lufs.toFixed(1)} LUFS <span class="ok">✓</span>`;
-  $('fair').querySelector('tbody').innerHTML = cur.arms.map(a =>
-    `<tr><td>${a.letter}</td><td>${a.lufs_before.toFixed(1)}</td>` +
-    `<td>${a.gain_db > 0 ? '+' : ''}${a.gain_db.toFixed(1)} dB</td>` +
-    `<td>${cur.matched_lufs.toFixed(1)} LUFS</td></tr>`).join('');
+  paintFair();
 
   loopA = 0; loopB = cur.seconds; switches = 0; listened = 0;
   active = 0; startOffset = 0;
@@ -644,6 +721,41 @@ async function loadSet(id) {
   idx = Math.max(0, ids.indexOf(id));
   if (ids.indexOf(id) >= 0) $('sets').value = id;
   renderArms(); drawWave(); paint(); abxReset();
+}
+
+/* Everything the fairness claim rests on, and nothing that says which arm is
+   which. The per-arm rows are a fingerprint: the set note tells you the
+   service master is the louder one, so a column of "own loudness" beside the
+   letters hands over the answer. They appear once you have revealed. */
+function paintFair() {
+  if (!cur) return;
+  // The per-arm numbers are not in the manifest any more — they arrive with
+  // the answer key, and only once you have asked for it.
+  const f = cur.fair || {arms: (cur.arms || []).length,
+                         matched_lufs: cur.matched_lufs,
+                         max_attenuation_db: 0, turned_up: 0};
+  const rows = revealedArms;
+  const up = f.turned_up || 0;
+  $('fairsum').innerHTML = `Level match — all ${f.arms} at ` +
+    `${(+f.matched_lufs).toFixed(1)} LUFS <span class="ok">✓</span>`;
+  $('fair').hidden = !rows;
+  $('fairblind').hidden = !!rows;
+  if (rows) {
+    $('fair').querySelector('tbody').innerHTML = rows.map(a =>
+      `<tr><td>${esc(a.letter)}</td><td>${(+a.lufs_before).toFixed(1)}</td>` +
+      `<td>${a.gain_db > 0 ? '+' : ''}${(+a.gain_db).toFixed(1)} dB</td>` +
+      `<td>${(+f.matched_lufs).toFixed(1)} LUFS</td></tr>`).join('');
+  } else {
+    $('fairblind').innerHTML =
+      `Every version plays at <b>${(+f.matched_lufs).toFixed(1)} LUFS</b>, the ` +
+      `loudness of the quietest one. ` +
+      (up ? `<span class="warn">${up} was turned up.</span> `
+          : `None was turned up — the largest change is ` +
+            `<b>${(+f.max_attenuation_db).toFixed(1)} dB</b> of attenuation. `) +
+      `Which version needed which change is not shown yet: how loud a version ` +
+      `started is often enough to recognise it, and this set is blind. ` +
+      `Reveal shows the row for each one.`;
+  }
 }
 
 /* The waveform is the only way to aim a loop at a chorus rather than at a
@@ -855,6 +967,8 @@ $('revealbtn').onclick = async () => {
     return;
   }
   revealed = true;
+  revealedArms = Array.isArray(k.arms) && k.arms.length ? k.arms : null;
+  paintFair();                      // the per-arm rows are safe now
   $('answer').innerHTML = Object.entries(k.answer)
     .map(([l, v]) => `<strong style="color:var(--fg-0)">${l}</strong> ${esc(v)}`)
     .join(' &nbsp;·&nbsp; ');
@@ -975,6 +1089,8 @@ function showFailure(id, err) {
   // round strip, its pips and the advice line all outlived the set itself.
   // The picker stays enabled on purpose — it is the way back.
   $('round').hidden = true;
+  $('topgroup').hidden = true;
+  $('roundcount').textContent = '';
   clearSay();
   cur = null; buffers = [];
   $('loading').hidden = true;
@@ -1169,19 +1285,22 @@ async function open_(id) {
    set they are on, how many are left in this group, and that the last
    verdict was written down. Everything below serves those three. */
 
+/* Ordered by what still has to be decided, not by when each was built.
+   The tone target changed today and almost nothing has been judged on it;
+   round 8 is finished. */
 const GROUPS = [
-  {p:'r8-',      name:'Every version of a song',
-   what:'the untouched render, our chain, and the other masters that exist'},
+  {p:'tone-',    name:'The tone target we changed today',
+   what:'the same song aimed at the new target and the one it replaced'},
   {p:'service-', name:'Ours against an automated service',
    what:'our master against a service master of the same song'},
-  {p:'era-',     name:'Three tone targets',
-   what:'one song aimed at three different tone targets'},
-  {p:'tone-',    name:'Two tone targets',
-   what:'one song aimed at two different tone targets'},
   {p:'chain-',   name:'Untouched against the full chain',
    what:'the render as it came out against everything Shimmer does to it'},
   {p:'clean-',   name:'Cleaning only',
    what:'before and after cleaning, with nothing else changed'},
+  {p:'r8-',      name:'Every version of a song',
+   what:'the untouched render, our chain, and the other masters that exist'},
+  {p:'era-',     name:'Three tone targets',
+   what:'one song aimed at three different tone targets'},
 ];
 // Anything built later with a new prefix still has to be reachable.
 const OTHER = {p:'', name:'Other comparisons', what:''};
@@ -1241,8 +1360,10 @@ function renderPicker() {
 /* The strip above the candidates: group, count, one pip per set. */
 function renderRound(id) {
   const row = byId_.get(id);
-  if (!row) { $('round').hidden = true; return; }
-  $('round').hidden = false;
+  // The group name lives in the header now, so it has to be hidden and shown
+  // with the strip rather than by it.
+  if (!row) { $('round').hidden = true; $('topgroup').hidden = true; return; }
+  $('round').hidden = false; $('topgroup').hidden = false;
   const rs = inGroup(row.group);
   const done = rs.filter(r => r.judged).length;
   $('roundgroup').textContent = row.group.name;

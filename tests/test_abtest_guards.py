@@ -102,17 +102,41 @@ def test_a_bad_id_writes_nothing_outside_the_bench(bench):
 
 
 @pytest.mark.parametrize("bad", ["../x.wav", "..\\x.wav", ".wav", "....wav",
-                                 "arm0.txt", "arm0.wav\x00.txt"])
+                                 "arm0.txt", "arm0.wav\x00.txt",
+                                 # The real name is a fingerprint: arm1 is the
+                                 # same version in every set of a group, so
+                                 # letter-to-file is letter-to-answer.
+                                 "arm0.wav", "arm1.wav", "residual.wav"])
 def test_bad_filenames_reach_nothing(bench, bad):
     abtest.build("t-ok", "T", [("a", _tone()), ("b", _tone(gain=.1))], SR)
     assert abtest.audio_path("t-ok", bad) is None
 
 
-def test_good_filename_resolves(bench):
+def test_a_letter_resolves(bench):
     abtest.build("t-ok", "T", [("a", _tone()), ("b", _tone(gain=.1))], SR)
-    p = abtest.audio_path("t-ok", "arm0.wav")
+    p = abtest.audio_path("t-ok", "A.wav")
     assert p and os.path.isfile(p)
     assert os.path.realpath(p).startswith(os.path.realpath(bench) + os.sep)
+
+
+def test_the_served_manifest_names_no_file_and_no_loudness(bench):
+    """Everything that identified an arm is gone from the wire."""
+    abtest.build("t-ok", "T", [("a", _tone()), ("b", _tone(gain=.1))], SR)
+    m = abtest.manifest("t-ok")
+    for a in m["arms"]:
+        assert a["file"] == a["letter"] + ".wav"
+        assert "lufs_before" not in a and "gain_db" not in a
+    # and the fairness claim survives without them
+    assert m["fair"]["arms"] == 2
+    assert m["fair"]["turned_up"] == 0
+    assert m["fair"]["max_attenuation_db"] <= 0
+
+
+def test_reveal_gives_back_the_rows_the_manifest_withheld(bench):
+    abtest.build("t-ok", "T", [("a", _tone()), ("b", _tone(gain=.1))], SR)
+    r = abtest.reveal("t-ok")
+    assert {a["letter"] for a in r["arms"]} == {"A", "B"}
+    assert all("lufs_before" in a and "gain_db" in a for a in r["arms"])
 
 
 # ── verdicts ─────────────────────────────────────────────────────────────

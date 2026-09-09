@@ -160,6 +160,23 @@ def sets() -> List[Dict[str, Any]]:
 # leading letter or digit makes both impossible.
 _ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 _WAV_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}\.wav$")
+_LETTER_RE = re.compile(r"^([A-Z])\.wav$")
+
+
+def _by_letter(d: str, name: str) -> Optional[str]:
+    """Resolve "C.wav" to whatever file C actually is. None if not a letter."""
+    if name == "difference.wav":
+        raw = _read(os.path.join(d, "manifest.json")) or {}
+        res = raw.get("residual") or {}
+        return res.get("file")
+    m = _LETTER_RE.match(name)
+    if not m:
+        return None
+    raw = _read(os.path.join(d, "manifest.json")) or {}
+    for a in raw.get("arms", []):
+        if a.get("letter") == m.group(1):
+            return a.get("file")
+    return None
 
 
 def _safe(set_id: str) -> str:
@@ -180,13 +197,81 @@ def _set_dir(set_id: str) -> Optional[str]:
 
 
 def manifest(set_id: str) -> Optional[Dict[str, Any]]:
+    """The manifest as the listener may see it: blind."""
     d = _set_dir(set_id)
-    return _read(os.path.join(d, "manifest.json")) if d else None
+    doc = _read(os.path.join(d, "manifest.json")) if d else None
+    if doc is None:
+        return None
+    doc["roster"] = _roster(d)
+    return _blind(doc)
+
+
+def _blind(doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Strip everything that says which arm is which.
+
+    Two fingerprints, both measured across the built bench:
+      * the file name. Arms are written in the order the builder passed them,
+        so arm1 was the same version in 100% of the sets in every group.
+      * lufs_before. The loudest arm was the service master in 8 of 8 service
+        sets, and the set note says in words that it is the louder one.
+    The letter is the only handle the page needs, and audio_path accepts it.
+    """
+    arms = []
+    for a in doc.get("arms", []):
+        letter = str(a.get("letter", ""))
+        arms.append({"letter": letter, "file": letter + ".wav"})
+    doc["arms"] = arms
+
+    # What the fairness claim actually rests on, with no arm named. Computed
+    # here so the page never has to hold the numbers it must not show.
+    src = _read_arms_raw(doc)
+    gains = [float(a.get("gain_db", 0.0)) for a in src]
+    doc["fair"] = {
+        "arms": len(src),
+        "matched_lufs": doc.get("matched_lufs"),
+        "max_attenuation_db": round(min(gains), 2) if gains else 0.0,
+        "turned_up": sum(1 for g in gains if g > 0),
+    }
+    res = doc.get("residual")
+    if isinstance(res, dict):
+        res = dict(res)
+        res["file"] = "difference.wav"
+        doc["residual"] = res
+    return doc
+
+
+def _read_arms_raw(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The unblinded arm rows, straight off disk."""
+    d = _set_dir(str(doc.get("id", "")))
+    raw = _read(os.path.join(d, "manifest.json")) if d else None
+    return list(raw.get("arms", [])) if raw else []
+
+
+def _roster(d: str) -> List[str]:
+    """What is in this set, sorted, with no letters attached.
+
+    Sorting is what keeps the blind: the answer key maps letter to version,
+    and a sorted list of the versions alone cannot be inverted. The listener
+    learns that one of these four is the old master; not which one.
+    """
+    key = _read(os.path.join(d, "ANSWER-KEY.json")) or {}
+    answer = key.get("answer", {})
+    return sorted(str(v) for v in answer.values())
 
 
 def reveal(set_id: str) -> Optional[Dict[str, Any]]:
+    """The answer, and with it the rows the blind manifest held back."""
     d = _set_dir(set_id)
-    return _read(os.path.join(d, "ANSWER-KEY.json")) if d else None
+    doc = _read(os.path.join(d, "ANSWER-KEY.json")) if d else None
+    if doc is None:
+        return None
+    raw = _read(os.path.join(d, "manifest.json")) or {}
+    doc["arms"] = [{"letter": a.get("letter"),
+                    "lufs_before": a.get("lufs_before"),
+                    "gain_db": a.get("gain_db")}
+                   for a in raw.get("arms", [])]
+    doc["matched_lufs"] = raw.get("matched_lufs")
+    return doc
 
 
 def scores(set_id: str) -> Dict[str, Any]:
@@ -197,7 +282,16 @@ def scores(set_id: str) -> Dict[str, Any]:
 
 def audio_path(set_id: str, filename: str) -> Optional[str]:
     d = _set_dir(set_id)
-    if d is None or not _WAV_RE.match(str(filename)):
+    if d is None:
+        return None
+    # Letters are the only address. Accepting the real name as well would
+    # leave the fingerprint one request away: fetch A.wav and arm1.wav, notice
+    # they are the same audio, and the blind is over.
+    real = _by_letter(d, str(filename))
+    if real is None:
+        return None
+    filename = real
+    if not _WAV_RE.match(str(filename)):
         return None
     root = os.path.realpath(BENCH)
     p = os.path.realpath(os.path.join(d, filename))
