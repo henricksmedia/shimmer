@@ -8,9 +8,9 @@
   "artifact_db": -17.66,
   "collateral_db": -34.0,
   "net_db": -17.87,
-  "missing": 0.1014,
-  "lin_dist": 0.963,
-  "added": 0.1477,
+  "missing": 0.1019,
+  "lin_dist": 0.642,
+  "added": 0.1468,
   "score": 0.0
  },
  {
@@ -22,9 +22,9 @@
   "artifact_db": -43.74,
   "collateral_db": -53.15,
   "net_db": -44.88,
-  "missing": 0.0028,
-  "lin_dist": 0.033,
-  "added": 0.0054,
+  "missing": 0.0036,
+  "lin_dist": 0.015,
+  "added": 0.0071,
   "score": 0.0
  },
  {
@@ -36,10 +36,10 @@
   "artifact_db": -42.77,
   "collateral_db": -58.15,
   "net_db": -43.03,
-  "missing": 0.0022,
-  "lin_dist": 0.037,
-  "added": 0.005,
-  "score": 0.007
+  "missing": 0.0033,
+  "lin_dist": 0.02,
+  "added": 0.007,
+  "score": 0.022
  },
  {
   "file": "distrokid-algorithms-lure",
@@ -50,9 +50,9 @@
   "artifact_db": -62.15,
   "collateral_db": -119.99,
   "net_db": -62.15,
-  "missing": 0.0045,
-  "lin_dist": 0.183,
-  "added": 0.0106,
+  "missing": 0.0047,
+  "lin_dist": 0.147,
+  "added": 0.0117,
   "score": 0.0
  },
  {
@@ -64,9 +64,9 @@
   "artifact_db": -14.55,
   "collateral_db": -31.25,
   "net_db": -14.74,
-  "missing": 0.1179,
-  "lin_dist": 1.019,
-  "added": 0.1348,
+  "missing": 0.1181,
+  "lin_dist": 0.594,
+  "added": 0.1339,
   "score": 0.0
  },
  {
@@ -78,9 +78,9 @@
   "artifact_db": -37.27,
   "collateral_db": -51.47,
   "net_db": -37.62,
-  "missing": 0.0049,
-  "lin_dist": 0.068,
-  "added": 0.0082,
+  "missing": 0.0053,
+  "lin_dist": 0.04,
+  "added": 0.0096,
   "score": 0.0
  },
  {
@@ -92,9 +92,9 @@
   "artifact_db": -62.93,
   "collateral_db": -104.51,
   "net_db": -62.93,
-  "missing": 0.0096,
-  "lin_dist": 0.422,
-  "added": 0.0178,
+  "missing": 0.0091,
+  "lin_dist": 0.354,
+  "added": 0.0185,
   "score": 0.0
  },
  {
@@ -106,9 +106,9 @@
   "artifact_db": -38.55,
   "collateral_db": -52.71,
   "net_db": -38.9,
-  "missing": 0.0042,
-  "lin_dist": 0.059,
-  "added": 0.0074,
+  "missing": 0.0047,
+  "lin_dist": 0.034,
+  "added": 0.0088,
   "score": 0.0
  },
  {
@@ -120,9 +120,9 @@
   "artifact_db": -43.8,
   "collateral_db": -59.7,
   "net_db": -44.03,
-  "missing": 0.01,
-  "lin_dist": 0.048,
-  "added": 0.0196,
+  "missing": 0.0103,
+  "lin_dist": 0.043,
+  "added": 0.021,
   "score": 0.0
  },
  {
@@ -134,9 +134,9 @@
   "artifact_db": -19.81,
   "collateral_db": -30.75,
   "net_db": -20.57,
-  "missing": 0.136,
-  "lin_dist": 1.274,
-  "added": 0.1127,
+  "missing": 0.1352,
+  "lin_dist": 0.804,
+  "added": 0.1135,
   "score": 0.0
  },
  {
@@ -148,9 +148,9 @@
   "artifact_db": -12.67,
   "collateral_db": -28.52,
   "net_db": -12.9,
-  "missing": 0.2517,
-  "lin_dist": 9.308,
-  "added": 0.3823,
+  "missing": 0.2521,
+  "lin_dist": 7.428,
+  "added": 0.3856,
   "score": 0.0
  },
  {
@@ -162,9 +162,9 @@
   "artifact_db": -26.46,
   "collateral_db": -37.15,
   "net_db": -27.27,
-  "missing": 0.0836,
-  "lin_dist": 1.655,
-  "added": 0.0661,
+  "missing": 0.0837,
+  "lin_dist": 1.118,
+  "added": 0.0655,
   "score": 0.0
  },
  {
@@ -176,9 +176,9 @@
   "artifact_db": -29.57,
   "collateral_db": -40.71,
   "net_db": -30.29,
-  "missing": 0.1592,
-  "lin_dist": 3.543,
-  "added": 0.1076,
+  "missing": 0.1597,
+  "lin_dist": 2.607,
+  "added": 0.1063,
   "score": 0.0
  },
  {
@@ -190,8 +190,8 @@
   "artifact_db": -27.86,
   "collateral_db": -38.06,
   "net_db": -28.78,
-  "missing": 0.0409,
-  "lin_dist": 0.294,
+  "missing": 0.0408,
+  "lin_dist": 0.091,
   "added": 0.0348,
   "score": 0.0
  },
@@ -204,9 +204,9 @@
   "artifact_db": -29.1,
   "collateral_db": -40.6,
   "net_db": -29.77,
-  "missing": 0.0794,
-  "lin_dist": 2.473,
-  "added": 0.0738,
+  "missing": 0.0797,
+  "lin_dist": 1.901,
+  "added": 0.0734,
   "score": 0.0
  },
  {
@@ -218,9 +218,9 @@
   "artifact_db": -13.64,
   "collateral_db": -30.68,
   "net_db": -13.82,
-  "missing": 0.2514,
-  "lin_dist": 20.386,
-  "added": 0.3649,
+  "missing": 0.2523,
+  "lin_dist": 17.0,
+  "added": 0.365,
   "score": 0.0
  },
  {
@@ -232,9 +232,9 @@
   "artifact_db": -15.97,
   "collateral_db": -24.58,
   "net_db": -17.38,
-  "missing": 0.0335,
-  "lin_dist": 0.432,
-  "added": 0.0305,
+  "missing": 0.0337,
+  "lin_dist": 0.2,
+  "added": 0.0299,
   "score": 0.0
  },
  {
@@ -246,9 +246,9 @@
   "artifact_db": -30.09,
   "collateral_db": -29.89,
   "net_db": -120.0,
-  "missing": 0.0088,
-  "lin_dist": 0.091,
-  "added": 0.016,
+  "missing": 0.0096,
+  "lin_dist": 0.043,
+  "added": 0.0168,
   "score": 0.0
  },
  {
@@ -260,9 +260,9 @@
   "artifact_db": -30.68,
   "collateral_db": -30.37,
   "net_db": -120.0,
-  "missing": 0.0079,
-  "lin_dist": 0.086,
-  "added": 0.0134,
+  "missing": 0.0088,
+  "lin_dist": 0.042,
+  "added": 0.0143,
   "score": 0.0
  },
  {
@@ -274,9 +274,9 @@
   "artifact_db": -47.8,
   "collateral_db": -120.0,
   "net_db": -47.8,
-  "missing": 0.0068,
-  "lin_dist": 0.248,
-  "added": 0.0137,
+  "missing": 0.008,
+  "lin_dist": 0.217,
+  "added": 0.0155,
   "score": 0.0
  },
  {
@@ -288,9 +288,9 @@
   "artifact_db": -13.82,
   "collateral_db": -22.51,
   "net_db": -15.19,
-  "missing": 0.0417,
-  "lin_dist": 0.994,
-  "added": 0.0499,
+  "missing": 0.0419,
+  "lin_dist": 0.547,
+  "added": 0.0496,
   "score": 0.0
  },
  {
@@ -302,9 +302,9 @@
   "artifact_db": -28.67,
   "collateral_db": -32.44,
   "net_db": -36.58,
-  "missing": 0.0082,
-  "lin_dist": 0.138,
-  "added": 0.0118,
+  "missing": 0.0093,
+  "lin_dist": 0.084,
+  "added": 0.013,
   "score": 0.0
  },
  {
@@ -316,9 +316,9 @@
   "artifact_db": -34.39,
   "collateral_db": -34.22,
   "net_db": -120.0,
-  "missing": 0.0113,
-  "lin_dist": 0.605,
-  "added": 0.0232,
+  "missing": 0.0121,
+  "lin_dist": 0.511,
+  "added": 0.0244,
   "score": 0.0
  },
  {
@@ -330,9 +330,9 @@
   "artifact_db": -29.91,
   "collateral_db": -33.78,
   "net_db": -37.38,
-  "missing": 0.007,
-  "lin_dist": 0.116,
-  "added": 0.0101,
+  "missing": 0.0082,
+  "lin_dist": 0.07,
+  "added": 0.0114,
   "score": 0.0
  },
  {
@@ -344,9 +344,9 @@
   "artifact_db": -31.8,
   "collateral_db": -31.72,
   "net_db": -120.0,
-  "missing": 0.0114,
-  "lin_dist": 0.072,
-  "added": 0.0157,
+  "missing": 0.012,
+  "lin_dist": 0.061,
+  "added": 0.0165,
   "score": 0.0
  },
  {
@@ -358,9 +358,9 @@
   "artifact_db": -20.11,
   "collateral_db": -23.4,
   "net_db": -32.09,
-  "missing": 0.0507,
-  "lin_dist": 1.114,
-  "added": 0.074,
+  "missing": 0.0503,
+  "lin_dist": 0.412,
+  "added": 0.0739,
   "score": 0.0
  },
  {
@@ -372,9 +372,9 @@
   "artifact_db": -15.38,
   "collateral_db": -22.94,
   "net_db": -17.25,
-  "missing": 0.0961,
-  "lin_dist": 3.406,
-  "added": 0.1239,
+  "missing": 0.0959,
+  "lin_dist": 2.075,
+  "added": 0.1229,
   "score": 0.0
  },
  {
@@ -386,9 +386,9 @@
   "artifact_db": -18.32,
   "collateral_db": -22.76,
   "net_db": -23.84,
-  "missing": 0.0258,
-  "lin_dist": 1.859,
-  "added": 0.0635,
+  "missing": 0.026,
+  "lin_dist": 1.082,
+  "added": 0.0634,
   "score": 0.0
  },
  {
@@ -400,9 +400,9 @@
   "artifact_db": -25.13,
   "collateral_db": -29.09,
   "net_db": -32.22,
-  "missing": 0.032,
-  "lin_dist": 3.762,
-  "added": 0.0728,
+  "missing": 0.0316,
+  "lin_dist": 2.314,
+  "added": 0.0725,
   "score": 0.0
  },
  {
@@ -414,9 +414,9 @@
   "artifact_db": -22.58,
   "collateral_db": -25.07,
   "net_db": -120.0,
-  "missing": 0.0151,
-  "lin_dist": 0.357,
-  "added": 0.0269,
+  "missing": 0.0156,
+  "lin_dist": 0.116,
+  "added": 0.0273,
   "score": 0.0
  },
  {
@@ -428,9 +428,9 @@
   "artifact_db": -24.87,
   "collateral_db": -28.74,
   "net_db": -32.31,
-  "missing": 0.0178,
-  "lin_dist": 2.773,
-  "added": 0.0498,
+  "missing": 0.0182,
+  "lin_dist": 2.077,
+  "added": 0.0499,
   "score": 0.0
  },
  {
@@ -442,9 +442,9 @@
   "artifact_db": -15.82,
   "collateral_db": -18.06,
   "net_db": -120.0,
-  "missing": 0.0884,
-  "lin_dist": 17.703,
-  "added": 0.1539,
+  "missing": 0.0873,
+  "lin_dist": 13.005,
+  "added": 0.1537,
   "score": 0.0
  },
  {
@@ -456,9 +456,9 @@
   "artifact_db": -18.5,
   "collateral_db": -24.03,
   "net_db": -22.07,
-  "missing": 0.0829,
-  "lin_dist": 1.082,
-  "added": 0.1446,
+  "missing": 0.0835,
+  "lin_dist": 0.723,
+  "added": 0.1422,
   "score": 0.0
  },
  {
@@ -470,9 +470,9 @@
   "artifact_db": -30.59,
   "collateral_db": -27.64,
   "net_db": -120.0,
-  "missing": 0.0182,
-  "lin_dist": 0.123,
-  "added": 0.0372,
+  "missing": 0.0185,
+  "lin_dist": 0.047,
+  "added": 0.0371,
   "score": 0.0
  },
  {
@@ -484,9 +484,9 @@
   "artifact_db": -31.04,
   "collateral_db": -28.08,
   "net_db": -120.0,
-  "missing": 0.0171,
-  "lin_dist": 0.112,
-  "added": 0.0351,
+  "missing": 0.0174,
+  "lin_dist": 0.04,
+  "added": 0.0349,
   "score": 0.0
  },
  {
@@ -498,9 +498,9 @@
   "artifact_db": -67.15,
   "collateral_db": -73.35,
   "net_db": -69.99,
-  "missing": 0.0039,
-  "lin_dist": 0.168,
-  "added": 0.0093,
+  "missing": 0.0046,
+  "lin_dist": 0.149,
+  "added": 0.0101,
   "score": 0.0
  },
  {
@@ -512,9 +512,9 @@
   "artifact_db": -20.84,
   "collateral_db": -28.67,
   "net_db": -22.58,
-  "missing": 0.0575,
-  "lin_dist": 0.871,
-  "added": 0.0726,
+  "missing": 0.0579,
+  "lin_dist": 0.586,
+  "added": 0.0715,
   "score": 0.0
  },
  {
@@ -526,9 +526,9 @@
   "artifact_db": -32.73,
   "collateral_db": -30.73,
   "net_db": -120.0,
-  "missing": 0.0128,
-  "lin_dist": 0.126,
-  "added": 0.0261,
+  "missing": 0.0131,
+  "lin_dist": 0.061,
+  "added": 0.026,
   "score": 0.0
  },
  {
@@ -540,8 +540,8 @@
   "artifact_db": -35.21,
   "collateral_db": -32.25,
   "net_db": -120.0,
-  "missing": 0.0125,
-  "lin_dist": 0.44,
+  "missing": 0.0127,
+  "lin_dist": 0.351,
   "added": 0.029,
   "score": 0.0
  },
@@ -554,8 +554,8 @@
   "artifact_db": -34.11,
   "collateral_db": -32.18,
   "net_db": -120.0,
-  "missing": 0.0109,
-  "lin_dist": 0.108,
+  "missing": 0.0112,
+  "lin_dist": 0.051,
   "added": 0.0221,
   "score": 0.0
  },
@@ -568,9 +568,9 @@
   "artifact_db": -32.58,
   "collateral_db": -29.58,
   "net_db": -120.0,
-  "missing": 0.0171,
-  "lin_dist": 0.073,
-  "added": 0.0307,
+  "missing": 0.0173,
+  "lin_dist": 0.031,
+  "added": 0.0305,
   "score": 0.0
  },
  {
@@ -582,9 +582,9 @@
   "artifact_db": -25.36,
   "collateral_db": -28.8,
   "net_db": -35.61,
-  "missing": 0.0478,
-  "lin_dist": 0.544,
-  "added": 0.0576,
+  "missing": 0.0479,
+  "lin_dist": 0.259,
+  "added": 0.0569,
   "score": 0.0
  },
  {
@@ -596,9 +596,9 @@
   "artifact_db": -13.48,
   "collateral_db": -17.78,
   "net_db": -19.38,
-  "missing": 0.1635,
-  "lin_dist": 8.844,
-  "added": 0.3912,
+  "missing": 0.1646,
+  "lin_dist": 6.508,
+  "added": 0.3871,
   "score": 0.0
  },
  {
@@ -610,9 +610,9 @@
   "artifact_db": -27.77,
   "collateral_db": -31.85,
   "net_db": -34.4,
-  "missing": 0.0386,
-  "lin_dist": 1.447,
-  "added": 0.0622,
+  "missing": 0.0389,
+  "lin_dist": 1.091,
+  "added": 0.0614,
   "score": 0.0
  },
  {
@@ -624,9 +624,9 @@
   "artifact_db": -31.82,
   "collateral_db": -37.54,
   "net_db": -35.14,
-  "missing": 0.0665,
-  "lin_dist": 3.391,
-  "added": 0.1023,
+  "missing": 0.0666,
+  "lin_dist": 2.429,
+  "added": 0.1009,
   "score": 0.0
  },
  {
@@ -638,9 +638,9 @@
   "artifact_db": -26.93,
   "collateral_db": -26.17,
   "net_db": -120.0,
-  "missing": 0.0337,
-  "lin_dist": 0.38,
-  "added": 0.0397,
+  "missing": 0.0339,
+  "lin_dist": 0.139,
+  "added": 0.0388,
   "score": 0.0
  },
  {
@@ -652,9 +652,9 @@
   "artifact_db": -27.98,
   "collateral_db": -28.4,
   "net_db": -120.0,
-  "missing": 0.0412,
-  "lin_dist": 2.617,
-  "added": 0.0709,
+  "missing": 0.0416,
+  "lin_dist": 2.073,
+  "added": 0.07,
   "score": 0.0
  },
  {
@@ -666,9 +666,9 @@
   "artifact_db": -13.76,
   "collateral_db": -13.63,
   "net_db": -120.0,
-  "missing": 0.1766,
-  "lin_dist": 22.795,
-  "added": 0.4202,
+  "missing": 0.1772,
+  "lin_dist": 16.674,
+  "added": 0.4148,
   "score": 0.0
  },
  {
@@ -680,9 +680,9 @@
   "artifact_db": -15.91,
   "collateral_db": -31.34,
   "net_db": -16.17,
-  "missing": 0.0564,
-  "lin_dist": 0.71,
-  "added": 0.1107,
+  "missing": 0.0566,
+  "lin_dist": 0.455,
+  "added": 0.1096,
   "score": 0.0
  },
  {
@@ -694,9 +694,9 @@
   "artifact_db": -39.88,
   "collateral_db": -50.43,
   "net_db": -40.72,
-  "missing": 0.0023,
-  "lin_dist": 0.031,
-  "added": 0.0039,
+  "missing": 0.0025,
+  "lin_dist": 0.022,
+  "added": 0.0041,
   "score": 0.0
  },
  {
@@ -708,9 +708,9 @@
   "artifact_db": -39.75,
   "collateral_db": -55.43,
   "net_db": -39.99,
-  "missing": 0.002,
-  "lin_dist": 0.031,
-  "added": 0.0039,
+  "missing": 0.0023,
+  "lin_dist": 0.024,
+  "added": 0.004,
   "score": 0.0
  },
  {
@@ -722,9 +722,9 @@
   "artifact_db": -55.88,
   "collateral_db": -119.99,
   "net_db": -55.88,
-  "missing": 0.0052,
-  "lin_dist": 0.184,
-  "added": 0.0112,
+  "missing": 0.0053,
+  "lin_dist": 0.161,
+  "added": 0.0113,
   "score": 0.0
  },
  {
@@ -736,9 +736,9 @@
   "artifact_db": -12.31,
   "collateral_db": -27.33,
   "net_db": -12.59,
-  "missing": 0.0761,
-  "lin_dist": 1.188,
-  "added": 0.0888,
+  "missing": 0.0764,
+  "lin_dist": 0.724,
+  "added": 0.088,
   "score": 0.0
  },
  {
@@ -750,9 +750,9 @@
   "artifact_db": -30.4,
   "collateral_db": -46.19,
   "net_db": -30.64,
-  "missing": 0.0041,
-  "lin_dist": 0.083,
-  "added": 0.0072,
+  "missing": 0.0043,
+  "lin_dist": 0.06,
+  "added": 0.0073,
   "score": 0.0
  },
  {
@@ -764,8 +764,8 @@
   "artifact_db": -51.83,
   "collateral_db": -63.05,
   "net_db": -52.54,
-  "missing": 0.0079,
-  "lin_dist": 0.421,
+  "missing": 0.008,
+  "lin_dist": 0.367,
   "added": 0.0189,
   "score": 0.0
  },
@@ -778,9 +778,9 @@
   "artifact_db": -31.67,
   "collateral_db": -47.45,
   "net_db": -31.9,
-  "missing": 0.0036,
-  "lin_dist": 0.071,
-  "added": 0.0061,
+  "missing": 0.0038,
+  "lin_dist": 0.051,
+  "added": 0.0062,
   "score": 0.0
  },
  {
@@ -793,7 +793,7 @@
   "collateral_db": -59.3,
   "net_db": -43.14,
   "missing": 0.0097,
-  "lin_dist": 0.049,
+  "lin_dist": 0.048,
   "added": 0.012,
   "score": 0.0
  },
@@ -806,9 +806,9 @@
   "artifact_db": -19.16,
   "collateral_db": -26.26,
   "net_db": -21.31,
-  "missing": 0.0445,
-  "lin_dist": 1.225,
-  "added": 0.0771,
+  "missing": 0.0446,
+  "lin_dist": 0.783,
+  "added": 0.0767,
   "score": 0.0
  },
  {
@@ -820,9 +820,9 @@
   "artifact_db": -13.35,
   "collateral_db": -27.55,
   "net_db": -13.7,
-  "missing": 0.1236,
-  "lin_dist": 5.929,
-  "added": 0.3756,
+  "missing": 0.124,
+  "lin_dist": 4.054,
+  "added": 0.3724,
   "score": 0.0
  },
  {
@@ -834,9 +834,9 @@
   "artifact_db": -17.08,
   "collateral_db": -26.56,
   "net_db": -18.18,
-  "missing": 0.0323,
-  "lin_dist": 1.843,
-  "added": 0.0682,
+  "missing": 0.0324,
+  "lin_dist": 1.247,
+  "added": 0.0677,
   "score": 0.0
  },
  {
@@ -848,9 +848,9 @@
   "artifact_db": -23.82,
   "collateral_db": -32.23,
   "net_db": -25.3,
-  "missing": 0.0533,
-  "lin_dist": 4.095,
-  "added": 0.1089,
+  "missing": 0.0534,
+  "lin_dist": 2.734,
+  "added": 0.1079,
   "score": 0.0
  },
  {
@@ -863,8 +863,8 @@
   "collateral_db": -31.18,
   "net_db": -21.69,
   "missing": 0.0219,
-  "lin_dist": 0.355,
-  "added": 0.0333,
+  "lin_dist": 0.177,
+  "added": 0.0329,
   "score": 0.0
  },
  {
@@ -876,9 +876,9 @@
   "artifact_db": -23.03,
   "collateral_db": -34.88,
   "net_db": -23.63,
-  "missing": 0.0338,
-  "lin_dist": 2.718,
-  "added": 0.0749,
+  "missing": 0.034,
+  "lin_dist": 2.093,
+  "added": 0.0741,
   "score": 0.0
  },
  {
@@ -890,9 +890,9 @@
   "artifact_db": -15.02,
   "collateral_db": -27.03,
   "net_db": -15.6,
-  "missing": 0.135,
-  "lin_dist": 18.135,
-  "added": 0.4131,
+  "missing": 0.1353,
+  "lin_dist": 13.258,
+  "added": 0.4118,
   "score": 0.0
  },
  {
@@ -904,9 +904,9 @@
   "artifact_db": -23.45,
   "collateral_db": -44.92,
   "net_db": -23.52,
-  "missing": 0.0223,
-  "lin_dist": 0.362,
-  "added": 0.023,
+  "missing": 0.0224,
+  "lin_dist": 0.21,
+  "added": 0.0229,
   "score": 0.0
  },
  {
@@ -918,9 +918,9 @@
   "artifact_db": -37.75,
   "collateral_db": -52.49,
   "net_db": -38.06,
-  "missing": 0.0021,
-  "lin_dist": 0.042,
-  "added": 0.0045,
+  "missing": 0.0029,
+  "lin_dist": 0.029,
+  "added": 0.0055,
   "score": 0.0
  },
  {
@@ -932,9 +932,9 @@
   "artifact_db": -37.78,
   "collateral_db": -58.9,
   "net_db": -37.85,
-  "missing": 0.0019,
-  "lin_dist": 0.049,
-  "added": 0.0041,
+  "missing": 0.0028,
+  "lin_dist": 0.036,
+  "added": 0.0052,
   "score": 0.0
  },
  {
@@ -946,9 +946,9 @@
   "artifact_db": -80.51,
   "collateral_db": -120.0,
   "net_db": -80.51,
-  "missing": 0.0036,
-  "lin_dist": 0.184,
-  "added": 0.0091,
+  "missing": 0.0041,
+  "lin_dist": 0.156,
+  "added": 0.0098,
   "score": 0.0
  },
  {
@@ -960,9 +960,9 @@
   "artifact_db": -16.46,
   "collateral_db": -38.51,
   "net_db": -16.51,
-  "missing": 0.0265,
-  "lin_dist": 0.846,
-  "added": 0.0353,
+  "missing": 0.0266,
+  "lin_dist": 0.537,
+  "added": 0.0351,
   "score": 0.0
  },
  {
@@ -974,9 +974,9 @@
   "artifact_db": -30.8,
   "collateral_db": -55.53,
   "net_db": -30.83,
-  "missing": 0.0039,
-  "lin_dist": 0.094,
-  "added": 0.006,
+  "missing": 0.0045,
+  "lin_dist": 0.069,
+  "added": 0.0068,
   "score": 0.0
  },
  {
@@ -988,9 +988,9 @@
   "artifact_db": -60.52,
   "collateral_db": -96.44,
   "net_db": -60.53,
-  "missing": 0.0056,
-  "lin_dist": 0.437,
-  "added": 0.0152,
+  "missing": 0.0059,
+  "lin_dist": 0.382,
+  "added": 0.0157,
   "score": 0.0
  },
  {
@@ -1002,9 +1002,9 @@
   "artifact_db": -32.02,
   "collateral_db": -56.75,
   "net_db": -32.05,
-  "missing": 0.0033,
-  "lin_dist": 0.079,
-  "added": 0.0051,
+  "missing": 0.004,
+  "lin_dist": 0.058,
+  "added": 0.006,
   "score": 0.0
  },
  {
@@ -1016,9 +1016,9 @@
   "artifact_db": -41.89,
   "collateral_db": -68.84,
   "net_db": -41.91,
-  "missing": 0.0068,
-  "lin_dist": 0.038,
-  "added": 0.0073,
+  "missing": 0.0069,
+  "lin_dist": 0.036,
+  "added": 0.0076,
   "score": 0.0
  },
  {
@@ -1030,9 +1030,9 @@
   "artifact_db": -18.15,
   "collateral_db": -27.97,
   "net_db": -19.16,
-  "missing": 0.0533,
-  "lin_dist": 1.502,
-  "added": 0.075,
+  "missing": 0.0525,
+  "lin_dist": 0.96,
+  "added": 0.0748,
   "score": 0.0
  },
  {
@@ -1044,9 +1044,9 @@
   "artifact_db": -17.99,
   "collateral_db": -29.79,
   "net_db": -18.61,
-  "missing": 0.0658,
-  "lin_dist": 3.522,
-  "added": 0.1175,
+  "missing": 0.0653,
+  "lin_dist": 2.521,
+  "added": 0.1173,
   "score": 0.0
  },
  {
@@ -1059,8 +1059,8 @@
   "collateral_db": -39.36,
   "net_db": -23.73,
   "missing": 0.0203,
-  "lin_dist": 1.724,
-  "added": 0.048,
+  "lin_dist": 1.197,
+  "added": 0.0478,
   "score": 0.0
  },
  {
@@ -1072,9 +1072,9 @@
   "artifact_db": -29.36,
   "collateral_db": -42.16,
   "net_db": -29.84,
-  "missing": 0.0307,
-  "lin_dist": 3.712,
-  "added": 0.0621,
+  "missing": 0.0301,
+  "lin_dist": 2.71,
+  "added": 0.0618,
   "score": 0.0
  },
  {
@@ -1086,9 +1086,9 @@
   "artifact_db": -27.85,
   "collateral_db": -41.12,
   "net_db": -28.28,
-  "missing": 0.0101,
-  "lin_dist": 0.218,
-  "added": 0.0182,
+  "missing": 0.0102,
+  "lin_dist": 0.079,
+  "added": 0.0184,
   "score": 0.0
  },
  {
@@ -1100,8 +1100,8 @@
   "artifact_db": -28.23,
   "collateral_db": -44.46,
   "net_db": -28.44,
-  "missing": 0.0153,
-  "lin_dist": 2.682,
+  "missing": 0.0154,
+  "lin_dist": 2.161,
   "added": 0.0476,
   "score": 0.0
  },
@@ -1114,9 +1114,9 @@
   "artifact_db": -19.63,
   "collateral_db": -22.57,
   "net_db": -120.0,
-  "missing": 0.0475,
-  "lin_dist": 13.555,
-  "added": 0.0768,
+  "missing": 0.0468,
+  "lin_dist": 11.147,
+  "added": 0.0762,
   "score": 0.0
  },
  {
@@ -1129,9 +1129,9 @@
   "collateral_db": -25.63,
   "net_db": -18.35,
   "missing": 0.0797,
-  "lin_dist": 0.944,
-  "added": 0.3351,
-  "score": 0.483
+  "lin_dist": 0.825,
+  "added": 0.335,
+  "score": 0.522
  },
  {
   "file": "distrokid-the-little-things",
@@ -1143,7 +1143,7 @@
   "collateral_db": -31.65,
   "net_db": -120.0,
   "missing": 0.0045,
-  "lin_dist": 0.026,
+  "lin_dist": 0.018,
   "added": 0.005,
   "score": 0.0
  },
@@ -1157,7 +1157,7 @@
   "collateral_db": -31.82,
   "net_db": -120.0,
   "missing": 0.0036,
-  "lin_dist": 0.023,
+  "lin_dist": 0.016,
   "added": 0.0055,
   "score": 0.0
  },
@@ -1170,9 +1170,9 @@
   "artifact_db": -55.17,
   "collateral_db": -59.51,
   "net_db": -60.95,
-  "missing": 0.0044,
-  "lin_dist": 0.118,
-  "added": 0.011,
+  "missing": 0.0043,
+  "lin_dist": 0.106,
+  "added": 0.0109,
   "score": 0.0
  },
  {
@@ -1185,8 +1185,8 @@
   "collateral_db": -22.46,
   "net_db": -18.65,
   "missing": 0.0741,
-  "lin_dist": 0.938,
-  "added": 0.1213,
+  "lin_dist": 0.793,
+  "added": 0.1211,
   "score": 0.0
  },
  {
@@ -1199,7 +1199,7 @@
   "collateral_db": -33.06,
   "net_db": -120.0,
   "missing": 0.0058,
-  "lin_dist": 0.069,
+  "lin_dist": 0.056,
   "added": 0.0064,
   "score": 0.0
  },
@@ -1212,9 +1212,9 @@
   "artifact_db": -34.22,
   "collateral_db": -34.85,
   "net_db": -120.0,
-  "missing": 0.0091,
-  "lin_dist": 0.279,
-  "added": 0.0197,
+  "missing": 0.009,
+  "lin_dist": 0.255,
+  "added": 0.0195,
   "score": 0.0
  },
  {
@@ -1227,8 +1227,8 @@
   "collateral_db": -34.15,
   "net_db": -120.0,
   "missing": 0.005,
-  "lin_dist": 0.06,
-  "added": 0.0056,
+  "lin_dist": 0.048,
+  "added": 0.0055,
   "score": 0.0
  },
  {
@@ -1241,9 +1241,9 @@
   "collateral_db": -32.87,
   "net_db": -120.0,
   "missing": 0.0087,
-  "lin_dist": 0.02,
-  "added": 0.0138,
-  "score": 0.002
+  "lin_dist": 0.019,
+  "added": 0.0139,
+  "score": 0.003
  },
  {
   "file": "distrokid-the-little-things",
@@ -1255,7 +1255,7 @@
   "collateral_db": -24.61,
   "net_db": -120.0,
   "missing": 0.0997,
-  "lin_dist": 0.684,
+  "lin_dist": 0.542,
   "added": 0.106,
   "score": 0.0
  },
@@ -1268,9 +1268,9 @@
   "artifact_db": -11.92,
   "collateral_db": -18.83,
   "net_db": -14.19,
-  "missing": 0.1965,
-  "lin_dist": 9.199,
-  "added": 1.3273,
+  "missing": 0.1961,
+  "lin_dist": 8.26,
+  "added": 1.3308,
   "score": 0.0
  },
  {
@@ -1282,9 +1282,9 @@
   "artifact_db": -22.26,
   "collateral_db": -25.57,
   "net_db": -34.12,
-  "missing": 0.0518,
-  "lin_dist": 1.25,
-  "added": 0.0664,
+  "missing": 0.0514,
+  "lin_dist": 1.076,
+  "added": 0.0661,
   "score": 0.0
  },
  {
@@ -1296,9 +1296,9 @@
   "artifact_db": -28.16,
   "collateral_db": -31.56,
   "net_db": -38.82,
-  "missing": 0.1002,
-  "lin_dist": 3.003,
-  "added": 0.1322,
+  "missing": 0.0997,
+  "lin_dist": 2.624,
+  "added": 0.1319,
   "score": 0.0
  },
  {
@@ -1311,8 +1311,8 @@
   "collateral_db": -28.92,
   "net_db": -120.0,
   "missing": 0.0262,
-  "lin_dist": 0.18,
-  "added": 0.0366,
+  "lin_dist": 0.128,
+  "added": 0.0365,
   "score": 0.0
  },
  {
@@ -1324,9 +1324,9 @@
   "artifact_db": -26.69,
   "collateral_db": -30.17,
   "net_db": -36.62,
-  "missing": 0.0466,
-  "lin_dist": 1.868,
-  "added": 0.0759,
+  "missing": 0.0463,
+  "lin_dist": 1.704,
+  "added": 0.0757,
   "score": 0.0
  },
  {
@@ -1338,9 +1338,9 @@
   "artifact_db": -12.94,
   "collateral_db": -19.19,
   "net_db": -15.73,
-  "missing": 0.2004,
-  "lin_dist": 17.056,
-  "added": 1.4305,
+  "missing": 0.1994,
+  "lin_dist": 15.319,
+  "added": 1.4318,
   "score": 0.0
  },
  {
@@ -1352,9 +1352,9 @@
   "artifact_db": -17.91,
   "collateral_db": -33.08,
   "net_db": -18.18,
-  "missing": 0.0674,
-  "lin_dist": 0.758,
-  "added": 0.2026,
+  "missing": 0.0681,
+  "lin_dist": 0.437,
+  "added": 0.2,
   "score": 0.0
  },
  {
@@ -1366,9 +1366,9 @@
   "artifact_db": -30.93,
   "collateral_db": -37.75,
   "net_db": -33.27,
-  "missing": 0.0039,
-  "lin_dist": 0.045,
-  "added": 0.0068,
+  "missing": 0.0054,
+  "lin_dist": 0.027,
+  "added": 0.0085,
   "score": 0.0
  },
  {
@@ -1380,9 +1380,9 @@
   "artifact_db": -31.38,
   "collateral_db": -38.51,
   "net_db": -33.5,
-  "missing": 0.0033,
-  "lin_dist": 0.044,
-  "added": 0.0054,
+  "missing": 0.0051,
+  "lin_dist": 0.029,
+  "added": 0.0073,
   "score": 0.0
  },
  {
@@ -1394,9 +1394,9 @@
   "artifact_db": -49.44,
   "collateral_db": -120.0,
   "net_db": -49.44,
-  "missing": 0.0069,
-  "lin_dist": 0.214,
-  "added": 0.0134,
+  "missing": 0.0081,
+  "lin_dist": 0.177,
+  "added": 0.015,
   "score": 0.0
  },
  {
@@ -1408,9 +1408,9 @@
   "artifact_db": -16.27,
   "collateral_db": -29.44,
   "net_db": -16.7,
-  "missing": 0.0518,
-  "lin_dist": 1.077,
-  "added": 0.2317,
+  "missing": 0.0529,
+  "lin_dist": 0.606,
+  "added": 0.2283,
   "score": 0.0
  },
  {
@@ -1422,9 +1422,9 @@
   "artifact_db": -30.04,
   "collateral_db": -39.1,
   "net_db": -31.28,
-  "missing": 0.0064,
-  "lin_dist": 0.108,
-  "added": 0.0102,
+  "missing": 0.0076,
+  "lin_dist": 0.07,
+  "added": 0.0114,
   "score": 0.0
  },
  {
@@ -1436,9 +1436,9 @@
   "artifact_db": -34.9,
   "collateral_db": -41.57,
   "net_db": -37.34,
-  "missing": 0.0111,
-  "lin_dist": 0.492,
-  "added": 0.0231,
+  "missing": 0.0119,
+  "lin_dist": 0.412,
+  "added": 0.0241,
   "score": 0.0
  },
  {
@@ -1450,9 +1450,9 @@
   "artifact_db": -31.21,
   "collateral_db": -40.15,
   "net_db": -32.49,
-  "missing": 0.0055,
-  "lin_dist": 0.092,
-  "added": 0.0087,
+  "missing": 0.0068,
+  "lin_dist": 0.058,
+  "added": 0.0101,
   "score": 0.0
  },
  {
@@ -1464,9 +1464,9 @@
   "artifact_db": -32.37,
   "collateral_db": -39.59,
   "net_db": -34.44,
-  "missing": 0.0167,
-  "lin_dist": 0.065,
-  "added": 0.0131,
+  "missing": 0.017,
+  "lin_dist": 0.063,
+  "added": 0.014,
   "score": 0.0
  },
  {
@@ -1478,9 +1478,9 @@
   "artifact_db": -19.68,
   "collateral_db": -27.5,
   "net_db": -21.42,
-  "missing": 0.0679,
-  "lin_dist": 1.486,
-  "added": 0.1639,
+  "missing": 0.0669,
+  "lin_dist": 0.659,
+  "added": 0.1624,
   "score": 0.0
  },
  {
@@ -1492,9 +1492,9 @@
   "artifact_db": -13.06,
   "collateral_db": -26.59,
   "net_db": -13.47,
-  "missing": 0.1511,
-  "lin_dist": 6.667,
-  "added": 0.8733,
+  "missing": 0.1509,
+  "lin_dist": 4.181,
+  "added": 0.8722,
   "score": 0.0
  },
  {
@@ -1506,9 +1506,9 @@
   "artifact_db": -24.84,
   "collateral_db": -33.7,
   "net_db": -26.14,
-  "missing": 0.0413,
-  "lin_dist": 1.795,
-  "added": 0.1011,
+  "missing": 0.0419,
+  "lin_dist": 1.104,
+  "added": 0.0999,
   "score": 0.0
  },
  {
@@ -1520,9 +1520,9 @@
   "artifact_db": -31.31,
   "collateral_db": -40.09,
   "net_db": -32.65,
-  "missing": 0.0584,
-  "lin_dist": 3.775,
-  "added": 0.1831,
+  "missing": 0.0588,
+  "lin_dist": 2.313,
+  "added": 0.1829,
   "score": 0.0
  },
  {
@@ -1534,9 +1534,9 @@
   "artifact_db": -24.04,
   "collateral_db": -32.59,
   "net_db": -25.46,
-  "missing": 0.021,
-  "lin_dist": 0.326,
-  "added": 0.0477,
+  "missing": 0.0214,
+  "lin_dist": 0.112,
+  "added": 0.0471,
   "score": 0.0
  },
  {
@@ -1548,9 +1548,9 @@
   "artifact_db": -23.26,
   "collateral_db": -33.35,
   "net_db": -24.21,
-  "missing": 0.0433,
-  "lin_dist": 3.002,
-  "added": 0.1489,
+  "missing": 0.0444,
+  "lin_dist": 2.208,
+  "added": 0.1463,
   "score": 0.0
  },
  {
@@ -1562,9 +1562,9 @@
   "artifact_db": -14.67,
   "collateral_db": -28.6,
   "net_db": -15.04,
-  "missing": 0.1278,
-  "lin_dist": 20.418,
-  "added": 0.8672,
+  "missing": 0.1279,
+  "lin_dist": 14.567,
+  "added": 0.8713,
   "score": 0.0
  },
  {
@@ -1576,9 +1576,9 @@
   "artifact_db": -26.6,
   "collateral_db": -44.46,
   "net_db": -26.74,
-  "missing": 0.0278,
-  "lin_dist": 0.35,
-  "added": 0.0274,
+  "missing": 0.0276,
+  "lin_dist": 0.286,
+  "added": 0.0279,
   "score": 0.0
  },
  {
@@ -1590,9 +1590,9 @@
   "artifact_db": -37.32,
   "collateral_db": -49.11,
   "net_db": -37.94,
-  "missing": 0.002,
-  "lin_dist": 0.032,
-  "added": 0.0043,
+  "missing": 0.0026,
+  "lin_dist": 0.024,
+  "added": 0.0059,
   "score": 0.0
  },
  {
@@ -1604,9 +1604,9 @@
   "artifact_db": -37.29,
   "collateral_db": -51.29,
   "net_db": -37.66,
-  "missing": 0.002,
-  "lin_dist": 0.04,
-  "added": 0.0049,
+  "missing": 0.0024,
+  "lin_dist": 0.032,
+  "added": 0.0064,
   "score": 0.0
  },
  {
@@ -1618,9 +1618,9 @@
   "artifact_db": -89.31,
   "collateral_db": -120.0,
   "net_db": -89.31,
-  "missing": 0.0044,
-  "lin_dist": 0.17,
-  "added": 0.0105,
+  "missing": 0.0046,
+  "lin_dist": 0.158,
+  "added": 0.0117,
   "score": 0.0
  },
  {
@@ -1633,8 +1633,8 @@
   "collateral_db": -31.99,
   "net_db": -19.52,
   "missing": 0.0702,
-  "lin_dist": 0.733,
-  "added": 0.0519,
+  "lin_dist": 0.595,
+  "added": 0.0518,
   "score": 0.0
  },
  {
@@ -1646,9 +1646,9 @@
   "artifact_db": -37.97,
   "collateral_db": -51.36,
   "net_db": -38.39,
-  "missing": 0.0036,
-  "lin_dist": 0.06,
-  "added": 0.0062,
+  "missing": 0.004,
+  "lin_dist": 0.05,
+  "added": 0.0076,
   "score": 0.0
  },
  {
@@ -1661,8 +1661,8 @@
   "collateral_db": -55.31,
   "net_db": -41.74,
   "missing": 0.0075,
-  "lin_dist": 0.399,
-  "added": 0.017,
+  "lin_dist": 0.378,
+  "added": 0.018,
   "score": 0.0
  },
  {
@@ -1674,9 +1674,9 @@
   "artifact_db": -39.21,
   "collateral_db": -52.51,
   "net_db": -39.64,
-  "missing": 0.0031,
-  "lin_dist": 0.051,
-  "added": 0.0055,
+  "missing": 0.0036,
+  "lin_dist": 0.042,
+  "added": 0.0069,
   "score": 0.0
  },
  {
@@ -1688,9 +1688,9 @@
   "artifact_db": -38.73,
   "collateral_db": -52.74,
   "net_db": -39.09,
-  "missing": 0.0059,
-  "lin_dist": 0.026,
-  "added": 0.0104,
+  "missing": 0.006,
+  "lin_dist": 0.024,
+  "added": 0.0113,
   "score": 0.0
  },
  {
@@ -1702,9 +1702,9 @@
   "artifact_db": -24.59,
   "collateral_db": -32.09,
   "net_db": -26.5,
-  "missing": 0.0418,
-  "lin_dist": 0.539,
-  "added": 0.0486,
+  "missing": 0.0412,
+  "lin_dist": 0.265,
+  "added": 0.0489,
   "score": 0.0
  },
  {
@@ -1716,9 +1716,9 @@
   "artifact_db": -23.13,
   "collateral_db": -40.62,
   "net_db": -23.29,
-  "missing": 0.0637,
-  "lin_dist": 2.408,
-  "added": 0.062,
+  "missing": 0.0631,
+  "lin_dist": 2.119,
+  "added": 0.0623,
   "score": 0.0
  },
  {
@@ -1730,9 +1730,9 @@
   "artifact_db": -30.07,
   "collateral_db": -37.46,
   "net_db": -32.04,
-  "missing": 0.0171,
-  "lin_dist": 1.261,
-  "added": 0.0376,
+  "missing": 0.0163,
+  "lin_dist": 1.049,
+  "added": 0.038,
   "score": 0.0
  },
  {
@@ -1744,9 +1744,9 @@
   "artifact_db": -33.78,
   "collateral_db": -40.66,
   "net_db": -36.07,
-  "missing": 0.0292,
-  "lin_dist": 2.89,
-  "added": 0.0465,
+  "missing": 0.0279,
+  "lin_dist": 2.369,
+  "added": 0.0466,
   "score": 0.0
  },
  {
@@ -1758,9 +1758,9 @@
   "artifact_db": -33.98,
   "collateral_db": -41.75,
   "net_db": -35.75,
-  "missing": 0.0071,
-  "lin_dist": 0.112,
-  "added": 0.0127,
+  "missing": 0.0072,
+  "lin_dist": 0.063,
+  "added": 0.0137,
   "score": 0.0
  },
  {
@@ -1772,9 +1772,9 @@
   "artifact_db": -38.38,
   "collateral_db": -48.6,
   "net_db": -39.29,
-  "missing": 0.0148,
-  "lin_dist": 1.882,
-  "added": 0.0323,
+  "missing": 0.014,
+  "lin_dist": 1.741,
+  "added": 0.0327,
   "score": 0.0
  },
  {
@@ -1786,9 +1786,9 @@
   "artifact_db": -19.93,
   "collateral_db": -32.97,
   "net_db": -20.38,
-  "missing": 0.0861,
-  "lin_dist": 10.083,
-  "added": 0.0811,
+  "missing": 0.0849,
+  "lin_dist": 9.081,
+  "added": 0.0807,
   "score": 0.0
  },
  {
@@ -1800,9 +1800,9 @@
   "artifact_db": -25.6,
   "collateral_db": -39.52,
   "net_db": -25.97,
-  "missing": 0.0267,
-  "lin_dist": 0.339,
-  "added": 0.0163,
+  "missing": 0.0268,
+  "lin_dist": 0.248,
+  "added": 0.0164,
   "score": 0.0
  },
  {
@@ -1814,9 +1814,9 @@
   "artifact_db": -30.42,
   "collateral_db": -35.92,
   "net_db": -34.04,
-  "missing": 0.0025,
-  "lin_dist": 0.039,
-  "added": 0.0054,
+  "missing": 0.0033,
+  "lin_dist": 0.031,
+  "added": 0.0065,
   "score": 0.0
  },
  {
@@ -1828,9 +1828,9 @@
   "artifact_db": -30.49,
   "collateral_db": -36.11,
   "net_db": -33.94,
-  "missing": 0.0027,
-  "lin_dist": 0.049,
-  "added": 0.005,
+  "missing": 0.0036,
+  "lin_dist": 0.042,
+  "added": 0.0063,
   "score": 0.0
  },
  {
@@ -1842,9 +1842,9 @@
   "artifact_db": -45.67,
   "collateral_db": -120.0,
   "net_db": -45.67,
-  "missing": 0.0065,
-  "lin_dist": 0.282,
-  "added": 0.015,
+  "missing": 0.0071,
+  "lin_dist": 0.265,
+  "added": 0.0161,
   "score": 0.0
  },
  {
@@ -1856,9 +1856,9 @@
   "artifact_db": -21.4,
   "collateral_db": -35.89,
   "net_db": -21.73,
-  "missing": 0.029,
-  "lin_dist": 0.725,
-  "added": 0.0274,
+  "missing": 0.0292,
+  "lin_dist": 0.557,
+  "added": 0.0276,
   "score": 0.0
  },
  {
@@ -1870,9 +1870,9 @@
   "artifact_db": -30.05,
   "collateral_db": -37.32,
   "net_db": -32.1,
-  "missing": 0.0051,
-  "lin_dist": 0.137,
-  "added": 0.0086,
+  "missing": 0.0059,
+  "lin_dist": 0.121,
+  "added": 0.0098,
   "score": 0.0
  },
  {
@@ -1884,9 +1884,9 @@
   "artifact_db": -31.97,
   "collateral_db": -38.27,
   "net_db": -34.72,
-  "missing": 0.0091,
-  "lin_dist": 0.771,
-  "added": 0.0239,
+  "missing": 0.0096,
+  "lin_dist": 0.73,
+  "added": 0.0248,
   "score": 0.0
  },
  {
@@ -1898,9 +1898,9 @@
   "artifact_db": -31.25,
   "collateral_db": -38.2,
   "net_db": -33.49,
-  "missing": 0.0043,
-  "lin_dist": 0.112,
-  "added": 0.0073,
+  "missing": 0.0051,
+  "lin_dist": 0.098,
+  "added": 0.0085,
   "score": 0.0
  },
  {
@@ -1912,9 +1912,9 @@
   "artifact_db": -29.99,
   "collateral_db": -36.74,
   "net_db": -32.38,
-  "missing": 0.0076,
-  "lin_dist": 0.107,
-  "added": 0.0135,
+  "missing": 0.0082,
+  "lin_dist": 0.105,
+  "added": 0.0143,
   "score": 0.0
  },
  {
@@ -1926,9 +1926,9 @@
   "artifact_db": -25.51,
   "collateral_db": -30.32,
   "net_db": -30.21,
-  "missing": 0.0317,
-  "lin_dist": 0.634,
-  "added": 0.0548,
+  "missing": 0.0315,
+  "lin_dist": 0.279,
+  "added": 0.0547,
   "score": 0.0
  },
  {
@@ -1940,9 +1940,9 @@
   "artifact_db": -22.21,
   "collateral_db": -33.88,
   "net_db": -22.85,
-  "missing": 0.0613,
-  "lin_dist": 2.514,
-  "added": 0.0582,
+  "missing": 0.0611,
+  "lin_dist": 1.961,
+  "added": 0.058,
   "score": 0.0
  },
  {
@@ -1954,8 +1954,8 @@
   "artifact_db": -29.92,
   "collateral_db": -36.34,
   "net_db": -32.56,
-  "missing": 0.0122,
-  "lin_dist": 1.603,
+  "missing": 0.0121,
+  "lin_dist": 1.25,
   "added": 0.0418,
   "score": 0.0
  },
@@ -1968,9 +1968,9 @@
   "artifact_db": -33.29,
   "collateral_db": -40.95,
   "net_db": -35.11,
-  "missing": 0.0168,
-  "lin_dist": 3.296,
-  "added": 0.049,
+  "missing": 0.0165,
+  "lin_dist": 2.526,
+  "added": 0.0489,
   "score": 0.0
  },
  {
@@ -1982,9 +1982,9 @@
   "artifact_db": -32.08,
   "collateral_db": -39.09,
   "net_db": -34.29,
-  "missing": 0.0076,
-  "lin_dist": 0.161,
-  "added": 0.0153,
+  "missing": 0.0078,
+  "lin_dist": 0.088,
+  "added": 0.0157,
   "score": 0.0
  },
  {
@@ -1996,9 +1996,9 @@
   "artifact_db": -33.54,
   "collateral_db": -41.96,
   "net_db": -35.01,
-  "missing": 0.0088,
-  "lin_dist": 2.537,
-  "added": 0.0363,
+  "missing": 0.0089,
+  "lin_dist": 2.271,
+  "added": 0.0367,
   "score": 0.0
  },
  {
@@ -2010,8 +2010,8 @@
   "artifact_db": -21.58,
   "collateral_db": -30.5,
   "net_db": -22.87,
-  "missing": 0.0509,
-  "lin_dist": 14.647,
+  "missing": 0.0506,
+  "lin_dist": 12.721,
   "added": 0.0818,
   "score": 0.0
  },
@@ -2024,9 +2024,9 @@
   "artifact_db": -28.25,
   "collateral_db": -38.84,
   "net_db": -29.08,
-  "missing": 0.0251,
-  "lin_dist": 0.336,
-  "added": 0.0213,
+  "missing": 0.0252,
+  "lin_dist": 0.272,
+  "added": 0.0212,
   "score": 0.0
  },
  {
@@ -2038,9 +2038,9 @@
   "artifact_db": -35.43,
   "collateral_db": -37.9,
   "net_db": -120.0,
-  "missing": 0.0034,
-  "lin_dist": 0.043,
-  "added": 0.0065,
+  "missing": 0.0036,
+  "lin_dist": 0.036,
+  "added": 0.0066,
   "score": 0.0
  },
  {
@@ -2052,9 +2052,9 @@
   "artifact_db": -35.41,
   "collateral_db": -38.16,
   "net_db": -120.0,
-  "missing": 0.003,
-  "lin_dist": 0.044,
-  "added": 0.0057,
+  "missing": 0.0032,
+  "lin_dist": 0.038,
+  "added": 0.0058,
   "score": 0.0
  },
  {
@@ -2066,9 +2066,9 @@
   "artifact_db": -53.59,
   "collateral_db": -120.0,
   "net_db": -53.59,
-  "missing": 0.0059,
-  "lin_dist": 0.226,
-  "added": 0.0121,
+  "missing": 0.0061,
+  "lin_dist": 0.215,
+  "added": 0.0122,
   "score": 0.0
  },
  {
@@ -2080,9 +2080,9 @@
   "artifact_db": -23.14,
   "collateral_db": -31.4,
   "net_db": -24.68,
-  "missing": 0.0292,
-  "lin_dist": 0.757,
-  "added": 0.0316,
+  "missing": 0.0293,
+  "lin_dist": 0.614,
+  "added": 0.0315,
   "score": 0.0
  },
  {
@@ -2094,9 +2094,9 @@
   "artifact_db": -34.54,
   "collateral_db": -39.65,
   "net_db": -38.69,
-  "missing": 0.005,
-  "lin_dist": 0.1,
-  "added": 0.0084,
+  "missing": 0.0052,
+  "lin_dist": 0.09,
+  "added": 0.0086,
   "score": 0.0
  },
  {
@@ -2108,9 +2108,9 @@
   "artifact_db": -38.26,
   "collateral_db": -40.77,
   "net_db": -120.0,
-  "missing": 0.0087,
-  "lin_dist": 0.562,
-  "added": 0.0204,
+  "missing": 0.0089,
+  "lin_dist": 0.537,
+  "added": 0.0205,
   "score": 0.0
  },
  {
@@ -2122,9 +2122,9 @@
   "artifact_db": -35.8,
   "collateral_db": -40.63,
   "net_db": -40.46,
-  "missing": 0.0042,
-  "lin_dist": 0.084,
-  "added": 0.0071,
+  "missing": 0.0044,
+  "lin_dist": 0.075,
+  "added": 0.0073,
   "score": 0.0
  },
  {
@@ -2136,8 +2136,8 @@
   "artifact_db": -35.38,
   "collateral_db": -39.0,
   "net_db": -44.21,
-  "missing": 0.0085,
-  "lin_dist": 0.058,
+  "missing": 0.0086,
+  "lin_dist": 0.057,
   "added": 0.0138,
   "score": 0.0
  },
@@ -2150,9 +2150,9 @@
   "artifact_db": -27.92,
   "collateral_db": -31.08,
   "net_db": -42.54,
-  "missing": 0.029,
-  "lin_dist": 0.452,
-  "added": 0.0381,
+  "missing": 0.0292,
+  "lin_dist": 0.293,
+  "added": 0.0379,
   "score": 0.0
  },
  {
@@ -2165,8 +2165,8 @@
   "collateral_db": -31.59,
   "net_db": -25.35,
   "missing": 0.0645,
-  "lin_dist": 2.894,
-  "added": 0.0642,
+  "lin_dist": 2.537,
+  "added": 0.064,
   "score": 0.0
  },
  {
@@ -2178,9 +2178,9 @@
   "artifact_db": -33.16,
   "collateral_db": -37.62,
   "net_db": -38.64,
-  "missing": 0.0142,
-  "lin_dist": 1.425,
-  "added": 0.0348,
+  "missing": 0.0143,
+  "lin_dist": 1.254,
+  "added": 0.0347,
   "score": 0.0
  },
  {
@@ -2193,8 +2193,8 @@
   "collateral_db": -41.96,
   "net_db": -38.95,
   "missing": 0.0187,
-  "lin_dist": 3.216,
-  "added": 0.0437,
+  "lin_dist": 2.757,
+  "added": 0.0434,
   "score": 0.0
  },
  {
@@ -2206,8 +2206,8 @@
   "artifact_db": -34.73,
   "collateral_db": -35.63,
   "net_db": -120.0,
-  "missing": 0.0086,
-  "lin_dist": 0.132,
+  "missing": 0.0087,
+  "lin_dist": 0.071,
   "added": 0.0131,
   "score": 0.0
  },
@@ -2221,8 +2221,8 @@
   "collateral_db": -40.14,
   "net_db": -42.86,
   "missing": 0.0118,
-  "lin_dist": 2.358,
-  "added": 0.0354,
+  "lin_dist": 2.17,
+  "added": 0.0352,
   "score": 0.0
  },
  {
@@ -2234,9 +2234,9 @@
   "artifact_db": -16.76,
   "collateral_db": -24.58,
   "net_db": -18.5,
-  "missing": 0.0625,
-  "lin_dist": 13.555,
-  "added": 0.1157,
+  "missing": 0.0624,
+  "lin_dist": 12.168,
+  "added": 0.1153,
   "score": 0.0
  },
  {
@@ -2248,8 +2248,8 @@
   "artifact_db": -28.74,
   "collateral_db": -36.97,
   "net_db": -30.29,
-  "missing": 0.0475,
-  "lin_dist": 0.673,
+  "missing": 0.0476,
+  "lin_dist": 0.614,
   "added": 0.0822,
   "score": 0.0
  },
@@ -2262,9 +2262,9 @@
   "artifact_db": -47.68,
   "collateral_db": -51.5,
   "net_db": -55.36,
-  "missing": 0.0049,
-  "lin_dist": 0.043,
-  "added": 0.0063,
+  "missing": 0.0053,
+  "lin_dist": 0.034,
+  "added": 0.0067,
   "score": 0.0
  },
  {
@@ -2276,9 +2276,9 @@
   "artifact_db": -48.65,
   "collateral_db": -53.05,
   "net_db": -54.26,
-  "missing": 0.0042,
-  "lin_dist": 0.039,
-  "added": 0.0057,
+  "missing": 0.0045,
+  "lin_dist": 0.031,
+  "added": 0.0061,
   "score": 0.0
  },
  {
@@ -2290,9 +2290,9 @@
   "artifact_db": -57.92,
   "collateral_db": -120.0,
   "net_db": -57.92,
-  "missing": 0.0065,
-  "lin_dist": 0.209,
-  "added": 0.0123,
+  "missing": 0.0069,
+  "lin_dist": 0.197,
+  "added": 0.0127,
   "score": 0.0
  },
  {
@@ -2304,9 +2304,9 @@
   "artifact_db": -22.14,
   "collateral_db": -27.87,
   "net_db": -25.46,
-  "missing": 0.0571,
-  "lin_dist": 0.863,
-  "added": 0.1166,
+  "missing": 0.0574,
+  "lin_dist": 0.771,
+  "added": 0.1164,
   "score": 0.0
  },
  {
@@ -2318,9 +2318,9 @@
   "artifact_db": -43.83,
   "collateral_db": -51.15,
   "net_db": -45.84,
-  "missing": 0.0056,
-  "lin_dist": 0.086,
-  "added": 0.0078,
+  "missing": 0.0059,
+  "lin_dist": 0.074,
+  "added": 0.0081,
   "score": 0.0
  },
  {
@@ -2332,9 +2332,9 @@
   "artifact_db": -54.62,
   "collateral_db": -59.36,
   "net_db": -59.44,
-  "missing": 0.01,
-  "lin_dist": 0.476,
-  "added": 0.0202,
+  "missing": 0.0102,
+  "lin_dist": 0.455,
+  "added": 0.0204,
   "score": 0.0
  },
  {
@@ -2346,9 +2346,9 @@
   "artifact_db": -45.06,
   "collateral_db": -52.09,
   "net_db": -47.25,
-  "missing": 0.0049,
-  "lin_dist": 0.074,
-  "added": 0.0068,
+  "missing": 0.0053,
+  "lin_dist": 0.063,
+  "added": 0.0071,
   "score": 0.0
  },
  {
@@ -2360,9 +2360,9 @@
   "artifact_db": -49.2,
   "collateral_db": -55.33,
   "net_db": -52.11,
-  "missing": 0.0105,
-  "lin_dist": 0.049,
-  "added": 0.0144,
+  "missing": 0.0107,
+  "lin_dist": 0.045,
+  "added": 0.0146,
   "score": 0.0
  },
  {
@@ -2374,9 +2374,9 @@
   "artifact_db": -26.97,
   "collateral_db": -30.53,
   "net_db": -36.19,
-  "missing": 0.0353,
-  "lin_dist": 0.215,
-  "added": 0.0403,
+  "missing": 0.0355,
+  "lin_dist": 0.105,
+  "added": 0.0402,
   "score": 0.0
  },
  {
@@ -2388,9 +2388,9 @@
   "artifact_db": -20.7,
   "collateral_db": -25.84,
   "net_db": -24.81,
-  "missing": 0.1165,
-  "lin_dist": 5.503,
-  "added": 0.2224,
+  "missing": 0.1162,
+  "lin_dist": 4.978,
+  "added": 0.2247,
   "score": 0.0
  },
  {
@@ -2403,8 +2403,8 @@
   "collateral_db": -39.26,
   "net_db": -120.0,
   "missing": 0.0229,
-  "lin_dist": 1.259,
-  "added": 0.0407,
+  "lin_dist": 1.156,
+  "added": 0.0406,
   "score": 0.0
  },
  {
@@ -2416,9 +2416,9 @@
   "artifact_db": -49.27,
   "collateral_db": -48.17,
   "net_db": -120.0,
-  "missing": 0.0371,
-  "lin_dist": 2.835,
-  "added": 0.0655,
+  "missing": 0.037,
+  "lin_dist": 2.538,
+  "added": 0.0653,
   "score": 0.0
  },
  {
@@ -2430,9 +2430,9 @@
   "artifact_db": -41.24,
   "collateral_db": -40.23,
   "net_db": -120.0,
-  "missing": 0.0104,
-  "lin_dist": 0.104,
-  "added": 0.0133,
+  "missing": 0.0106,
+  "lin_dist": 0.074,
+  "added": 0.0134,
   "score": 0.0
  },
  {
@@ -2445,8 +2445,8 @@
   "collateral_db": -43.52,
   "net_db": -120.0,
   "missing": 0.023,
-  "lin_dist": 2.056,
-  "added": 0.0524,
+  "lin_dist": 1.959,
+  "added": 0.0521,
   "score": 0.0
  },
  {
@@ -2458,9 +2458,9 @@
   "artifact_db": -20.0,
   "collateral_db": -18.39,
   "net_db": -120.0,
-  "missing": 0.1116,
-  "lin_dist": 15.99,
-  "added": 0.2314,
+  "missing": 0.1111,
+  "lin_dist": 14.758,
+  "added": 0.2324,
   "score": 0.0
  },
  {
@@ -2473,8 +2473,8 @@
   "collateral_db": -45.95,
   "net_db": -24.81,
   "missing": 0.026,
-  "lin_dist": 0.364,
-  "added": 0.0186,
+  "lin_dist": 0.256,
+  "added": 0.0187,
   "score": 0.0
  },
  {
@@ -2486,9 +2486,9 @@
   "artifact_db": -38.2,
   "collateral_db": -51.99,
   "net_db": -38.58,
-  "missing": 0.0023,
-  "lin_dist": 0.042,
-  "added": 0.0046,
+  "missing": 0.0033,
+  "lin_dist": 0.029,
+  "added": 0.0059,
   "score": 0.0
  },
  {
@@ -2500,9 +2500,9 @@
   "artifact_db": -37.24,
   "collateral_db": -56.81,
   "net_db": -37.34,
-  "missing": 0.0021,
-  "lin_dist": 0.054,
-  "added": 0.0045,
+  "missing": 0.0031,
+  "lin_dist": 0.041,
+  "added": 0.0059,
   "score": 0.0
  },
  {
@@ -2514,9 +2514,9 @@
   "artifact_db": -79.11,
   "collateral_db": -120.0,
   "net_db": -79.11,
-  "missing": 0.004,
-  "lin_dist": 0.2,
-  "added": 0.0097,
+  "missing": 0.0046,
+  "lin_dist": 0.176,
+  "added": 0.0107,
   "score": 0.0
  },
  {
@@ -2528,9 +2528,9 @@
   "artifact_db": -18.78,
   "collateral_db": -39.65,
   "net_db": -18.85,
-  "missing": 0.0212,
-  "lin_dist": 0.734,
-  "added": 0.0274,
+  "missing": 0.0213,
+  "lin_dist": 0.53,
+  "added": 0.0276,
   "score": 0.0
  },
  {
@@ -2542,9 +2542,9 @@
   "artifact_db": -31.88,
   "collateral_db": -54.14,
   "net_db": -31.93,
-  "missing": 0.0039,
-  "lin_dist": 0.102,
-  "added": 0.0066,
+  "missing": 0.0048,
+  "lin_dist": 0.081,
+  "added": 0.0077,
   "score": 0.0
  },
  {
@@ -2556,9 +2556,9 @@
   "artifact_db": -56.04,
   "collateral_db": -85.73,
   "net_db": -56.05,
-  "missing": 0.0059,
-  "lin_dist": 0.482,
-  "added": 0.0156,
+  "missing": 0.0063,
+  "lin_dist": 0.436,
+  "added": 0.0164,
   "score": 0.0
  },
  {
@@ -2570,9 +2570,9 @@
   "artifact_db": -33.18,
   "collateral_db": -55.37,
   "net_db": -33.23,
-  "missing": 0.0034,
-  "lin_dist": 0.085,
-  "added": 0.0056,
+  "missing": 0.0043,
+  "lin_dist": 0.066,
+  "added": 0.0069,
   "score": 0.0
  },
  {
@@ -2584,9 +2584,9 @@
   "artifact_db": -39.07,
   "collateral_db": -62.85,
   "net_db": -39.11,
-  "missing": 0.0059,
-  "lin_dist": 0.043,
-  "added": 0.0087,
+  "missing": 0.0063,
+  "lin_dist": 0.04,
+  "added": 0.0093,
   "score": 0.0
  },
  {
@@ -2598,9 +2598,9 @@
   "artifact_db": -23.75,
   "collateral_db": -31.83,
   "net_db": -25.38,
-  "missing": 0.036,
-  "lin_dist": 0.709,
-  "added": 0.0435,
+  "missing": 0.0356,
+  "lin_dist": 0.335,
+  "added": 0.0433,
   "score": 0.0
  },
  {
@@ -2612,9 +2612,9 @@
   "artifact_db": -20.95,
   "collateral_db": -35.2,
   "net_db": -21.29,
-  "missing": 0.0722,
-  "lin_dist": 2.978,
-  "added": 0.0721,
+  "missing": 0.0719,
+  "lin_dist": 2.32,
+  "added": 0.0719,
   "score": 0.0
  },
  {
@@ -2626,8 +2626,8 @@
   "artifact_db": -27.22,
   "collateral_db": -40.48,
   "net_db": -27.65,
-  "missing": 0.016,
-  "lin_dist": 1.604,
+  "missing": 0.0158,
+  "lin_dist": 1.212,
   "added": 0.0407,
   "score": 0.0
  },
@@ -2640,9 +2640,9 @@
   "artifact_db": -32.19,
   "collateral_db": -42.94,
   "net_db": -32.99,
-  "missing": 0.025,
-  "lin_dist": 3.377,
-  "added": 0.0489,
+  "missing": 0.0246,
+  "lin_dist": 2.591,
+  "added": 0.0486,
   "score": 0.0
  },
  {
@@ -2654,9 +2654,9 @@
   "artifact_db": -30.92,
   "collateral_db": -42.94,
   "net_db": -31.5,
-  "missing": 0.0077,
-  "lin_dist": 0.155,
-  "added": 0.0134,
+  "missing": 0.0079,
+  "lin_dist": 0.075,
+  "added": 0.0138,
   "score": 0.0
  },
  {
@@ -2668,9 +2668,9 @@
   "artifact_db": -30.75,
   "collateral_db": -46.22,
   "net_db": -31.0,
-  "missing": 0.0116,
-  "lin_dist": 2.586,
-  "added": 0.0391,
+  "missing": 0.0115,
+  "lin_dist": 2.232,
+  "added": 0.0393,
   "score": 0.0
  },
  {
@@ -2682,9 +2682,9 @@
   "artifact_db": -19.59,
   "collateral_db": -24.25,
   "net_db": -24.57,
-  "missing": 0.0503,
-  "lin_dist": 13.43,
-  "added": 0.0686,
+  "missing": 0.0496,
+  "lin_dist": 11.607,
+  "added": 0.0683,
   "score": 0.0
  },
  {
@@ -2696,9 +2696,9 @@
   "artifact_db": -28.68,
   "collateral_db": -39.19,
   "net_db": -29.53,
-  "missing": 0.0295,
-  "lin_dist": 0.405,
-  "added": 0.0445,
+  "missing": 0.0297,
+  "lin_dist": 0.277,
+  "added": 0.0443,
   "score": 0.0
  },
  {
@@ -2710,9 +2710,9 @@
   "artifact_db": -35.97,
   "collateral_db": -34.65,
   "net_db": -120.0,
-  "missing": 0.0058,
-  "lin_dist": 0.067,
-  "added": 0.0218,
+  "missing": 0.0067,
+  "lin_dist": 0.039,
+  "added": 0.0223,
   "score": 0.0
  },
  {
@@ -2724,9 +2724,9 @@
   "artifact_db": -36.17,
   "collateral_db": -35.11,
   "net_db": -120.0,
-  "missing": 0.0055,
-  "lin_dist": 0.068,
-  "added": 0.0204,
+  "missing": 0.0065,
+  "lin_dist": 0.042,
+  "added": 0.0209,
   "score": 0.0
  },
  {
@@ -2738,9 +2738,9 @@
   "artifact_db": -56.45,
   "collateral_db": -120.0,
   "net_db": -56.45,
-  "missing": 0.0067,
-  "lin_dist": 0.241,
-  "added": 0.0125,
+  "missing": 0.0078,
+  "lin_dist": 0.223,
+  "added": 0.0142,
   "score": 0.0
  },
  {
@@ -2752,10 +2752,10 @@
   "artifact_db": -24.63,
   "collateral_db": -33.59,
   "net_db": -25.91,
-  "missing": 0.0246,
-  "lin_dist": 0.764,
-  "added": 0.0605,
-  "score": 0.0
+  "missing": 0.0252,
+  "lin_dist": 0.562,
+  "added": 0.0604,
+  "score": 0.065
  },
  {
   "file": "shimmer-we-were-meant-for-the-stars",
@@ -2766,9 +2766,9 @@
   "artifact_db": -35.02,
   "collateral_db": -37.31,
   "net_db": -120.0,
-  "missing": 0.0073,
-  "lin_dist": 0.129,
-  "added": 0.0179,
+  "missing": 0.0083,
+  "lin_dist": 0.097,
+  "added": 0.0187,
   "score": 0.0
  },
  {
@@ -2780,9 +2780,9 @@
   "artifact_db": -39.09,
   "collateral_db": -39.01,
   "net_db": -120.0,
-  "missing": 0.01,
-  "lin_dist": 0.613,
-  "added": 0.0251,
+  "missing": 0.0108,
+  "lin_dist": 0.557,
+  "added": 0.026,
   "score": 0.0
  },
  {
@@ -2794,9 +2794,9 @@
   "artifact_db": -36.26,
   "collateral_db": -38.67,
   "net_db": -120.0,
-  "missing": 0.0062,
-  "lin_dist": 0.108,
-  "added": 0.0152,
+  "missing": 0.0072,
+  "lin_dist": 0.08,
+  "added": 0.016,
   "score": 0.0
  },
  {
@@ -2808,9 +2808,9 @@
   "artifact_db": -35.76,
   "collateral_db": -36.42,
   "net_db": -120.0,
-  "missing": 0.0124,
-  "lin_dist": 0.094,
-  "added": 0.0214,
+  "missing": 0.013,
+  "lin_dist": 0.08,
+  "added": 0.0219,
   "score": 0.0
  },
  {
@@ -2823,8 +2823,8 @@
   "collateral_db": -36.22,
   "net_db": -31.58,
   "missing": 0.0307,
-  "lin_dist": 0.427,
-  "added": 0.0634,
+  "lin_dist": 0.137,
+  "added": 0.0632,
   "score": 0.0
  },
  {
@@ -2836,9 +2836,9 @@
   "artifact_db": -23.41,
   "collateral_db": -31.69,
   "net_db": -24.94,
-  "missing": 0.0637,
-  "lin_dist": 2.979,
-  "added": 0.1329,
+  "missing": 0.0634,
+  "lin_dist": 2.329,
+  "added": 0.1319,
   "score": 0.0
  },
  {
@@ -2850,9 +2850,9 @@
   "artifact_db": -32.13,
   "collateral_db": -37.4,
   "net_db": -36.05,
-  "missing": 0.0191,
-  "lin_dist": 1.515,
-  "added": 0.0751,
+  "missing": 0.0194,
+  "lin_dist": 1.199,
+  "added": 0.0748,
   "score": 0.0
  },
  {
@@ -2865,8 +2865,8 @@
   "collateral_db": -47.2,
   "net_db": -40.54,
   "missing": 0.0289,
-  "lin_dist": 3.182,
-  "added": 0.1008,
+  "lin_dist": 2.402,
+  "added": 0.1005,
   "score": 0.0
  },
  {
@@ -2878,9 +2878,9 @@
   "artifact_db": -31.66,
   "collateral_db": -34.33,
   "net_db": -120.0,
-  "missing": 0.0128,
-  "lin_dist": 0.193,
-  "added": 0.0359,
+  "missing": 0.0132,
+  "lin_dist": 0.077,
+  "added": 0.036,
   "score": 0.0
  },
  {
@@ -2892,9 +2892,9 @@
   "artifact_db": -32.69,
   "collateral_db": -36.73,
   "net_db": -39.42,
-  "missing": 0.0156,
-  "lin_dist": 2.505,
-  "added": 0.0679,
+  "missing": 0.016,
+  "lin_dist": 2.158,
+  "added": 0.0678,
   "score": 0.0
  },
  {
@@ -2906,9 +2906,9 @@
   "artifact_db": -19.12,
   "collateral_db": -19.09,
   "net_db": -120.0,
-  "missing": 0.0834,
-  "lin_dist": 15.262,
-  "added": 0.2651,
+  "missing": 0.0829,
+  "lin_dist": 12.368,
+  "added": 0.2649,
   "score": 0.0
  },
  {
@@ -2921,8 +2921,8 @@
   "collateral_db": -35.54,
   "net_db": -17.28,
   "missing": 0.1573,
-  "lin_dist": 1.203,
-  "added": 0.4332,
+  "lin_dist": 0.922,
+  "added": 0.4334,
   "score": 0.0
  },
  {
@@ -2934,9 +2934,9 @@
   "artifact_db": -41.31,
   "collateral_db": -58.6,
   "net_db": -41.47,
-  "missing": 0.0028,
-  "lin_dist": 0.028,
-  "added": 0.0056,
+  "missing": 0.0037,
+  "lin_dist": 0.018,
+  "added": 0.008,
   "score": 0.0
  },
  {
@@ -2948,10 +2948,10 @@
   "artifact_db": -40.79,
   "collateral_db": -64.22,
   "net_db": -40.83,
-  "missing": 0.0033,
-  "lin_dist": 0.032,
-  "added": 0.0061,
-  "score": 0.02
+  "missing": 0.0041,
+  "lin_dist": 0.023,
+  "added": 0.0085,
+  "score": 0.031
  },
  {
   "file": "suno-algorithms-lure",
@@ -2962,9 +2962,9 @@
   "artifact_db": -57.74,
   "collateral_db": -120.0,
   "net_db": -57.74,
-  "missing": 0.0059,
-  "lin_dist": 0.163,
-  "added": 0.0121,
+  "missing": 0.0064,
+  "lin_dist": 0.14,
+  "added": 0.0139,
   "score": 0.0
  },
  {
@@ -2976,9 +2976,9 @@
   "artifact_db": -16.68,
   "collateral_db": -29.43,
   "net_db": -17.16,
-  "missing": 0.2685,
-  "lin_dist": 1.033,
-  "added": 0.1437,
+  "missing": 0.2682,
+  "lin_dist": 0.735,
+  "added": 0.1427,
   "score": 0.0
  },
  {
@@ -2990,9 +2990,9 @@
   "artifact_db": -37.69,
   "collateral_db": -54.52,
   "net_db": -37.88,
-  "missing": 0.0043,
-  "lin_dist": 0.061,
-  "added": 0.0089,
+  "missing": 0.0049,
+  "lin_dist": 0.042,
+  "added": 0.0109,
   "score": 0.0
  },
  {
@@ -3004,9 +3004,9 @@
   "artifact_db": -47.85,
   "collateral_db": -87.03,
   "net_db": -47.85,
-  "missing": 0.0107,
-  "lin_dist": 0.375,
-  "added": 0.0205,
+  "missing": 0.011,
+  "lin_dist": 0.331,
+  "added": 0.022,
   "score": 0.0
  },
  {
@@ -3018,9 +3018,9 @@
   "artifact_db": -38.94,
   "collateral_db": -55.69,
   "net_db": -39.13,
-  "missing": 0.0038,
-  "lin_dist": 0.053,
-  "added": 0.0081,
+  "missing": 0.0045,
+  "lin_dist": 0.036,
+  "added": 0.0101,
   "score": 0.0
  },
  {
@@ -3032,9 +3032,9 @@
   "artifact_db": -43.87,
   "collateral_db": -73.24,
   "net_db": -43.88,
-  "missing": 0.0147,
-  "lin_dist": 0.033,
-  "added": 0.0149,
+  "missing": 0.0149,
+  "lin_dist": 0.031,
+  "added": 0.0165,
   "score": 0.0
  },
  {
@@ -3046,9 +3046,9 @@
   "artifact_db": -19.18,
   "collateral_db": -23.38,
   "net_db": -25.41,
-  "missing": 0.1406,
-  "lin_dist": 1.367,
-  "added": 0.1685,
+  "missing": 0.1396,
+  "lin_dist": 0.879,
+  "added": 0.1689,
   "score": 0.0
  },
  {
@@ -3060,9 +3060,9 @@
   "artifact_db": -11.55,
   "collateral_db": -22.38,
   "net_db": -12.33,
-  "missing": 0.5375,
-  "lin_dist": 12.352,
-  "added": 2.1075,
+  "missing": 0.5377,
+  "lin_dist": 10.2,
+  "added": 2.13,
   "score": 0.0
  },
  {
@@ -3074,9 +3074,9 @@
   "artifact_db": -25.42,
   "collateral_db": -38.41,
   "net_db": -25.88,
-  "missing": 0.0649,
-  "lin_dist": 1.527,
-  "added": 0.1206,
+  "missing": 0.0641,
+  "lin_dist": 1.161,
+  "added": 0.1208,
   "score": 0.0
  },
  {
@@ -3088,9 +3088,9 @@
   "artifact_db": -30.96,
   "collateral_db": -43.42,
   "net_db": -31.48,
-  "missing": 0.1275,
-  "lin_dist": 3.299,
-  "added": 0.2087,
+  "missing": 0.1265,
+  "lin_dist": 2.579,
+  "added": 0.2089,
   "score": 0.0
  },
  {
@@ -3102,9 +3102,9 @@
   "artifact_db": -27.5,
   "collateral_db": -40.39,
   "net_db": -27.97,
-  "missing": 0.0305,
-  "lin_dist": 0.251,
-  "added": 0.0689,
+  "missing": 0.0307,
+  "lin_dist": 0.13,
+  "added": 0.0691,
   "score": 0.0
  },
  {
@@ -3116,9 +3116,9 @@
   "artifact_db": -28.67,
   "collateral_db": -43.86,
   "net_db": -28.94,
-  "missing": 0.0619,
-  "lin_dist": 2.264,
-  "added": 0.136,
+  "missing": 0.0616,
+  "lin_dist": 1.912,
+  "added": 0.1361,
   "score": 0.0
  },
  {
@@ -3130,9 +3130,9 @@
   "artifact_db": -13.25,
   "collateral_db": -27.76,
   "net_db": -13.57,
-  "missing": 0.5339,
-  "lin_dist": 19.221,
-  "added": 1.6007,
+  "missing": 0.5338,
+  "lin_dist": 16.534,
+  "added": 1.6117,
   "score": 0.0
  },
  {
@@ -3144,9 +3144,9 @@
   "artifact_db": -17.21,
   "collateral_db": -25.95,
   "net_db": -18.56,
-  "missing": 0.0366,
-  "lin_dist": 0.451,
-  "added": 0.0321,
+  "missing": 0.0369,
+  "lin_dist": 0.264,
+  "added": 0.0316,
   "score": 0.0
  },
  {
@@ -3158,9 +3158,9 @@
   "artifact_db": -30.79,
   "collateral_db": -30.88,
   "net_db": -120.0,
-  "missing": 0.0091,
-  "lin_dist": 0.09,
-  "added": 0.0157,
+  "missing": 0.0101,
+  "lin_dist": 0.052,
+  "added": 0.017,
   "score": 0.0
  },
  {
@@ -3172,9 +3172,9 @@
   "artifact_db": -31.34,
   "collateral_db": -31.41,
   "net_db": -120.0,
-  "missing": 0.0083,
-  "lin_dist": 0.088,
-  "added": 0.0135,
+  "missing": 0.0094,
+  "lin_dist": 0.053,
+  "added": 0.015,
   "score": 0.0
  },
  {
@@ -3186,9 +3186,9 @@
   "artifact_db": -44.4,
   "collateral_db": -120.0,
   "net_db": -44.4,
-  "missing": 0.0074,
-  "lin_dist": 0.276,
-  "added": 0.0149,
+  "missing": 0.0087,
+  "lin_dist": 0.248,
+  "added": 0.0171,
   "score": 0.0
  },
  {
@@ -3200,9 +3200,9 @@
   "artifact_db": -15.51,
   "collateral_db": -24.06,
   "net_db": -16.93,
-  "missing": 0.0422,
-  "lin_dist": 0.9,
-  "added": 0.0391,
+  "missing": 0.0424,
+  "lin_dist": 0.586,
+  "added": 0.0393,
   "score": 0.0
  },
  {
@@ -3214,9 +3214,9 @@
   "artifact_db": -28.91,
   "collateral_db": -33.34,
   "net_db": -34.46,
-  "missing": 0.0089,
-  "lin_dist": 0.158,
-  "added": 0.0134,
+  "missing": 0.0101,
+  "lin_dist": 0.112,
+  "added": 0.0151,
   "score": 0.0
  },
  {
@@ -3228,9 +3228,9 @@
   "artifact_db": -33.85,
   "collateral_db": -35.2,
   "net_db": -120.0,
-  "missing": 0.012,
-  "lin_dist": 0.734,
-  "added": 0.0259,
+  "missing": 0.013,
+  "lin_dist": 0.649,
+  "added": 0.0276,
   "score": 0.0
  },
  {
@@ -3242,9 +3242,9 @@
   "artifact_db": -30.2,
   "collateral_db": -34.7,
   "net_db": -35.57,
-  "missing": 0.0076,
-  "lin_dist": 0.132,
-  "added": 0.0115,
+  "missing": 0.0089,
+  "lin_dist": 0.092,
+  "added": 0.0133,
   "score": 0.0
  },
  {
@@ -3256,9 +3256,9 @@
   "artifact_db": -31.37,
   "collateral_db": -32.65,
   "net_db": -120.0,
-  "missing": 0.0112,
-  "lin_dist": 0.096,
-  "added": 0.0176,
+  "missing": 0.0122,
+  "lin_dist": 0.085,
+  "added": 0.019,
   "score": 0.0
  },
  {
@@ -3270,9 +3270,9 @@
   "artifact_db": -22.04,
   "collateral_db": -25.1,
   "net_db": -41.18,
-  "missing": 0.0424,
-  "lin_dist": 0.787,
-  "added": 0.0679,
+  "missing": 0.0422,
+  "lin_dist": 0.224,
+  "added": 0.0677,
   "score": 0.0
  },
  {
@@ -3284,9 +3284,9 @@
   "artifact_db": -16.02,
   "collateral_db": -23.82,
   "net_db": -17.77,
-  "missing": 0.0918,
-  "lin_dist": 3.339,
-  "added": 0.1009,
+  "missing": 0.0917,
+  "lin_dist": 2.238,
+  "added": 0.0997,
   "score": 0.0
  },
  {
@@ -3298,9 +3298,9 @@
   "artifact_db": -20.31,
   "collateral_db": -24.12,
   "net_db": -28.06,
-  "missing": 0.0218,
-  "lin_dist": 1.78,
-  "added": 0.0595,
+  "missing": 0.022,
+  "lin_dist": 1.191,
+  "added": 0.0596,
   "score": 0.0
  },
  {
@@ -3312,9 +3312,9 @@
   "artifact_db": -27.44,
   "collateral_db": -30.25,
   "net_db": -120.0,
-  "missing": 0.0244,
-  "lin_dist": 3.494,
-  "added": 0.067,
+  "missing": 0.0242,
+  "lin_dist": 2.351,
+  "added": 0.0666,
   "score": 0.0
  },
  {
@@ -3326,9 +3326,9 @@
   "artifact_db": -24.6,
   "collateral_db": -26.52,
   "net_db": -120.0,
-  "missing": 0.0134,
-  "lin_dist": 0.298,
-  "added": 0.0242,
+  "missing": 0.014,
+  "lin_dist": 0.135,
+  "added": 0.0251,
   "score": 0.0
  },
  {
@@ -3340,9 +3340,9 @@
   "artifact_db": -25.83,
   "collateral_db": -29.29,
   "net_db": -35.87,
-  "missing": 0.0156,
-  "lin_dist": 2.807,
-  "added": 0.0487,
+  "missing": 0.0161,
+  "lin_dist": 2.277,
+  "added": 0.0491,
   "score": 0.0
  },
  {
@@ -3354,8 +3354,8 @@
   "artifact_db": -15.83,
   "collateral_db": -17.96,
   "net_db": -120.0,
-  "missing": 0.084,
-  "lin_dist": 18.931,
+  "missing": 0.0833,
+  "lin_dist": 14.915,
   "added": 0.1346,
   "score": 0.0
  },
@@ -3368,9 +3368,9 @@
   "artifact_db": -17.89,
   "collateral_db": -24.31,
   "net_db": -20.53,
-  "missing": 0.077,
-  "lin_dist": 1.092,
-  "added": 0.1373,
+  "missing": 0.0774,
+  "lin_dist": 0.807,
+  "added": 0.1357,
   "score": 0.0
  },
  {
@@ -3382,8 +3382,8 @@
   "artifact_db": -32.33,
   "collateral_db": -28.75,
   "net_db": -120.0,
-  "missing": 0.0139,
-  "lin_dist": 0.1,
+  "missing": 0.0142,
+  "lin_dist": 0.047,
   "added": 0.029,
   "score": 0.0
  },
@@ -3396,8 +3396,8 @@
   "artifact_db": -32.8,
   "collateral_db": -29.2,
   "net_db": -120.0,
-  "missing": 0.013,
-  "lin_dist": 0.092,
+  "missing": 0.0133,
+  "lin_dist": 0.043,
   "added": 0.0272,
   "score": 0.0
  },
@@ -3410,9 +3410,9 @@
   "artifact_db": -62.65,
   "collateral_db": -70.39,
   "net_db": -64.44,
-  "missing": 0.0044,
-  "lin_dist": 0.184,
-  "added": 0.0101,
+  "missing": 0.0051,
+  "lin_dist": 0.166,
+  "added": 0.0109,
   "score": 0.0
  },
  {
@@ -3424,9 +3424,9 @@
   "artifact_db": -20.79,
   "collateral_db": -29.1,
   "net_db": -22.3,
-  "missing": 0.0504,
-  "lin_dist": 0.807,
-  "added": 0.0704,
+  "missing": 0.0509,
+  "lin_dist": 0.609,
+  "added": 0.0696,
   "score": 0.0
  },
  {
@@ -3438,9 +3438,9 @@
   "artifact_db": -33.63,
   "collateral_db": -31.88,
   "net_db": -120.0,
-  "missing": 0.0105,
-  "lin_dist": 0.115,
-  "added": 0.0205,
+  "missing": 0.0108,
+  "lin_dist": 0.069,
+  "added": 0.0206,
   "score": 0.0
  },
  {
@@ -3452,9 +3452,9 @@
   "artifact_db": -37.24,
   "collateral_db": -33.41,
   "net_db": -120.0,
-  "missing": 0.0111,
-  "lin_dist": 0.46,
-  "added": 0.0258,
+  "missing": 0.0114,
+  "lin_dist": 0.394,
+  "added": 0.0259,
   "score": 0.0
  },
  {
@@ -3466,9 +3466,9 @@
   "artifact_db": -35.01,
   "collateral_db": -33.34,
   "net_db": -120.0,
-  "missing": 0.0089,
-  "lin_dist": 0.098,
-  "added": 0.0174,
+  "missing": 0.0093,
+  "lin_dist": 0.059,
+  "added": 0.0175,
   "score": 0.0
  },
  {
@@ -3480,8 +3480,8 @@
   "artifact_db": -34.32,
   "collateral_db": -30.71,
   "net_db": -120.0,
-  "missing": 0.0145,
-  "lin_dist": 0.061,
+  "missing": 0.0147,
+  "lin_dist": 0.034,
   "added": 0.0254,
   "score": 0.0
  },
@@ -3494,9 +3494,9 @@
   "artifact_db": -26.51,
   "collateral_db": -29.75,
   "net_db": -39.47,
-  "missing": 0.0359,
-  "lin_dist": 0.394,
-  "added": 0.0479,
+  "missing": 0.0361,
+  "lin_dist": 0.184,
+  "added": 0.0475,
   "score": 0.0
  },
  {
@@ -3508,9 +3508,9 @@
   "artifact_db": -12.77,
   "collateral_db": -18.05,
   "net_db": -16.68,
-  "missing": 0.1514,
-  "lin_dist": 9.893,
-  "added": 0.3289,
+  "missing": 0.1519,
+  "lin_dist": 7.954,
+  "added": 0.3283,
   "score": 0.0
  },
  {
@@ -3522,9 +3522,9 @@
   "artifact_db": -28.18,
   "collateral_db": -32.84,
   "net_db": -33.18,
-  "missing": 0.0372,
-  "lin_dist": 1.438,
-  "added": 0.0639,
+  "missing": 0.0374,
+  "lin_dist": 1.177,
+  "added": 0.0631,
   "score": 0.0
  },
  {
@@ -3536,9 +3536,9 @@
   "artifact_db": -32.69,
   "collateral_db": -38.44,
   "net_db": -36.0,
-  "missing": 0.0615,
-  "lin_dist": 3.208,
-  "added": 0.101,
+  "missing": 0.0618,
+  "lin_dist": 2.521,
+  "added": 0.0996,
   "score": 0.0
  },
  {
@@ -3550,9 +3550,9 @@
   "artifact_db": -27.45,
   "collateral_db": -26.93,
   "net_db": -120.0,
-  "missing": 0.0291,
-  "lin_dist": 0.314,
-  "added": 0.0347,
+  "missing": 0.0293,
+  "lin_dist": 0.141,
+  "added": 0.0341,
   "score": 0.0
  },
  {
@@ -3564,9 +3564,9 @@
   "artifact_db": -27.67,
   "collateral_db": -29.01,
   "net_db": -120.0,
-  "missing": 0.0411,
-  "lin_dist": 2.641,
-  "added": 0.0739,
+  "missing": 0.0414,
+  "lin_dist": 2.247,
+  "added": 0.073,
   "score": 0.0
  },
  {
@@ -3578,9 +3578,9 @@
   "artifact_db": -13.14,
   "collateral_db": -14.24,
   "net_db": -120.0,
-  "missing": 0.1483,
-  "lin_dist": 24.448,
-  "added": 0.3526,
+  "missing": 0.1485,
+  "lin_dist": 20.234,
+  "added": 0.3483,
   "score": 0.0
  },
  {
@@ -3592,9 +3592,9 @@
   "artifact_db": -16.52,
   "collateral_db": -32.06,
   "net_db": -16.77,
-  "missing": 0.0538,
-  "lin_dist": 0.68,
-  "added": 0.1224,
+  "missing": 0.0539,
+  "lin_dist": 0.52,
+  "added": 0.1218,
   "score": 0.0
  },
  {
@@ -3606,9 +3606,9 @@
   "artifact_db": -38.49,
   "collateral_db": -48.96,
   "net_db": -39.35,
-  "missing": 0.0026,
-  "lin_dist": 0.036,
-  "added": 0.0042,
+  "missing": 0.0028,
+  "lin_dist": 0.027,
+  "added": 0.0044,
   "score": 0.0
  },
  {
@@ -3620,9 +3620,9 @@
   "artifact_db": -38.29,
   "collateral_db": -55.08,
   "net_db": -38.47,
-  "missing": 0.0023,
-  "lin_dist": 0.038,
-  "added": 0.0042,
+  "missing": 0.0025,
+  "lin_dist": 0.031,
+  "added": 0.0044,
   "score": 0.0
  },
  {
@@ -3634,9 +3634,9 @@
   "artifact_db": -52.27,
   "collateral_db": -119.99,
   "net_db": -52.27,
-  "missing": 0.0058,
-  "lin_dist": 0.212,
-  "added": 0.0123,
+  "missing": 0.0059,
+  "lin_dist": 0.192,
+  "added": 0.0124,
   "score": 0.0
  },
  {
@@ -3648,9 +3648,9 @@
   "artifact_db": -13.42,
   "collateral_db": -28.19,
   "net_db": -13.71,
-  "missing": 0.1047,
-  "lin_dist": 1.067,
-  "added": 0.099,
+  "missing": 0.1048,
+  "lin_dist": 0.806,
+  "added": 0.0988,
   "score": 0.0
  },
  {
@@ -3662,9 +3662,9 @@
   "artifact_db": -30.09,
   "collateral_db": -45.28,
   "net_db": -30.37,
-  "missing": 0.005,
-  "lin_dist": 0.091,
-  "added": 0.0085,
+  "missing": 0.0051,
+  "lin_dist": 0.07,
+  "added": 0.0086,
   "score": 0.0
  },
  {
@@ -3676,9 +3676,9 @@
   "artifact_db": -46.48,
   "collateral_db": -63.21,
   "net_db": -46.67,
-  "missing": 0.0088,
-  "lin_dist": 0.495,
-  "added": 0.0211,
+  "missing": 0.0089,
+  "lin_dist": 0.451,
+  "added": 0.0212,
   "score": 0.0
  },
  {
@@ -3690,9 +3690,9 @@
   "artifact_db": -31.44,
   "collateral_db": -46.53,
   "net_db": -31.72,
-  "missing": 0.0042,
-  "lin_dist": 0.077,
-  "added": 0.0072,
+  "missing": 0.0044,
+  "lin_dist": 0.059,
+  "added": 0.0073,
   "score": 0.0
  },
  {
@@ -3704,8 +3704,8 @@
   "artifact_db": -38.5,
   "collateral_db": -54.89,
   "net_db": -38.71,
-  "missing": 0.0108,
-  "lin_dist": 0.054,
+  "missing": 0.0109,
+  "lin_dist": 0.053,
   "added": 0.0143,
   "score": 0.0
  },
@@ -3719,8 +3719,8 @@
   "collateral_db": -27.88,
   "net_db": -25.05,
   "missing": 0.0385,
-  "lin_dist": 0.728,
-  "added": 0.0476,
+  "lin_dist": 0.514,
+  "added": 0.0474,
   "score": 0.0
  },
  {
@@ -3733,8 +3733,8 @@
   "collateral_db": -27.73,
   "net_db": -13.16,
   "missing": 0.1238,
-  "lin_dist": 6.096,
-  "added": 0.3267,
+  "lin_dist": 4.955,
+  "added": 0.3253,
   "score": 0.0
  },
  {
@@ -3747,8 +3747,8 @@
   "collateral_db": -27.9,
   "net_db": -19.97,
   "missing": 0.0327,
-  "lin_dist": 1.749,
-  "added": 0.0776,
+  "lin_dist": 1.399,
+  "added": 0.0773,
   "score": 0.0
  },
  {
@@ -3761,8 +3761,8 @@
   "collateral_db": -33.6,
   "net_db": -27.1,
   "missing": 0.0551,
-  "lin_dist": 3.692,
-  "added": 0.1237,
+  "lin_dist": 2.956,
+  "added": 0.1233,
   "score": 0.0
  },
  {
@@ -3775,8 +3775,8 @@
   "collateral_db": -32.63,
   "net_db": -23.32,
   "missing": 0.0212,
-  "lin_dist": 0.286,
-  "added": 0.0337,
+  "lin_dist": 0.177,
+  "added": 0.0335,
   "score": 0.0
  },
  {
@@ -3789,8 +3789,8 @@
   "collateral_db": -35.48,
   "net_db": -24.4,
   "missing": 0.0346,
-  "lin_dist": 2.73,
-  "added": 0.0818,
+  "lin_dist": 2.349,
+  "added": 0.0812,
   "score": 0.0
  },
  {
@@ -3802,9 +3802,9 @@
   "artifact_db": -13.87,
   "collateral_db": -26.87,
   "net_db": -14.33,
-  "missing": 0.1572,
-  "lin_dist": 18.397,
-  "added": 0.4333,
+  "missing": 0.1571,
+  "lin_dist": 15.607,
+  "added": 0.4334,
   "score": 0.0
  },
  {
@@ -3816,9 +3816,9 @@
   "artifact_db": -22.99,
   "collateral_db": -30.66,
   "net_db": -24.81,
-  "missing": 0.0671,
-  "lin_dist": 0.979,
-  "added": 0.1775,
+  "missing": 0.0672,
+  "lin_dist": 0.867,
+  "added": 0.1769,
   "score": 0.0
  },
  {
@@ -3830,9 +3830,9 @@
   "artifact_db": -43.41,
   "collateral_db": -46.05,
   "net_db": -120.0,
-  "missing": 0.007,
-  "lin_dist": 0.046,
-  "added": 0.0068,
+  "missing": 0.0076,
+  "lin_dist": 0.035,
+  "added": 0.0077,
   "score": 0.0
  },
  {
@@ -3844,9 +3844,9 @@
   "artifact_db": -44.33,
   "collateral_db": -47.21,
   "net_db": -120.0,
-  "missing": 0.0058,
-  "lin_dist": 0.041,
-  "added": 0.0062,
+  "missing": 0.0064,
+  "lin_dist": 0.03,
+  "added": 0.007,
   "score": 0.0
  },
  {
@@ -3858,9 +3858,9 @@
   "artifact_db": -52.94,
   "collateral_db": -120.0,
   "net_db": -52.94,
-  "missing": 0.0071,
-  "lin_dist": 0.209,
-  "added": 0.0125,
+  "missing": 0.0077,
+  "lin_dist": 0.193,
+  "added": 0.0133,
   "score": 0.0
  },
  {
@@ -3872,9 +3872,9 @@
   "artifact_db": -20.39,
   "collateral_db": -25.92,
   "net_db": -23.96,
-  "missing": 0.0687,
-  "lin_dist": 0.957,
-  "added": 0.1124,
+  "missing": 0.069,
+  "lin_dist": 0.821,
+  "added": 0.1119,
   "score": 0.0
  },
  {
@@ -3886,9 +3886,9 @@
   "artifact_db": -40.32,
   "collateral_db": -46.98,
   "net_db": -42.76,
-  "missing": 0.0067,
-  "lin_dist": 0.085,
-  "added": 0.0086,
+  "missing": 0.0072,
+  "lin_dist": 0.069,
+  "added": 0.0092,
   "score": 0.0
  },
  {
@@ -3900,9 +3900,9 @@
   "artifact_db": -49.56,
   "collateral_db": -52.23,
   "net_db": -120.0,
-  "missing": 0.0113,
-  "lin_dist": 0.467,
-  "added": 0.0206,
+  "missing": 0.0117,
+  "lin_dist": 0.438,
+  "added": 0.021,
   "score": 0.0
  },
  {
@@ -3914,9 +3914,9 @@
   "artifact_db": -41.53,
   "collateral_db": -48.12,
   "net_db": -44.04,
-  "missing": 0.0058,
-  "lin_dist": 0.074,
-  "added": 0.0075,
+  "missing": 0.0064,
+  "lin_dist": 0.059,
+  "added": 0.0081,
   "score": 0.0
  },
  {
@@ -3928,9 +3928,9 @@
   "artifact_db": -45.53,
   "collateral_db": -49.35,
   "net_db": -53.2,
-  "missing": 0.0124,
-  "lin_dist": 0.048,
-  "added": 0.0155,
+  "missing": 0.0128,
+  "lin_dist": 0.044,
+  "added": 0.016,
   "score": 0.0
  },
  {
@@ -3942,9 +3942,9 @@
   "artifact_db": -30.36,
   "collateral_db": -32.15,
   "net_db": -120.0,
-  "missing": 0.0405,
-  "lin_dist": 0.224,
-  "added": 0.0309,
+  "missing": 0.0408,
+  "lin_dist": 0.108,
+  "added": 0.0311,
   "score": 0.0
  },
  {
@@ -3956,9 +3956,9 @@
   "artifact_db": -17.32,
   "collateral_db": -24.01,
   "net_db": -19.75,
-  "missing": 0.1601,
-  "lin_dist": 9.307,
-  "added": 0.6034,
+  "missing": 0.1598,
+  "lin_dist": 8.426,
+  "added": 0.6135,
   "score": 0.0
  },
  {
@@ -3970,9 +3970,9 @@
   "artifact_db": -34.87,
   "collateral_db": -35.81,
   "net_db": -120.0,
-  "missing": 0.037,
-  "lin_dist": 1.319,
-  "added": 0.0572,
+  "missing": 0.0371,
+  "lin_dist": 1.183,
+  "added": 0.0566,
   "score": 0.0
  },
  {
@@ -3984,9 +3984,9 @@
   "artifact_db": -43.14,
   "collateral_db": -42.99,
   "net_db": -120.0,
-  "missing": 0.0562,
-  "lin_dist": 2.909,
-  "added": 0.1041,
+  "missing": 0.0563,
+  "lin_dist": 2.574,
+  "added": 0.1029,
   "score": 0.0
  },
  {
@@ -3998,9 +3998,9 @@
   "artifact_db": -36.66,
   "collateral_db": -36.14,
   "net_db": -120.0,
-  "missing": 0.0135,
-  "lin_dist": 0.129,
-  "added": 0.0158,
+  "missing": 0.0139,
+  "lin_dist": 0.09,
+  "added": 0.0162,
   "score": 0.0
  },
  {
@@ -4012,9 +4012,9 @@
   "artifact_db": -35.89,
   "collateral_db": -38.57,
   "net_db": -120.0,
-  "missing": 0.0347,
-  "lin_dist": 2.132,
-  "added": 0.0757,
+  "missing": 0.0348,
+  "lin_dist": 1.997,
+  "added": 0.0748,
   "score": 0.0
  },
  {
@@ -4026,9 +4026,9 @@
   "artifact_db": -17.25,
   "collateral_db": -18.13,
   "net_db": -120.0,
-  "missing": 0.1406,
-  "lin_dist": 19.449,
-  "added": 0.4906,
+  "missing": 0.1399,
+  "lin_dist": 17.968,
+  "added": 0.4923,
   "score": 0.0
  },
  {
@@ -4040,9 +4040,9 @@
   "artifact_db": -17.64,
   "collateral_db": -39.22,
   "net_db": -17.7,
-  "missing": 0.0454,
-  "lin_dist": 0.674,
-  "added": 0.0462,
+  "missing": 0.0453,
+  "lin_dist": 0.422,
+  "added": 0.0458,
   "score": 0.0
  },
  {
@@ -4054,9 +4054,9 @@
   "artifact_db": -33.69,
   "collateral_db": -44.29,
   "net_db": -34.53,
-  "missing": 0.0037,
-  "lin_dist": 0.054,
-  "added": 0.0064,
+  "missing": 0.0044,
+  "lin_dist": 0.031,
+  "added": 0.0073,
   "score": 0.0
  },
  {
@@ -4068,9 +4068,9 @@
   "artifact_db": -33.76,
   "collateral_db": -47.1,
   "net_db": -34.19,
-  "missing": 0.0032,
-  "lin_dist": 0.062,
-  "added": 0.0057,
+  "missing": 0.004,
+  "lin_dist": 0.04,
+  "added": 0.0068,
   "score": 0.0
  },
  {
@@ -4082,9 +4082,9 @@
   "artifact_db": -50.04,
   "collateral_db": -120.0,
   "net_db": -50.04,
-  "missing": 0.0049,
-  "lin_dist": 0.198,
-  "added": 0.0105,
+  "missing": 0.0052,
+  "lin_dist": 0.159,
+  "added": 0.0111,
   "score": 0.0
  },
  {
@@ -4096,9 +4096,9 @@
   "artifact_db": -15.98,
   "collateral_db": -36.37,
   "net_db": -16.06,
-  "missing": 0.0301,
-  "lin_dist": 0.804,
-  "added": 0.0391,
+  "missing": 0.03,
+  "lin_dist": 0.492,
+  "added": 0.0387,
   "score": 0.0
  },
  {
@@ -4110,9 +4110,9 @@
   "artifact_db": -28.34,
   "collateral_db": -46.54,
   "net_db": -28.48,
-  "missing": 0.0057,
-  "lin_dist": 0.116,
-  "added": 0.0083,
+  "missing": 0.0062,
+  "lin_dist": 0.075,
+  "added": 0.009,
   "score": 0.0
  },
  {
@@ -4125,8 +4125,8 @@
   "collateral_db": -55.26,
   "net_db": -46.27,
   "missing": 0.0082,
-  "lin_dist": 0.471,
-  "added": 0.0182,
+  "lin_dist": 0.389,
+  "added": 0.0185,
   "score": 0.0
  },
  {
@@ -4138,9 +4138,9 @@
   "artifact_db": -29.59,
   "collateral_db": -47.78,
   "net_db": -29.73,
-  "missing": 0.0049,
-  "lin_dist": 0.098,
-  "added": 0.0071,
+  "missing": 0.0055,
+  "lin_dist": 0.062,
+  "added": 0.0079,
   "score": 0.0
  },
  {
@@ -4152,9 +4152,9 @@
   "artifact_db": -36.58,
   "collateral_db": -49.7,
   "net_db": -37.03,
-  "missing": 0.0074,
-  "lin_dist": 0.045,
-  "added": 0.0094,
+  "missing": 0.0075,
+  "lin_dist": 0.042,
+  "added": 0.0099,
   "score": 0.0
  },
  {
@@ -4166,9 +4166,9 @@
   "artifact_db": -19.61,
   "collateral_db": -27.96,
   "net_db": -21.11,
-  "missing": 0.0487,
-  "lin_dist": 1.054,
-  "added": 0.0472,
+  "missing": 0.048,
+  "lin_dist": 0.537,
+  "added": 0.0469,
   "score": 0.0
  },
  {
@@ -4180,9 +4180,9 @@
   "artifact_db": -13.65,
   "collateral_db": -29.29,
   "net_db": -13.89,
-  "missing": 0.1261,
-  "lin_dist": 5.849,
-  "added": 0.1478,
+  "missing": 0.1257,
+  "lin_dist": 4.18,
+  "added": 0.1484,
   "score": 0.0
  },
  {
@@ -4195,8 +4195,8 @@
   "collateral_db": -36.89,
   "net_db": -21.94,
   "missing": 0.0298,
-  "lin_dist": 1.774,
-  "added": 0.0529,
+  "lin_dist": 1.135,
+  "added": 0.0523,
   "score": 0.0
  },
  {
@@ -4208,9 +4208,9 @@
   "artifact_db": -28.45,
   "collateral_db": -42.3,
   "net_db": -28.82,
-  "missing": 0.0466,
-  "lin_dist": 3.649,
-  "added": 0.0724,
+  "missing": 0.0462,
+  "lin_dist": 2.47,
+  "added": 0.0717,
   "score": 0.0
  },
  {
@@ -4222,9 +4222,9 @@
   "artifact_db": -25.84,
   "collateral_db": -38.99,
   "net_db": -26.29,
-  "missing": 0.012,
-  "lin_dist": 0.22,
-  "added": 0.0197,
+  "missing": 0.0119,
+  "lin_dist": 0.092,
+  "added": 0.0198,
   "score": 0.0
  },
  {
@@ -4236,9 +4236,9 @@
   "artifact_db": -24.2,
   "collateral_db": -40.72,
   "net_db": -24.39,
-  "missing": 0.0259,
-  "lin_dist": 2.926,
-  "added": 0.0605,
+  "missing": 0.026,
+  "lin_dist": 2.25,
+  "added": 0.0596,
   "score": 0.0
  },
  {
@@ -4250,9 +4250,9 @@
   "artifact_db": -16.16,
   "collateral_db": -23.66,
   "net_db": -18.07,
-  "missing": 0.0835,
-  "lin_dist": 19.46,
-  "added": 0.1234,
+  "missing": 0.0829,
+  "lin_dist": 15.405,
+  "added": 0.123,
   "score": 0.0
  },
  {
@@ -4264,10 +4264,10 @@
   "artifact_db": -19.12,
   "collateral_db": -28.08,
   "net_db": -20.4,
-  "missing": 0.0619,
-  "lin_dist": 0.767,
+  "missing": 0.0618,
+  "lin_dist": 0.729,
   "added": 0.1568,
-  "score": 0.364
+  "score": 0.375
  },
  {
   "file": "suno-the-little-things",
@@ -4278,9 +4278,9 @@
   "artifact_db": -34.87,
   "collateral_db": -34.95,
   "net_db": -120.0,
-  "missing": 0.0044,
-  "lin_dist": 0.024,
-  "added": 0.0045,
+  "missing": 0.0043,
+  "lin_dist": 0.019,
+  "added": 0.0046,
   "score": 0.0
  },
  {
@@ -4293,7 +4293,7 @@
   "collateral_db": -35.1,
   "net_db": -120.0,
   "missing": 0.0035,
-  "lin_dist": 0.022,
+  "lin_dist": 0.017,
   "added": 0.0053,
   "score": 0.0
  },
@@ -4307,7 +4307,7 @@
   "collateral_db": -62.41,
   "net_db": -68.83,
   "missing": 0.0054,
-  "lin_dist": 0.105,
+  "lin_dist": 0.098,
   "added": 0.0094,
   "score": 0.0
  },
@@ -4320,8 +4320,8 @@
   "artifact_db": -17.71,
   "collateral_db": -23.56,
   "net_db": -20.9,
-  "missing": 0.0638,
-  "lin_dist": 0.759,
+  "missing": 0.0637,
+  "lin_dist": 0.714,
   "added": 0.0689,
   "score": 0.0
  },
@@ -4334,8 +4334,8 @@
   "artifact_db": -35.47,
   "collateral_db": -36.24,
   "net_db": -120.0,
-  "missing": 0.0053,
-  "lin_dist": 0.056,
+  "missing": 0.0052,
+  "lin_dist": 0.05,
   "added": 0.0055,
   "score": 0.0
  },
@@ -4348,8 +4348,8 @@
   "artifact_db": -37.95,
   "collateral_db": -38.05,
   "net_db": -120.0,
-  "missing": 0.011,
-  "lin_dist": 0.242,
+  "missing": 0.0109,
+  "lin_dist": 0.232,
   "added": 0.017,
   "score": 0.0
  },
@@ -4362,8 +4362,8 @@
   "artifact_db": -36.52,
   "collateral_db": -37.29,
   "net_db": -120.0,
-  "missing": 0.0046,
-  "lin_dist": 0.049,
+  "missing": 0.0045,
+  "lin_dist": 0.043,
   "added": 0.0048,
   "score": 0.0
  },
@@ -4377,7 +4377,7 @@
   "collateral_db": -36.17,
   "net_db": -120.0,
   "missing": 0.0066,
-  "lin_dist": 0.01,
+  "lin_dist": 0.009,
   "added": 0.0095,
   "score": 0.0
  },
@@ -4391,8 +4391,8 @@
   "collateral_db": -27.41,
   "net_db": -120.0,
   "missing": 0.0817,
-  "lin_dist": 0.312,
-  "added": 0.0517,
+  "lin_dist": 0.271,
+  "added": 0.0518,
   "score": 0.0
  },
  {
@@ -4404,9 +4404,9 @@
   "artifact_db": -13.74,
   "collateral_db": -22.13,
   "net_db": -15.23,
-  "missing": 0.1641,
-  "lin_dist": 6.443,
-  "added": 0.3542,
+  "missing": 0.1637,
+  "lin_dist": 6.245,
+  "added": 0.355,
   "score": 0.0
  },
  {
@@ -4418,9 +4418,9 @@
   "artifact_db": -25.25,
   "collateral_db": -27.92,
   "net_db": -120.0,
-  "missing": 0.0415,
-  "lin_dist": 0.96,
-  "added": 0.0484,
+  "missing": 0.0413,
+  "lin_dist": 0.908,
+  "added": 0.0483,
   "score": 0.0
  },
  {
@@ -4432,8 +4432,8 @@
   "artifact_db": -30.65,
   "collateral_db": -33.83,
   "net_db": -44.88,
-  "missing": 0.0808,
-  "lin_dist": 2.391,
+  "missing": 0.0805,
+  "lin_dist": 2.28,
   "added": 0.0889,
   "score": 0.0
  },
@@ -4447,7 +4447,7 @@
   "collateral_db": -32.04,
   "net_db": -120.0,
   "missing": 0.0197,
-  "lin_dist": 0.114,
+  "lin_dist": 0.095,
   "added": 0.0276,
   "score": 0.0
  },
@@ -4460,8 +4460,8 @@
   "artifact_db": -30.84,
   "collateral_db": -33.39,
   "net_db": -120.0,
-  "missing": 0.0388,
-  "lin_dist": 1.448,
+  "missing": 0.0385,
+  "lin_dist": 1.401,
   "added": 0.0569,
   "score": 0.0
  },
@@ -4474,9 +4474,9 @@
   "artifact_db": -14.49,
   "collateral_db": -21.78,
   "net_db": -16.52,
-  "missing": 0.1848,
-  "lin_dist": 10.87,
-  "added": 0.3843,
+  "missing": 0.184,
+  "lin_dist": 10.512,
+  "added": 0.3846,
   "score": 0.0
  },
  {
@@ -4488,9 +4488,9 @@
   "artifact_db": -18.42,
   "collateral_db": -30.95,
   "net_db": -18.94,
-  "missing": 0.0706,
-  "lin_dist": 1.153,
-  "added": 0.1813,
+  "missing": 0.0714,
+  "lin_dist": 0.634,
+  "added": 0.1756,
   "score": 0.0
  },
  {
@@ -4502,9 +4502,9 @@
   "artifact_db": -33.13,
   "collateral_db": -38.74,
   "net_db": -36.6,
-  "missing": 0.0076,
-  "lin_dist": 0.078,
-  "added": 0.0219,
+  "missing": 0.0095,
+  "lin_dist": 0.037,
+  "added": 0.0228,
   "score": 0.0
  },
  {
@@ -4516,9 +4516,9 @@
   "artifact_db": -33.76,
   "collateral_db": -39.82,
   "net_db": -36.74,
-  "missing": 0.0068,
-  "lin_dist": 0.072,
-  "added": 0.0202,
+  "missing": 0.0089,
+  "lin_dist": 0.037,
+  "added": 0.0212,
   "score": 0.0
  },
  {
@@ -4530,9 +4530,9 @@
   "artifact_db": -44.6,
   "collateral_db": -120.0,
   "net_db": -44.6,
-  "missing": 0.0082,
-  "lin_dist": 0.228,
-  "added": 0.014,
+  "missing": 0.0101,
+  "lin_dist": 0.186,
+  "added": 0.0164,
   "score": 0.0
  },
  {
@@ -4544,10 +4544,10 @@
   "artifact_db": -19.63,
   "collateral_db": -29.7,
   "net_db": -20.58,
-  "missing": 0.045,
-  "lin_dist": 1.016,
-  "added": 0.131,
-  "score": 0.111
+  "missing": 0.0465,
+  "lin_dist": 0.533,
+  "added": 0.1272,
+  "score": 0.287
  },
  {
   "file": "suno-we-were-meant-for-the-stars",
@@ -4558,9 +4558,9 @@
   "artifact_db": -31.73,
   "collateral_db": -40.42,
   "net_db": -33.1,
-  "missing": 0.0088,
-  "lin_dist": 0.138,
-  "added": 0.0191,
+  "missing": 0.0107,
+  "lin_dist": 0.08,
+  "added": 0.0204,
   "score": 0.0
  },
  {
@@ -4572,9 +4572,9 @@
   "artifact_db": -37.95,
   "collateral_db": -44.27,
   "net_db": -40.68,
-  "missing": 0.0126,
-  "lin_dist": 0.544,
-  "added": 0.0279,
+  "missing": 0.0139,
+  "lin_dist": 0.437,
+  "added": 0.0291,
   "score": 0.0
  },
  {
@@ -4586,9 +4586,9 @@
   "artifact_db": -33.02,
   "collateral_db": -41.69,
   "net_db": -34.39,
-  "missing": 0.0076,
-  "lin_dist": 0.117,
-  "added": 0.0162,
+  "missing": 0.0096,
+  "lin_dist": 0.066,
+  "added": 0.0176,
   "score": 0.0
  },
  {
@@ -4600,9 +4600,9 @@
   "artifact_db": -34.02,
   "collateral_db": -40.96,
   "net_db": -36.26,
-  "missing": 0.0201,
-  "lin_dist": 0.087,
-  "added": 0.0215,
+  "missing": 0.0212,
+  "lin_dist": 0.072,
+  "added": 0.0226,
   "score": 0.0
  },
  {
@@ -4614,9 +4614,9 @@
   "artifact_db": -23.98,
   "collateral_db": -31.72,
   "net_db": -25.75,
-  "missing": 0.0606,
-  "lin_dist": 0.837,
-  "added": 0.0788,
+  "missing": 0.0607,
+  "lin_dist": 0.172,
+  "added": 0.0767,
   "score": 0.0
  },
  {
@@ -4628,9 +4628,9 @@
   "artifact_db": -12.81,
   "collateral_db": -25.64,
   "net_db": -13.28,
-  "missing": 0.1587,
-  "lin_dist": 10.222,
-  "added": 0.5681,
+  "missing": 0.159,
+  "lin_dist": 6.665,
+  "added": 0.5577,
   "score": 0.0
  },
  {
@@ -4642,9 +4642,9 @@
   "artifact_db": -26.24,
   "collateral_db": -32.7,
   "net_db": -28.86,
-  "missing": 0.045,
-  "lin_dist": 1.866,
-  "added": 0.1302,
+  "missing": 0.0459,
+  "lin_dist": 1.08,
+  "added": 0.1269,
   "score": 0.0
  },
  {
@@ -4656,9 +4656,9 @@
   "artifact_db": -33.17,
   "collateral_db": -41.46,
   "net_db": -34.7,
-  "missing": 0.0636,
-  "lin_dist": 3.716,
-  "added": 0.1988,
+  "missing": 0.0647,
+  "lin_dist": 2.194,
+  "added": 0.1949,
   "score": 0.0
  },
  {
@@ -4670,9 +4670,9 @@
   "artifact_db": -26.66,
   "collateral_db": -31.83,
   "net_db": -30.73,
-  "missing": 0.0248,
-  "lin_dist": 0.351,
-  "added": 0.0594,
+  "missing": 0.0256,
+  "lin_dist": 0.086,
+  "added": 0.0582,
   "score": 0.0
  },
  {
@@ -4684,9 +4684,9 @@
   "artifact_db": -25.94,
   "collateral_db": -32.95,
   "net_db": -28.15,
-  "missing": 0.0443,
-  "lin_dist": 3.014,
-  "added": 0.1552,
+  "missing": 0.0461,
+  "lin_dist": 2.115,
+  "added": 0.151,
   "score": 0.0
  },
  {
@@ -4698,9 +4698,9 @@
   "artifact_db": -13.71,
   "collateral_db": -19.22,
   "net_db": -17.29,
-  "missing": 0.1464,
-  "lin_dist": 30.001,
-  "added": 0.6908,
+  "missing": 0.1467,
+  "lin_dist": 20.36,
+  "added": 0.6873,
   "score": 0.0
  },
  {
@@ -4712,9 +4712,9 @@
   "artifact_db": -22.15,
   "collateral_db": -34.47,
   "net_db": -22.7,
-  "missing": 0.0168,
-  "lin_dist": 0.275,
-  "added": 0.0199,
+  "missing": 0.0172,
+  "lin_dist": 0.14,
+  "added": 0.0196,
   "score": 0.0
  },
  {
@@ -4726,9 +4726,9 @@
   "artifact_db": -40.59,
   "collateral_db": -49.46,
   "net_db": -41.89,
-  "missing": 0.0028,
-  "lin_dist": 0.034,
-  "added": 0.0044,
+  "missing": 0.0034,
+  "lin_dist": 0.025,
+  "added": 0.0048,
   "score": 0.0
  },
  {
@@ -4740,9 +4740,9 @@
   "artifact_db": -40.37,
   "collateral_db": -55.62,
   "net_db": -40.64,
-  "missing": 0.0024,
-  "lin_dist": 0.035,
-  "added": 0.0042,
+  "missing": 0.0031,
+  "lin_dist": 0.028,
+  "added": 0.0045,
   "score": 0.0
  },
  {
@@ -4754,9 +4754,9 @@
   "artifact_db": -62.9,
   "collateral_db": -120.0,
   "net_db": -62.9,
-  "missing": 0.0042,
-  "lin_dist": 0.173,
-  "added": 0.0097,
+  "missing": 0.0047,
+  "lin_dist": 0.151,
+  "added": 0.0099,
   "score": 0.0
  },
  {
@@ -4768,9 +4768,9 @@
   "artifact_db": -15.2,
   "collateral_db": -27.66,
   "net_db": -15.72,
-  "missing": 0.0262,
-  "lin_dist": 1.002,
-  "added": 0.0371,
+  "missing": 0.0269,
+  "lin_dist": 0.543,
+  "added": 0.0365,
   "score": 0.0
  },
  {
@@ -4782,9 +4782,9 @@
   "artifact_db": -31.82,
   "collateral_db": -47.67,
   "net_db": -32.05,
-  "missing": 0.0036,
-  "lin_dist": 0.077,
-  "added": 0.0051,
+  "missing": 0.0042,
+  "lin_dist": 0.059,
+  "added": 0.0054,
   "score": 0.0
  },
  {
@@ -4796,9 +4796,9 @@
   "artifact_db": -53.57,
   "collateral_db": -66.07,
   "net_db": -54.09,
-  "missing": 0.0058,
-  "lin_dist": 0.398,
-  "added": 0.0156,
+  "missing": 0.0063,
+  "lin_dist": 0.35,
+  "added": 0.0157,
   "score": 0.0
  },
  {
@@ -4810,9 +4810,9 @@
   "artifact_db": -33.11,
   "collateral_db": -48.91,
   "net_db": -33.34,
-  "missing": 0.0032,
-  "lin_dist": 0.067,
-  "added": 0.0044,
+  "missing": 0.0039,
+  "lin_dist": 0.051,
+  "added": 0.0047,
   "score": 0.0
  },
  {
@@ -4824,9 +4824,9 @@
   "artifact_db": -44.43,
   "collateral_db": -58.03,
   "net_db": -44.83,
-  "missing": 0.007,
+  "missing": 0.0072,
   "lin_dist": 0.04,
-  "added": 0.0082,
+  "added": 0.0083,
   "score": 0.0
  },
  {
@@ -4838,9 +4838,9 @@
   "artifact_db": -21.51,
   "collateral_db": -26.74,
   "net_db": -25.5,
-  "missing": 0.028,
-  "lin_dist": 1.278,
-  "added": 0.0521,
+  "missing": 0.0285,
+  "lin_dist": 0.565,
+  "added": 0.0514,
   "score": 0.0
  },
  {
@@ -4852,9 +4852,9 @@
   "artifact_db": -23.38,
   "collateral_db": -31.93,
   "net_db": -24.8,
-  "missing": 0.0386,
-  "lin_dist": 2.306,
-  "added": 0.0712,
+  "missing": 0.039,
+  "lin_dist": 1.408,
+  "added": 0.0704,
   "score": 0.0
  },
  {
@@ -4866,9 +4866,9 @@
   "artifact_db": -20.19,
   "collateral_db": -27.77,
   "net_db": -22.05,
-  "missing": 0.0182,
-  "lin_dist": 1.729,
-  "added": 0.0448,
+  "missing": 0.0186,
+  "lin_dist": 0.997,
+  "added": 0.0439,
   "score": 0.0
  },
  {
@@ -4880,9 +4880,9 @@
   "artifact_db": -26.66,
   "collateral_db": -34.98,
   "net_db": -28.17,
-  "missing": 0.0261,
-  "lin_dist": 4.089,
-  "added": 0.0601,
+  "missing": 0.0265,
+  "lin_dist": 2.34,
+  "added": 0.0588,
   "score": 0.0
  },
  {
@@ -4894,9 +4894,9 @@
   "artifact_db": -25.15,
   "collateral_db": -31.5,
   "net_db": -27.86,
-  "missing": 0.01,
-  "lin_dist": 0.206,
-  "added": 0.0163,
+  "missing": 0.0104,
+  "lin_dist": 0.058,
+  "added": 0.016,
   "score": 0.0
  },
  {
@@ -4908,9 +4908,9 @@
   "artifact_db": -28.6,
   "collateral_db": -37.09,
   "net_db": -30.05,
-  "missing": 0.0144,
-  "lin_dist": 2.248,
-  "added": 0.0364,
+  "missing": 0.0148,
+  "lin_dist": 1.764,
+  "added": 0.0358,
   "score": 0.0
  },
  {
@@ -4922,9 +4922,9 @@
   "artifact_db": -23.53,
   "collateral_db": -22.39,
   "net_db": -120.0,
-  "missing": 0.0431,
-  "lin_dist": 11.833,
-  "added": 0.1144,
+  "missing": 0.0436,
+  "lin_dist": 7.969,
+  "added": 0.1129,
   "score": 0.0
  },
  {
@@ -4936,9 +4936,9 @@
   "artifact_db": -16.51,
   "collateral_db": -39.65,
   "net_db": -16.56,
-  "missing": 0.0453,
-  "lin_dist": 0.627,
-  "added": 0.0568,
+  "missing": 0.0455,
+  "lin_dist": 0.347,
+  "added": 0.0562,
   "score": 0.0
  },
  {
@@ -4950,9 +4950,9 @@
   "artifact_db": -33.79,
   "collateral_db": -45.12,
   "net_db": -34.48,
-  "missing": 0.0034,
-  "lin_dist": 0.053,
-  "added": 0.0064,
+  "missing": 0.004,
+  "lin_dist": 0.03,
+  "added": 0.0069,
   "score": 0.0
  },
  {
@@ -4964,9 +4964,9 @@
   "artifact_db": -34.92,
   "collateral_db": -48.36,
   "net_db": -35.34,
-  "missing": 0.0028,
-  "lin_dist": 0.054,
-  "added": 0.005,
+  "missing": 0.0034,
+  "lin_dist": 0.033,
+  "added": 0.0057,
   "score": 0.0
  },
  {
@@ -4978,9 +4978,9 @@
   "artifact_db": -49.63,
   "collateral_db": -120.0,
   "net_db": -49.63,
-  "missing": 0.0046,
-  "lin_dist": 0.179,
-  "added": 0.0096,
+  "missing": 0.0048,
+  "lin_dist": 0.139,
+  "added": 0.0099,
   "score": 0.0
  },
  {
@@ -4992,9 +4992,9 @@
   "artifact_db": -13.81,
   "collateral_db": -35.7,
   "net_db": -13.87,
-  "missing": 0.035,
-  "lin_dist": 0.932,
-  "added": 0.0491,
+  "missing": 0.0351,
+  "lin_dist": 0.506,
+  "added": 0.0485,
   "score": 0.0
  },
  {
@@ -5006,9 +5006,9 @@
   "artifact_db": -27.78,
   "collateral_db": -47.5,
   "net_db": -27.88,
-  "missing": 0.0052,
-  "lin_dist": 0.102,
-  "added": 0.0071,
+  "missing": 0.0056,
+  "lin_dist": 0.061,
+  "added": 0.0075,
   "score": 0.0
  },
  {
@@ -5021,8 +5021,8 @@
   "collateral_db": -55.81,
   "net_db": -44.31,
   "missing": 0.0079,
-  "lin_dist": 0.425,
-  "added": 0.0172,
+  "lin_dist": 0.338,
+  "added": 0.0173,
   "score": 0.0
  },
  {
@@ -5034,9 +5034,9 @@
   "artifact_db": -28.98,
   "collateral_db": -48.76,
   "net_db": -29.07,
-  "missing": 0.0045,
-  "lin_dist": 0.087,
-  "added": 0.0061,
+  "missing": 0.0049,
+  "lin_dist": 0.051,
+  "added": 0.0066,
   "score": 0.0
  },
  {
@@ -5048,9 +5048,9 @@
   "artifact_db": -39.27,
   "collateral_db": -51.32,
   "net_db": -39.84,
-  "missing": 0.0086,
-  "lin_dist": 0.044,
-  "added": 0.0083,
+  "missing": 0.0087,
+  "lin_dist": 0.043,
+  "added": 0.0084,
   "score": 0.0
  },
  {
@@ -5062,9 +5062,9 @@
   "artifact_db": -14.99,
   "collateral_db": -26.27,
   "net_db": -15.69,
-  "missing": 0.0657,
-  "lin_dist": 2.131,
-  "added": 0.0754,
+  "missing": 0.0647,
+  "lin_dist": 1.351,
+  "added": 0.075,
   "score": 0.0
  },
  {
@@ -5076,9 +5076,9 @@
   "artifact_db": -12.07,
   "collateral_db": -27.32,
   "net_db": -12.34,
-  "missing": 0.1367,
-  "lin_dist": 7.413,
-  "added": 0.1964,
+  "missing": 0.1357,
+  "lin_dist": 4.803,
+  "added": 0.1962,
   "score": 0.0
  },
  {
@@ -5091,8 +5091,8 @@
   "collateral_db": -35.18,
   "net_db": -18.89,
   "missing": 0.033,
-  "lin_dist": 1.876,
-  "added": 0.0574,
+  "lin_dist": 1.112,
+  "added": 0.0567,
   "score": 0.0
  },
  {
@@ -5104,9 +5104,9 @@
   "artifact_db": -25.48,
   "collateral_db": -40.44,
   "net_db": -25.77,
-  "missing": 0.0528,
-  "lin_dist": 3.983,
-  "added": 0.0853,
+  "missing": 0.0522,
+  "lin_dist": 2.512,
+  "added": 0.0844,
   "score": 0.0
  },
  {
@@ -5118,9 +5118,9 @@
   "artifact_db": -22.7,
   "collateral_db": -37.18,
   "net_db": -23.02,
-  "missing": 0.0153,
-  "lin_dist": 0.291,
-  "added": 0.0255,
+  "missing": 0.0152,
+  "lin_dist": 0.097,
+  "added": 0.0254,
   "score": 0.0
  },
  {
@@ -5132,9 +5132,9 @@
   "artifact_db": -22.06,
   "collateral_db": -39.72,
   "net_db": -22.21,
-  "missing": 0.0308,
-  "lin_dist": 3.016,
-  "added": 0.0695,
+  "missing": 0.031,
+  "lin_dist": 2.151,
+  "added": 0.0684,
   "score": 0.0
  },
  {
@@ -5146,9 +5146,9 @@
   "artifact_db": -15.23,
   "collateral_db": -32.27,
   "net_db": -15.41,
-  "missing": 0.0916,
-  "lin_dist": 19.52,
-  "added": 0.1413,
+  "missing": 0.0911,
+  "lin_dist": 14.322,
+  "added": 0.1397,
   "score": 0.0
  },
  {
@@ -5160,9 +5160,9 @@
   "artifact_db": -25.29,
   "collateral_db": -60.09,
   "net_db": -25.29,
-  "missing": 0.0257,
-  "lin_dist": 0.156,
-  "added": 0.0134,
+  "missing": 0.0255,
+  "lin_dist": 0.109,
+  "added": 0.0133,
   "score": 0.0
  },
  {
@@ -5174,9 +5174,9 @@
   "artifact_db": -38.1,
   "collateral_db": -78.63,
   "net_db": -38.1,
-  "missing": 0.0033,
-  "lin_dist": 0.037,
-  "added": 0.0033,
+  "missing": 0.0035,
+  "lin_dist": 0.023,
+  "added": 0.0036,
   "score": 0.0
  },
  {
@@ -5188,9 +5188,9 @@
   "artifact_db": -33.17,
   "collateral_db": -76.26,
   "net_db": -33.17,
-  "missing": 0.0043,
-  "lin_dist": 0.052,
-  "added": 0.004,
+  "missing": 0.0044,
+  "lin_dist": 0.037,
+  "added": 0.0043,
   "score": 0.0
  },
  {
@@ -5202,10 +5202,10 @@
   "artifact_db": -37.15,
   "collateral_db": -119.99,
   "net_db": -37.15,
-  "missing": 0.0128,
-  "lin_dist": 0.261,
-  "added": 0.0124,
-  "score": 0.026
+  "missing": 0.0126,
+  "lin_dist": 0.235,
+  "added": 0.0127,
+  "score": 0.033
  },
  {
   "file": "synth-clean",
@@ -5216,9 +5216,9 @@
   "artifact_db": -18.18,
   "collateral_db": -45.61,
   "net_db": -18.19,
-  "missing": 0.0953,
-  "lin_dist": 0.565,
-  "added": 0.0319,
+  "missing": 0.0951,
+  "lin_dist": 0.458,
+  "added": 0.0317,
   "score": 0.0
  },
  {
@@ -5230,9 +5230,9 @@
   "artifact_db": -26.27,
   "collateral_db": -70.6,
   "net_db": -26.27,
-  "missing": 0.0119,
-  "lin_dist": 0.124,
-  "added": 0.01,
+  "missing": 0.0118,
+  "lin_dist": 0.099,
+  "added": 0.0101,
   "score": 0.0
  },
  {
@@ -5244,9 +5244,9 @@
   "artifact_db": -27.67,
   "collateral_db": -70.9,
   "net_db": -27.67,
-  "missing": 0.0291,
-  "lin_dist": 0.769,
-  "added": 0.0222,
+  "missing": 0.0286,
+  "lin_dist": 0.705,
+  "added": 0.0223,
   "score": 0.0
  },
  {
@@ -5258,9 +5258,9 @@
   "artifact_db": -27.85,
   "collateral_db": -72.25,
   "net_db": -27.85,
-  "missing": 0.0097,
-  "lin_dist": 0.102,
-  "added": 0.0082,
+  "missing": 0.0095,
+  "lin_dist": 0.079,
+  "added": 0.0083,
   "score": 0.0
  },
  {
@@ -5272,9 +5272,9 @@
   "artifact_db": -24.6,
   "collateral_db": -68.39,
   "net_db": -24.6,
-  "missing": 0.0091,
-  "lin_dist": 0.113,
-  "added": 0.0183,
+  "missing": 0.0095,
+  "lin_dist": 0.107,
+  "added": 0.019,
   "score": 0.0
  },
  {
@@ -5286,9 +5286,9 @@
   "artifact_db": -21.86,
   "collateral_db": -27.51,
   "net_db": -25.28,
-  "missing": 0.0972,
-  "lin_dist": 0.594,
-  "added": 0.0601,
+  "missing": 0.0967,
+  "lin_dist": 0.446,
+  "added": 0.0599,
   "score": 0.0
  },
  {
@@ -5300,9 +5300,9 @@
   "artifact_db": -20.95,
   "collateral_db": -27.18,
   "net_db": -23.76,
-  "missing": 0.1566,
-  "lin_dist": 2.03,
-  "added": 0.0762,
+  "missing": 0.1556,
+  "lin_dist": 1.537,
+  "added": 0.0754,
   "score": 0.0
  },
  {
@@ -5314,9 +5314,9 @@
   "artifact_db": -21.99,
   "collateral_db": -34.15,
   "net_db": -22.56,
-  "missing": 0.1124,
-  "lin_dist": 1.612,
-  "added": 0.0448,
+  "missing": 0.1125,
+  "lin_dist": 1.318,
+  "added": 0.0442,
   "score": 0.0
  },
  {
@@ -5328,9 +5328,9 @@
   "artifact_db": -28.84,
   "collateral_db": -36.24,
   "net_db": -30.81,
-  "missing": 0.2279,
-  "lin_dist": 3.088,
-  "added": 0.0723,
+  "missing": 0.2281,
+  "lin_dist": 2.553,
+  "added": 0.0711,
   "score": 0.0
  },
  {
@@ -5342,9 +5342,9 @@
   "artifact_db": -26.74,
   "collateral_db": -58.1,
   "net_db": -26.75,
-  "missing": 0.0313,
-  "lin_dist": 0.16,
-  "added": 0.0145,
+  "missing": 0.0311,
+  "lin_dist": 0.106,
+  "added": 0.0144,
   "score": 0.0
  },
  {
@@ -5356,9 +5356,9 @@
   "artifact_db": -24.61,
   "collateral_db": -58.41,
   "net_db": -24.62,
-  "missing": 0.1058,
-  "lin_dist": 2.608,
-  "added": 0.0448,
+  "missing": 0.1064,
+  "lin_dist": 2.332,
+  "added": 0.0443,
   "score": 0.0
  },
  {
@@ -5370,9 +5370,9 @@
   "artifact_db": -15.77,
   "collateral_db": -28.23,
   "net_db": -16.29,
-  "missing": 0.3666,
-  "lin_dist": 16.444,
-  "added": 0.1383,
+  "missing": 0.3685,
+  "lin_dist": 14.387,
+  "added": 0.1365,
   "score": 0.0
  },
  {
@@ -5384,10 +5384,10 @@
   "artifact_db": -16.28,
   "collateral_db": -55.64,
   "net_db": -16.28,
-  "missing": 0.032,
-  "lin_dist": 0.28,
-  "added": 0.0167,
-  "score": 0.226
+  "missing": 0.0316,
+  "lin_dist": 0.169,
+  "added": 0.0165,
+  "score": 0.26
  },
  {
   "file": "synth-hash",
@@ -5398,9 +5398,9 @@
   "artifact_db": -37.78,
   "collateral_db": -77.03,
   "net_db": -37.79,
-  "missing": 0.003,
-  "lin_dist": 0.036,
-  "added": 0.0028,
+  "missing": 0.0031,
+  "lin_dist": 0.021,
+  "added": 0.0032,
   "score": 0.0
  },
  {
@@ -5413,8 +5413,8 @@
   "collateral_db": -75.3,
   "net_db": -33.42,
   "missing": 0.0046,
-  "lin_dist": 0.052,
-  "added": 0.0043,
+  "lin_dist": 0.036,
+  "added": 0.0047,
   "score": 0.0
  },
  {
@@ -5426,9 +5426,9 @@
   "artifact_db": -37.79,
   "collateral_db": -119.99,
   "net_db": -37.79,
-  "missing": 0.0109,
-  "lin_dist": 0.254,
-  "added": 0.0145,
+  "missing": 0.0107,
+  "lin_dist": 0.224,
+  "added": 0.0152,
   "score": 0.0
  },
  {
@@ -5440,9 +5440,9 @@
   "artifact_db": -14.35,
   "collateral_db": -46.16,
   "net_db": -14.35,
-  "missing": 0.0834,
-  "lin_dist": 0.788,
-  "added": 0.0338,
+  "missing": 0.0828,
+  "lin_dist": 0.598,
+  "added": 0.0335,
   "score": 0.0
  },
  {
@@ -5454,9 +5454,9 @@
   "artifact_db": -26.43,
   "collateral_db": -75.46,
   "net_db": -26.43,
-  "missing": 0.0088,
-  "lin_dist": 0.112,
-  "added": 0.009,
+  "missing": 0.0086,
+  "lin_dist": 0.079,
+  "added": 0.0092,
   "score": 0.0
  },
  {
@@ -5468,9 +5468,9 @@
   "artifact_db": -29.75,
   "collateral_db": -72.35,
   "net_db": -29.75,
-  "missing": 0.0213,
-  "lin_dist": 0.693,
-  "added": 0.0264,
+  "missing": 0.0207,
+  "lin_dist": 0.616,
+  "added": 0.0271,
   "score": 0.0
  },
  {
@@ -5482,9 +5482,9 @@
   "artifact_db": -27.96,
   "collateral_db": -77.2,
   "net_db": -27.96,
-  "missing": 0.0073,
-  "lin_dist": 0.093,
-  "added": 0.0075,
+  "missing": 0.0071,
+  "lin_dist": 0.064,
+  "added": 0.0077,
   "score": 0.0
  },
  {
@@ -5496,9 +5496,9 @@
   "artifact_db": -26.38,
   "collateral_db": -71.72,
   "net_db": -26.38,
-  "missing": 0.0076,
-  "lin_dist": 0.095,
-  "added": 0.0194,
+  "missing": 0.0079,
+  "lin_dist": 0.092,
+  "added": 0.0201,
   "score": 0.0
  },
  {
@@ -5510,9 +5510,9 @@
   "artifact_db": -18.35,
   "collateral_db": -25.26,
   "net_db": -20.62,
-  "missing": 0.0879,
-  "lin_dist": 0.911,
-  "added": 0.0503,
+  "missing": 0.0872,
+  "lin_dist": 0.732,
+  "added": 0.05,
   "score": 0.0
  },
  {
@@ -5524,9 +5524,9 @@
   "artifact_db": -14.69,
   "collateral_db": -25.96,
   "net_db": -15.4,
-  "missing": 0.131,
-  "lin_dist": 2.425,
-  "added": 0.0688,
+  "missing": 0.1296,
+  "lin_dist": 1.814,
+  "added": 0.0683,
   "score": 0.0
  },
  {
@@ -5538,9 +5538,9 @@
   "artifact_db": -15.71,
   "collateral_db": -31.48,
   "net_db": -15.95,
-  "missing": 0.0877,
-  "lin_dist": 1.754,
-  "added": 0.047,
+  "missing": 0.0867,
+  "lin_dist": 1.313,
+  "added": 0.0467,
   "score": 0.0
  },
  {
@@ -5552,9 +5552,9 @@
   "artifact_db": -27.0,
   "collateral_db": -33.11,
   "net_db": -29.92,
-  "missing": 0.1632,
-  "lin_dist": 3.314,
-  "added": 0.066,
+  "missing": 0.1619,
+  "lin_dist": 2.575,
+  "added": 0.0649,
   "score": 0.0
  },
  {
@@ -5566,9 +5566,9 @@
   "artifact_db": -19.75,
   "collateral_db": -57.53,
   "net_db": -19.76,
-  "missing": 0.0409,
-  "lin_dist": 0.294,
-  "added": 0.0161,
+  "missing": 0.0404,
+  "lin_dist": 0.181,
+  "added": 0.0158,
   "score": 0.0
  },
  {
@@ -5580,9 +5580,9 @@
   "artifact_db": -18.55,
   "collateral_db": -56.12,
   "net_db": -18.55,
-  "missing": 0.0921,
-  "lin_dist": 2.888,
-  "added": 0.0478,
+  "missing": 0.0914,
+  "lin_dist": 2.335,
+  "added": 0.0472,
   "score": 0.0
  },
  {
@@ -5594,9 +5594,9 @@
   "artifact_db": -12.25,
   "collateral_db": -29.3,
   "net_db": -12.42,
-  "missing": 0.2716,
-  "lin_dist": 16.907,
-  "added": 0.1216,
+  "missing": 0.2702,
+  "lin_dist": 14.196,
+  "added": 0.1202,
   "score": 0.0
  },
  {
@@ -5608,9 +5608,9 @@
   "artifact_db": -25.34,
   "collateral_db": -60.15,
   "net_db": -25.35,
-  "missing": 0.0256,
-  "lin_dist": 0.155,
-  "added": 0.0134,
+  "missing": 0.0254,
+  "lin_dist": 0.108,
+  "added": 0.0133,
   "score": 0.0
  },
  {
@@ -5622,10 +5622,10 @@
   "artifact_db": -38.11,
   "collateral_db": -78.66,
   "net_db": -38.11,
-  "missing": 0.0033,
-  "lin_dist": 0.037,
-  "added": 0.0033,
-  "score": 0.02
+  "missing": 0.0035,
+  "lin_dist": 0.024,
+  "added": 0.0036,
+  "score": 0.027
  },
  {
   "file": "synth-tone",
@@ -5636,10 +5636,10 @@
   "artifact_db": -33.23,
   "collateral_db": -76.24,
   "net_db": -33.24,
-  "missing": 0.0042,
-  "lin_dist": 0.052,
-  "added": 0.004,
-  "score": 0.0
+  "missing": 0.0043,
+  "lin_dist": 0.037,
+  "added": 0.0043,
+  "score": 0.005
  },
  {
   "file": "synth-tone",
@@ -5650,9 +5650,9 @@
   "artifact_db": -37.12,
   "collateral_db": -119.99,
   "net_db": -37.12,
-  "missing": 0.0127,
-  "lin_dist": 0.262,
-  "added": 0.0125,
+  "missing": 0.0124,
+  "lin_dist": 0.236,
+  "added": 0.0127,
   "score": 0.0
  },
  {
@@ -5664,9 +5664,9 @@
   "artifact_db": -18.58,
   "collateral_db": -46.66,
   "net_db": -18.59,
-  "missing": 0.0913,
-  "lin_dist": 0.559,
-  "added": 0.0302,
+  "missing": 0.0911,
+  "lin_dist": 0.453,
+  "added": 0.0299,
   "score": 0.0
  },
  {
@@ -5678,9 +5678,9 @@
   "artifact_db": -26.48,
   "collateral_db": -70.62,
   "net_db": -26.48,
-  "missing": 0.0118,
-  "lin_dist": 0.123,
-  "added": 0.0099,
+  "missing": 0.0116,
+  "lin_dist": 0.098,
+  "added": 0.0101,
   "score": 0.0
  },
  {
@@ -5692,9 +5692,9 @@
   "artifact_db": -27.84,
   "collateral_db": -70.88,
   "net_db": -27.84,
-  "missing": 0.0287,
-  "lin_dist": 0.77,
-  "added": 0.0222,
+  "missing": 0.0282,
+  "lin_dist": 0.707,
+  "added": 0.0223,
   "score": 0.0
  },
  {
@@ -5706,9 +5706,9 @@
   "artifact_db": -28.06,
   "collateral_db": -72.27,
   "net_db": -28.06,
-  "missing": 0.0096,
-  "lin_dist": 0.101,
-  "added": 0.0082,
+  "missing": 0.0094,
+  "lin_dist": 0.079,
+  "added": 0.0083,
   "score": 0.0
  },
  {
@@ -5720,9 +5720,9 @@
   "artifact_db": -24.82,
   "collateral_db": -68.41,
   "net_db": -24.82,
-  "missing": 0.0092,
-  "lin_dist": 0.113,
-  "added": 0.0182,
+  "missing": 0.0096,
+  "lin_dist": 0.107,
+  "added": 0.0189,
   "score": 0.0
  },
  {
@@ -5734,9 +5734,9 @@
   "artifact_db": -21.83,
   "collateral_db": -27.48,
   "net_db": -25.25,
-  "missing": 0.0975,
-  "lin_dist": 0.594,
-  "added": 0.0602,
+  "missing": 0.097,
+  "lin_dist": 0.445,
+  "added": 0.06,
   "score": 0.0
  },
  {
@@ -5748,9 +5748,9 @@
   "artifact_db": -20.99,
   "collateral_db": -27.23,
   "net_db": -23.79,
-  "missing": 0.1533,
-  "lin_dist": 2.014,
-  "added": 0.0745,
+  "missing": 0.1523,
+  "lin_dist": 1.526,
+  "added": 0.0737,
   "score": 0.0
  },
  {
@@ -5762,9 +5762,9 @@
   "artifact_db": -21.96,
   "collateral_db": -34.12,
   "net_db": -22.53,
-  "missing": 0.1116,
-  "lin_dist": 1.611,
-  "added": 0.0446,
+  "missing": 0.1117,
+  "lin_dist": 1.319,
+  "added": 0.044,
   "score": 0.0
  },
  {
@@ -5776,9 +5776,9 @@
   "artifact_db": -28.81,
   "collateral_db": -36.21,
   "net_db": -30.78,
-  "missing": 0.2267,
-  "lin_dist": 3.087,
-  "added": 0.072,
+  "missing": 0.2269,
+  "lin_dist": 2.554,
+  "added": 0.0708,
   "score": 0.0
  },
  {
@@ -5790,9 +5790,9 @@
   "artifact_db": -26.71,
   "collateral_db": -58.07,
   "net_db": -26.72,
-  "missing": 0.0313,
-  "lin_dist": 0.16,
-  "added": 0.0145,
+  "missing": 0.0311,
+  "lin_dist": 0.106,
+  "added": 0.0144,
   "score": 0.0
  },
  {
@@ -5804,9 +5804,9 @@
   "artifact_db": -24.73,
   "collateral_db": -58.47,
   "net_db": -24.73,
-  "missing": 0.1045,
-  "lin_dist": 2.602,
-  "added": 0.0445,
+  "missing": 0.1051,
+  "lin_dist": 2.329,
+  "added": 0.0439,
   "score": 0.0
  },
  {
@@ -5818,9 +5818,9 @@
   "artifact_db": -16.06,
   "collateral_db": -28.29,
   "net_db": -16.61,
-  "missing": 0.3622,
-  "lin_dist": 16.385,
-  "added": 0.1366,
+  "missing": 0.3641,
+  "lin_dist": 14.347,
+  "added": 0.1348,
   "score": 0.0
  }
 ]

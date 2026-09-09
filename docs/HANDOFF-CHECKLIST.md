@@ -292,6 +292,12 @@ count.
         executable acceptance criteria
       - `STYLE.md` — the house rules currently scattered in docstrings
       - `PITFALLS.md` — every wrong turn taken here, so it is not retaken
+      *2026-09-08:* `PITFALLS.md` drafted from the assessment's traps and
+      this session's own wrong turns, each with the evidence that caught it.
+      `GOALS.md` and `STYLE.md` not written: the goal and the decision rule
+      are the author's to state, and the house rules need a pass over the
+      docstrings that this session did not make. `IMPLEMENTATION.md` is
+      being maintained by whoever is in the tree.
 
 - [x] **10. Give the prior a real "nothing is wrong" state.** (Added
       2026-09-08 while doing item 5; it is the assessment's recommendation
