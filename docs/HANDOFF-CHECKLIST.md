@@ -561,20 +561,35 @@ count.
         tilt 7.4), Suno Hash at 200 % on drums 10-17 %, everything on the
         other host **≤ 8 %**. Stems are a route for *protecting* vocals
         while cleaning, not for finding the hash.
-      *What follows:* three routes measured, none reaches the artifact:
-      band-envelope ducking (the shipped stage), per-bin coherence
-      weighting, and stem separation. The hash is added noise whose
-      level per bin rises and falls with a coherent, aperiodic gate; what
-      has not been built is a **per-bin subtraction** stage: track each
-      bin's level at the band's coherent minima (the off phases), take
-      the on-phase excess per bin as the hash's spectrum there, and
-      subtract that excess in power, per bin, leaving the off-phase
-      level — a fine-grid spectral subtraction keyed by the gate the
-      tamer already detects, at bin rather than sub-band resolution. It
-      may fail the same way; the harness will say in one run. Before it,
-      replace the periodic model with an aperiodic gate matched to the
-      measured modulation spectrum (2-2.6 dB rms flat over 2-50 Hz), so
-      the design is not fitted to a rate the corpus does not contain.
+      - Per-bin spectral subtraction keyed by the band's coherent gate
+        (off-phase floor per bin, on-phase excess subtracted in power),
+        tried the same day on both the periodic model and an **aperiodic
+        model** (band noise gated by a low-passed random envelope, the
+        measured shape of real hash). It is the first route with real
+        efficacy: **52-61 % of the aperiodic hash at 2.0 sones, 26-35 % of
+        the periodic**, on both hosts. But it costs **0.19-0.47 sones on
+        the clean host alone** (budget ceiling 0.10) with tilt 7-14 on the
+        transient-rich master, because the on phases it subtracts are
+        where drum hits live too. Every guard that cut the cost cut the
+        efficacy with it: the fine pass's transient gate 0.47 -> 0.24
+        sones but 61 % -> 17 %; a 31-bin median across bins (so partials
+        are not subtracted past their neighbourhood) 0.47 -> 0.17 sones
+        but 61 % -> 18 %; both together 0.07 sones and **2 %**. Efficacy
+        and cost move together along this axis: the stage cannot tell
+        hash from cymbals and hits by level, gate or spectral shape.
+      *What follows:* four routes measured — band-envelope ducking (the
+      shipped stage), per-bin coherence weighting, stem separation,
+      per-bin gated subtraction — and none separates the hash from
+      noise-like music with hand-designed statistics. The two share
+      level, coherence and flatness. What is left is a learned separator
+      trained on (clean host, host + hash) pairs, which the harness can
+      now generate in bulk (88 MediumNeutral masters as hosts, the
+      aperiodic model), judged by the same harness. Its validity rests
+      entirely on the model being the real artifact, so the step before
+      any training is a listening check: does the aperiodic model on a
+      clean master sound like Suno hash to the author? If it does not,
+      the model must be refit from real renders first (the modulation
+      spectrum and per-bin coherence measured above are the constraints).
       This is the product's core problem and the largest open item.
 
 ## DEFERRED — the 80% stake
