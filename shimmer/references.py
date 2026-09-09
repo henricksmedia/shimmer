@@ -66,6 +66,52 @@ def available() -> bool:
         return False
 
 
+def now_playing() -> Dict[str, str]:
+    """What Windows says is playing, from the same source the media keys use.
+
+    This is what makes the capture one button instead of four. Spotify and
+    most players report title and artist to the system transport controls, so
+    a row can name itself and, more usefully, the capture can tell when the
+    track changed — which is the part a listener should not have to do by
+    hand. Silence detection cannot do this: Spotify plays gapless and
+    crossfades, so there is often no gap between songs to find.
+
+    Returns empty strings when nothing is reporting, and the caller falls
+    back to a typed name.
+    """
+    try:
+        import asyncio
+        from winsdk.windows.media.control import (
+            GlobalSystemMediaTransportControlsSessionManager as Manager)
+
+        async def read() -> Dict[str, str]:
+            mgr = await Manager.request_async()
+            ses = mgr.get_current_session()
+            if ses is None:
+                return {}
+            props = await ses.try_get_media_properties_async()
+            info = ses.get_playback_info()
+            return {
+                "app": str(ses.source_app_user_model_id or ""),
+                "title": str(props.title or "").strip(),
+                "artist": str(props.artist or "").strip(),
+                # 4 == playing in the Windows enum; anything else is paused,
+                # stopped or changing, and must not accumulate.
+                "playing": "1" if int(info.playback_status) == 4 else "",
+            }
+
+        return asyncio.run(read()) or {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _track_name(np: Dict[str, str]) -> str:
+    t, a = np.get("title", ""), np.get("artist", "")
+    if t and a:
+        return f"{a} — {t}"
+    return t or a or ""
+
+
 def devices() -> List[Dict[str, Any]]:
     """Loopback devices — what the machine is playing, not what a mic hears."""
     import soundcard as sc
@@ -84,7 +130,12 @@ def devices() -> List[Dict[str, Any]]:
 
 @dataclass
 class Capture:
-    """One recording in progress. Holds a spectrum accumulator, not audio."""
+    """A listening session. Holds a spectrum accumulator, never audio.
+
+    One session spans as many tracks as you play. The accumulator is flushed
+    to a saved row each time Windows reports a different title, so a playlist
+    becomes a set of correctly named rows without anyone pressing anything.
+    """
     device_id: str
     label: str = ""
     frames: int = 0
@@ -93,6 +144,9 @@ class Capture:
     peak: float = 0.0
     _acc: Optional[np.ndarray] = None      # summed band power, linear
     _n: int = 0
+    track: str = ""                        # what is playing right now
+    saved: List[str] = field(default_factory=list)
+    auto: bool = True                      # follow track changes
     _stop: threading.Event = field(default_factory=threading.Event)
     _thread: Optional[threading.Thread] = None
     _lock: threading.Lock = field(default_factory=threading.Lock)
@@ -105,7 +159,33 @@ class Capture:
                     "peak_dbfs": (round(20.0 * float(np.log10(max(self.peak, 1e-9))), 1)),
                     "running": bool(self._thread and self._thread.is_alive()),
                     "enough": self.heard >= MIN_SECONDS,
+                    "track": self.track,
+                    "saved": list(self.saved),
+                    "auto": self.auto,
                     "error": self.error}
+
+    def _flush(self, name: str) -> Optional[str]:
+        """Save what has accumulated as one row. Caller holds no lock."""
+        with self._lock:
+            acc, n, heard = self._acc, self._n, self.heard
+            self._acc, self._n, self.heard = None, 0, 0.0
+        if acc is None or n == 0 or heard < MIN_SECONDS:
+            return None            # too short to be a stable average
+        rel = relative_band_levels(
+            10.0 * np.log10(np.maximum(acc / n, 1e-20)))
+        lib = load()
+        lib["tracks"].append({
+            "label": (name or "untitled").strip(),
+            "genre": "",
+            "source": "capture",
+            "tone_only": True,
+            "heard_seconds": round(heard, 1),
+            "rel_db": [round(float(v), 2) for v in rel],
+        })
+        save(lib)
+        with self._lock:
+            self.saved.append(name)
+        return name
 
 
 _ACTIVE: Optional[Capture] = None
@@ -113,6 +193,7 @@ _ACTIVE: Optional[Capture] = None
 
 def _run(cap: Capture) -> None:
     import soundcard as sc
+    poll = 0.0
     try:
         mic = sc.get_microphone(cap.device_id, include_loopback=True)
         with mic.recorder(samplerate=SR, channels=2, blocksize=BLOCK) as rec:
@@ -125,6 +206,26 @@ def _run(cap: Capture) -> None:
                 with cap._lock:
                     cap.seconds += dur
                     cap.peak = max(cap.peak, pk)
+
+                # Ask Windows what is playing about once a second. Cheaper
+                # than per-block, and a track change is not a sub-second
+                # event.
+                poll += dur
+                if cap.auto and poll >= 1.0:
+                    poll = 0.0
+                    np_info = now_playing()
+                    name = _track_name(np_info)
+                    if name and name != cap.track:
+                        # The track changed. Bank what we have under the name
+                        # it was playing under, then start the next one.
+                        if cap.track:
+                            cap._flush(cap.track)
+                        with cap._lock:
+                            cap.track = name
+                    elif not cap.track and name:
+                        with cap._lock:
+                            cap.track = name
+
                 # Silence is not music. A paused player would otherwise pull
                 # the average toward whatever the noise floor looks like.
                 if rms > 10.0 ** (SILENCE_DBFS / 20.0):
@@ -155,7 +256,7 @@ def status() -> Dict[str, Any]:
 
 
 def stop(label: str = "", genre: str = "") -> Dict[str, Any]:
-    """Stop, measure, store the curve, discard the audio."""
+    """End the session and bank whatever is still accumulating."""
     global _ACTIVE
     cap = _ACTIVE
     if cap is None:
@@ -166,30 +267,29 @@ def stop(label: str = "", genre: str = "") -> Dict[str, Any]:
     _ACTIVE = None
 
     if cap.error:
-        return {"ok": False, "error": cap.error}
-    if cap._acc is None or cap._n == 0:
-        return {"ok": False, "error": "no audio was heard — is the right "
-                                      "device selected, and is it playing?"}
-    if cap.heard < MIN_SECONDS:
-        return {"ok": False, "error":
-                f"only {cap.heard:.0f}s of audio heard; {MIN_SECONDS:.0f}s is "
-                f"the minimum for a stable average"}
+        return {"ok": False, "error": cap.error, "saved": cap.saved}
 
-    mean_lin = cap._acc / cap._n
-    rel = relative_band_levels(10.0 * np.log10(np.maximum(mean_lin, 1e-20)))
-    row = {
-        "label": (label or cap.label or "untitled").strip(),
-        "genre": genre.strip(),
-        "source": "capture",
-        # Loudness is deliberately absent: playback normalisation rewrites it.
-        "tone_only": True,
-        "heard_seconds": round(cap.heard, 1),
-        "rel_db": [round(float(v), 2) for v in rel],
-    }
-    lib = load()
-    lib["tracks"].append(row)
-    save(lib)
-    return {"ok": True, "row": row, "count": len(lib["tracks"])}
+    # Whatever is left belongs to the track that was playing when you stopped.
+    final = cap._flush(label.strip() or cap.track or cap.label)
+    saved = list(cap.saved)
+
+    if not saved:
+        if cap._n == 0 and cap.heard == 0.0:
+            return {"ok": False, "saved": [], "error":
+                    "no audio was heard — is the right device selected, and "
+                    "is something playing?"}
+        return {"ok": False, "saved": [], "error":
+                f"only {cap.heard:.0f}s of music heard; "
+                f"{MIN_SECONDS:.0f}s is the minimum for a stable average"}
+
+    if genre.strip():
+        lib = load()
+        for row in lib["tracks"][-len(saved):]:
+            row["genre"] = genre.strip()
+        save(lib)
+
+    return {"ok": True, "saved": saved, "final": final,
+            "count": len(load()["tracks"])}
 
 
 def load() -> Dict[str, Any]:

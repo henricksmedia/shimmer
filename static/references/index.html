@@ -59,17 +59,21 @@
       <li>Turn <strong>off</strong> volume normalisation in your player.
           Spotify: Settings → Playback → Audio normalisation.</li>
       <li>Pick the output device you actually hear sound from.</li>
-      <li>Type the artist and title, press <strong>Start</strong>, then play the
-          track.</li>
-      <li>Let it run about 20 seconds of <em>music</em>, then press
-          <strong>Stop &amp; save</strong>.</li>
+      <li>Press <strong>Start</strong>, then play music.</li>
+      <li>Press <strong>Stop</strong> when you are done. That is all.</li>
     </ol>
     <p style="margin:.7rem 0 0">
-      <strong>It does not capture automatically.</strong> You press Start, it
-      listens; you press Stop, it measures and saves one row. One track at a
-      time, so each row is one piece of music rather than a blur of several.
+      <strong>It follows the track for you.</strong> Windows reports what is
+      playing, so each song is saved under its own name and the next one starts
+      by itself when the title changes. Put a playlist on and walk away — you
+      get one row per track, correctly named, without touching anything.
+      Anything shorter than 20 seconds of music is dropped rather than saved
+      as a bad average.
+    </p>
+    <p style="margin:.5rem 0 0" class="muted">
       Aim for commercial releases by other people — that is the material the
-      tone target is missing.
+      tone target is missing. The name box is only a fallback for players that
+      do not report to Windows.
     </p>
   </div>
 
@@ -77,10 +81,10 @@
     <h2>Record</h2>
     <div class="row">
       <select id="device"><option>loading…</option></select>
-      <input type="text" id="label" placeholder="Artist — Title" size="28">
+      <input type="text" id="label" placeholder="name (auto-filled from your player)" size="30">
       <input type="text" id="genre" placeholder="genre (optional)" size="14">
       <button id="go">Start</button>
-      <button id="stop" class="ghost" disabled>Stop &amp; save</button>
+      <button id="stop" class="ghost" disabled>Stop</button>
     </div>
     <div class="row" style="margin-top:.8rem">
       <span id="clock" class="muted">0.0 s</span>
@@ -164,10 +168,19 @@ function tick() {
       s.heard_seconds.toFixed(1) + ' s of music';
     $('bar').style.width = Math.min(100, (s.heard_seconds / 20) * 100) + '%';
     $('peak').textContent = s.peak_dbfs > -90 ? s.peak_dbfs + ' dBFS peak' : '';
-    $('stop').disabled = !s.enough;
+    $('stop').disabled = false;
     $('msg').textContent = s.enough
-      ? 'Enough captured — stop whenever you like. Longer is steadier.'
-      : 'Listening… need ' + (20 - s.heard_seconds).toFixed(0) + ' s more music.';
+      ? (s.track ? 'Capturing “' + s.track + '”. Change track and it saves ' +
+                    'this one automatically.'
+                  : 'Enough captured — stop whenever you like.')
+      : (s.track ? 'Listening to “' + s.track + '” — ' +
+                   (20 - s.heard_seconds).toFixed(0) + ' s more needed.'
+                 : 'Listening… need ' + (20 - s.heard_seconds).toFixed(0) +
+                   ' s more music.');
+    if (s.saved && s.saved.length) {
+      $('msg').innerHTML += ' <span class="ok">' + s.saved.length +
+        ' saved this session.</span>';
+    }
     if (s.error) $('msg').innerHTML = '<span class="warn">' + s.error + '</span>';
   });
 }
@@ -188,8 +201,9 @@ $('stop').onclick = async () => {
   $('go').textContent = 'Start'; $('stop').disabled = true;
   $('clock').textContent = '0.0 s'; $('bar').style.width = '0';
   if (!r.ok) { $('msg').innerHTML = '<span class="warn">' + r.error + '</span>'; return; }
-  $('msg').innerHTML = '<span class="ok">Saved “' + r.row.label +
-    '”. ' + r.count + ' in the library.</span>';
+  $('msg').innerHTML = '<span class="ok">Saved ' + r.saved.length +
+    ' track' + (r.saved.length === 1 ? '' : 's') + ': ' +
+    r.saved.join(', ') + '. ' + r.count + ' in the library.</span>';
   $('label').value = '';
   refresh();
 };
