@@ -119,3 +119,7 @@ assets/demo/
 # Kept in the repo so they are alongside the data they read, but never
 # pushed - they hardcode local paths and read audio that is not distributed.
 scripts/tone-evidence/
+
+# hash_data/      : generated training pairs for the learned hash remover (large, regenerable)
+hash_data/
+scripts/hash_learn/*.pt
