@@ -117,6 +117,20 @@
     </tr></thead><tbody></tbody></table>
   </div>
 
+  <div class="panel" id="reportPanel" hidden>
+    <h2>Report</h2>
+    <p id="headline" style="font-size:1.05rem;margin:.2rem 0 .8rem"></p>
+    <div id="caveats"></div>
+    <table id="reportTable"><thead><tr>
+      <th>Band</th><th>Captured</th><th>±1sd</th><th>Target</th><th>Difference</th>
+    </tr></thead><tbody></tbody></table>
+    <p class="muted" style="font-size:.86rem;margin-top:.8rem">
+      <strong>Difference</strong> is captured minus target. Negative means real
+      music has <em>less</em> energy there than Shimmer currently aims for, so
+      the tool would be pushing tracks brighter than the reference.
+    </p>
+  </div>
+
   <p class="muted" style="font-size:.86rem">
     Stored in <code>docs/reference-library.json</code> — curves only, no audio.
     Feed it to the target with <code>scripts/build_tone_reference.py</code>.
@@ -242,8 +256,36 @@ function draw(lib) {
   if (lib.median_db) line(lib.median_db, '#4ade80', 4);
 }
 
+function renderReport(r) {
+  const panel = $('reportPanel');
+  if (!r.count) { panel.hidden = true; return; }
+  panel.hidden = false;
+  const bad = r.verdict === 'disagrees';
+  $('headline').innerHTML = (bad ? '<span class="warn">⚠ </span>' :
+    '<span class="ok">✓ </span>') + r.headline;
+  $('caveats').innerHTML = r.caveats.length
+    ? '<p class="muted" style="margin:.2rem 0 .6rem"><strong>Before believing it:</strong></p><ul class="muted" style="margin:0 0 .8rem;padding-left:1.2rem;line-height:1.6">'
+      + r.caveats.map(c => '<li>' + c + '</li>').join('') + '</ul>'
+    : '';
+  const tb = $('reportTable').querySelector('tbody');
+  tb.innerHTML = '';
+  for (const row of r.rows) {
+    const big = Math.abs(row.diff) >= 3;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + (row.hz >= 1000 ? (row.hz / 1000) + ' kHz' : row.hz + ' Hz') + '</td>' +
+      '<td>' + row.captured.toFixed(1) + '</td>' +
+      '<td class="muted">±' + row.spread.toFixed(1) + '</td>' +
+      '<td class="muted">' + row.target.toFixed(1) + '</td>' +
+      '<td' + (big ? ' class="warn"' : '') + '><strong>' +
+        (row.diff > 0 ? '+' : '') + row.diff.toFixed(1) + '</strong></td>';
+    tb.appendChild(tr);
+  }
+}
+
 async function refresh() {
   const lib = await api('library');
+  api('report').then(renderReport);
   $('count').textContent = lib.count ? '· ' + lib.count + ' tracks' : '· empty';
   const tb = $('rows').querySelector('tbody');
   tb.innerHTML = '';

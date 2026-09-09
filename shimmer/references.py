@@ -340,3 +340,119 @@ def delete(index: int) -> Dict[str, Any]:
     removed = rows.pop(index)
     save(lib)
     return {"ok": True, "removed": removed["label"], "count": len(rows)}
+
+
+# ── Report ──────────────────────────────────────────────────────────────
+
+def _slope(freqs: np.ndarray, db: np.ndarray, lo: float, hi: float) -> float:
+    """dB per octave of band power over a range, by least squares."""
+    m = (freqs >= lo) & (freqs <= hi)
+    x = np.log2(freqs[m])
+    A = np.vstack([x, np.ones_like(x)]).T
+    return float(np.linalg.lstsq(A, db[m], rcond=None)[0][0])
+
+
+def report() -> Dict[str, Any]:
+    """What the captured library says about the tone target that ships.
+
+    The target in mastering._REF_SHAPE_DB was measured from masters of AI
+    renders processed by one automated service. Whether it describes music in
+    general has been the open question since it was built. This is the first
+    evidence either way, so it is reported with its caveats attached rather
+    than as a verdict.
+    """
+    s = summary()
+    out: Dict[str, Any] = {"count": s["count"], "bands_hz": s["bands_hz"],
+                           "target_db": s["target_db"], "caveats": [], "rows": []}
+    if s["count"] == 0:
+        out["headline"] = "Nothing captured yet."
+        return out
+
+    f = np.array(s["bands_hz"])
+    med = np.array(s["median_db"])
+    tgt = np.array(s["target_db"])
+    spread = 0.5 * (np.array(s["p84_db"]) - np.array(s["p16_db"]))
+    diff = med - tgt
+
+    for i, hz in enumerate(f):
+        if hz < 50 or hz > 20000:
+            continue
+        out["rows"].append({"hz": float(hz), "captured": round(float(med[i]), 2),
+                            "spread": round(float(spread[i]), 2),
+                            "target": round(float(tgt[i]), 2),
+                            "diff": round(float(diff[i]), 2)})
+
+    band = (f >= 2500) & (f <= 12500)
+    out["presence_mean_diff"] = round(float(diff[band].mean()), 2)
+    # Search only where the report shows values. The 31.5 and 40 Hz bands sit
+    # below most program material, so a track with nothing there produces a
+    # meaningless outlier that would otherwise be reported as the headline.
+    shown = (f >= 50) & (f <= 20000)
+    j = int(np.arange(len(f))[shown][np.argmax(np.abs(diff[shown]))])
+    out["worst_band_hz"] = float(f[j])
+    out["worst_diff"] = round(float(diff[j]), 2)
+    out["slope_captured"] = round(_slope(f, med, 4000.0, 16000.0), 2)
+    out["slope_target"] = round(_slope(f, tgt, 4000.0, 16000.0), 2)
+
+    d = out["presence_mean_diff"]
+    if abs(d) < 1.5:
+        out["headline"] = ("The captured music agrees with the tone target "
+                           f"({d:+.1f} dB mean across 2.5-12.5 kHz).")
+        out["verdict"] = "agrees"
+    else:
+        direction = "darker" if d < 0 else "brighter"
+        out["headline"] = (
+            f"The captured music is {abs(d):.1f} dB {direction} than the tone "
+            f"target across 2.5-12.5 kHz. If that holds up, the target does "
+            f"not describe commercial music.")
+        out["verdict"] = "disagrees"
+
+    # A large disagreement is more likely to be a measurement fault than a
+    # discovery, so the things that would cause one are listed before it is
+    # believed.
+    if out["verdict"] == "disagrees":
+        out["caveats"] = [
+            "System audio effects. Realtek, NVIDIA or Windows 'Audio "
+            "enhancements' colour everything captured. Turn them off and "
+            "recapture one track to check.",
+            "The player's own equaliser. Spotify has one, and it is easy to "
+            "leave on by accident.",
+            "Lossy streaming. Ogg Vorbis rolls off the very top, which "
+            "explains 16 kHz and above but not the presence band.",
+            "The verification test below settles all three at once.",
+        ]
+    if s["count"] < 20:
+        out["caveats"].append(
+            f"Only {s['count']} tracks. The spread between them is already "
+            f"{spread[(f >= 4000) & (f <= 10000)].mean():.1f} dB in the "
+            f"presence band, so the median will move as more arrive.")
+    return out
+
+
+def verify_against_file(path: str) -> Dict[str, Any]:
+    """Capture-chain self-test: measure a file, compare with a capture of it.
+
+    The one check that separates "commercial music is darker than the target"
+    from "something between the player and this code is rolling off the top".
+    Play the same file through the player, capture it, then point this at the
+    file. A clean chain agrees within a fraction of a dB.
+    """
+    from .audio_io import load_audio
+    lib = load()
+    rows = lib.get("tracks", [])
+    if not rows:
+        return {"ok": False, "error": "capture the file first, then run this"}
+    x, sr = load_audio(path)
+    file_rel = relative_band_levels(
+        np.array(analyze_spectrum(x, sr)["band_power_db"]))
+    cap = np.array(rows[-1]["rel_db"])          # the most recent capture
+    d = cap - file_rel
+    f = np.asarray(_REF_FREQS)
+    band = (f >= 250) & (f <= 12500)
+    return {"ok": True, "compared_with": rows[-1]["label"],
+            "file": os.path.basename(path),
+            "mean_abs_diff": round(float(np.mean(np.abs(d[band]))), 2),
+            "max_diff": round(float(d[np.argmax(np.abs(d))]), 2),
+            "max_diff_hz": float(f[np.argmax(np.abs(d))]),
+            "clean": bool(np.mean(np.abs(d[band])) < 1.0),
+            "diff_db": [round(float(v), 2) for v in d]}

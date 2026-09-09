@@ -774,6 +774,12 @@ async def api_ref_library() -> JSONResponse:
     return JSONResponse(refs.summary())
 
 
+@app.get("/api/dev/references/report")
+async def api_ref_report() -> JSONResponse:
+    from . import references as refs
+    return JSONResponse(refs.report())
+
+
 @app.post("/api/dev/references/delete")
 async def api_ref_delete(payload: Dict[str, Any]) -> JSONResponse:
     from . import references as refs
