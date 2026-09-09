@@ -10,6 +10,11 @@
   "reference-hey-model-aperiodic-05.wav": "model aperiodic 05 sones of modelled hash; hearing model added 0.50, flicker excess -1.83 dB",
   "reference-hey-model-periodic-2.wav": "model periodic 2 sones of modelled hash; hearing model added 1.99, flicker excess -2.71 dB",
   "real-suno-the-little-things.wav": "real Suno render, hot window, flicker excess +2.57 dB",
-  "real-suno-kindling.wav": "real Suno render, hot window, flicker excess +1.40 dB"
+  "real-suno-kindling.wav": "real Suno render, hot window, flicker excess +1.40 dB",
+  "only-model-aperiodic-2.wav": "the aperiodic model alone, at the gain that injects 2.0 sones into Alive Again; matched to -30 LUFS",
+  "only-model-aperiodic-05.wav": "the aperiodic model alone, at the gain that injects 0.5 sones into Alive Again; matched to -30 LUFS",
+  "only-model-periodic-2.wav": "the periodic model alone, at the gain that injects 2.0 sones into Alive Again; matched to -30 LUFS",
+  "only-real-removed-suno-the-little-things.wav": "what per-bin gated subtraction takes out of the real render's hot window: mostly hash, with some cymbal and hit energy in it; matched to -30 LUFS",
+  "only-real-removed-suno-kindling.wav": "what per-bin gated subtraction takes out of the real render's hot window: mostly hash, with some cymbal and hit energy in it; matched to -30 LUFS"
  }
 }
