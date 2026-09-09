@@ -16,7 +16,7 @@ at -14, 0.9 LU low at -11 and 1.2 LU low at -9; the shortfall is never
 compensated, but it is reported as `lufs_error`.
 
 Real tracks: set SHIMMER_REAL_TRACKS=1 to run the last test on
-testing/*.wav and assets/distrokid/*.wav (slow, about 3 min), or run
+testing/*.wav and assets/reference/*.wav (slow, about 3 min), or run
 diag_final_master.py for the full on-disk matrix.
 
 Run:  .venv\\Scripts\\python.exe -m pytest tests/test_master_loudness.py -q
@@ -51,7 +51,7 @@ TP_SLACK_DB = 0.05                            # true-peak measurement slack
 HAS_FFMPEG = shutil.which("ffmpeg") is not None
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _REAL_TRACKS = sorted(glob.glob(os.path.join(_ROOT, "testing", "*.wav"))
-                      + glob.glob(os.path.join(_ROOT, "assets", "distrokid", "*.wav")))
+                      + glob.glob(os.path.join(_ROOT, "assets", "reference", "*.wav")))
 
 
 def _headroom_source(seconds: float = 8.0, seed: int = 1,
