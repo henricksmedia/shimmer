@@ -568,10 +568,14 @@ wrapper, region diagnostics)
   tone more than half intact, a note names the frequency, says whether it
   sits in the center (Mid is cleaned at 20 %, so it is largely out of reach)
   and points to a Parametric EQ notch.
-- **Second pass** — the runner-ups are tried on the winner's cleaned output;
-  if one still removes ≥ 40 % as much residue, at least −26 dB re. the top
-  end, and clears 0.05 net audible benefit measured against the winner's
-  output, it is reported as `follow_up`.
+- **Second pass** — off by default; the automated flow is one pass. When
+  asked for (`follow_up=True` on `suggest_array`), the runner-ups are tried
+  on the winner's cleaned output and one is reported as `follow_up` if it
+  still removes ≥ 40 % as much residue, at least −26 dB re. the top end, and
+  clears 0.05 net audible benefit measured against the winner's output.
+  Measured on three multi-artifact tracks the routine check found no new
+  artifact but raised other presets' priors, which are relative measures;
+  under the net-benefit score it fired on none of 8 corpus files.
 - A per-second top-end intensity timeline (3–16 kHz level against the body,
   normalised per track) is returned; the UI draws it as the "Noise over
   time" strip, parks the live-preview loop on the worst stretch, and the

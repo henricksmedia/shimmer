@@ -1260,12 +1260,22 @@ def suggest_array(x: np.ndarray, sr: int,
                   max_scan_s: float = 300.0,
                   candidates: Optional[Sequence[str]] = None,
                   tune_top: int = 2,
-                  follow_up: bool = True,
+                  follow_up: bool = False,
                   max_ranked: int = 6) -> Dict[str, Any]:
     """Analyse audio in memory and return the recommendation dict.
 
     Keys: preset, strength, ranked[], follow_up, notes[], timeline,
     scores, checkerboard_score, evidence, metrics.
+
+    `follow_up` is off by default: the automated flow is one pass. Measured
+    on three multi-artifact tracks, cleaning revealed no new artifact but
+    raised other presets' priors (they are relative measures, so removing
+    energy in one band inflates the rest), so the second pass was partly
+    answering a number the first pass created; and under the net-benefit
+    score no runner-up cleared the actionable threshold on the winner's
+    output on any corpus file. Iteration a preset genuinely needs belongs
+    inside it (`Params.iterations`), where one damage measurement covers
+    it. Pass `follow_up=True` to ask for the check anyway.
     """
     t0 = time.time()
     x = np.asarray(x, dtype=np.float32)

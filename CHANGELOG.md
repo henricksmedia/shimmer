@@ -325,6 +325,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
   the prior is gone (the prior is inside the score); unverified runs still
   rank on the prior alone.
 
+- **Analyze is one pass by default.** The routine second-pass check (run
+  the runner-ups on the winner's output) is off unless asked for. Measured
+  on three multi-artifact tracks it found no new artifact but raised other
+  presets' priors, which are relative measures; under the net-benefit score
+  it fired on 0 of 8 corpus files. Saves 4 of 28 pipeline runs per Analyze.
+  The "Second pass" tile in the Single File tab now always reads "Not
+  needed".
+
 - **Linear-distortion S0 corrected to the reference.** `perceptual.S0_LINDIST`
   was 0.5, the Basic-model noise-loudness value; Kabal (2002) eq. 105–106
   gives S0 = 1 for AvgLinDist. `lin_dist` moves by a factor of 0.88–1.01 on

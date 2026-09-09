@@ -221,8 +221,23 @@ count.
       the most damaging preset measured. Check first whether stages compose
       cleanly; Deep Scrub also widens bands and runs two iterations, which
       suggests a simple union was found insufficient.
+      **Status 2026-09-08: still TO DO, with two preconditions found while
+      doing items 5 and 6.** (a) The "3+ artifacts on 56 % of tracks" count
+      is the priors firing, and item 10 shows the same priors read 0.7-1.0
+      on finished masters: the number of artifacts a track "has" is not
+      known until the priors have a nothing-is-wrong state. Under the
+      net-benefit score, 5 of 7 Suno renders get *no* recommendation, not
+      several. (b) Item 6 measured the stages a composite would be built
+      from: on their own targets Suno Hash removes 12 %, Checkerboard Grid
+      -1 %, Sibilance Rattle -2 %, the residue presets 2-7 %; only the
+      static notch plan (96 % of a line) and, at a price, the broadband
+      presets do measurable work. A union of stages that each remove
+      nothing removes nothing. Build the composite after item 10 and after
+      at least the hash stage measures as effective; until then the honest
+      product answer for "many artifacts" is the notch plan plus one
+      preset, which is what the score now produces.
 
-- [ ] **8. Retire the routine second pass.**
+- [x] **8. Retire the routine second pass.**
       *Done when:* the automated flow is one pass by default. Measured: on
       three multi-artifact tracks, cleaning revealed **no new artifacts**
       (one marginal hit at exactly the 0.40 threshold), but it **raised other
@@ -231,6 +246,19 @@ count.
       the others. The second pass is therefore partly responding to a number
       the first pass created. Any genuine need for iteration belongs inside a
       preset (`iterations`), where it is covered by one damage measurement.
+      **DONE 2026-09-08.** `detect.suggest_array(follow_up=False)` is the
+      default; the server, batch and remix paths pass nothing, so the
+      automated flow is one pass. The check can still be asked for
+      (`follow_up=True`), and when it runs it is gated on net audible
+      benefit measured against the winner's output, not on purity.
+      Measured with the new score on 8 corpus files (2 references, 5 Suno
+      renders, 1 service master): the second pass fired on **0/8**, and
+      turning it off saves 4 of the 28 pipeline runs per Analyze. The
+      Single File tab's "Second pass" tile now always reads "Not needed"
+      and its pass-plan flow is dead code; removing them is a UI change
+      against the approved design and is listed under "UI implementation"
+      below rather than done here. Test:
+      `test_the_automated_flow_is_one_pass_by_default`.
 
 - [ ] **9. The four documents.**
       - `GOALS.md` — goal, anti-goals, decision rule, frozen corpus
@@ -317,4 +345,9 @@ blockers for the items above, because the 80% plan does not wire it.
 - The per-section budget envelope.
 - UI implementation against the settled labels, including four existing bugs
   the naming panel found.
+  - Added 2026-09-08: remove the Single File tab's "Second pass" tile and
+    its pass-plan flow (`single.js`: `ensurePlan`, `lastFollowUp`, the
+    `ctx.followUp` gating of the tone auto-apply), which are dead now that
+    item 8 made the flow one pass. Also the "match %" copy, which item 11
+    says was written for the old score's range.
 - Re-master the catalogue from source, verified against the corpus.

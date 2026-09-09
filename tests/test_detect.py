@@ -344,3 +344,11 @@ def test_finished_master_gets_no_recommendation(path):
         assert r["metrics"]["verified"] is False
         assert r["ranked"][0]["name"] in TONAL
         assert r["strength"] == 1.0
+
+
+def test_the_automated_flow_is_one_pass_by_default():
+    """The routine second pass is retired (checklist item 8): the default
+    is one pass, and a result produced with the default carries no
+    follow-up. It can still be asked for."""
+    import inspect
+    assert inspect.signature(detect.suggest_array).parameters["follow_up"].default is False
