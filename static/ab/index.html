@@ -397,7 +397,7 @@ select#sets { max-width: 360px; }
     <div class="bar">
       <button class="primary" id="play" style="min-width:116px">▶ Play <kbd>space</kbd></button>
       <span class="time" id="clock">0:00 / 0:00</span>
-      <button class="quiet" id="whole" hidden>Whole track</button>
+      <button class="quiet" id="whole" hidden>Whole excerpt</button>
       <span class="spacer"></span>
       <label class="chk"><input type="checkbox" id="auto">
         <span id="autolabel">auto-swap</span></label>
@@ -517,6 +517,7 @@ const fmt = s => { const t = Math.max(0, s || 0);
   return Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0'); };
 
 let ctx, cur = null, buffers = [], gains = [], sources = [];
+let revealed = false;      // a failed reveal must not count as one
 let ids = [], idx = 0, active = 0, playing = false, startedAt = 0, startOffset = 0;
 let loopA = 0, loopB = 0, autoTimer = null, switches = 0, listened = 0, picked = '';
 
@@ -595,6 +596,7 @@ async function loadSet(id) {
       x.setAttribute('aria-pressed', x === b));
   });
   $('notes').value = ''; $('saved').textContent = ''; $('answer').textContent = '';
+  revealed = false;
 
   $('fairsum').innerHTML = `Level match — all arms at ` +
     `${cur.matched_lufs.toFixed(1)} LUFS <span class="ok">✓</span>`;
@@ -772,7 +774,7 @@ $('save').onclick = async () => {
       body: JSON.stringify({preferred: picked, confidence: 'n/a',
         note: $('notes').value, switches, seconds: listened,
         abx: abxPayload(),
-        revealed_first: !!$('answer').textContent})});
+        revealed_first: revealed})});
   } catch (err) {
     // A verdict is a minute of careful listening. Losing one silently is
     // worse than losing it loudly: you walk away believing it was recorded.
@@ -801,6 +803,7 @@ $('revealbtn').onclick = async () => {
             .replace(/[.\s]+$/, '')) + '.</span>';
     return;
   }
+  revealed = true;
   $('answer').innerHTML = Object.entries(k.answer)
     .map(([l, v]) => `<strong style="color:var(--fg-0)">${l}</strong> ${esc(v)}`)
     .join(' &nbsp;·&nbsp; ');
@@ -869,8 +872,10 @@ function beginLoad(id) {
     if (lost & 1) bits.push('a pick');
     if (lost & 2) bits.push('a note');
     if (mid) bits.push('a listening check part way through');
-    say('Left ' + what + ' without saving ' +
-        bits.join(bits.length > 2 ? ', ' : ' and ') + '.');
+    const list = bits.length > 2
+      ? bits.slice(0, -1).join(', ') + ' and ' + bits[bits.length - 1]
+      : bits.join(' and ');
+    say('Left ' + what + ' without saving ' + list + '.');
   }
   stop();
   cur = null; buffers = []; sources = []; gains = [];
@@ -879,7 +884,8 @@ function beginLoad(id) {
   $('failure').hidden = true;
   $('empty').hidden = true;
   $('main').hidden = true;
-  $('loadingid').textContent = id;
+  $('loadingid').textContent =
+    (byId_ && byId_.get && byId_.get(id) && byId_.get(id).title) || id;
   // Say the real size or say nothing. The old line claimed 44 MB for every
   // set; nothing on the bench is 44 MB.
   $('loadingsize').textContent = '';
@@ -1067,9 +1073,14 @@ const api = (p, opts) => fetch('/api/dev/ab/' + p, opts).then(
 
 
 async function open_(id) {
+  const myGen = loadGen + 1;    // the generation loadSet is about to claim
   try {
     await loadSet(id);
   } catch (err) {
+    // Only report a failure if this load is still the one being waited for.
+    // A load that was abandoned mid-flight has no business replacing the set
+    // the listener has since moved to.
+    if (myGen !== loadGen) return;
     showFailure(id, err);
   }
 }
@@ -1080,7 +1091,7 @@ async function open_(id) {
 
 const GROUPS = [
   {p:'r8-',      name:'Every version of a song',
-   what:'the untouched render, our chain, a service master, and the older master'},
+   what:'the untouched render, our chain, and the other masters that exist'},
   {p:'service-', name:'Ours against an automated service',
    what:'our master against a service master of the same song'},
   {p:'era-',     name:'Three tone targets',
@@ -1203,6 +1214,16 @@ function nextGroupWithWork(from) {
 
 /* Called by the save handler once the verdict is written. Marks the set
    judged, then moves on — staying put is how a set gets judged twice. */
+/* The verdict form, emptied. loadSet does this implicitly by rebuilding the
+   page; when a save leaves you on the same set, someone has to do it. */
+function clearVerdictForm() {
+  picked = '';
+  if ($('notes')) $('notes').value = '';
+  $('picks').querySelectorAll('button').forEach(b =>
+    b.setAttribute('aria-pressed', 'false'));
+  $('saved').textContent = '';
+}
+
 async function afterSave() {
   if (!cur) return;
   const id = cur.id, row = byId_.get(id);
@@ -1217,6 +1238,11 @@ async function afterSave() {
     say(`Saved. ${done} of ${rs.length} judged in this group. ` +
         `Now on ${nxt.title || nxt.id}.`);
   } else if (row) {
+    // Nothing to advance to, so this set stays on screen. Clear the form the
+    // way a set change would, or the pick sits armed, a second click appends
+    // a duplicate verdict, and leaving afterwards claims work was lost that
+    // had in fact been saved twice.
+    clearVerdictForm();
     const g2 = nextGroupWithWork(row.group);
     if (g2) {
       const first = firstUnjudged(g2);
@@ -1237,8 +1263,20 @@ async function afterSave() {
 /* Did this verdict come with proof the difference was audible? Without
    this column the record cannot answer the question the check exists for. */
 function evidence(row) {
-  const a = row && row.abx;
+  let a = row && row.abx;
   if (!a || !a.trials) return '<span class="warn">coin flip</span>';
+  // Prefer the run that actually covers the pick. The headline run is just
+  // the last one, so a passing check on the pair you preferred was being
+  // reported as "not this pick" while the file held the proof.
+  const want = row.preferred_letter;
+  if (Array.isArray(a.runs) && want) {
+    const covering = a.runs.filter(r => Array.isArray(r.pair) &&
+                                        r.pair.includes(want));
+    const passed = covering.find(r => r.audible);
+    const use = passed || covering[covering.length - 1];
+    if (use) a = Object.assign({}, a, use,
+      {run_count: covering.length, runs: a.runs});
+  }
   const p = typeof a.p_value === 'number'
     ? (a.p_value >= 0.001 ? a.p_value.toFixed(3)
                           : a.p_value.toFixed(6).replace(/0+$/, ''))
@@ -1542,8 +1580,15 @@ function abxStopRun() {
   if (wasOnX) select(back);
   $('abxRun').hidden = true; $('abxSetup').hidden = false;
   $('abxFlag').hidden = false;
-  $('abxFlag').textContent = 'Check stopped part way, so nothing was proved. ' +
-    'A preference saved now is recorded as a coin flip.';
+  // "Nothing was proved" is only true when nothing was finished. Earlier
+  // completed runs are still saved and still count.
+  $('abxFlag').textContent = abxRuns.length
+    ? 'That check was stopped part way and counts for nothing, but the ' +
+      (abxRuns.length === 1 ? 'check you finished before it is'
+                            : abxRuns.length + ' checks you finished before ' +
+                              'it are') + ' still saved with the verdict.'
+    : 'Check stopped part way, so nothing was proved. A preference saved ' +
+      'now is recorded as a coin flip.';
   abxPaint();
 }
 
@@ -1587,12 +1632,19 @@ function abxPayload() {
   if (!abx || !abx.done) {
     if (!abxRuns.length) return null;
     const best = abxRuns[abxRuns.length - 1];
-    return {runs: abxRuns.slice(), run_count: abxRuns.length,
+    const bkey = best.pair.join('|');
+    return {runs: abxRuns.slice(), runs_total: abxRuns.length,
+            run_count: abxRuns.filter(r => r.pair.join('|') === bkey).length,
             pair: best.pair, trials: best.trials, correct: best.correct,
             p_value: best.p_value, audible: best.audible, alpha: ABX_ALPHA,
             abandoned_after: true};
   }
-  return {runs: abxRuns.slice(), run_count: abxRuns.length,
+  const key = abx.letters.join('|');
+  return {runs: abxRuns.slice(), runs_total: abxRuns.length,
+          // Runs on THIS pair. run_count used to be every run on the set,
+          // stored beside one pair's result, so a record could read
+          // "(C v D) 5 runs" when only two of the five were C against D.
+          run_count: abxRuns.filter(r => r.pair.join('|') === key).length,
           pair: abx.letters, trials: abx.n, correct: abx.correct,
           p_value: +abx.p.toFixed(6), audible: abx.audible, alpha: ABX_ALPHA,
           seconds: +abx.seconds.toFixed(1), sequence: abx.trials};
