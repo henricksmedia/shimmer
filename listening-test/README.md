@@ -45,6 +45,9 @@ different from the last one.
   unblinded. Built by `scripts/make_round6.py` (render under .venv-stems,
   then `--blind-only` under .venv).
 
+- **round-7** — the second learned remover (trained on both hash models,
+  louder hash, 2494 pairs) on the same six renders as round 6, same layout.
+
 ## How to listen
 
 1. Play a song's four `*-master-*.wav` back to back. They are level-matched to

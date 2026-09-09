@@ -742,6 +742,22 @@ count.
       pairs, 40 epochs. Kindling's "higher sound in the back" is a fixed
       16 kHz line (7.3 dB, 52 % duty) that the product's notch plan takes
       first; round 6 ran the network alone, so it stayed.
+      **Second model, 2026-09-09 00:01** (`masknet2.pt`; 2494 pairs, 70 %
+      aperiodic / 30 % periodic hash, band SNR to -1 dB, 40 epochs, one
+      stop-and-resume at epoch 10, peak 0.84 GB, 69 C max). Held-out
+      harness, aperiodic 2.0 sones: Hey **62 %**, Alive Again **9 %**;
+      periodic 2.0 sones: Hey **67 %** (model 1: 57 %), Alive Again
+      **-20 %** (model 1: -7 %). It takes more music: 0.150 sones on clean
+      Hey (model 1: 0.078; ceiling 0.10). Bolder and better on the loud
+      periodic case, costlier, and no better where it was weakest. *On the
+      real renders* the two models take nearly the same amounts (round-6
+      vs round-7 keys): the-little-things 0.22 → 0.33 sones, every other
+      render within 0.015 — and **leave-the-world-behind, the render the
+      author calls "so bad", 0.025 → 0.031**: neither model acts on it.
+      Round 7 is built (`listening-test/round-7`) but not worth ears until
+      that is understood; the next measurement is where that render's
+      shimmer sits in frequency, since the network was only taught
+      4.5-12 kHz.
 
 ## DEFERRED — the 80% stake
 
