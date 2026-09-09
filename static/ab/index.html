@@ -575,7 +575,15 @@ async function loadSet(id) {
       esc(cur.residual.kind_disagrees ? 'Difference'
                                       : (cur.residual.label || 'Difference')) +
       ' <kbd>D</kbd>';
-    $('diffwhat').innerHTML = esc(cur.residual.explain || '') +
+    // When the set's own measurement says the label does not fit the signal,
+    // printing the label's explanation as well leaves three claims on screen,
+    // two of them false for this signal. Say the measurement instead.
+    $('diffwhat').innerHTML = esc(cur.residual.kind_disagrees
+      ? 'This set cannot say which of the two this signal is. What one ' +
+        'version has and the other does not, and a change of tone applied ' +
+        'to everything, sound quite different — and the measurement below ' +
+        'does not match the kind this set claims.'
+      : (cur.residual.explain || '')) +
       ` <span style="color:var(--fg-3)">This signal is ` +
       `${Math.round(cur.residual.song_correlation * 100)}% alike to the music ` +
       `itself: something removed is hardly alike at all, a tone change is very ` +
@@ -765,8 +773,12 @@ function abxRunning() {
   return typeof abx === 'object' && abx && abx.started && !abx.done;
 }
 
+let saving = false;
 $('save').onclick = async () => {
+  if (saving) return;              // two quick clicks wrote it twice
   if (!picked) { $('saved').textContent = 'pick one first'; return; }
+  saving = true;
+  $('save').disabled = true;
   $('saved').textContent = '';
   try {
     await api('score/' + encodeURIComponent(cur.id), {
@@ -776,6 +788,7 @@ $('save').onclick = async () => {
         abx: abxPayload(),
         revealed_first: revealed})});
   } catch (err) {
+    saving = false; $('save').disabled = false;
     // A verdict is a minute of careful listening. Losing one silently is
     // worse than losing it loudly: you walk away believing it was recorded.
     const why = String(err.why || err.message || 'the server refused it')
@@ -786,6 +799,7 @@ $('save').onclick = async () => {
   }
   const abandoned = abxRunning();
   await afterSave();
+  saving = false; $('save').disabled = false;
   if (abandoned) {
     say($('advice').textContent.trim() + ' The listening check that was ' +
         'running was not finished, so it counts for nothing.');
@@ -881,6 +895,10 @@ function beginLoad(id) {
   cur = null; buffers = []; sources = []; gains = [];
   idx = Math.max(0, ids.indexOf(id));
   if (ids.indexOf(id) >= 0) $('sets').value = id;
+  // The picker moves as soon as you choose; the pips have to move with it,
+  // or the strip goes on ringing the set you just left while the heading and
+  // the dropdown name the new one.
+  if (typeof renderRound === 'function' && ids.indexOf(id) >= 0) renderRound(id);
   $('failure').hidden = true;
   $('empty').hidden = true;
   $('main').hidden = true;
@@ -900,6 +918,11 @@ function endLoad() {
 }
 
 function showFailure(id, err) {
+  // With no id the whole listing failed, so there is no "next set" to go to
+  // — the ids array only still holds anything because an earlier listing
+  // succeeded.
+  const skip = document.getElementById('failskip');
+  if (skip) skip.hidden = !id;
   stop();
   cur = null; buffers = [];
   $('loading').hidden = true;
@@ -995,7 +1018,8 @@ function paintArms() {
   let what;
   if (!playing) what = arm || onX || onDiff ? 'is next — press play' : 'nothing loaded';
   else if (onX) what = 'the unknown one is playing';
-  else if (onDiff) what = (cur.residual.label || 'Difference') + ' is playing';
+  else if (onDiff) what = (cur.residual.kind_disagrees
+    ? 'Difference' : (cur.residual.label || 'Difference')) + ' is playing';
   else what = arm ? 'is playing' : 'nothing is playing';
   $('livearm').textContent = letter;
   $('livewhat').textContent = what;
@@ -1046,6 +1070,7 @@ async function loadBuffers(id, files) {
 addEventListener('keydown', e => {
   if (['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName)) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!e.key || e.key.length !== 1) return;   // "" would match arm A
   const n = ARM_KEYS.indexOf(e.key);
   if (n < 0 || !cur) return;
   if (n >= cur.arms.length) return;
@@ -1234,6 +1259,7 @@ async function afterSave() {
   const done = rs.filter(r => r.judged).length;
   const nxt = nextUnjudged(id);
   if (nxt) {
+    clearVerdictForm();     // before the move, or leaving reports it as lost
     await open_(nxt.id);
     say(`Saved. ${done} of ${rs.length} judged in this group. ` +
         `Now on ${nxt.title || nxt.id}.`);
@@ -1482,7 +1508,16 @@ function abxStart() {
   // 0.0625, above the 0.05 threshold, so a 4-trial check can only ever
   // report failure. The input says min 8; this has to agree with it.
   const n = Math.max(8, Math.min(50, Math.round(+$('abxN').value) || 12));
+  const asked = Math.round(+$('abxN').value) || 12;
   $('abxN').value = n;
+  if (asked !== n) {
+    $('abxFlag').hidden = false;
+    $('abxFlag').textContent = asked < n
+      ? 'Using ' + n + ' trials. Fewer than ' + n + ' cannot pass: even a ' +
+        'perfect score would still be something guessing beats more than 1 ' +
+        'time in 20.'
+      : 'Using ' + n + ' trials, the most this check takes.';
+  }
   abx = {pair: [a, b], letters: [cur.arms[a].letter, cur.arms[b].letter],
          n: n, i: 0, trials: [], xArm: null, done: false,
          started: Date.now(), correct: 0, p: 1, audible: false};
@@ -1579,6 +1614,9 @@ function abxStopRun() {
   abx = null; setXArm(-1);
   if (wasOnX) select(back);
   $('abxRun').hidden = true; $('abxSetup').hidden = false;
+  // Keep the last finished result on screen. Hiding it left the flag saying
+  // earlier checks still count while the evidence itself was off screen.
+  $('abxResult').hidden = !abxRuns.length;
   $('abxFlag').hidden = false;
   // "Nothing was proved" is only true when nothing was finished. Earlier
   // completed runs are still saved and still count.
