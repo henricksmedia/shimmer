@@ -758,6 +758,21 @@ count.
       that is understood; the next measurement is where that render's
       shimmer sits in frequency, since the network was only taught
       4.5-12 kHz.
+      *Measured 2026-09-09:* flicker depth (dB rms, 2-50 Hz) per
+      half-octave band, hot 5 s. **leave-the-world-behind: 3.6-5.1 dB in
+      every band from 1 kHz to 16 kHz**, and its service master the same
+      (3.0-4.6), so the service did not remove it either. the-little-things:
+      3.8-4.3 below 4 kHz rising to **6.0-7.9 in 5.6-11.3 kHz** — the band
+      the model was taught. kindling: 5.2-8.1 from 5.6 kHz up. Clean
+      masters ("Hey", Alive Again): 1.1-1.6 above 2 kHz, 2.7-4.7 at
+      1-1.4 kHz. So "shimmer" as the author hears it on that render is
+      **broadband from 1 kHz up**, not the 4.5-12 kHz hash the presets, the
+      detector's flicker feature and both learned models are built
+      around; the model could not act on it because it never looks there.
+      The third model widens the band to ~1.5-16 kHz with a broadband
+      hash model in the training mix. The trade is the vocal region, so
+      the clean-host cost is the guard, and a listening round on this
+      render is the test.
 
 ## DEFERRED — the 80% stake
 

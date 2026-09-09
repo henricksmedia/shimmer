@@ -89,6 +89,8 @@ def main(argv):
 
     z = np.load(os.path.join(data, "shard_0.npz"))
     X, Y, band = z["X"], z["Y"], z["band"]
+    ctx_hz = z["ctx_hz"] if "ctx_hz" in z.files else np.array([2000.0, 16000.0])
+    band_hz = z["band_hz"] if "band_hz" in z.files else np.array([4500.0, 12000.0])
     n = X.shape[0]
     idx = np.random.default_rng(1).permutation(n)
     n_val = max(1, n // 10)
@@ -158,8 +160,8 @@ def main(argv):
         peak = torch.cuda.max_memory_allocated() / 1e9 if dev == "cuda" else 0.0
         print(f"epoch {ep + 1:3d} train {np.mean(tl):.4f} val {np.mean(vl):.4f} "
               f"{time.time() - t0:.0f}s peak gpu {peak:.2f} GB temp {gpu_temp():.0f} C", flush=True)
-        torch.save({"state": net.state_dict(), "band": band, "opt": opt_.state_dict(),
-                    "sched": sched.state_dict(), "epoch": ep + 1}, out)
+        torch.save({"state": net.state_dict(), "band": band, "ctx_hz": ctx_hz, "band_hz": band_hz,
+                    "opt": opt_.state_dict(), "sched": sched.state_dict(), "epoch": ep + 1}, out)
         if (time.time() - t_start) / 60.0 > max_minutes:
             break
     print(f"saved {out}")

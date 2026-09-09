@@ -150,9 +150,27 @@ def sibilance(n: int, sr: int, seed: int = 5, lo: float = 5000.0,
     return np.stack([y, y], axis=1)
 
 
+def hash_wide(n: int, sr: int, seed: int = 12, lo: float = 1500.0,
+              hi: float = 16000.0, cutoff_hz: float = 12.0) -> np.ndarray:
+    """Family B, the broadband form measured on `suno-leave-the-world-behind`
+    (2026-09-09): flicker of 3.6-5.1 dB rms in every half-octave band from
+    1 kHz to 16 kHz, aperiodic. Band noise 1.5-16 kHz gated by a random
+    envelope with modulation energy spread over 0-`cutoff_hz` Hz. Same
+    construction as the aperiodic hash in scripts/hash_learn, wider band."""
+    rng = np.random.default_rng(seed)
+    nz = _band_noise(n, sr, lo, hi, rng)
+    env_sr = 200.0
+    m = int(n / sr * env_sr) + 2
+    e = ss.sosfilt(ss.butter(2, cutoff_hz, fs=env_sr, output="sos"), rng.standard_normal(m))
+    e = (e - e.min()) / (e.max() - e.min() + 1e-9)
+    env = np.interp(np.arange(n) / sr, np.arange(m) / env_sr, e)
+    return (nz * env[:, None] ** 2).astype(np.float32)
+
+
 # Name -> generator. `shadow` needs the host; the harness passes it.
 GENERATORS: Dict[str, Callable[..., np.ndarray]] = {
     "hash": hash_flicker,
+    "hash_wide": hash_wide,
     "line": line,
     "whistle": lambda n, sr, seed=1: line(n, sr, seed, hz=13500.0, duty=0.4),
     "comb": comb,
@@ -166,6 +184,7 @@ GENERATORS: Dict[str, Callable[..., np.ndarray]] = {
 # unknown rather than zero.
 TARGETS: Dict[str, tuple] = {
     "hash": ("suno_hash", "vocal_glaze_plus", "deep_scrub"),
+    "hash_wide": ("vocal_glaze_plus", "harsh_veil", "deep_scrub"),
     "line": ("cymbal_sheen", "air_brittle", "generic"),
     "whistle": ("laser_whistle",),
     "comb": ("checkerboard_grid",),

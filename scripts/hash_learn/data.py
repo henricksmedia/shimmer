@@ -35,8 +35,8 @@ from shimmer.audio_io import load_audio     # noqa: E402
 from shimmer import artifacts as A          # noqa: E402
 
 N_FFT, HOP = 1024, 256
-BAND = (4500.0, 12000.0)     # what the hash occupies
-CTX = (2000.0, 16000.0)      # what the network sees
+BAND = (4500.0, 12000.0)     # what the hash occupies (default; --band overrides)
+CTX = (2000.0, 16000.0)      # what the network sees (default; --ctx overrides)
 SR = 48000
 
 
@@ -63,15 +63,15 @@ def spec(x, sr):
     return np.log(np.abs(Z) + 1e-6).astype(np.float32), Z
 
 
-def bins(sr):
+def bins(sr, ctx_hz=CTX, band_hz=BAND):
     f = np.fft.rfftfreq(N_FFT, 1.0 / sr)
-    ctx = np.where((f >= CTX[0]) & (f < CTX[1]))[0]
-    band = np.where((f >= BAND[0]) & (f < BAND[1]))[0]
+    ctx = np.where((f >= ctx_hz[0]) & (f < ctx_hz[1]))[0]
+    band = np.where((f >= band_hz[0]) & (f < band_hz[1]))[0]
     return f, ctx, band
 
 
-def make_pairs(hosts, n_pairs, excerpt_s, rng, sr=SR):
-    f, ctx, band = bins(sr)
+def make_pairs(hosts, n_pairs, excerpt_s, rng, sr=SR, ctx_hz=CTX, band_hz=BAND, wide_share=0.0):
+    f, ctx, band = bins(sr, ctx_hz, band_hz)
     band_in_ctx = np.isin(ctx, band)
     X, Y, M = [], [], []
     per_host = max(1, n_pairs // len(hosts))
@@ -89,19 +89,29 @@ def make_pairs(hosts, n_pairs, excerpt_s, rng, sr=SR):
             clip = np.ascontiguousarray(x[s:s + n]).astype(np.float32)
             if band_energy(clip, sr, *BAND) < 1e-9:
                 continue
-            lo = BAND[0] * float(rng.uniform(0.85, 1.15))
-            hi = BAND[1] * float(rng.uniform(0.85, 1.15))
-            # Both models, so the network is not blind to a modulation it
-            # never saw (the first model failed on the periodic hash at high
-            # level): 70 % aperiodic (the accepted model), 30 % periodic
-            # gated at 8-40 Hz.
-            if rng.uniform() < 0.7:
+            u = rng.uniform()
+            if u < wide_share:
+                # broadband form measured on leave-the-world-behind: flicker in
+                # every band from ~1 kHz up
+                lo = 1500.0 * float(rng.uniform(0.7, 1.3))
+                hi = 16000.0 * float(rng.uniform(0.9, 1.1))
                 art = aperiodic_hash(n, sr, rng, lo, hi, float(rng.uniform(5.0, 20.0)))
+                m_lo, m_hi = lo, hi
             else:
-                art = A.hash_flicker(n, sr, seed=int(rng.integers(1 << 30)), lo=lo, hi=hi,
-                                     rate_hz=float(rng.uniform(8.0, 40.0)))
+                lo = 4500.0 * float(rng.uniform(0.85, 1.15))
+                hi = 12000.0 * float(rng.uniform(0.85, 1.15))
+                m_lo, m_hi = lo, hi
+                # Both models, so the network is not blind to a modulation
+                # it never saw (the first model failed on the periodic hash
+                # at high level): mostly aperiodic (the accepted model), the
+                # rest periodic gated at 8-40 Hz.
+                if rng.uniform() < 0.7:
+                    art = aperiodic_hash(n, sr, rng, lo, hi, float(rng.uniform(5.0, 20.0)))
+                else:
+                    art = A.hash_flicker(n, sr, seed=int(rng.integers(1 << 30)), lo=lo, hi=hi,
+                                         rate_hz=float(rng.uniform(8.0, 40.0)))
             snr_db = float(rng.uniform(-25.0, -1.0))          # hash below host, band SNR
-            g = np.sqrt(band_energy(clip, sr, *BAND) / band_energy(art, sr, *BAND)
+            g = np.sqrt(band_energy(clip, sr, m_lo, m_hi) / band_energy(art, sr, m_lo, m_hi)
                         * 10 ** (snr_db / 10.0))
             mix = (clip + g * art).astype(np.float32)
             lm, _ = spec(mix, sr)
@@ -119,6 +129,9 @@ def main(argv):
     out = opt("--out", os.path.join(ROOT, "hash_data"))
     n_pairs = int(opt("--pairs", 2500))
     excerpt_s = float(opt("--excerpt", 3.0))
+    ctx_hz = tuple(float(v) for v in opt("--ctx", f"{CTX[0]},{CTX[1]}").split(","))
+    band_hz = tuple(float(v) for v in opt("--band", f"{BAND[0]},{BAND[1]}").split(","))
+    wide_share = float(opt("--wide", 0.0))
     holdout = set((opt("--holdout", "reference-hey,distrokid-alive-again")).split(","))
     census = json.load(open(os.path.join(ROOT, "docs", "host-census.json"), encoding="utf-8"))["rows"]
     hosts = [r for r in census if r["usable"]]
@@ -129,9 +142,12 @@ def main(argv):
                                           for h in holdout)]
     os.makedirs(out, exist_ok=True)
     rng = np.random.default_rng(20260908)
-    print(f"{len(hosts)} hosts after holdout; {n_pairs} pairs of {excerpt_s} s")
-    X, Y, S, band_mask = make_pairs(hosts, n_pairs, excerpt_s, rng)
-    np.savez_compressed(os.path.join(out, "shard_0.npz"), X=X, Y=Y, snr=S, band=band_mask)
+    print(f"{len(hosts)} hosts after holdout; {n_pairs} pairs of {excerpt_s} s; "
+          f"ctx {ctx_hz}, band {band_hz}, wide share {wide_share}")
+    X, Y, S, band_mask = make_pairs(hosts, n_pairs, excerpt_s, rng, ctx_hz=ctx_hz,
+                                    band_hz=band_hz, wide_share=wide_share)
+    np.savez_compressed(os.path.join(out, "shard_0.npz"), X=X, Y=Y, snr=S, band=band_mask,
+                        ctx_hz=np.array(ctx_hz), band_hz=np.array(band_hz))
     print(f"wrote {X.shape[0]} pairs, spec {X.shape[1]}x{X.shape[2]} -> {out}")
     return 0
 

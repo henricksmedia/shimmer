@@ -36,11 +36,12 @@ class Remover:
         self.dev = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.net.to(self.dev)
         self.band = torch.from_numpy(ck["band"].astype(np.float32)).to(self.dev)[None, None, :, None]
+        self.ctx_hz = tuple(float(v) for v in ck.get("ctx_hz", np.array(CTX)))
 
     def __call__(self, x, sr, strength=1.0):
         assert sr == SR, "the network is trained at 48 kHz"
         f = np.fft.rfftfreq(N_FFT, 1.0 / sr)
-        ctx = np.where((f >= CTX[0]) & (f < CTX[1]))[0]
+        ctx = np.where((f >= self.ctx_hz[0]) & (f < self.ctx_hz[1]))[0]
         out = np.empty_like(x)
         for c in range(x.shape[1]):
             _, _, Z = ss.stft(x[:, c], fs=sr, nperseg=N_FFT, noverlap=N_FFT - HOP, boundary="zeros", padded=True)
@@ -71,7 +72,8 @@ def evaluate(model_path):
             g = gcd(sr, SR); H = ss.resample_poly(H, SR // g, sr // g, axis=0).astype(np.float32); sr = SR
         K = rem(H, sr); dk = measure_damage(H, K, sr)
         for mname, raw in (("aperiodic", aperiodic_hash(H.shape[0], sr, rng, 4500.0, 12000.0, 12.0)),
-                           ("periodic", A.make("hash", H.shape[0], sr, host=H))):
+                           ("periodic", A.make("hash", H.shape[0], sr, host=H)),
+                           ("wide 1.5-16k", A.make("hash_wide", H.shape[0], sr, host=H))):
             for L in (0.5, 2.0):
                 art, d_in = E.match_level(H, raw, sr, L)
                 R = (H + art).astype(np.float32)
