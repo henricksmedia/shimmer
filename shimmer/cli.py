@@ -401,16 +401,18 @@ def main() -> int:
               f"at {result.get('strength', 1.0) * 100:.0f}% strength\n")
         print("Ranked matches (verified through the cleaning pipeline):")
         print(f"  {'preset':18s} {'score':>5s} {'conf':>5s} {'str':>5s} "
-              f"{'residue':>8s} {'collat':>7s} {'purity':>6s}")
+              f"{'residue':>8s} {'collat':>7s} {'loss':>6s} {'tilt':>6s}")
         for e in result["ranked"]:
             art = e.get("artifact_db")
             col = e.get("collateral_db")
-            pur = e.get("purity")
+            mis = e.get("missing")
+            lin = e.get("lin_dist")
             print(f"  {e['name']:18s} {e['score']:5.2f} {e['confidence']:5.2f} "
                   f"{e.get('strength', 1.0) * 100:4.0f}% "
                   f"{(f'{art:7.1f}dB' if art is not None else '      -'):>8s} "
                   f"{(f'{col:6.1f}dB' if col is not None else '     -'):>7s} "
-                  f"{(f'{pur:5.0%}' if pur is not None else '    -'):>6s}")
+                  f"{(f'{mis:6.3f}' if mis is not None else '     -'):>6s} "
+                  f"{(f'{lin:6.2f}' if lin is not None else '     -'):>6s}")
             print(f"    {e.get('reason', '')}")
         fu = result.get("follow_up")
         if fu:

@@ -99,7 +99,8 @@ python -m uvicorn server:app --host 127.0.0.1 --port 7860
 - `--list-presets` prints all visible presets with descriptions.
 - `--suggest INPUT` analyzes a file and prints the recommended preset and
   strength, the verified ranking (score, confidence, strength, residue,
-  collateral, purity) with reasons, any second-pass suggestion and notes.
+  collateral, audible loss in sones, tone shift) with reasons, any
+  second-pass suggestion and notes.
 - Nearly every processing parameter is overridable via flags (see
   [Section 10](#10-cli-reference); a few advanced params are preset/API-only).
 
@@ -538,18 +539,26 @@ wrapper, region diagnostics)
   band flatness. These give each preset a *prior* and its evidence phrase.
 - **Stage 2 — verification** (hottest window). Every artifact preset is run
   through the real cleaning pipeline (`clean_and_master`, no mastering / EQ)
-  and the *removed* signal is split into artifact-like energy (cells ≥ 2 kHz
-  that are neither transient hold windows nor sustained musical partials
-  below 10 kHz) and protected energy (body < 2 kHz ×3, transients, partials).
-  Verified score = benefit × quality: benefit ramps the artifact-like removal
-  from −45 to −20 dB re. the top-end energy but is penalised 1.5 dB per dB
-  past −18 dB (removing more than a plausible share of the top end is
-  over-processing, not residue); quality ramps purity (artifact share of
-  what was removed) from 0.5 to 0.95. Blended 80/20 with the prior.
+  and the result is compared with the input by the ITU-R BS.1387 hearing
+  model (`perceptual.py`): `missing` is the audible content that went, in
+  sones; `lin_dist` is how far the tone tilted. Verified score = net audible
+  benefit, `(2p − 1) × M − L`, where `M` ramps `missing` to 1 at 0.10 sones
+  (the budget's ceiling on audible removal), `L` ramps `lin_dist` to 1 at
+  3.0 (the budget's ceiling on tilt) and `p` is the preset's evidence prior.
+  Audible removal is credited by the evidence for the artifact and debited by
+  the evidence against it; tilt is always a cost. A preset with no evidence
+  earns nothing for removing a lot, and removal the hearing model cannot
+  hear earns nothing at all. The removed signal's energy split (residue
+  ≥ 2 kHz outside transients and partials; collateral) is still reported,
+  as a description of where the preset worked, not as a score. The earlier
+  `purity` ratio — the share of removed energy outside the transient /
+  partial mask — is gone: on finished masters that mask covered 84–95 % of
+  the top end, so it read ~1.0 for any top-end preset and recommended
+  cleaning finished commercial masters at 80 % confidence.
 - **Strength** — the top picks are re-run at 50/100/150/200 % (top pick also
-  ±25 % around its choice) and the *gentlest* strength within 0.75 dB of the
-  best net benefit wins, guarded so collateral may not rise more than 3 dB or
-  purity fall more than 0.1 versus 100 %. Batch auto-detect applies it through
+  ±25 % around its choice) and the *gentlest* strength within 0.04 of the
+  best net audible benefit wins, guarded so collateral may not rise more than
+  3 dB versus 100 %. Batch auto-detect applies it through
   `apply_preset_strength` (the batch strength slider multiplies it), Remix
   auto-clean applies it, and the Single File tab sets the Preset strength
   slider when a match is applied.
@@ -560,8 +569,9 @@ wrapper, region diagnostics)
   sits in the center (Mid is cleaned at 20 %, so it is largely out of reach)
   and points to a Parametric EQ notch.
 - **Second pass** — the runner-ups are tried on the winner's cleaned output;
-  if one still removes ≥ 40 % as much residue at ≥ 80 % purity and at least
-  −26 dB re. the top end, it is reported as `follow_up`.
+  if one still removes ≥ 40 % as much residue, at least −26 dB re. the top
+  end, and clears 0.05 net audible benefit measured against the winner's
+  output, it is reported as `follow_up`.
 - A per-second top-end intensity timeline (3–16 kHz level against the body,
   normalised per track) is returned; the UI draws it as the "Noise over
   time" strip, parks the live-preview loop on the worst stretch, and the

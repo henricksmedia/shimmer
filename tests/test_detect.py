@@ -10,7 +10,9 @@ check that:
   * the evidence scan measures that artifact in calibrated units,
   * a recommended strength comes back with the pick,
   * the hot window lands where the artifact lives,
-  * the verification split behaves on trivial inputs.
+  * the verification split behaves on trivial inputs,
+  * the verified score is net audible benefit: a preset cannot score by
+    removing a lot, and finished masters get no recommendation.
 
 Run:  .venv\\Scripts\\python.exe -m pytest tests/test_detect.py -q
 """
@@ -180,14 +182,16 @@ class TestRanking:
         top_h = [e["name"] for e in hash_result["ranked"][:3]]
         assert top_t != top_h
 
-    def test_ranked_carries_verification_fields(self, tonal_result):
-        e = tonal_result["ranked"][0]
-        for key in ("strength", "artifact_db", "collateral_db", "purity",
-                    "net_db", "reason", "confidence", "score"):
+    def test_ranked_carries_verification_fields(self, hash_result):
+        e = hash_result["ranked"][0]
+        for key in ("strength", "artifact_db", "collateral_db", "missing",
+                    "lin_dist", "added", "net_db", "reason", "confidence",
+                    "score"):
             assert key in e
-        assert e["purity"] >= 0.0 and e["purity"] <= 1.0
-        assert tonal_result["metrics"]["verified"] is True
-        assert tonal_result["metrics"]["verify_runs"] >= len(FAST["candidates"])
+        assert e["missing"] >= 0.0 and e["lin_dist"] >= 0.0
+        assert "noise, not music" not in e["reason"]
+        assert hash_result["metrics"]["verified"] is True
+        assert hash_result["metrics"]["verify_runs"] >= len(FAST["candidates"])
 
     def test_up_to_six_matches(self, tonal_result):
         assert 1 <= len(tonal_result["ranked"]) <= 6
@@ -208,37 +212,37 @@ class TestRanking:
 
 
 class TestStrength:
-    def test_strength_is_recommended_and_bounded(self, tonal_result):
-        s = tonal_result["strength"]
+    def test_strength_is_recommended_and_bounded(self, hash_result):
+        s = hash_result["strength"]
         assert detect.STRENGTH_MIN <= s <= detect.STRENGTH_MAX
         assert abs(s / detect.STRENGTH_STEP - round(s / detect.STRENGTH_STEP)) < 1e-6
-        assert tonal_result["ranked"][0]["strength"] == s
+        assert hash_result["ranked"][0]["strength"] == s
 
-    def test_sweep_is_reported_for_top_pick(self, tonal_result):
-        sweep = tonal_result["ranked"][0].get("strength_sweep")
+    def test_sweep_is_reported_for_top_pick(self, hash_result):
+        sweep = hash_result["ranked"][0].get("strength_sweep")
         assert sweep is not None
         assert len(sweep) >= 4
         assert "1.00" in sweep
 
     def test_pick_prefers_gentlest_within_tolerance(self):
         M = detect.Measure
-        base = M(-20.0, -30.0, 0.9, -21.0)
+        base = M(-20.0, -30.0, -21.0, missing=0.05, lin_dist=0.3)
         results = {
-            0.5: M(-22.0, -32.0, 0.9, -23.0),
+            0.5: M(-22.0, -32.0, -23.0, missing=0.03, lin_dist=0.2),
             1.0: base,
-            1.5: M(-19.0, -29.0, 0.9, -20.5),   # within tolerance of best
-            2.0: M(-18.0, -26.0, 0.85, -20.0),  # best net, more collateral
+            1.5: M(-19.0, -29.0, -20.5, missing=0.052, lin_dist=0.31),  # within tolerance
+            2.0: M(-18.0, -26.0, -20.0, missing=0.08, lin_dist=0.5),    # more removed, more tilt
         }
-        assert detect._pick_strength(results, base) == 1.0
+        assert detect._pick_strength(results, base, prior=1.0) == 1.0
 
     def test_pick_rejects_collateral_jump(self):
         M = detect.Measure
-        base = M(-20.0, -30.0, 0.9, -21.0)
+        base = M(-20.0, -30.0, -21.0, missing=0.05, lin_dist=0.3)
         results = {
             1.0: base,
-            2.0: M(-15.0, -22.0, 0.7, -15.0),   # better net, but +8 dB collateral
+            2.0: M(-15.0, -22.0, -15.0, missing=0.09, lin_dist=0.3),   # better score, +8 dB collateral
         }
-        assert detect._pick_strength(results, base) == 1.0
+        assert detect._pick_strength(results, base, prior=1.0) == 1.0
 
 
 class TestWindow:
@@ -259,16 +263,80 @@ class TestVerificationSplit:
     def test_zero_removal_scores_nothing(self, bed):
         clip = bed[: int(3.0 * SR)]
         masks = detect.build_masks(clip, SR)
-        meas = detect.measure_removed(np.zeros_like(clip), SR, masks)
+        meas = detect.measure_removed(np.zeros_like(clip), SR, masks, processed=clip)
         assert meas.artifact_db < -100.0
-        assert detect.verified_score(meas) == 0.0
+        assert meas.missing < 0.01 and meas.lin_dist < 0.01
+        assert detect.verified_score(meas, prior=1.0) == 0.0
 
-    def test_removing_everything_is_impure(self, bed):
+    def test_removing_everything_is_all_cost(self, bed):
+        # Silence out of a full clip: the energy measure says collateral, the
+        # hearing model says a lot went missing, and the score is zero even
+        # with full evidence, because nothing audible was kept.
         clip = bed[: int(3.0 * SR)]
         masks = detect.build_masks(clip, SR)
-        meas = detect.measure_removed(clip, SR, masks)
+        meas = detect.measure_removed(clip, SR, masks, processed=np.zeros_like(clip))
         assert meas.collateral_db > -20.0
-        assert meas.purity < 0.9
+        assert meas.missing > detect.MISSING_FULL_SONES
+        assert detect.verified_score(meas, prior=1.0) == 0.0
+
+
+class TestVerifiedScore:
+    """The score is net audible benefit. Each case is a Measure built by
+    hand so the arithmetic is visible; the corpus checks are below."""
+
+    def test_no_evidence_earns_nothing_however_much_is_removed(self):
+        meas = detect.Measure(-15.0, -40.0, -16.0, missing=0.5, lin_dist=0.0)
+        assert detect.verified_score(meas, prior=0.0) == 0.0
+        assert detect.verified_score(meas, prior=0.5) == 0.0
+
+    def test_removing_a_lot_does_not_score_well(self):
+        # Same evidence; more audible removal with the tilt that comes with
+        # it scores lower, not higher, once the tilt ceiling is reached.
+        modest = detect.Measure(-25.0, -40.0, -26.0, missing=0.05, lin_dist=0.3)
+        greedy = detect.Measure(-12.0, -30.0, -14.0, missing=0.5, lin_dist=4.0)
+        assert detect.verified_score(modest, prior=1.0) > 0.0
+        assert detect.verified_score(greedy, prior=1.0) == 0.0
+
+    def test_tilt_is_always_a_cost(self):
+        flat = detect.Measure(-20.0, -40.0, -21.0, missing=0.08, lin_dist=0.0)
+        tilted = detect.Measure(-20.0, -40.0, -21.0, missing=0.08, lin_dist=1.5)
+        assert detect.verified_score(tilted, prior=1.0) < detect.verified_score(flat, prior=1.0)
+
+    def test_inaudible_removal_scores_nothing(self):
+        # Energy went from the eligible cells but the hearing model saw
+        # nothing go: the old purity score would have credited this.
+        meas = detect.Measure(-22.0, -60.0, -22.0, missing=0.0, lin_dist=0.0)
+        assert detect.verified_score(meas, prior=1.0) == 0.0
+
+    def test_tone_kill_is_benefit(self):
+        meas = detect.Measure(-40.0, -60.0, -40.0, missing=0.0, lin_dist=0.0,
+                              tone_removed=0.9)
+        assert detect.verified_score(meas, prior=0.0, tone_weight=0.4) == pytest.approx(0.36)
+
+    def test_score_is_bounded(self):
+        meas = detect.Measure(-10.0, -30.0, -12.0, missing=5.0, lin_dist=0.0,
+                              tone_removed=1.0)
+        assert detect.verified_score(meas, prior=1.0, tone_weight=0.4) == 1.0
+
+
+REFERENCE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             "assets", "reference")
+REFERENCE_FILES = sorted(
+    os.path.join(REFERENCE_DIR, f) for f in os.listdir(REFERENCE_DIR)
+    if f.lower().endswith(".wav")) if os.path.isdir(REFERENCE_DIR) else []
+
+
+@pytest.mark.skipif(not REFERENCE_FILES, reason="assets/reference/*.wav not present")
+@pytest.mark.parametrize("path", REFERENCE_FILES, ids=os.path.basename)
+def test_finished_master_gets_no_recommendation(path):
+    """A finished commercial master has nothing for a cleaning preset to
+    do. The old score recommended one on every file here at 0.56-0.69
+    confidence. Whole-file, all candidates, so the check is the product's."""
+    r = detect.suggest(path)
+    assert r["metrics"]["verified"] is True
+    top = r["ranked"][0]
+    assert r["preset"] == "generic", (r["preset"], top)
+    assert top["confidence"] == 0.0
 
     def test_no_verify_falls_back_to_priors(self, bed):
         x = bed + _tone(6.0, 11200.0, 0.02)

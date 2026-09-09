@@ -205,7 +205,7 @@ def suggest_preset(input_path: str, **kwargs) -> dict:
         strength          recommended preset strength for the top pick
         ranked            up to 6 entries: name, label, score, confidence,
                           strength, reason, artifact_db, collateral_db,
-                          purity, net_db
+                          net_db, missing, lin_dist, added
         follow_up         optional second-pass suggestion, or None
         notes             tonal-balance hints (mud, dull top end)
         timeline          {"step_s": 1.0, "intensity": [...]} per second

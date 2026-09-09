@@ -25,17 +25,27 @@ feed the existing preset-strength input.
 2. Verification (closed loop, hottest window)
    Every artifact preset is run through the real pipeline
    (crossover -> M/S -> engine -> recombine; no mastering, no EQ) on that
-   window.  The *removed* signal is split into artifact-like energy
-   (cells above 2 kHz that are neither transient hold windows nor
-   sustained musical partials) and protected energy (body below 2 kHz,
-   transient windows, musical partials).  A preset scores by how much
-   artifact-like energy it removed (capped: past a plausible share of
-   the top end it is over-processing) times the purity of what it
-   removed, plus, when the scan found steady tones, how far the tones
-   dropped in the processed output.  The top picks are re-run across a
-   strength grid to find the gentlest strength that reaches the best
-   score, and the runner-ups are tried on the winner's output to see
-   whether a second pass with a different preset is worthwhile.
+   window.  The processed clip is compared with the input by the
+   BS.1387 hearing model (perceptual.py): how much audible content went
+   (`missing`, sones) and how far the tone tilted (`lin_dist`).  A
+   preset scores by *net audible benefit*: audible removal is credited
+   in proportion to the evidence that its artifact is present and
+   debited in proportion to the evidence that it is not, tilt damage is
+   always a cost, and when the scan found steady tones the share of
+   their excess removed counts as benefit directly.  Removal the
+   evidence does not support is music, and a preset cannot score by
+   removing more of it.  The top picks are re-run across a strength
+   grid to find the gentlest strength that reaches the best score, and
+   the runner-ups are tried on the winner's output to see whether a
+   second pass with a different preset is worthwhile.
+
+   The previous scorer rated removal by `purity`, the share of removed
+   energy that fell outside a mask of transients and narrow partials.
+   On finished masters that mask covers 84-95 % of all energy above
+   2 kHz, so purity sat near 1.0 for any preset confined to the sustained
+   top end and correlated -0.003 with measured audible damage
+   (docs/BRIGHTNESS-ASSESSMENT.md 2.5). It recommended cleaning finished
+   commercial masters at 80 % confidence. It is gone.
 
 Public entry points: `suggest(path, ...)` and `suggest_array(x, sr, ...)`.
 `probe.suggest_preset` is a thin wrapper kept for back-compat.
@@ -56,6 +66,9 @@ from scipy.ndimage import median_filter, uniform_filter1d
 
 from .audio_io import load_audio
 from .params import Params, apply_preset_strength
+from .budget import MAX_BUDGET_SONES as _MAX_BUDGET_SONES
+from .budget import MAX_LIN_DIST as _MAX_LIN_DIST
+from .perceptual import measure_damage
 from .presets import VISIBLE_PRESETS, get_preset, label_for
 
 _EPS = 1e-12
@@ -79,23 +92,30 @@ EDGE_TRIM_S = 0.15               # ignore crossover / STFT edge frames
 BODY_WEIGHT = 3.0                # body removal counts triple as collateral
 COLLATERAL_LAMBDA = 2.0          # informational net = artifact - lambda * collateral
 
-# Verified score = benefit(artifact_db) x quality(purity), blended with a
-# tone-kill term when the scan found steady tones.
-#   benefit: ramps from BENEFIT_DB_FLOOR to BENEFIT_DB_CEIL re. the top-end
-#            energy, but removal past ARTIFACT_CAP_DB is over-processing
-#            (residue is a small share of a mix's top end) and is penalised
-#            rather than rewarded.
-#   quality: purity below PURITY_FLOOR (more music than residue) scores 0,
-#            full credit at PURITY_FULL.
-ARTIFACT_CAP_DB = -18.0
-OVER_REMOVAL_PENALTY = 1.5       # dB of benefit lost per dB past the cap
-BENEFIT_DB_FLOOR = -45.0
-BENEFIT_DB_CEIL = -20.0
-PURITY_FLOOR = 0.5
-PURITY_FULL = 0.95
+# Verified score = net audible benefit, 0..1 (see `verified_score`).
+#
+#   benefit  (2p - 1) x M, where M ramps the audible content removed
+#            (`missing`, sones) to 1 at MISSING_FULL_SONES and p is the
+#            evidence prior for the preset's artifact. With no evidence the
+#            removal is all music and the term goes negative; with full
+#            evidence it is all credit.
+#   tone     share of measured steady-tone excess removed, carrying up to
+#            TONE_WEIGHT_MAX of the benefit when the scan found tones.
+#   cost     linear (tilt) distortion `lin_dist`, ramped to 1 at
+#            LIN_DIST_FULL. Broadband tilt is never an artifact.
+#
+# The two full-scale points are the budget's own ceilings (budget.py):
+# MAX_BUDGET_SONES is "never remove more audible content than this however
+# hashed the track", MAX_LIN_DIST the same for tilt. Both were set from four
+# songs judged by one listener and are the anchors used everywhere, not a
+# second calibration. The prior is a 0..1 plausibility, not a probability;
+# it was ramped on Suno renders only (`priors_from_evidence`), so on clean
+# music it can read high for presence-band presets. The cost term is what
+# stops those from firing on a finished master.
+MISSING_FULL_SONES = _MAX_BUDGET_SONES
+LIN_DIST_FULL = _MAX_LIN_DIST
 TONE_MIN_EXCESS_DB = 6.0         # steady tones this strong take part in scoring
-TONE_WEIGHT_MAX = 0.4            # share of the verified score given to tone kill
-PRIOR_WEIGHT = 0.2               # final = (1-w)*verified + w*prior
+TONE_WEIGHT_MAX = 0.4            # share of the benefit given to tone kill
 MIN_ACTIONABLE_SCORE = 0.05
 MIN_ACTIONABLE_ARTIFACT_DB = -48.0
 
@@ -105,11 +125,11 @@ STRENGTH_MAX = 2.0
 STRENGTH_STEP = 0.05
 STRENGTH_TOLERANCE = 0.04        # gentlest strength within this score of the best wins
 STRENGTH_COLLATERAL_GUARD_DB = 3.0
-STRENGTH_PURITY_GUARD = 0.10
 
 FOLLOW_UP_MIN_RATIO_DB = -4.0    # second pass must remove >= 40% of the winner's residue
-FOLLOW_UP_MIN_PURITY = 0.8
 FOLLOW_UP_MIN_ARTIFACT_DB = -26.0
+# ...and must clear MIN_ACTIONABLE_SCORE on its own, measured against the
+# winner's output.
 
 
 def artifact_preset_names() -> List[str]:
@@ -770,8 +790,8 @@ def priors_from_evidence(ev: Evidence) -> Dict[str, float]:
     Ramp edges were set from a corpus of 26 Suno renders (roughly the
     20th and 85th percentiles of each measurement) so a prior of 1.0
     means "unusually strong for this kind of material", not merely
-    "present".  Priors carry PRIOR_WEIGHT of the final score; the
-    verification carries the rest.
+    "present".  A prior gates how much of a trial clean's audible removal
+    counts as benefit rather than cost (see `verified_score`).
     """
     t8, t9 = ev.tone_8_12, ev.tone_9_15
     t_hi = ev.tone_9_15 if ev.tone_9_15.excess_db >= ev.tone_12_20.excess_db else ev.tone_12_20
@@ -910,27 +930,40 @@ class Masks:
     tone_in_db: np.ndarray     # float [n_tones] input q25 level at those bins
     tone_excess: np.ndarray    # float [n_tones] excess above the local envelope
     tone_centered: np.ndarray  # bool [n_tones] tone sits in Mid (>6 dB over Side)
+    x: Optional[np.ndarray] = None   # the clip itself, the damage reference
 
 
 @dataclass
 class Measure:
+    """One trial clean, measured.
+
+    `artifact_db`, `collateral_db` and `net_db` are energy measures of the
+    removed signal (re. the input's top end) and are informational: they
+    say where the preset worked, not whether that was audible. The score
+    comes from the hearing-model fields: `missing` (audible content gone,
+    sones), `lin_dist` (tilt, sones) and `added` (content introduced).
+    """
     artifact_db: float
     collateral_db: float
-    purity: float
     net_db: float
+    missing: float = 0.0
+    lin_dist: float = 0.0
+    added: float = 0.0
     tone_removed: float = -1.0   # 0..1 share of tone excess removed; -1 = no tones
 
     def as_dict(self) -> Dict[str, float]:
         d = {"artifact_db": round(self.artifact_db, 2),
              "collateral_db": round(self.collateral_db, 2),
-             "purity": round(self.purity, 3),
-             "net_db": round(self.net_db, 2)}
+             "net_db": round(self.net_db, 2),
+             "missing": round(self.missing, 4),
+             "lin_dist": round(self.lin_dist, 3),
+             "added": round(self.added, 4)}
         if self.tone_removed >= 0.0:
             d["tone_removed"] = round(self.tone_removed, 3)
         return d
 
 
-_NULL_MEASURE = Measure(-120.0, -120.0, 0.0, -120.0)
+_NULL_MEASURE = Measure(-120.0, -120.0, -120.0)
 
 
 def _q25_active(S: np.ndarray, active: np.ndarray) -> np.ndarray:
@@ -1016,13 +1049,20 @@ def build_masks(clip: np.ndarray, sr: int,
                  tone_bins=np.array(tone_bins, dtype=int),
                  tone_in_db=np.array(tone_in, dtype=np.float64),
                  tone_excess=np.array(tone_ex, dtype=np.float64),
-                 tone_centered=centered)
+                 tone_centered=centered, x=clip)
 
 
 def measure_removed(removed: np.ndarray, sr: int, m: Masks,
-                    processed: Optional[np.ndarray] = None) -> Measure:
-    """Score one pipeline run from what it removed (and, when tones are
-    in play, from how far the processed output dropped at the tone bins)."""
+                    processed: Optional[np.ndarray] = None,
+                    reference: Optional[np.ndarray] = None) -> Measure:
+    """Measure one pipeline run: where the removed energy sat (informational),
+    what the change cost a listener (the hearing model, when `processed` is
+    given), and, when tones are in play, how far the processed output
+    dropped at the tone bins.
+
+    The damage reference is the clip the masks were built from, unless
+    `reference` names another signal (a second pass is measured against the
+    first pass's output, not the original)."""
     _, Pr = _stft_power(removed, sr, VERIFY_N_FFT, VERIFY_HOP)
     if Pr.shape != m.eligible.shape:
         return _NULL_MEASURE
@@ -1032,9 +1072,14 @@ def measure_removed(removed: np.ndarray, sr: int, m: Masks,
     B = Bh + BODY_WEIGHT * Bb
     artifact_db = _DB * math.log(G / m.e_hi + _EPS)
     collateral_db = _DB * math.log(B / m.e_hi + _EPS)
-    purity = G / (G + B) if (G + B) > 0 else 0.0
     net = (G - COLLATERAL_LAMBDA * B) / m.e_hi
     net_db = _DB * math.log(max(net, 1e-12))
+
+    missing = lin_dist = added = 0.0
+    ref = m.x if reference is None else reference
+    if processed is not None and ref is not None:
+        d = measure_damage(ref, processed, sr)
+        missing, lin_dist, added = d.missing, d.lin_dist, d.added
 
     tone_removed = -1.0
     if m.tone_bins.size and processed is not None:
@@ -1045,24 +1090,37 @@ def measure_removed(removed: np.ndarray, sr: int, m: Masks,
             drop = m.tone_in_db - q25_y[m.tone_bins]
             frac = np.clip(drop / np.maximum(m.tone_excess, 1e-6), 0.0, 1.0)
             tone_removed = float(np.mean(frac))
-    return Measure(artifact_db, collateral_db, purity, net_db, tone_removed)
+    return Measure(artifact_db, collateral_db, net_db,
+                   missing, lin_dist, added, tone_removed)
 
 
-def _benefit_db(artifact_db: float) -> float:
-    if artifact_db <= ARTIFACT_CAP_DB:
-        return artifact_db
-    return ARTIFACT_CAP_DB - OVER_REMOVAL_PENALTY * (artifact_db - ARTIFACT_CAP_DB)
+def audible_cost(meas: Measure) -> float:
+    """0..1 share of the tilt ceiling this run used up."""
+    return _ramp(meas.lin_dist, 0.0, LIN_DIST_FULL)
 
 
-def verified_score(meas: Measure, tone_weight: float = 0.0) -> float:
-    """0..1 from one pipeline run.  `tone_weight` (0..TONE_WEIGHT_MAX) is
-    how much of the score the tone-kill term carries; it is 0 when the
-    scan found no steady tones."""
-    energy = (_ramp(_benefit_db(meas.artifact_db), BENEFIT_DB_FLOOR, BENEFIT_DB_CEIL)
-              * _ramp(meas.purity, PURITY_FLOOR, PURITY_FULL))
-    if tone_weight <= 0.0 or meas.tone_removed < 0.0:
-        return float(energy)
-    return float((1.0 - tone_weight) * energy + tone_weight * meas.tone_removed)
+def verified_score(meas: Measure, prior: float, tone_weight: float = 0.0) -> float:
+    """Net audible benefit of one pipeline run, 0..1.
+
+    `prior` is the evidence that this preset's artifact is present (0..1,
+    from `priors_from_evidence`).  `tone_weight` (0..TONE_WEIGHT_MAX) is how
+    much of the benefit the tone-kill term carries; it is 0 when the scan
+    found no steady tones.
+
+    Audible removal is credited by the evidence for the artifact and
+    debited by the evidence against it, so a preset with no evidence gets
+    nothing for removing a lot, and one with strong evidence gets more for
+    removing more only until tilt damage takes it back.  Nothing here is
+    normalised by where the removal happened.
+    """
+    p = float(np.clip(prior, 0.0, 1.0))
+    m = _ramp(meas.missing, 0.0, MISSING_FULL_SONES)
+    energy = (2.0 * p - 1.0) * m
+    if tone_weight > 0.0 and meas.tone_removed >= 0.0:
+        benefit = (1.0 - tone_weight) * energy + tone_weight * meas.tone_removed
+    else:
+        benefit = energy
+    return float(max(0.0, benefit - audible_cost(meas)))
 
 
 def eligible_tones(tones: Sequence[Tone]) -> List[Tone]:
@@ -1109,16 +1167,15 @@ def _quantize_strength(s: float) -> float:
 
 
 def _pick_strength(results: Dict[float, Measure], base: Measure,
-                   tone_weight: float = 0.0) -> float:
+                   prior: float, tone_weight: float = 0.0) -> float:
     """Gentlest strength whose verified score is within tolerance of the
-    best, subject to collateral and purity guards relative to 100%."""
+    best, subject to a collateral guard relative to 100%.  Damage needs no
+    separate guard: it is already inside the score."""
     ok: Dict[float, float] = {}
     for s, mres in results.items():
         if mres.collateral_db > base.collateral_db + STRENGTH_COLLATERAL_GUARD_DB:
             continue
-        if mres.purity < base.purity - STRENGTH_PURITY_GUARD:
-            continue
-        ok[s] = verified_score(mres, tone_weight)
+        ok[s] = verified_score(mres, prior, tone_weight)
     if not ok:
         return 1.0
     best = max(ok.values())
@@ -1129,7 +1186,7 @@ def _pick_strength(results: Dict[float, Measure], base: Measure,
 
 
 def tune_strength(clip: np.ndarray, sr: int, name: str, masks: Masks,
-                  base: Measure, tone_weight: float = 0.0,
+                  base: Measure, prior: float, tone_weight: float = 0.0,
                   refine: bool = True
                   ) -> Tuple[float, Dict[float, Measure], int]:
     """Sweep the strength grid (then +/-0.25 around the pick) and return
@@ -1142,7 +1199,7 @@ def tune_strength(clip: np.ndarray, sr: int, name: str, masks: Masks,
         y, removed = _run_preset(clip, sr, name, s)
         results[s] = measure_removed(removed, sr, masks, y)
         runs += 1
-    pick = _pick_strength(results, base, tone_weight)
+    pick = _pick_strength(results, base, prior, tone_weight)
     if refine:
         for s in (pick - 0.25, pick + 0.25):
             s = round(s, 2)
@@ -1151,7 +1208,7 @@ def tune_strength(clip: np.ndarray, sr: int, name: str, masks: Masks,
             y, removed = _run_preset(clip, sr, name, s)
             results[s] = measure_removed(removed, sr, masks, y)
             runs += 1
-        pick = _pick_strength(results, base, tone_weight)
+        pick = _pick_strength(results, base, prior, tone_weight)
     return _quantize_strength(pick), results, runs
 
 
@@ -1160,10 +1217,10 @@ def tune_strength(clip: np.ndarray, sr: int, name: str, masks: Masks,
 # ---------------------------------------------------------------------------
 
 def _verify_sentence(meas: Measure, strength: float) -> str:
-    s = (f"Test clean removed noise {-meas.artifact_db:.0f} dB below the top end; "
-         f"{meas.purity:.0%} of what it removed was noise, not music")
-    if meas.artifact_db > ARTIFACT_CAP_DB:
-        s += " (that is more than noise alone, so expect some loss of air)"
+    s = (f"Test clean cut noise {-meas.artifact_db:.0f} dB below the top end. "
+         f"Audible loss {meas.missing:.3f} sones "
+         f"({_ramp(meas.missing, 0.0, MISSING_FULL_SONES):.0%} of the limit), "
+         f"tone shift {meas.lin_dist:.2f} ({audible_cost(meas):.0%} of the limit)")
     if meas.tone_removed >= 0.0:
         s += f"; steady tones cut by {meas.tone_removed:.0%}"
     if abs(strength - 1.0) > 1e-6:
@@ -1270,12 +1327,12 @@ def suggest_array(x: np.ndarray, sr: int,
             runs += 1
         metrics["verified"] = True
 
-    # Final score.
+    # Final score.  Verified, the prior is inside the score; unverified,
+    # the prior is all there is.
     finals: Dict[str, float] = {}
     for n in names:
         if can_verify:
-            finals[n] = ((1.0 - PRIOR_WEIGHT) * verified_score(measures[n], tone_w)
-                         + PRIOR_WEIGHT * pr[n])
+            finals[n] = verified_score(measures[n], pr[n], tone_w)
         else:
             finals[n] = pr[n]
     order = sorted(names, key=lambda n: -finals[n])
@@ -1299,7 +1356,7 @@ def suggest_array(x: np.ndarray, sr: int,
     if can_verify and masks is not None:
         for i, n in enumerate(order[:max(0, tune_top)]):
             s, sweep, r = tune_strength(
-                clip, sr, n, masks, measures[n], tone_weight=tone_w,
+                clip, sr, n, masks, measures[n], pr[n], tone_weight=tone_w,
                 refine=(i == 0))
             strengths[n] = s
             sweeps[n] = sweep
@@ -1359,28 +1416,30 @@ def suggest_array(x: np.ndarray, sr: int,
         runs += 1
         best_meas = sweeps.get(best, {}).get(strengths[best], measures[best])
         cands = [n for n in order[1:4]]
-        best_follow: Optional[Tuple[str, Measure]] = None
+        best_follow: Optional[Tuple[str, Measure, float]] = None
         for n in cands:
             try:
                 y2, removed2 = _run_preset(y_best, sr, n, 1.0)
             except Exception:
                 continue
             runs += 1
-            m2 = measure_removed(removed2, sr, masks, y2)
+            m2 = measure_removed(removed2, sr, masks, y2, reference=y_best)
+            s2 = verified_score(m2, pr[n], tone_w)
             if (m2.artifact_db >= best_meas.artifact_db + FOLLOW_UP_MIN_RATIO_DB
                     and m2.artifact_db >= FOLLOW_UP_MIN_ARTIFACT_DB
-                    and m2.purity >= FOLLOW_UP_MIN_PURITY
-                    and (best_follow is None or m2.net_db > best_follow[1].net_db)):
-                best_follow = (n, m2)
+                    and s2 >= MIN_ACTIONABLE_SCORE
+                    and (best_follow is None or s2 > best_follow[2])):
+                best_follow = (n, m2, s2)
         if best_follow is not None:
-            n, m2 = best_follow
+            n, m2, s2 = best_follow
             follow = {
                 "name": n,
                 "label": label_for(n),
                 "strength": 1.0,
+                "score": round(float(s2), 3),
                 "reason": (f"Run on the cleaned result, {label_for(n)} still "
-                           f"removes noise {-m2.artifact_db:.0f} dB below the top end "
-                           f"({m2.purity:.0%} of it noise, not music). Worth a second pass."),
+                           f"cuts noise {-m2.artifact_db:.0f} dB below the top end "
+                           f"for a net audible gain of {s2:.2f}. Worth a second pass."),
                 **m2.as_dict(),
             }
 

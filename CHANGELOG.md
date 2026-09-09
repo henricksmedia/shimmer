@@ -281,6 +281,39 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Analyze scores presets by net audible benefit, not by where the removal
+  sat.** The verified score was `benefit(energy removed) × purity`, and
+  `purity` was the share of removed energy that fell outside a mask of
+  transients and narrow partials. On finished masters that mask covers
+  84–95 % of everything above 2 kHz, so purity read ~1.0 for any top-end
+  preset whether it removed hiss or a cymbal, correlated −0.003 with
+  measured audible damage, and recommended cleaning finished commercial
+  masters at 56–69 % confidence. Each trial clean is now compared with the
+  input by the BS.1387 hearing model (`perceptual.py`): audible content
+  removed is credited in proportion to the evidence that the preset's
+  artifact is present and debited by the evidence that it is not, and tilt
+  damage is always a cost. The two full-scale points are the budget's own
+  ceilings (0.10 sones, 3.0 of tilt). Measured on the corpus: the old score
+  fired on 9 of 9 finished masters, the new one on 0 of 2 references and 2
+  of 7 mastering-service masters at ≤ 0.12, one of which still carries the
+  hash by its own flicker measure. Deep Scrub scores zero everywhere with
+  no policy. The sentence "97 % of what it removed was noise, not music" is
+  replaced by the audible loss and tone shift against those limits; the CLI
+  table shows `loss` and `tilt` instead of `purity`. The 80/20 blend with
+  the prior is gone (the prior is inside the score); unverified runs still
+  rank on the prior alone.
+
+- **Linear-distortion S0 corrected to the reference.** `perceptual.S0_LINDIST`
+  was 0.5, the Basic-model noise-loudness value; Kabal (2002) eq. 105–106
+  gives S0 = 1 for AvgLinDist. `lin_dist` moves by a factor of 0.88–1.01 on
+  every anchor measured; the budget's tilt ceiling and the pinned magnitude
+  test are unchanged.
+
+- **Hearing model 6× faster.** The per-band Python loops in the spreading,
+  band-grouping and adaptation stages are now matrix operations; output is
+  identical to 3e-15 relative, and `measure_damage` on a 5 s clip takes
+  0.11 s instead of 0.70 s.
+
 - **A two-pass plan counts pass 2 in instead of going quiet.** Run both
   passes (and Continue) used to close the processing window when pass 1
   finished, render its result with a Download button, and open the

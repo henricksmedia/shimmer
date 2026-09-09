@@ -30,8 +30,9 @@ descending size:
 1. The tone target was a 1950–2010 average used as a present-day target, so
    every contemporary master read as too bright and every automatic decision
    came out a cut. **Fixed.**
-2. The detector's self-check (`purity`) measures nothing. **Not fixed — this
-   is your first job.**
+2. The detector's self-check (`purity`) measures nothing. **Fixed
+   2026-09-08** — see §4 and checklist item 5. Two follow-ups it exposed
+   are checklist items 10 and 11.
 3. Presets over-reach relative to how much artifact is actually present.
 4. Cleaning narrows the stereo image by 1–4 dB. **Not investigated.**
 
@@ -120,6 +121,16 @@ reading before altering anything they touch:
 ---
 
 ## 4. Your first job: fix the verified score
+
+> **Status: DONE 2026-09-08.** Kept as written so the reasoning survives.
+> What shipped: `detect.verified_score(meas, prior, tone_weight)` returns
+> `max(0, (2p - 1) x M - L)` with `M = ramp(missing, 0, 0.10)` and
+> `L = ramp(lin_dist, 0, 3.0)`; the two full-scale points are
+> `budget.MAX_BUDGET_SONES` and `budget.MAX_LIN_DIST`, reused rather than
+> newly fitted. The 0.8/0.2 prior blend is gone. Numbers, before and after,
+> are in `docs/HANDOFF-CHECKLIST.md` item 5. What it did *not* settle: the
+> priors still read high on clean music (item 10) and the actionable
+> threshold and confidence scale were set for the old score (item 11).
 
 This is the highest-value single change in the codebase. Do it first; three
 other items depend on it.

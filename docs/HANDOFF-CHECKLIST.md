@@ -92,7 +92,7 @@ count.
       and blind, judged by the author. Only he can close this. Both previous
       rounds changed the diagnosis.
 
-- [ ] **5. Fix the verified score. (Highest-value single change.)**
+- [x] **5. Fix the verified score. (Highest-value single change.)**
       *Done when:* a preset can no longer score well by removing a lot.
       `final = 0.8 x verified + 0.2 x prior`, and `verified = benefit x purity`
       where purity is a mask-location ratio, not a measurement. This one
@@ -101,6 +101,27 @@ count.
       score), the "97% was noise" claim, and the detector recommending
       cleaning for finished commercial masters at 80% confidence. Fix it and
       Deep Scrub demotes itself with no policy needed.
+      **DONE 2026-09-08.** `verified_score` is now net audible benefit:
+      `(2p - 1) x M - L`, with `M` the hearing model's `missing` ramped to 1
+      at `budget.MAX_BUDGET_SONES` (0.10), `L` its `lin_dist` ramped to 1 at
+      `budget.MAX_LIN_DIST` (3.0), and `p` the evidence prior. The prior is
+      no longer blended in separately; unverified runs still rank on it.
+      `purity` is gone from the code, the CLI table, the API and the reason
+      sentence, which now reports audible loss and tone shift against those
+      two limits. Measured before/after on the detector's own hot windows,
+      16 presets per file (`scripts/score_probe.py`; cached rows in
+      `docs/score-probe.json`): the old score fired on
+      **9/9** finished masters (7 mastering-service masters + 2 references)
+      at 0.69-0.92; the new one fires on **0/2** references and **2/7**
+      service masters, both at ≤ 0.12 net benefit — one of them on Suno Hash
+      where the master's own flicker excess reads +2.4 dB, which the
+      assessment documents as expected for a service master. Of 7 Suno
+      renders, 2 get a recommendation (Suno Hash 0.15, Sibilance Rattle
+      0.06) and 5 get none. Synthetic hashed bed picks a hash preset.
+      Regression test: `test_finished_master_gets_no_recommendation` runs
+      the full product path on `assets/reference/*.wav`. Deep Scrub scores
+      0 everywhere (tilt 12-26 against a ceiling of 3) with no policy.
+      *Not settled by this:* see items 10-11 below.
 
 - [ ] **6. Measure efficacy, not just cost. Then re-judge every preset.**
       *Done when:* the harness reports BOTH "did the artifact drop" and "what
@@ -139,6 +160,31 @@ count.
       - `STYLE.md` — the house rules currently scattered in docstrings
       - `PITFALLS.md` — every wrong turn taken here, so it is not retaken
 
+- [ ] **10. Give the prior a real "nothing is wrong" state.** (Added
+      2026-09-08 while doing item 5; it is the assessment's recommendation
+      2.) *Done when:* on artifact-free music the priors read near zero.
+      Measured on the hot windows of the 9 finished masters: `vocal_glaze`
+      reads 0.71-0.83, `presence_haze` up to 1.00, `harsh_veil` up to 0.93,
+      `deep_scrub` up to 0.92; on the synthetic clean bed `echo_sheen` reads
+      1.00. The new score holds these off a finished master only because
+      their tilt cost exceeds their credit, which is the right outcome for
+      the wrong reason: a preset whose evidence is "this is music" should
+      earn nothing before cost is counted. The ramps in
+      `priors_from_evidence` were set from 26 Suno renders with no clean
+      control. Recalibrate against the labelled corpus (9 finished masters
+      are available in `sources/` and `assets/reference/`).
+
+- [ ] **11. Re-examine the actionable threshold and the confidence
+      scale.** (Added 2026-09-08.) `MIN_ACTIONABLE_SCORE = 0.05` and the
+      confidence formula `score x (0.5 + 0.5 x margin) x 1.5` were set for
+      the old score, whose range on real material was 0.7-1.0. The new
+      score's range on the corpus is 0-0.29 (synthetic hash 0.21-0.29,
+      real renders ≤ 0.15), so confidences now read 0.1-0.3. That is honest
+      about the evidence but the UI copy ("20% match") was written for the
+      old scale. Decide, with listening, what a 0.15 net benefit is worth
+      before moving either number; do not rescale to make the bars look
+      like they used to.
+
 ---
 
 ## DEFERRED — the 80% stake
@@ -170,6 +216,25 @@ blockers for the items above, because the 80% plan does not wire it.
   (contradicts the reference at 0.5); golden-value tests pinning the PEAQ
   constants (eight mutations currently survive); level-match inputs in
   `measure_damage`.
+  - `S0_LINDIST` **DONE 2026-09-08**, done first because item 5 fits a
+    cost term on `lin_dist` and a later change of scale would have moved
+    it. Cited: Kabal 2002 eq. 105-106 (p. 39) gives AvgLinDist alpha 1.5,
+    T0 0.15, S0 1; the Basic-model MATLAB's S0 0.5 belongs to RmsNoiseLoud
+    (H.2, p. 87). Measured effect on the anchors `LIN_DIST_BASE` was set
+    from (25 s loudest excerpts, 4 Suno sources + the clean control):
+    Cymbal Sheen 0.047-0.081 → 0.042-0.072, Suno Hash 0.40-0.79 →
+    0.35-0.71, Deep Scrub 12.5-20.4 → 11.9-19.4; shelf tests -3/-6/-12 dB
+    5.23/22.1/49.4 → 4.64/20.6/49.9. Ratios 0.88-1.01. The ceiling's own
+    rule ("passes the two accepted presets, stops the one ranked last")
+    still gives 1.0, so `LIN_DIST_BASE` is unchanged and the pinned
+    magnitude test still holds. `SONES_PER_DB` does not involve
+    `lin_dist` and was not re-fitted. The other two preconditions stand.
+  - The ear model was vectorised the same day (`_spread_frames`,
+    `_band_matrix`, cumulative-sum neighbour means in `_adapt`); output is
+    identical to the loop form to 3e-15 relative on real audio and
+    `measure_damage` on a 5 s clip went from 0.70 s to 0.11 s, which is
+    what makes measuring every trial clean affordable (about 3 s per
+    Analyze on top of the trial cleans themselves).
 - The per-section budget envelope.
 - UI implementation against the settled labels, including four existing bugs
   the naming panel found.
