@@ -423,7 +423,7 @@ select#sets { max-width: 360px; }
           <label class="chk" id="abxPair" hidden>pair
             <select id="abxA"></select><span class="abx-vs">vs</span>
             <select id="abxB"></select></label>
-          <label class="chk">trials <input type="number" id="abxN" min="8"
+          <label class="chk">trials <input type="number" id="abxN" min="5"
             max="50" step="1" value="12"></label>
           <button class="primary" id="abxStart">Start check</button>
         </div>
@@ -485,8 +485,8 @@ select#sets { max-width: 360px; }
     </details>
 
     <details>
-      <summary>Keys, and what "Difference" can and cannot tell you</summary>
-      <div class="body">
+      <summary>Keys</summary>
+      <div class="body" id="keysbody">
         <p><kbd>space</kbd> play · <span id="keynums"></span> · <span id="keyswap"><kbd>S</kbd> next version</span> ·
            <span id="keydiff" hidden><kbd>D</kbd> difference · </span>
            <kbd>L</kbd> loop four seconds from here ·
@@ -495,13 +495,7 @@ select#sets { max-width: 360px; }
         <p style="margin-top:6px">During a listening check:
            <kbd>X</kbd> hear the unknown one, the version's own number to hear
            it, and <kbd>⇧</kbd> with that number to answer.</p>
-        <p style="margin-top:10px"><strong class="warn">Difference</strong> plays
-        what one version has and the other does not. It tells you whether the
-        thing taken out was noise or music. It <em>cannot</em> tell you whether
-        too much was taken: removed air sounds like <em>shhh</em> on its own and
-        never like music, so a track can lose real openness while the removed
-        part still sounds like nothing. Judge how much by swapping, not by
-        listening to the difference.</p>
+        <p id="diffhelp" style="margin-top:10px" hidden></p>
       </div>
     </details>
   </main>
@@ -551,6 +545,31 @@ async function loadSet(id) {
   // Twenty of the thirty-six sets have no difference signal. Advertising the
   // key on those sets promises something that does nothing.
   $('keydiff').hidden = !cur.residual;
+  // This paragraph used to state, on every set, what "Difference" is — on
+  // sets that have no difference signal at all, and in flat contradiction of
+  // the per-set text a few lines above it on the ones whose signal is a tone
+  // change rather than a removal.
+  const dh = $('diffhelp');
+  dh.hidden = !cur.residual;
+  if (cur.residual) {
+    dh.innerHTML = '<strong class="warn">' +
+      esc(cur.residual.kind_disagrees ? 'Difference'
+                                      : (cur.residual.label || 'Difference')) +
+      '</strong> ' + (cur.residual.kind_disagrees
+        ? 'is the two versions subtracted from each other. This set cannot ' +
+          'say whether that is material taken out or a change of tone, so ' +
+          'treat it as a clue and judge by swapping.'
+        : cur.residual.kind === 'eq'
+          ? 'is the whole song through the difference between the two tone ' +
+            'curves. Nothing was taken out, so judge how big the change is ' +
+            'by swapping, not by how loud this sounds.'
+          : 'is what one version has and the other does not. It tells you ' +
+            'whether the thing taken out was noise or music. It <em>cannot' +
+            '</em> tell you whether too much was taken: removed air sounds ' +
+            'like <em>shhh</em> on its own and never like music, so a track ' +
+            'can lose real openness while the removed part still sounds ' +
+            'like nothing. Judge how much by swapping.');
+  }
   $('keyswap').textContent = '';
   $('keyswap').append(Object.assign(document.createElement('kbd'), {textContent: 'S'}),
     cur.arms.length > 2 ? ' next version' : ' swap the two');
@@ -798,11 +817,22 @@ $('save').onclick = async () => {
     return;
   }
   const abandoned = abxRunning();
+  if (abandoned) abxStopRun();     // stop it before the save, not after: the
+                                   // panel used to stay live at "Trial 2 of 8"
+                                   // beside a line saying it counted for
+                                   // nothing, and could then be finished into
+                                   // a proof the saved verdict cannot carry.
   await afterSave();
   saving = false; $('save').disabled = false;
   if (abandoned) {
-    say($('advice').textContent.trim() + ' The listening check that was ' +
-        'running was not finished, so it counts for nothing.');
+    // Append, never re-say: say() escapes its argument, so rebuilding the
+    // line from textContent flattened the "next group" button afterSave had
+    // just put there into plain text and left the only route onward dead.
+    const a = $('advice');
+    a.hidden = false;
+    a.insertAdjacentText('beforeend',
+      ' The listening check that was running was not finished, so it counts ' +
+      'for nothing.');
   }
   // the advice line reports the save; a tick here
                        // is wiped by the set change before it can be read
@@ -939,7 +969,7 @@ function showFailure(id, err) {
   $('faildetail').hidden = !d;
   $('faildetail').textContent = d;
   $('failretry').onclick = () => (id ? open_(id) : boot());
-  $('failskip').hidden = ids.length < 2;
+  $('failskip').hidden = !id || ids.length < 2;   // no set, no "next set" 
   $('failskip').onclick = () => open_(ids[(idx + 1) % ids.length]);
 }
 
@@ -986,6 +1016,7 @@ function renderArms() {
     c.onkeydown = e => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        e.stopPropagation();      // or space also toggles playback
         pick(+c.dataset.i);
       }
     };
@@ -1304,8 +1335,7 @@ function evidence(row) {
       {run_count: covering.length, runs: a.runs});
   }
   const p = typeof a.p_value === 'number'
-    ? (a.p_value >= 0.001 ? a.p_value.toFixed(3)
-                          : a.p_value.toFixed(6).replace(/0+$/, ''))
+    ? fmtP(a.p_value)
     : '?';
   // Name the pair. A check on C and D says nothing about a preference for
   // A, and without the pair on screen a green tick beside "A" reads as
@@ -1427,6 +1457,17 @@ const xIndex = () => buffers.length;   // X lives one slot past the last buffer
    and the approximation is wrong at that size. Verified against
    sum(C(n,k))/2^n: 12/12 = 0.000244, 11/12 = 0.003174, 9/12 = 0.072998,
    6/12 = 0.612793. */
+/* A p-value small enough to round to zero is still not zero. Six decimals
+   turned 2^-21 into "0.000000" and stripping the zeros left "p = 0.", which
+   is both malformed and false — a long perfect run is the strongest result
+   the check can give, and it was displayed as nothing. */
+function fmtP(p) {
+  if (!(p > 0)) return '0';
+  if (p >= 0.001) return p.toFixed(3);
+  if (p >= 1e-6) return p.toFixed(6).replace(/0+$/, '');
+  return p.toExponential(1).replace('e-', ' \u00d7 10\u207b');
+}
+
 function binomialPAtLeast(correct, trials) {
   const n = Math.max(0, Math.round(trials));
   if (n <= 0) return 1;
@@ -1504,25 +1545,29 @@ function abxStart() {
   if (!cur) return;
   const a = +$('abxA').value, b = +$('abxB').value;
   if (a === b) { $('abxFlag').textContent = 'Pick two different versions.'; return; }
-  // 8 is the shortest run that can pass: a perfect 4 of 4 scores p =
-  // 0.0625, above the 0.05 threshold, so a 4-trial check can only ever
-  // report failure. The input says min 8; this has to agree with it.
-  const n = Math.max(8, Math.min(50, Math.round(+$('abxN').value) || 12));
+  // 5 is the shortest run that can pass. A perfect 4 of 4 is p = 1/16 =
+  // 0.0625, above the threshold, so a 4-trial check can only ever report
+  // failure; 5 of 5 is 1/32 = 0.031 and passes. An earlier version put this
+  // floor at 8 and told the listener fewer could never pass, which was
+  // simply false for 5, 6 and 7.
+  const n = Math.max(5, Math.min(50, Math.round(+$('abxN').value) || 12));
   const asked = Math.round(+$('abxN').value) || 12;
   $('abxN').value = n;
   if (asked !== n) {
     $('abxFlag').hidden = false;
     $('abxFlag').textContent = asked < n
-      ? 'Using ' + n + ' trials. Fewer than ' + n + ' cannot pass: even a ' +
-        'perfect score would still be something guessing beats more than 1 ' +
-        'time in 20.'
+      ? 'Using ' + n + ' trials. With fewer, even a perfect score is ' +
+        'something guessing matches more than 1 time in 20, so the check ' +
+        'could not pass.'
       : 'Using ' + n + ' trials, the most this check takes.';
   }
   abx = {pair: [a, b], letters: [cur.arms[a].letter, cur.arms[b].letter],
          n: n, i: 0, trials: [], xArm: null, done: false,
          started: Date.now(), correct: 0, p: 1, audible: false};
   $('abxSetup').hidden = true; $('abxResult').hidden = true;
-  $('abxRun').hidden = false; $('abxFlag').hidden = true;
+  $('abxRun').hidden = false;
+  // Do not hide the flag if abxStart has just used it to explain a clamp.
+  if (!$('abxFlag').textContent.startsWith('Using ')) $('abxFlag').hidden = true;
   select(a);
   if (!playing) play();
   abxNextTrial();
@@ -1566,13 +1611,14 @@ function abxFinish() {
   $('abxRun').hidden = true; $('abxResult').hidden = false;
   $('abxSetup').hidden = false; $('abxFlag').hidden = true;
 
-  const p = abx.p, pTxt = p >= 0.001 ? p.toFixed(3)
-                                     : p.toFixed(6).replace(/0+$/, '');
-  const chance = p >= 0.01 ? Math.round(p * 100) + ' times in 100'
+  const p = abx.p, pTxt = fmtP(p);
+  const n100 = Math.round(p * 100);
+  const chance = p >= 0.01 ? (n100 === 1 ? 'once in 100'
+                                         : n100 + ' times in 100')
                : p >= 0.001 ? (p * 100).toFixed(1) + ' times in 100'
                : 'less than once in 1,000';
   abxRuns.push({pair: abx.letters.slice(), trials: abx.n, correct: abx.correct,
-                p_value: +abx.p.toFixed(6), audible: abx.audible});
+                p_value: +abx.p.toPrecision(6), audible: abx.audible});
   $('abxScore').className = 'abx-score ' + (abx.audible ? 'pass' : 'fail');
   $('abxScore').textContent =
     `${abx.correct} of ${abx.n}, p = ${pTxt} — ` +
@@ -1684,7 +1730,10 @@ function abxPayload() {
           // "(C v D) 5 runs" when only two of the five were C against D.
           run_count: abxRuns.filter(r => r.pair.join('|') === key).length,
           pair: abx.letters, trials: abx.n, correct: abx.correct,
-          p_value: +abx.p.toFixed(6), audible: abx.audible, alpha: ABX_ALPHA,
+          // Not toFixed(6): a 21-trial perfect run is 4.8e-7 and would be
+          // stored as a literal 0.
+          p_value: +abx.p.toPrecision(6), audible: abx.audible,
+          alpha: ABX_ALPHA,
           seconds: +abx.seconds.toFixed(1), sequence: abx.trials};
 }
 
