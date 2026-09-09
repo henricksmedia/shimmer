@@ -8,6 +8,12 @@ Read this whole file before changing anything. Then read
 `docs/HANDOFF-CHECKLIST.md`, which is the live list of what is done and what
 is not.
 
+**Another agent may be working in this repository.** Before you start, run
+`git log --oneline -5` and `git status` and check the branch. If the state
+does not match §3, trust the repository over this document and say so. Do not
+begin by re-doing work that is already committed — the commit messages record
+what was done and why.
+
 ---
 
 ## 1. What the tool is for, and what it got wrong
@@ -65,11 +71,25 @@ show the numbers, on the corpus.
 
 ## 3. State of the tree
 
-Everything below is **uncommitted**. Nothing has shipped. 272 tests pass:
+**All of this is committed and pushed** to the branch
+`fix/tone-target-and-measurement`, five commits, not yet merged to `main`.
+Start from that branch, not from `main` — `main` does not have any of it.
 
 ```
-cd <repo> && ./.venv/Scripts/python.exe -m pytest tests/ -q
+git checkout fix/tone-target-and-measurement
+cd <repo> && ./.venv/Scripts/python.exe -m pytest tests/ -q      # 272 pass
 ```
+
+The commit messages carry the reasoning behind each change and are worth
+reading before altering anything they touch:
+
+| | |
+|---|---|
+| `65621cf` | marketing kit and its claims tests |
+| `6370094` | export-note provenance, two defects that wrote false data |
+| `97609c0` | the tone target swap — the actual dullness fix |
+| `77164be` | the damage measurement, tooling, de-branding |
+| `e9daf27` | documentation |
 
 **New modules (research code, zero callers in the product):**
 - `shimmer/perceptual.py` — ITU-R BS.1387 damage model. Audited; critical-band
