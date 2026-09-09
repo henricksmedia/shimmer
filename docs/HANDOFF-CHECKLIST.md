@@ -801,6 +801,28 @@ count.
       hash model in the training mix. The trade is the vocal region, so
       the clean-host cost is the guard, and a listening round on this
       render is the test.
+      **Third model, 2026-09-09 00:39** (`masknet3.pt`; 2494 pairs on
+      `hash_data3`, band 1.5-16 kHz, context 0.8-20 kHz, half the pairs
+      carry the wide-band hash; 30 epochs, val 0.50 → 0.41, peak 1.13 GB,
+      68 C max). Held-out harness, 2.0 sones: aperiodic Hey **81 %**
+      (model 2: 62 %), Alive Again **17 %** (9 %); periodic Hey **82 %**
+      (67 %), Alive Again **58 %** (-20 %); wide hash Hey 37 %, Alive
+      Again 23 %. Control cost on clean Hey **0.064** (model 2: 0.150;
+      ceiling 0.10), Alive Again 0.033. Best of the three on every synthetic
+      case and under the ceiling. *But on leave-the-world-behind it still
+      does nothing:* what it removes sits at -21 to -32 dB below the band
+      from 4 kHz up and below -37 dB under 4 kHz; the band levels move by
+      0.3 dB at most; flicker depth per half-octave band is unchanged to
+      0.1 dB in every band from 1 to 16 kHz (model 2 was the same). The
+      network now looks at 1.5-16 kHz and finds nothing hash-like there.
+      So the wide band was not the missing piece. Whatever the author hears
+      on that render is not what the aperiodic, periodic or wide-band hash
+      models generate, at any band. Next: build the pair set from the
+      render's own residual (the thing the flicker measurement finds),
+      not from a synthetic hash, or listen to the render's 1-4 kHz
+      residual first and describe it before modelling it. Model 3 is the
+      right one for the round-8 renders regardless (efficacy up, cost
+      down).
 
 ## DEFERRED — the 80% stake
 
