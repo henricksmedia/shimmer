@@ -1,0 +1,108 @@
+{
+ "_how_to_fill_this_in": [
+  "For each song: play its letters, then put them in best_to_worst",
+  "order \u2014 best first. Use every letter once.",
+  "",
+  "heard_a_difference: true if they actually sounded different.",
+  "  false if you were guessing. Saying false is useful, not a",
+  "  failure \u2014 it is the answer to 'is this change audible'.",
+  "",
+  "scores: OPTIONAL 0-100 per letter (100 = best you heard).",
+  "  Only fill these in if the gaps felt worth recording. Ranking",
+  "  is what gets counted; scores just add magnitude.",
+  "",
+  "notes: OPTIONAL, anything you noticed. Free text.",
+  "",
+  "Skip a song by leaving best_to_worst empty."
+ ],
+ "songs": {
+  "algorithms-lure": {
+   "best_to_worst": [],
+   "heard_a_difference": null,
+   "scores": {
+    "A": null,
+    "B": null,
+    "C": null,
+    "D": null
+   },
+   "notes": ""
+  },
+  "alive-again": {
+   "best_to_worst": [],
+   "heard_a_difference": null,
+   "scores": {
+    "A": null,
+    "B": null,
+    "C": null,
+    "D": null
+   },
+   "notes": ""
+  },
+  "couldve-been-stories": {
+   "best_to_worst": [],
+   "heard_a_difference": null,
+   "scores": {
+    "A": null,
+    "B": null,
+    "C": null,
+    "D": null
+   },
+   "notes": ""
+  },
+  "falling-for-you": {
+   "best_to_worst": [],
+   "heard_a_difference": null,
+   "scores": {
+    "A": null,
+    "B": null,
+    "C": null,
+    "D": null
+   },
+   "notes": ""
+  },
+  "kindling": {
+   "best_to_worst": [],
+   "heard_a_difference": null,
+   "scores": {
+    "A": null,
+    "B": null,
+    "C": null,
+    "D": null
+   },
+   "notes": ""
+  },
+  "leave-the-world-behind": {
+   "best_to_worst": [],
+   "heard_a_difference": null,
+   "scores": {
+    "A": null,
+    "B": null,
+    "C": null,
+    "D": null
+   },
+   "notes": ""
+  },
+  "the-little-things": {
+   "best_to_worst": [],
+   "heard_a_difference": null,
+   "scores": {
+    "A": null,
+    "B": null,
+    "C": null,
+    "D": null
+   },
+   "notes": ""
+  },
+  "we-were-meant-for-the-stars": {
+   "best_to_worst": [],
+   "heard_a_difference": null,
+   "scores": {
+    "A": null,
+    "B": null,
+    "C": null,
+    "D": null
+   },
+   "notes": ""
+  }
+ }
+}

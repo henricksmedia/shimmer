@@ -1,0 +1,188 @@
+{
+ "how_to_listen": [
+  "For each song, play its letters back to back. They are matched to",
+  "the same loudness, so none can win by being louder.",
+  "Ask one question: which sounds most open and finished?",
+  "Rank them, write it down, THEN read 'songs' below.",
+  "One letter per song is the untouched render. If it wins, say so \u2014",
+  "that is a real result, not a mistake."
+ ],
+ "songs": {
+  "algorithms-lure": [
+   {
+    "letter": "A",
+    "what_it_is": "the commercial reference master",
+    "variant": "reference"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the untouched AI render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "Shimmer with the measured tone target",
+    "variant": "new"
+   },
+   {
+    "letter": "D",
+    "what_it_is": "Shimmer as it shipped \u2014 1950-2010 tone target",
+    "variant": "old"
+   }
+  ],
+  "alive-again": [
+   {
+    "letter": "A",
+    "what_it_is": "the commercial reference master",
+    "variant": "reference"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the untouched AI render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "Shimmer with the measured tone target",
+    "variant": "new"
+   },
+   {
+    "letter": "D",
+    "what_it_is": "Shimmer as it shipped \u2014 1950-2010 tone target",
+    "variant": "old"
+   }
+  ],
+  "couldve-been-stories": [
+   {
+    "letter": "A",
+    "what_it_is": "Shimmer as it shipped \u2014 1950-2010 tone target",
+    "variant": "old"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the commercial reference master",
+    "variant": "reference"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "the untouched AI render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "D",
+    "what_it_is": "Shimmer with the measured tone target",
+    "variant": "new"
+   }
+  ],
+  "falling-for-you": [
+   {
+    "letter": "A",
+    "what_it_is": "Shimmer as it shipped \u2014 1950-2010 tone target",
+    "variant": "old"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the untouched AI render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "Shimmer with the measured tone target",
+    "variant": "new"
+   },
+   {
+    "letter": "D",
+    "what_it_is": "the commercial reference master",
+    "variant": "reference"
+   }
+  ],
+  "kindling": [
+   {
+    "letter": "A",
+    "what_it_is": "Shimmer with the measured tone target",
+    "variant": "new"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the untouched AI render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "Shimmer as it shipped \u2014 1950-2010 tone target",
+    "variant": "old"
+   },
+   {
+    "letter": "D",
+    "what_it_is": "the commercial reference master",
+    "variant": "reference"
+   }
+  ],
+  "leave-the-world-behind": [
+   {
+    "letter": "A",
+    "what_it_is": "the commercial reference master",
+    "variant": "reference"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the untouched AI render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "Shimmer with the measured tone target",
+    "variant": "new"
+   },
+   {
+    "letter": "D",
+    "what_it_is": "Shimmer as it shipped \u2014 1950-2010 tone target",
+    "variant": "old"
+   }
+  ],
+  "the-little-things": [
+   {
+    "letter": "A",
+    "what_it_is": "Shimmer with the measured tone target",
+    "variant": "new"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "the commercial reference master",
+    "variant": "reference"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "Shimmer as it shipped \u2014 1950-2010 tone target",
+    "variant": "old"
+   },
+   {
+    "letter": "D",
+    "what_it_is": "the untouched AI render (hidden anchor)",
+    "variant": "source"
+   }
+  ],
+  "we-were-meant-for-the-stars": [
+   {
+    "letter": "A",
+    "what_it_is": "the untouched AI render (hidden anchor)",
+    "variant": "source"
+   },
+   {
+    "letter": "B",
+    "what_it_is": "Shimmer as it shipped \u2014 1950-2010 tone target",
+    "variant": "old"
+   },
+   {
+    "letter": "C",
+    "what_it_is": "Shimmer with the measured tone target",
+    "variant": "new"
+   },
+   {
+    "letter": "D",
+    "what_it_is": "the commercial reference master",
+    "variant": "reference"
+   }
+  ]
+ }
+}

@@ -1,0 +1,35 @@
+# Listening tests
+
+One folder per round. Nothing here is ever overwritten — a re-render always
+creates the next `round-N`, because comparing rounds is the point: a change to
+the presets or to the damage model is only real if the next round sounds
+different from the last one.
+
+    python scripts/make_listening_test.py            # -> the next round-N
+    python scripts/make_listening_test.py <path>     # -> somewhere specific
+
+## Rounds
+
+- **round-1** — *not kept.* Its residuals were peak-normalised per file, which
+  hid how much each preset removed: the gentlest preset got ~26 dB more gain
+  than the heaviest, so all three arrived sounding equally significant. The
+  listener could only judge "is this recognisably music", never "how much was
+  taken". Results are still useful and are recorded in
+  `docs/BRIGHTNESS-ASSESSMENT.md`; the audio was superseded.
+- **round-2** — one shared gain for every residual in a song, so their relative
+  loudness survives. This is the first round whose residuals can be compared
+  to each other.
+
+## How to listen
+
+1. Play a song's four `*-master-*.wav` back to back. They are level-matched to
+   −18 LUFS, so none can win by being louder. Which sounds most open?
+2. Then the `*-residual-*.wav` — **what each preset removed**. Hiss and fizz
+   mean the preset did its job. Cymbals, vocal air, reverb tails, transient
+   pops or melody mean it took music.
+3. Write your ranking down, *then* open `ANSWER-KEY.json`.
+
+One label per song is the untouched source, shuffled so it is not the same
+letter each time. Note that it is not expected to win as a *master* — these
+sources carry real artifacts, so a cleaned version legitimately sounds better.
+It is there as an anchor for the residual judgement: its residual is silence.

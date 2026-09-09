@@ -1,0 +1,215 @@
+{
+  "how_to_listen": [
+    "Play the four *-master-*.wav files for one song back to back.",
+    "Then play the *-residual-*.wav files. Those are what each preset",
+    "REMOVED. Hiss is fine. Cymbals, air, reverb tails or melody are not.",
+    "Write down your ranking, THEN open this file's 'answers' section."
+  ],
+  "songs": {
+    "algorithms-lure": [
+      {
+        "file_letter": "A",
+        "what_it_is": "Suno Hash (5-12 kHz Flicker)",
+        "residual_amplified_db": -1.6,
+        "model_says": {
+          "lin_dist": 0.7858,
+          "missing": 0.0599,
+          "added": 0.0945,
+          "asym": 0.1244,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      },
+      {
+        "file_letter": "B",
+        "what_it_is": "Deep Scrub",
+        "residual_amplified_db": -1.6,
+        "model_says": {
+          "lin_dist": 17.1199,
+          "missing": 0.1853,
+          "added": 0.2337,
+          "asym": 0.3264,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      },
+      {
+        "file_letter": "C",
+        "what_it_is": "HIDDEN REFERENCE (untouched source)",
+        "residual_amplified_db": null,
+        "model_says": {
+          "lin_dist": 0.0,
+          "missing": 0.0,
+          "added": 0.0
+        }
+      },
+      {
+        "file_letter": "D",
+        "what_it_is": "Cymbal Sheen",
+        "residual_amplified_db": -1.6,
+        "model_says": {
+          "lin_dist": 0.0468,
+          "missing": 0.0033,
+          "added": 0.007,
+          "asym": 0.0086,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      }
+    ],
+    "alive-again": [
+      {
+        "file_letter": "A",
+        "what_it_is": "Suno Hash (5-12 kHz Flicker)",
+        "residual_amplified_db": 1.4,
+        "model_says": {
+          "lin_dist": 0.4792,
+          "missing": 0.036,
+          "added": 0.0281,
+          "asym": 0.0461,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      },
+      {
+        "file_letter": "B",
+        "what_it_is": "Deep Scrub",
+        "residual_amplified_db": 1.4,
+        "model_says": {
+          "lin_dist": 20.3742,
+          "missing": 0.1715,
+          "added": 0.318,
+          "asym": 0.4038,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      },
+      {
+        "file_letter": "C",
+        "what_it_is": "HIDDEN REFERENCE (untouched source)",
+        "residual_amplified_db": null,
+        "model_says": {
+          "lin_dist": 0.0,
+          "missing": 0.0,
+          "added": 0.0
+        }
+      },
+      {
+        "file_letter": "D",
+        "what_it_is": "Cymbal Sheen",
+        "residual_amplified_db": 1.4,
+        "model_says": {
+          "lin_dist": 0.0637,
+          "missing": 0.0049,
+          "added": 0.0091,
+          "asym": 0.0115,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      }
+    ],
+    "leave-the-world-behind": [
+      {
+        "file_letter": "A",
+        "what_it_is": "Cymbal Sheen",
+        "residual_amplified_db": 3.5,
+        "model_says": {
+          "lin_dist": 0.0813,
+          "missing": 0.005,
+          "added": 0.0086,
+          "asym": 0.0111,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      },
+      {
+        "file_letter": "B",
+        "what_it_is": "Suno Hash (5-12 kHz Flicker)",
+        "residual_amplified_db": 3.5,
+        "model_says": {
+          "lin_dist": 0.428,
+          "missing": 0.0376,
+          "added": 0.0274,
+          "asym": 0.0462,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      },
+      {
+        "file_letter": "C",
+        "what_it_is": "Deep Scrub",
+        "residual_amplified_db": 3.5,
+        "model_says": {
+          "lin_dist": 20.1871,
+          "missing": 0.0749,
+          "added": 0.0945,
+          "asym": 0.1319,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      },
+      {
+        "file_letter": "D",
+        "what_it_is": "HIDDEN REFERENCE (untouched source)",
+        "residual_amplified_db": null,
+        "model_says": {
+          "lin_dist": 0.0,
+          "missing": 0.0,
+          "added": 0.0
+        }
+      }
+    ],
+    "we-were-meant-for-the-stars": [
+      {
+        "file_letter": "A",
+        "what_it_is": "Cymbal Sheen",
+        "residual_amplified_db": 2.6,
+        "model_says": {
+          "lin_dist": 0.0601,
+          "missing": 0.0053,
+          "added": 0.0068,
+          "asym": 0.0094,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      },
+      {
+        "file_letter": "B",
+        "what_it_is": "Deep Scrub",
+        "residual_amplified_db": 2.6,
+        "model_says": {
+          "lin_dist": 12.4665,
+          "missing": 0.1254,
+          "added": 0.2195,
+          "asym": 0.2822,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      },
+      {
+        "file_letter": "C",
+        "what_it_is": "HIDDEN REFERENCE (untouched source)",
+        "residual_amplified_db": null,
+        "model_says": {
+          "lin_dist": 0.0,
+          "missing": 0.0,
+          "added": 0.0
+        }
+      },
+      {
+        "file_letter": "D",
+        "what_it_is": "Suno Hash (5-12 kHz Flicker)",
+        "residual_amplified_db": 2.6,
+        "model_says": {
+          "lin_dist": 0.4409,
+          "missing": 0.0391,
+          "added": 0.0525,
+          "asym": 0.0721,
+          "frames": 1170,
+          "gated_frames": 1146
+        }
+      }
+    ]
+  },
+  "answers": "Each song's list above is the key. 'model_says' is the BS.1387 damage measure: lin_dist is spectral-tilt damage (higher is worse), missing is removed audible content in sones. If your ranking of the residuals matches the lin_dist order, the model agrees with your ears. If it does not, the model is wrong and needs to change - that is the point of running this."
+}
