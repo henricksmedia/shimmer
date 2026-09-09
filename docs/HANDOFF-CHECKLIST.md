@@ -732,6 +732,16 @@ count.
       round after; and training on both hash models and a wider level
       range, since the harness showed it does not generalise to the
       periodic one at high level.
+      *Strength sweep, same evening:* the mask is not a knob. Scaling it
+      2x, 3x, 4x on the held-out hosts sends harness efficacy to -0.06,
+      -0.33, -0.68 (Alive Again) and -0.18, -1.04, -1.55 (Hey) with
+      `added` rising — past its trained range it invents content rather
+      than removing more; on real renders tilt climbs 0.09 → 0.44 on
+      kindling. More removal has to come from training, not from scaling:
+      both hash models mixed, louder hash (band SNR up to -1 dB), 2500
+      pairs, 40 epochs. Kindling's "higher sound in the back" is a fixed
+      16 kHz line (7.3 dB, 52 % duty) that the product's notch plan takes
+      first; round 6 ran the network alone, so it stayed.
 
 ## DEFERRED — the 80% stake
 

@@ -91,8 +91,16 @@ def make_pairs(hosts, n_pairs, excerpt_s, rng, sr=SR):
                 continue
             lo = BAND[0] * float(rng.uniform(0.85, 1.15))
             hi = BAND[1] * float(rng.uniform(0.85, 1.15))
-            art = aperiodic_hash(n, sr, rng, lo, hi, float(rng.uniform(5.0, 20.0)))
-            snr_db = float(rng.uniform(-25.0, -3.0))          # hash below host, band SNR
+            # Both models, so the network is not blind to a modulation it
+            # never saw (the first model failed on the periodic hash at high
+            # level): 70 % aperiodic (the accepted model), 30 % periodic
+            # gated at 8-40 Hz.
+            if rng.uniform() < 0.7:
+                art = aperiodic_hash(n, sr, rng, lo, hi, float(rng.uniform(5.0, 20.0)))
+            else:
+                art = A.hash_flicker(n, sr, seed=int(rng.integers(1 << 30)), lo=lo, hi=hi,
+                                     rate_hz=float(rng.uniform(8.0, 40.0)))
+            snr_db = float(rng.uniform(-25.0, -1.0))          # hash below host, band SNR
             g = np.sqrt(band_energy(clip, sr, *BAND) / band_energy(art, sr, *BAND)
                         * 10 ** (snr_db / 10.0))
             mix = (clip + g * art).astype(np.float32)
@@ -109,7 +117,7 @@ def main(argv):
     def opt(k, d=None):
         return argv[argv.index(k) + 1] if k in argv else d
     out = opt("--out", os.path.join(ROOT, "hash_data"))
-    n_pairs = int(opt("--pairs", 1500))
+    n_pairs = int(opt("--pairs", 2500))
     excerpt_s = float(opt("--excerpt", 3.0))
     holdout = set((opt("--holdout", "reference-hey,distrokid-alive-again")).split(","))
     census = json.load(open(os.path.join(ROOT, "docs", "host-census.json"), encoding="utf-8"))["rows"]
