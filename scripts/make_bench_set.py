@@ -155,8 +155,12 @@ def service_sets():
         n = min(len(ours), len(theirs))
         m = abtest.build(
             f"service-{song}", f"Ours vs the service · {song.replace('-', ' ')}",
-            [("Shimmer, current chain", ours[:n]),
-             ("the automated service's master", theirs[:n])],
+            # The service master is a separate file, so its rate travels with
+            # it. build() refuses a set whose arms disagree: written at the
+            # wrong rate an arm plays at the wrong speed, and pitch would be
+            # the loudest difference in a comparison that is about tone.
+            [("Shimmer, current chain", ours[:n], sr),
+             ("the automated service's master", theirs[:n], sr2)],
             sr,
             note=("The comparison this investigation was founded on, with the "
                   "level matched. Unmatched, the service master is 2.7 LU "

@@ -52,8 +52,6 @@ button.quiet:hover:not(:disabled) { color: var(--fg-0); border-color: var(--line
                                     background: var(--bg-2); }
 
 /* ── the two candidates: the whole point of the screen ──────────── */
-.stage { display: grid; grid-auto-columns: 1fr; grid-auto-flow: column;
-         gap: var(--gap-3); }
 .cand { position: relative; border: 1px solid var(--line);
         background: var(--bg-2); border-radius: var(--radius);
         padding: 26px 16px 20px; text-align: center; cursor: pointer;
@@ -137,10 +135,69 @@ kbd { font-family: var(--font-mono); background: var(--bg-3);
       border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--fg-1); }
 .ok { color: var(--success); } .warn { color: var(--amber); }
 .matched { color: var(--fg-2); font-size: 12.5px; }
-.empty { text-align: center; color: var(--fg-2); padding: 56px 20px; }
-.empty code { font-family: var(--font-mono); color: var(--cyan); font-size: 12.5px; }
-@media (max-width: 620px) { .stage { grid-auto-flow: row; }
-                            .picks { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .picks { grid-template-columns: 1fr; } }
+/* ── the stage: two arms or four, one rule ─────────────────────────
+   auto-fit collapses the tracks it does not need, so two arms fill the
+   row, four sit in a row at 860 px, and the same rule folds them to
+   2 x 2 at 390 px where four cards cannot fit side by side. */
+.stage { display: grid; gap: var(--gap-3);
+         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.stage[data-n="3"] .cand, .stage[data-n="4"] .cand { padding: 22px 10px 16px; }
+.stage[data-n="4"] .letter { font-size: clamp(30px, 4.6vw, 40px); }
+
+/* The key that plays this card, on the card. The map used to be readable
+   only inside a folded panel. */
+.cand .cue { position: absolute; top: 8px; left: 8px; opacity: .75; }
+.cand[aria-pressed="true"] .cue { color: var(--amber); opacity: 1;
+        border-color: rgba(245,165,36,.5); background: rgba(245,165,36,.12); }
+.cand:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+/* One letter, always in the same place, big enough to read from the
+   corner of your eye — the whole point is to keep listening. */
+.live { display: flex; align-items: baseline; gap: var(--gap-3);
+        margin-top: var(--gap-3); padding: 10px 14px;
+        border: 1px solid rgba(245,165,36,.35); background: var(--amber-soft);
+        border-radius: var(--radius); }
+.live .val { font-family: var(--font-mono); font-size: 26px; line-height: 1;
+             font-weight: 700; color: var(--amber); min-width: 24px; }
+.live .lbl { font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+             font-weight: 600; color: var(--amber); }
+.live.diffmode { border-color: rgba(167,139,250,.4);
+                 background: var(--purple-soft); }
+.live.diffmode .val, .live.diffmode .lbl { color: var(--purple); }
+
+button kbd { opacity: .55; font-size: 11px; }
+
+/* ── states that are not a comparison ─────────────────────────────── */
+.panel { margin-top: var(--gap-5); padding: 26px 24px;
+         border: 1px solid var(--line); background: var(--bg-2);
+         border-radius: var(--radius); }
+.panel h2 { margin: 0 0 var(--gap-2); font-size: 16px; color: var(--fg-0); }
+.panel p { margin: 0 0 var(--gap-3); max-width: 62ch; color: var(--fg-2); }
+.panel code { font-family: var(--font-mono); font-size: 12.5px; color: var(--cyan); }
+.cmd { display: block; margin: 0 0 var(--gap-3); padding: 12px 14px;
+       background: var(--bg-1); border: 1px solid var(--line);
+       border-radius: var(--radius-s); overflow-x: auto; white-space: pre; }
+.acts { display: flex; gap: var(--gap-2); flex-wrap: wrap; }
+.mono { font-family: var(--font-mono); color: var(--fg-1); }
+
+/* A failed load must not be mistakable for a working one: red edge, red
+   dot, and the page below it is gone rather than stale. */
+.failure { border-color: var(--danger); background: rgba(240,82,107,.06);
+           box-shadow: 0 0 0 1px rgba(240,82,107,.25); }
+.failure h2 { color: var(--danger); }
+.failhead { display: flex; align-items: center; gap: var(--gap-2);
+            margin-bottom: var(--gap-2); }
+.failhead h2 { margin: 0; }
+.failhead .dot { flex: none; width: 10px; height: 10px; border-radius: 50%;
+                 background: var(--danger);
+                 box-shadow: 0 0 10px rgba(240,82,107,.7); }
+.failure pre { margin: 0 0 var(--gap-3); padding: 10px 12px;
+               background: var(--bg-1); border: 1px solid var(--line);
+               border-radius: var(--radius-s); color: var(--fg-2);
+               font-family: var(--font-mono); font-size: 12px;
+               white-space: pre-wrap; word-break: break-word; }
+.loading { color: var(--fg-2); }
 </style>
 </head>
 <body>
@@ -154,10 +211,53 @@ kbd { font-family: var(--font-mono); background: var(--bg-3);
     </div>
     <select id="sets"><option>loading…</option></select>
   </div>
+<div class="round" id="round" hidden>
+    <div class="round-top">
+      <span class="round-group" id="roundgroup">…</span>
+      <span class="round-what" id="roundwhat"></span>
+      <span class="round-count" id="roundcount"></span>
+    </div>
+    <div class="pips" id="pips"></div>
+    <p class="advice" id="advice" hidden></p>
+    <details class="sofar" id="sofar">
+      <summary>Round so far</summary>
+      <div class="body">
+        <p class="matched" id="sofarline">…</p>
+        <label class="chk"><input type="checkbox" id="sofarreveal">
+          show which version each pick was</label>
+        <div id="sofartable"></div>
+      </div>
+    </details>
+  </div>
 
-  <div id="empty" class="empty" hidden>
-    <p>No comparisons built yet.</p>
-    <p><code>.venv\Scripts\python.exe scripts\make_bench_set.py both</code></p>
+<div id="empty" class="panel" hidden>
+    <h2>No comparisons built yet</h2>
+    <p>The bench plays two or more versions of the same 30 seconds at a
+       matched level. There are none on this machine yet.</p>
+    <p>Build them by running this in the Shimmer folder:</p>
+    <code class="cmd">.venv\Scripts\python.exe scripts\make_bench_set.py all</code>
+    <p>It writes one folder per comparison into
+       <code>listening-test\ab</code> and takes a few minutes. Then reload
+       this page.</p>
+    <div class="acts"><button class="primary" id="emptyreload">Reload</button></div>
+  </div>
+
+  <div id="loading" class="panel loading" hidden>
+    <p>Loading <span id="loadingid" class="mono"></span> — about 44 MB of
+       audio is being decoded.</p>
+  </div>
+
+  <div id="failure" class="panel failure" hidden>
+    <div class="failhead"><span class="dot"></span>
+      <h2 id="failtitle">This set did not load</h2></div>
+    <p id="failwhy"></p>
+    <p>Nothing is playing and no set is loaded, so you cannot judge the wrong
+       audio by mistake.</p>
+    <pre id="faildetail" hidden></pre>
+    <div class="acts">
+      <button class="primary" id="failretry">Try again</button>
+      <button class="quiet" id="failskip">Next set ›</button>
+    </div>
   </div>
 
   <main id="main" hidden>
@@ -165,6 +265,10 @@ kbd { font-family: var(--font-mono); background: var(--bg-3);
     <p id="note" style="color:var(--fg-2);font-size:13px;margin:0 0 var(--gap-5);max-width:70ch"></p>
 
     <div class="stage" id="stage"></div>
+    <div class="live" id="live" aria-live="polite">
+      <span class="val" id="livearm">–</span>
+      <span class="lbl" id="livewhat">nothing is playing</span>
+    </div>
     <button class="primary swap" id="swap">Swap &nbsp;⇄&nbsp; <kbd>S</kbd></button>
 
     <div class="wave" id="wave">
@@ -176,7 +280,7 @@ kbd { font-family: var(--font-mono); background: var(--bg-3);
     </div>
 
     <div class="bar">
-      <button class="primary" id="play" style="min-width:104px">▶ Play</button>
+      <button class="primary" id="play" style="min-width:116px">▶ Play <kbd>space</kbd></button>
       <span class="time" id="clock">0:00 / 0:00</span>
       <button class="quiet" id="whole" hidden>Whole track</button>
       <span class="spacer"></span>
@@ -185,9 +289,55 @@ kbd { font-family: var(--font-mono); background: var(--bg-3);
         <option value="2">2s</option><option value="3" selected>3s</option>
         <option value="5">5s</option><option value="0">per loop</option>
       </select>
-      <button class="diff" id="diffbtn" aria-pressed="false" hidden>Difference</button>
+      <button class="diff" id="diffbtn" aria-pressed="false" hidden>Difference <kbd>D</kbd></button>
     </div>
     <p id="diffwhat" class="matched" style="margin:var(--gap-2) 0 0;max-width:70ch" hidden></p>
+<section class="abx" id="abx">
+      <div class="abx-head">
+        <div>
+          <h2>Listening check <span class="abx-sub">ABX</span></h2>
+          <p class="abx-why">X is secretly A or B. Say which one it matches, a
+          dozen times. Getting it right often enough proves the two versions
+          really do sound different — until then a preference is a guess.</p>
+        </div>
+        <div class="abx-setup" id="abxSetup">
+          <label class="chk" id="abxPair" hidden>pair
+            <select id="abxA"></select><span class="abx-vs">vs</span>
+            <select id="abxB"></select></label>
+          <label class="chk">trials <input type="number" id="abxN" min="4"
+            max="50" step="1" value="12"></label>
+          <button class="primary" id="abxStart">Start check</button>
+        </div>
+      </div>
+
+      <div id="abxRun" hidden>
+        <div class="abx-prog">
+          <span id="abxCount">Trial 1 of 12</span>
+          <div class="abx-dots" id="abxDots"></div>
+          <button class="quiet" id="abxStop">Stop</button>
+        </div>
+        <div class="abx-switch" id="abxSwitch">
+          <button data-listen="0" aria-pressed="false">A <kbd>A</kbd></button>
+          <button data-listen="1" aria-pressed="false">B <kbd>B</kbd></button>
+          <button data-listen="x" class="isx" aria-pressed="false">X <kbd>X</kbd></button>
+        </div>
+        <p class="abx-ask">Which one is X?</p>
+        <div class="abx-answer">
+          <button data-ans="0">X is A <kbd>⇧A</kbd></button>
+          <button data-ans="1">X is B <kbd>⇧B</kbd></button>
+        </div>
+      </div>
+
+      <div id="abxResult" hidden>
+        <p class="abx-score" id="abxScore"></p>
+        <p class="abx-plain" id="abxPlain"></p>
+        <p class="abx-seq" id="abxSeq"></p>
+        <button class="quiet" id="abxAgain">Run it again</button>
+      </div>
+
+      <p class="abx-flag" id="abxFlag">No listening check yet. A preference
+      saved now is recorded as a coin flip, not as evidence.</p>
+    </section>
 
     <div class="verdict">
       <p class="q" id="q">Which sounded better?</p>
@@ -241,32 +391,17 @@ let ctx, cur = null, buffers = [], gains = [], sources = [];
 let ids = [], idx = 0, active = 0, playing = false, startedAt = 0, startOffset = 0;
 let loopA = 0, loopB = 0, autoTimer = null, switches = 0, listened = 0, picked = '';
 
-const api = (p, opts) => fetch('/api/dev/ab/' + p, opts).then(r => {
-  if (!r.ok) throw new Error(r.status); return r.json(); });
 
-async function boot() {
-  const d = await api('sets');
-  ids = d.sets.map(s => s.id);
-  $('sets').innerHTML = d.sets.map(s =>
-    `<option value="${esc(s.id)}">${esc(s.title)}${s.judged ? '  ✓' : ''}</option>`).join('');
-  if (!ids.length) { $('empty').hidden = false; return; }
-  await open_(ids[0]);
-}
-
-async function open_(id) {
-  stop();
-  idx = Math.max(0, ids.indexOf(id));
-  $('sets').value = id;
+async function loadSet(id) {
+  beginLoad(id);
   cur = await api('set/' + encodeURIComponent(id));
   ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
 
   const files = cur.arms.map(a => a.file);
   if (cur.residual) files.push(cur.residual.file);
-  buffers = await Promise.all(files.map(async f =>
-    ctx.decodeAudioData(await (await fetch(
-      `/api/dev/ab/audio/${encodeURIComponent(id)}/${f}`)).arrayBuffer())));
+  buffers = await loadBuffers(id, files);
 
-  $('main').hidden = false; $('empty').hidden = true;
+  endLoad();
   $('title').textContent = cur.title;
   $('note').textContent = cur.note || '';
   $('diffbtn').hidden = !cur.residual;
@@ -275,7 +410,8 @@ async function open_(id) {
   // and wondering what is broken.
   $('diffwhat').hidden = !cur.residual;
   if (cur.residual) {
-    $('diffbtn').textContent = cur.residual.label || 'Difference';
+    $('diffbtn').innerHTML = esc(cur.residual.label || 'Difference') +
+      ' <kbd>D</kbd>';
     $('diffwhat').innerHTML = esc(cur.residual.explain || '') +
       ` <span style="color:var(--fg-3)">(${cur.residual.song_correlation} ` +
       `correlated with the music)</span>` +
@@ -284,12 +420,6 @@ async function open_(id) {
           'does not match the kind it claims.</span>' : '');
   }
 
-  $('stage').innerHTML = cur.arms.map((a, i) =>
-    `<div class="cand" role="button" aria-pressed="${i === 0}" data-i="${i}">
-       <div class="letter">${a.letter}</div>
-       <div class="state">${i === 0 ? 'playing' : 'silent'}</div></div>`).join('');
-  $('stage').querySelectorAll('.cand').forEach(c =>
-    c.onclick = () => select(+c.dataset.i));
 
   picked = '';
   $('picks').innerHTML = cur.arms.map(a =>
@@ -311,7 +441,7 @@ async function open_(id) {
 
   loopA = 0; loopB = cur.seconds; switches = 0; listened = 0;
   active = 0; startOffset = 0;
-  drawWave(); paint();
+  renderArms(); drawWave(); paint(); abxReset();
 }
 
 /* The waveform is the only way to aim a loop at a chorus rather than at a
@@ -362,6 +492,7 @@ function build() {
     s.start(t, Math.min(Math.max(startOffset, loopA), loopB - 0.01));
     sources.push(s); gains.push(g);
   });
+  abxAttach(t);
   startedAt = t;
 }
 
@@ -379,12 +510,12 @@ function select(i) {
 }
 
 function play() { if (!cur) return; ctx.resume(); build(); playing = true;
-                  $('play').textContent = '❚❚ Pause'; }
+                  $('play').innerHTML = '❚❚ Pause <kbd>space</kbd>'; }
 function stop() {
   if (playing && ctx) startOffset = pos();
   sources.forEach(s => { try { s.stop(); } catch (e) {} });
   sources = []; playing = false;
-  if ($('play')) $('play').textContent = '▶ Play';
+  if ($('play')) $('play').innerHTML = '▶ Play <kbd>space</kbd>';
 }
 function pos() {
   if (!playing || !ctx) return startOffset;
@@ -408,12 +539,8 @@ function paint() {
   }
   const onDiff = cur.residual && active === cur.arms.length;
   $('diffbtn').setAttribute('aria-pressed', !!onDiff);
-  $('stage').querySelectorAll('.cand').forEach(c => {
-    const live = +c.dataset.i === active;
-    c.setAttribute('aria-pressed', live);
-    c.querySelector('.state').textContent =
-      live ? 'playing' : (onDiff ? 'silent' : 'silent');
-  });
+  paintArms();
+  abxPaint();
 }
 
 $('play').onclick = () => playing ? (stop(), paint()) : play();
@@ -459,8 +586,10 @@ $('save').onclick = async () => {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({preferred: picked, confidence: 'n/a',
       note: $('notes').value, switches, seconds: listened,
+      abx: abxPayload(),
       revealed_first: !!$('answer').textContent})});
   $('saved').textContent = 'saved';
+  await afterSave();
 };
 $('revealbtn').onclick = async () => {
   const k = await api('reveal/' + encodeURIComponent(cur.id));
@@ -484,6 +613,654 @@ addEventListener('keydown', e => {
 
 addEventListener('resize', () => { if (cur) drawWave(); });
 setInterval(() => { if (playing) { listened += .1; paint(); } }, 100);
+/* ── N arms, plus the two states the bench never had ─────────────────
+   Additive except for `api`, `boot` and `open_`, which replace the
+   existing ones (see integration_notes). */
+
+/* One error type, so every failure reaches the screen as a sentence you
+   can act on rather than a status code. */
+class BenchError extends Error {
+  constructor(why, detail) {
+    super(why);
+    this.why = why;
+    this.detail = detail || '';
+  }
+}
+
+const ARM_KEYS = '123456789';   // key 1 plays arm 0
+
+/* ── loading / failed / empty ─────────────────────────────────────── */
+
+/* The old code left the previous set on screen while the next one loaded,
+   and forever if the load threw — you would then judge audio that is not
+   the set named at the top. So unload first, say something honest, and
+   only bring the page back when the audio is really here. */
+function beginLoad(id) {
+  stop();
+  cur = null; buffers = []; sources = []; gains = [];
+  idx = Math.max(0, ids.indexOf(id));
+  if (ids.indexOf(id) >= 0) $('sets').value = id;
+  $('failure').hidden = true;
+  $('empty').hidden = true;
+  $('main').hidden = true;
+  $('loadingid').textContent = id;
+  $('loading').hidden = false;
+}
+
+function endLoad() {
+  $('loading').hidden = true;
+  $('failure').hidden = true;
+  $('empty').hidden = true;
+  $('main').hidden = false;
+}
+
+function showFailure(id, err) {
+  stop();
+  cur = null; buffers = [];
+  $('loading').hidden = true;
+  $('main').hidden = true;
+  $('empty').hidden = true;
+  $('failure').hidden = false;
+  $('failtitle').textContent = id ? id + ' did not load'
+                                  : 'The bench did not load';
+  $('failwhy').textContent =
+    (err && (err.why || err.message)) || 'Something went wrong.';
+  const d = (err && err.detail) || '';
+  $('faildetail').hidden = !d;
+  $('faildetail').textContent = d;
+  $('failretry').onclick = () => (id ? open_(id) : boot());
+  $('failskip').hidden = ids.length < 2;
+  $('failskip').onclick = () => open_(ids[(idx + 1) % ids.length]);
+}
+
+function showEmpty() {
+  stop();
+  cur = null; buffers = [];
+  $('loading').hidden = true;
+  $('main').hidden = true;
+  $('failure').hidden = true;
+  $('empty').hidden = false;
+  $('sets').innerHTML = '<option>no sets yet</option>';
+  $('sets').disabled = true;
+  $('prev').disabled = true;
+  $('next').disabled = true;
+}
+
+$('emptyreload').onclick = () => location.reload();
+
+/* ── arms ─────────────────────────────────────────────────────────── */
+
+/* Cards for however many arms this set has, each carrying the number key
+   that plays it. */
+function renderArms() {
+  const st = $('stage');
+  st.dataset.n = cur.arms.length;
+  st.innerHTML = cur.arms.map((a, i) =>
+    '<div class="cand" role="button" tabindex="0" data-i="' + i + '"' +
+    ' aria-pressed="' + (i === active) + '"' +
+    ' aria-label="Play arm ' + esc(a.letter) + ', key ' + (i + 1) + '">' +
+      '<kbd class="cue">' + (i + 1) + '</kbd>' +
+      '<div class="letter">' + esc(a.letter) + '</div>' +
+      '<div class="state">' + (i === active ? 'playing' : 'silent') + '</div>' +
+    '</div>').join('');
+  st.querySelectorAll('.cand').forEach(c => {
+    c.onclick = () => select(+c.dataset.i);
+    c.onkeydown = e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        select(+c.dataset.i);
+      }
+    };
+  });
+  // "Swap" only means anything with two arms.
+  $('swap').innerHTML = (cur.arms.length > 2 ? 'Next arm' : 'Swap') +
+    ' &nbsp;⇄&nbsp; <kbd>S</kbd>';
+}
+
+/* One big letter in a fixed place, so you can check what is live without
+   scanning four cards. */
+function paintArms() {
+  const onDiff = !!(cur.residual && active === cur.arms.length);
+  $('stage').querySelectorAll('.cand').forEach(c => {
+    const live = !onDiff && +c.dataset.i === active;
+    c.setAttribute('aria-pressed', live);
+    c.querySelector('.state').textContent = live ? 'playing' : 'silent';
+  });
+  const arm = cur.arms[active];
+  $('livearm').textContent = onDiff ? '±' : (arm ? arm.letter : '—');
+  $('livewhat').textContent = onDiff
+    ? (cur.residual.label || 'Difference') + ' is playing'
+    : (arm ? 'is playing' : 'nothing is playing');
+  $('live').classList.toggle('diffmode', onDiff);
+}
+
+/* ── loading audio, with every failure named ──────────────────────── */
+
+async function loadBuffers(id, files) {
+  return Promise.all(files.map(async f => {
+    const u = '/api/dev/ab/audio/' + encodeURIComponent(id) + '/' +
+              encodeURIComponent(f);
+    let r;
+    try {
+      r = await fetch(u);
+    } catch (e) {
+      throw new BenchError(
+        'The server could not be reached while loading ' + f + '.',
+        u + ' — ' + e);
+    }
+    if (!r.ok) {
+      throw new BenchError(
+        'An audio file for this set is missing: ' + f +
+          ' (the server answered ' + r.status + ').',
+        u + '\nLook in listening-test\\ab\\' + id +
+          '\\ then build the set again.');
+    }
+    try {
+      return await ctx.decodeAudioData(await r.arrayBuffer());
+    } catch (e) {
+      throw new BenchError(f + ' downloaded but is not playable audio.',
+                           u + ' — ' + e);
+    }
+  }));
+}
+
+/* ── keys 1-9 pick an arm outright ────────────────────────────────── */
+
+addEventListener('keydown', e => {
+  if (['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName)) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const n = ARM_KEYS.indexOf(e.key);
+  if (n < 0 || !cur) return;
+  if (n < cur.arms.length) { e.preventDefault(); select(n); }
+});
+
+/* ── replacements for existing functions ──────────────────────────── */
+
+const api = (p, opts) => fetch('/api/dev/ab/' + p, opts).then(
+  r => {
+    if (!r.ok) {
+      throw new BenchError(
+        r.status === 404 ? 'The server has no set by that name (404).'
+                         : 'The server answered ' + r.status + '.',
+        '/api/dev/ab/' + p);
+    }
+    return r.json();
+  },
+  e => { throw new BenchError('The server could not be reached.',
+                              '/api/dev/ab/' + p + ' — ' + e); });
+
+async function boot() {
+  let d;
+  try {
+    d = await api('sets');
+  } catch (err) {
+    const why = err.why || err.message || '';
+    showFailure('', new BenchError(
+      'The bench could not list any comparisons. ' + why,
+      (err.detail || '') +
+        '\nIs the Shimmer server still running in the terminal you ' +
+        'started it from?'));
+    return;
+  }
+  ids = d.sets.map(s => s.id);
+  if (!ids.length) { showEmpty(); return; }
+  $('sets').disabled = false;
+  $('prev').disabled = false;
+  $('next').disabled = false;
+  $('sets').innerHTML = d.sets.map(s =>
+    '<option value="' + esc(s.id) + '">' + esc(s.title) +
+    (s.judged ? '  ✓' : '') + '</option>').join('');
+  await open_(ids[0]);
+}
+
+async function open_(id) {
+  try {
+    await loadSet(id);
+  } catch (err) {
+    showFailure(id, err);
+  }
+}
+/* ── Round flow: grouping, progress, and advancing ────────────────────
+   A round is 8 to 36 sets. At rest the listener needs three facts: which
+   set they are on, how many are left in this group, and that the last
+   verdict was written down. Everything below serves those three. */
+
+const GROUPS = [
+  {p:'r8-',      name:'Every version of a song',
+   what:'the untouched render, our chain, a service master, and the older master'},
+  {p:'service-', name:'Ours against an automated service',
+   what:'our master against a service master of the same song'},
+  {p:'era-',     name:'Three tone targets',
+   what:'one song aimed at three different tone targets'},
+  {p:'tone-',    name:'Two tone targets',
+   what:'one song aimed at two different tone targets'},
+  {p:'chain-',   name:'Untouched against the full chain',
+   what:'the render as it came out against everything Shimmer does to it'},
+  {p:'clean-',   name:'Cleaning only',
+   what:'before and after cleaning, with nothing else changed'},
+];
+// Anything built later with a new prefix still has to be reachable.
+const OTHER = {p:'', name:'Other comparisons', what:''};
+const GROUP_ORDER = GROUPS.map(g => g.p).concat(['']);
+
+let rows_ = [];          // every set, in the order the picker shows them
+let byId_ = new Map();
+let sofarBusy = false;
+
+const groupFor = id => GROUPS.find(g => String(id).startsWith(g.p)) || OTHER;
+const inGroup = g => rows_.filter(r => r.group.p === g.p);
+
+
+/* Re-read the list from the server. `judged` comes back per set, so this is
+   also how the picker and the pips learn that a verdict landed. */
+async function refreshSets() {
+  const d = await api('sets');
+  rows_ = (d.sets || []).map(s => Object.assign({}, s, {group: groupFor(s.id)}));
+  rows_.sort((a, b) =>
+    GROUP_ORDER.indexOf(a.group.p) - GROUP_ORDER.indexOf(b.group.p) ||
+    (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  ids = rows_.map(r => r.id);                 // arrows follow the visible order
+  byId_ = new Map(rows_.map(r => [r.id, r]));
+  renderPicker();
+  if (cur && byId_.has(cur.id)) { idx = ids.indexOf(cur.id); renderRound(cur.id); }
+}
+
+function renderPicker() {
+  const out = [];
+  for (const g of GROUPS.concat([OTHER])) {
+    const rs = inGroup(g);
+    if (!rs.length) continue;
+    const done = rs.filter(r => r.judged).length;
+    out.push(
+      `<optgroup label="${esc(g.name)} — ${done} of ${rs.length} judged">` +
+      rs.map(r => `<option value="${esc(r.id)}">${r.judged ? '✓' : '·'} ` +
+                  `${esc(r.title || r.id)}</option>`).join('') +
+      `</optgroup>`);
+  }
+  $('sets').innerHTML = out.join('');
+  if (cur) $('sets').value = cur.id;
+}
+
+/* The strip above the candidates: group, count, one pip per set. */
+function renderRound(id) {
+  const row = byId_.get(id);
+  if (!row) { $('round').hidden = true; return; }
+  $('round').hidden = false;
+  const rs = inGroup(row.group);
+  const done = rs.filter(r => r.judged).length;
+  $('roundgroup').textContent = row.group.name;
+  $('roundwhat').textContent = row.group.what;
+  $('roundcount').textContent = `${done} of ${rs.length} judged`;
+  $('pips').innerHTML = rs.map((r, i) =>
+    `<button class="pip" data-id="${esc(r.id)}" data-judged="${!!r.judged}"` +
+    ` aria-current="${r.id === id}" title="${esc(r.title || r.id)}` +
+    `${r.judged ? ' — judged' : ' — not judged yet'}">${i + 1}</button>`).join('');
+  $('pips').querySelectorAll('.pip').forEach(b =>
+    b.onclick = () => open_(b.dataset.id));
+  if ($('sofar').open) renderSoFar();
+}
+
+function say(msg, action) {
+  const a = $('advice');
+  a.hidden = false;
+  a.innerHTML = esc(msg) +
+    (action ? ` <button class="quiet tiny" id="goto">${esc(action.label)}</button>` : '');
+  if (action) $('goto').onclick = () => open_(action.id);
+}
+function clearSay() { $('advice').hidden = true; $('advice').innerHTML = ''; }
+
+const firstUnjudged = g => inGroup(g).find(r => !r.judged) || null;
+
+/* The next set in this group with no verdict yet, starting after the one
+   just judged and wrapping. Null means the group is finished. */
+function nextUnjudged(id) {
+  const row = byId_.get(id);
+  if (!row) return null;
+  const rs = inGroup(row.group);
+  const i = rs.findIndex(r => r.id === id);
+  for (let k = 1; k <= rs.length; k++) {
+    const r = rs[(i + k) % rs.length];
+    if (!r.judged && r.id !== id) return r;
+  }
+  return null;
+}
+
+function nextGroupWithWork(from) {
+  const all = GROUPS.concat([OTHER]);
+  const start = all.findIndex(g => g.p === from.p);
+  for (let k = 1; k <= all.length; k++) {
+    const g = all[(start + k) % all.length];
+    if (g.p !== from.p && firstUnjudged(g)) return g;
+  }
+  return null;
+}
+
+/* Called by the save handler once the verdict is written. Marks the set
+   judged, then moves on — staying put is how a set gets judged twice. */
+async function afterSave() {
+  if (!cur) return;
+  const id = cur.id, row = byId_.get(id);
+  if (row) row.judged = (row.judged || 0) + 1;
+  renderPicker();
+  renderRound(id);
+  const rs = row ? inGroup(row.group) : [];
+  const done = rs.filter(r => r.judged).length;
+  const nxt = nextUnjudged(id);
+  if (nxt) {
+    await open_(nxt.id);
+    say(`Saved. ${done} of ${rs.length} judged in this group. ` +
+        `Now on ${nxt.title || nxt.id}.`);
+  } else if (row) {
+    const g2 = nextGroupWithWork(row.group);
+    if (g2) {
+      const first = firstUnjudged(g2);
+      say(`Saved. All ${rs.length} judged in ${row.group.name}.`,
+          {label: `Start ${g2.name} (${inGroup(g2).filter(r => !r.judged).length} left)`,
+           id: first.id});
+    } else {
+      say(`Saved. All ${rs.length} judged in ${row.group.name}, ` +
+          `and every set on the bench has a verdict.`);
+    }
+  }
+  refreshSets().catch(() => {});   // trust the server's count over the local one
+}
+
+/* Round so far. Preferred LETTERS are shown by default; what those letters
+   were is behind a checkbox, because reading "the chain won" before judging
+   the next set in the same group is the bias this bench exists to remove. */
+async function renderSoFar() {
+  if (sofarBusy) return;
+  sofarBusy = true;
+  try {
+    const row = cur ? byId_.get(cur.id) : null;
+    const rs = row ? inGroup(row.group).filter(r => r.judged) : [];
+    const allDone = rows_.filter(r => r.judged).length;
+    $('sofarline').textContent =
+      `${rs.length} judged in this group. ` +
+      `${allDone} of ${rows_.length} judged on the whole bench.`;
+    if (!rs.length) {
+      $('sofartable').innerHTML =
+        `<p class="matched">Nothing judged in this group yet.</p>`;
+      return;
+    }
+    const reveal = $('sofarreveal').checked;
+    const got = await Promise.all(rs.map(async r => {
+      try {
+        const m = await api('set/' + encodeURIComponent(r.id));
+        return {r, rounds: (m.scores || [])};
+      } catch (e) { return {r, rounds: null}; }
+    }));
+    $('sofartable').innerHTML =
+      `<table><thead><tr><th>Set</th><th>Preferred</th>` +
+      (reveal ? `<th>Which was that</th>` : ``) +
+      `<th>When</th><th>Note</th></tr></thead><tbody>` +
+      got.map(({r, rounds}) => {
+        if (rounds === null) return `<tr><td>${esc(r.title || r.id)}</td>` +
+          `<td colspan="${reveal ? 4 : 3}" class="warn">could not read</td></tr>`;
+        const last = rounds[rounds.length - 1] || {};
+        const again = rounds.length > 1 ? ` (${rounds.length} times)` : '';
+        return `<tr><td>${esc(r.title || r.id)}${again}</td>` +
+          `<td>${esc(last.preferred_letter === 'tie' ? 'no preference'
+                     : last.preferred_letter || '—')}</td>` +
+          (reveal ? `<td class="lab">${esc(last.preferred_label || '—')}</td>` : ``) +
+          `<td class="when">${esc((last.at || '').replace('T', ' ').slice(5, 16))}</td>` +
+          `<td class="note">${esc((last.note || '').slice(0, 80))}</td></tr>`;
+      }).join('') + `</tbody></table>`;
+  } finally { sofarBusy = false; }
+}
+
+$('sofar').addEventListener('toggle', () => { if ($('sofar').open) renderSoFar(); });
+$('sofarreveal').onchange = () => renderSoFar();
+
+/* Wrap open_ rather than edit it: three other people are working in this
+   file. Every route into a set — picker, arrows, pips, advance — comes
+   through here, so the strip can never describe a different set than the
+   one playing. */
+const _openSet = open_;
+open_ = async function (id) {
+  clearSay();
+  const r = await _openSet(id);
+  renderRound(id);
+  $('sets').value = id;
+  return r;
+};
+
+/* Builder 1's grouped picker inside builder 2's failure handling. Both
+   replaced this function and neither alone is right: 36 sets need grouping to
+   be navigable, and a dead server has to say so rather than leaving an empty
+   dropdown that reads as "nothing built yet". */
+async function boot() {
+  try {
+    await refreshSets();
+  } catch (err) {
+    showFailure('', new BenchError(
+      'The bench could not list any comparisons. ' + (err.why || err.message || ''),
+      (err.detail || '') + '\nIs the Shimmer server still running in the ' +
+      'terminal you started it from?'));
+    return;
+  }
+  if (!ids.length) { showEmpty(); $('round').hidden = true; return; }
+  $('sets').disabled = false; $('prev').disabled = false; $('next').disabled = false;
+  await open_(ids[0]);
+}
+/* ── ABX: is the difference audible at all? ──────────────────────────────
+   Every round this project has run wrote down a preference without first
+   showing the two versions could be told apart. A preference on a difference
+   you cannot hear is a coin flip recorded as evidence, and conclusions have
+   been built on exactly that.
+
+   X is a fourth playback path, not a re-trigger. build() starts a SECOND
+   source for every arm at the same instant, offset and loop points as the
+   real ones, each into its own sub-gain, all summed into one X bus. Picking
+   X for a trial only opens one sub-gain. Nothing restarts, so X stays sample
+   locked to A and B and switching to it never gaps or moves position.
+
+   The X bus is pushed onto the existing `gains` array, so select() crossfades
+   to it with no change, and the X sources are pushed onto `sources`, so
+   stop() and the loop controls already reach them. */
+
+const ABX_ALPHA = 0.05;          // the usual line for "not chance"
+let abx = null;                  // null until a run is started
+let xBus = null, xArmGain = [];
+const xIndex = () => buffers.length;   // X lives one slot past the last buffer
+
+/* Chance of scoring this well or better by pure guessing: the exact sum of
+   binomial terms at p = 0.5. Not a normal approximation — a run is 12 trials
+   and the approximation is wrong at that size. Verified against
+   sum(C(n,k))/2^n: 12/12 = 0.000244, 11/12 = 0.003174, 9/12 = 0.072998,
+   6/12 = 0.612793. */
+function binomialPAtLeast(correct, trials) {
+  const n = Math.max(0, Math.round(trials));
+  if (n <= 0) return 1;
+  const c = Math.max(0, Math.min(Math.round(correct), n));
+  let term = Math.pow(0.5, n), p = 0;          // term = C(n,k) * 0.5^n
+  for (let k = 0; k <= n; k++) {
+    if (k >= c) p += term;
+    term = term * (n - k) / (k + 1);           // walk C(n,k) up, no factorials
+  }
+  return Math.min(1, p);
+}
+
+/* Called from build(), once the real arms are started, with the same start
+   time so every path shares one clock. */
+function abxAttach(t) {
+  if (xBus) { try { xBus.disconnect(); } catch (e) {} }
+  xBus = ctx.createGain();
+  xBus.gain.value = (active === xIndex()) ? 1 : 0;
+  xBus.connect(ctx.destination);
+  xArmGain = [];
+  const off = Math.min(Math.max(startOffset, loopA), loopB - 0.01);
+  cur.arms.forEach((a, i) => {
+    const s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = buffers[i]; s.loop = true; s.loopStart = loopA; s.loopEnd = loopB;
+    g.gain.value = (abx && !abx.done && abx.xArm === i) ? 1 : 0;
+    s.connect(g).connect(xBus);
+    s.start(t, off);
+    sources.push(s);            // stop() and the loop buttons find these too
+    xArmGain.push(g);
+  });
+  gains.push(xBus);             // gains[buffers.length] — select() needs no change
+}
+
+/* Point X at one arm. Same 15 ms ramp as the main switch, because a new trial
+   can begin while the listener is sitting on X and a hard cut would click. */
+function setXArm(i) {
+  const t = ctx ? ctx.currentTime : 0;
+  xArmGain.forEach((g, j) => {
+    g.gain.cancelScheduledValues(t);
+    g.gain.setValueAtTime(g.gain.value, t);
+    g.gain.linearRampToValueAtTime(j === i ? 1 : 0, t + 0.015);
+  });
+}
+
+function abxReset() {
+  abx = null;
+  const arms = cur ? cur.arms : [];
+  const opts = arms.map((a, i) =>
+    `<option value="${i}">${esc(a.letter)}</option>`).join('');
+  $('abxA').innerHTML = opts; $('abxB').innerHTML = opts;
+  $('abxA').value = '0';
+  $('abxB').value = String(Math.min(1, Math.max(0, arms.length - 1)));
+  // With two arms there is no pair to choose, so do not ask.
+  $('abxPair').hidden = arms.length < 3;
+  $('abxSetup').hidden = false;
+  $('abxRun').hidden = true;
+  $('abxResult').hidden = true;
+  $('abxFlag').hidden = false;
+  $('abxFlag').textContent = 'No listening check yet. A preference saved now ' +
+    'is recorded as a coin flip, not as evidence.';
+}
+
+function abxStart() {
+  if (!cur) return;
+  const a = +$('abxA').value, b = +$('abxB').value;
+  if (a === b) { $('abxFlag').textContent = 'Pick two different versions.'; return; }
+  const n = Math.max(4, Math.min(50, Math.round(+$('abxN').value) || 12));
+  $('abxN').value = n;
+  abx = {pair: [a, b], letters: [cur.arms[a].letter, cur.arms[b].letter],
+         n: n, i: 0, trials: [], xArm: null, done: false,
+         started: Date.now(), correct: 0, p: 1, audible: false};
+  $('abxSetup').hidden = true; $('abxResult').hidden = true;
+  $('abxRun').hidden = false; $('abxFlag').hidden = true;
+  select(a);
+  if (!playing) play();
+  abxNextTrial();
+}
+
+/* A fresh coin flip every trial. Fixing the order, or balancing it so each
+   arm comes up the same number of times, hands the listener a pattern to ride
+   instead of a difference to hear. */
+function abxNextTrial() {
+  abx.xArm = abx.pair[Math.random() < 0.5 ? 0 : 1];
+  setXArm(abx.xArm);
+  abxPaint();
+}
+
+function abxAnswer(which) {
+  if (!abx || abx.done) return;
+  const said = abx.pair[which];
+  abx.trials.push({x: abx.letters[abx.pair.indexOf(abx.xArm)],
+                   answered: abx.letters[which], correct: said === abx.xArm});
+  abx.i++;
+  if (abx.i >= abx.n) abxFinish(); else abxNextTrial();
+}
+
+function abxFinish() {
+  abx.done = true;
+  abx.correct = abx.trials.filter(t => t.correct).length;
+  abx.p = binomialPAtLeast(abx.correct, abx.n);
+  abx.audible = abx.p <= ABX_ALPHA;
+  abx.seconds = (Date.now() - abx.started) / 1000;
+  setXArm(-1);                                  // X goes quiet
+  if (active === xIndex()) select(abx.pair[0]); // and you land back on A
+  $('abxRun').hidden = true; $('abxResult').hidden = false;
+  $('abxSetup').hidden = false; $('abxFlag').hidden = true;
+
+  const p = abx.p, pTxt = p >= 0.001 ? p.toFixed(3)
+                                     : p.toFixed(6).replace(/0+$/, '');
+  const chance = p >= 0.01 ? Math.round(p * 100) + ' times in 100'
+               : p >= 0.001 ? (p * 100).toFixed(1) + ' times in 100'
+               : 'less than once in 1,000';
+  $('abxScore').className = 'abx-score ' + (abx.audible ? 'pass' : 'fail');
+  $('abxScore').textContent =
+    `${abx.correct} of ${abx.n}, p = ${pTxt} — ` +
+    (abx.audible ? 'you can hear it' : 'not proof you can hear it');
+  $('abxPlain').textContent = abx.audible
+    ? `Guessing would score this well ${chance}. So ${abx.letters[0]} and ` +
+      `${abx.letters[1]} really do sound different to you, and a preference ` +
+      `between them counts as evidence.`
+    : `Guessing would score this well ${chance}, which is often enough that ` +
+      `this run does not show you heard anything. Pick a louder spot, loop a ` +
+      `few seconds, or run more trials. A preference saved now is a coin flip.`;
+  $('abxSeq').innerHTML = 'X was ' + abx.trials.map(t => t.correct
+    ? `<b>${esc(t.x)}</b>` : `<s>${esc(t.x)}</s>`).join(' ') +
+    ' &nbsp;— green is one you got right.';
+  abxPaint();
+}
+
+function abxStopRun() {
+  // A half-finished run proves nothing, so it is thrown away rather than
+  // scored on the trials that happened to go well.
+  abx = null; setXArm(-1);
+  if (active === xIndex()) select(0);
+  $('abxRun').hidden = true; $('abxSetup').hidden = false;
+  $('abxFlag').hidden = false;
+  $('abxFlag').textContent = 'Check stopped part way, so nothing was proved. ' +
+    'A preference saved now is recorded as a coin flip.';
+  abxPaint();
+}
+
+function abxPaint() {
+  const live = abx && !abx.done;
+  $('abxCount').textContent = live
+    ? `Trial ${abx.i + 1} of ${abx.n}` : '';
+  if (live) {
+    let dots = '';
+    for (let k = 0; k < abx.n; k++)
+      dots += `<i class="${k < abx.i ? 'done' : (k === abx.i ? 'now' : '')}"></i>`;
+    $('abxDots').innerHTML = dots;
+    $('abxSwitch').querySelectorAll('button').forEach(b => {
+      const want = b.dataset.listen === 'x' ? xIndex() : abx.pair[+b.dataset.listen];
+      b.setAttribute('aria-pressed', active === want);
+    });
+    $('abxSwitch').children[0].firstChild.nodeValue = abx.letters[0] + ' ';
+    $('abxSwitch').children[1].firstChild.nodeValue = abx.letters[1] + ' ';
+    const ans = document.querySelectorAll('.abx-answer button');
+    ans[0].firstChild.nodeValue = 'X is ' + abx.letters[0] + ' ';
+    ans[1].firstChild.nodeValue = 'X is ' + abx.letters[1] + ' ';
+  }
+}
+
+/* What goes with the verdict, so a preference can be read later as evidence
+   or as a coin flip. Null until a full run is finished. */
+function abxPayload() {
+  if (!abx || !abx.done) return null;
+  return {pair: abx.letters, trials: abx.n, correct: abx.correct,
+          p_value: +abx.p.toFixed(6), audible: abx.audible, alpha: ABX_ALPHA,
+          seconds: +abx.seconds.toFixed(1), sequence: abx.trials};
+}
+
+$('abxStart').onclick = abxStart;
+$('abxAgain').onclick = abxStart;
+$('abxStop').onclick = abxStopRun;
+$('abxSwitch').querySelectorAll('button').forEach(b => b.onclick = () => {
+  if (!abx || abx.done) return;
+  select(b.dataset.listen === 'x' ? xIndex() : abx.pair[+b.dataset.listen]);
+});
+document.querySelectorAll('.abx-answer button').forEach(b =>
+  b.onclick = () => abxAnswer(+b.dataset.ans));
+
+/* A / B / X to listen, shift+A / shift+B to answer. Plain letters, so
+   pressing a key never accidentally casts a vote. */
+addEventListener('keydown', e => {
+  if (!abx || abx.done) return;
+  if (['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName)) return;
+  const k = e.key.toLowerCase();
+  if (k !== 'a' && k !== 'b' && k !== 'x') return;
+  if (e.shiftKey) { if (k !== 'x') abxAnswer(k === 'a' ? 0 : 1); return; }
+  select(k === 'x' ? xIndex() : abx.pair[k === 'a' ? 0 : 1]);
+});
+
 boot();
 </script>
 </body>
