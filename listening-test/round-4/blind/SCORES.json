@@ -1,0 +1,28 @@
+{
+ "judged_by": "author",
+ "date": "2026-09-08",
+ "method": "Each song's letters played back to back at -18 LUFS; the preferred letter named before the key was opened. Author's overall remark: 'the differences seem slight.'",
+ "rankings": {
+  "distrokid-the-little-things": {"preferred": "B", "variant": "new", "what": "Suno Hash at 100%", "note": ""},
+  "reference-hey": {"preferred": null, "variant": null, "what": null, "note": "all sound very similar"},
+  "reference-leave-the-world-behind": {"preferred": "B", "variant": "new", "what": "Generic at 100%", "note": "better but still has shimmer"},
+  "suno-algorithms-lure": {"preferred": "B", "variant": "old", "what": "Sibilance Rattle at 75%", "note": "better but still has shimmer"},
+  "suno-alive-again": {"preferred": "B", "variant": "source", "what": "untouched", "note": ""},
+  "suno-couldve-been-stories": {"preferred": "C", "variant": "old", "what": "Sibilance Rattle at 100%", "note": ""},
+  "suno-falling-for-you": {"preferred": "B", "variant": "source", "what": "untouched", "note": ""},
+  "suno-the-little-things": {"preferred": "A", "variant": "source", "what": "untouched", "note": ""}
+ },
+ "tally": {
+  "new_scorer_pick_preferred": 2,
+  "old_scorer_pick_preferred": 2,
+  "untouched_preferred": 3,
+  "no_preference": 1
+ },
+ "reading": [
+  "Differences are slight throughout: neither scorer's pick is a clear win over leaving the file alone.",
+  "The untouched file won 3 of 8, including suno-the-little-things where the new scorer's Suno Hash at 100% was the only cleaned option. That matches the harness: Suno Hash removes ~12% of a modelled hash and costs music.",
+  "On the two finished masters the old picks (Sibilance Rattle 50%, Harsh Veil 125%) did not win; one was a tie, one lost to Generic.",
+  "Two files were called 'still has shimmer' after both treatments: the cleaning that exists does not remove what the author hears as shimmer.",
+  "The old scorer's Sibilance Rattle picks won on two Suno renders. The harness measures that preset as inert on centred sibilance and costly; either the real artifact on those tracks is not the modelled one, or the preference is for the tilt it applies. This is a question for the next round, not a conclusion."
+ ]
+}

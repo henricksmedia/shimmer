@@ -169,6 +169,27 @@ count.
       item also asks for waits on item 12, because the chain's mastering
       half is what item 12 changes; `round-3` is that comparison against
       the now-retracted target.
+      **Judged 2026-09-08** (`round-4/blind/SCORES.json`). Author's
+      overall remark: "the differences seem slight." Preferred letter per
+      song: new scorer's pick 2 (Suno Hash on the service master of
+      the-little-things; Generic on the reference "Leave The World
+      Behind"), old scorer's pick 2 (Sibilance Rattle on algorithms-lure and
+      couldve-been-stories), **untouched 3** (alive-again, falling-for-you,
+      and suno-the-little-things where the only cleaned option was Suno Hash
+      at 100 %), no preference 1 (reference "Hey"). Two files "still have
+      shimmer" after either treatment. What this settles: on finished
+      masters the old picks did not win, so item 5's removal of those
+      recommendations cost nothing audible; the untouched render beating
+      Suno Hash on a hashed track agrees with the harness (12 % efficacy at
+      a cost); and no treatment in the product today removes what the
+      author hears as shimmer, which is the hash-stage work. What it does
+      not settle: Sibilance Rattle winning twice on Suno renders where the
+      harness calls it inert — the next round should put that preset
+      against Generic and untouched on those two tracks with the de-esser
+      isolated from its tilt, so the preference can be attributed. Item 11
+      follows from "slight": scores of 0.1-0.5 describe differences a
+      careful listener calls slight, so the copy should say so rather than
+      be rescaled.
 
 - [x] **5. Fix the verified score. (Highest-value single change.)**
       *Done when:* a preset can no longer score well by removing a lot.
