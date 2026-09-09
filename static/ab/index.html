@@ -64,7 +64,21 @@ a:hover { text-decoration: underline; }
          border: 1px solid rgba(245,165,36,.32);
          box-shadow: inset 0 1px 0 rgba(255,255,255,.07),
                      0 0 18px rgba(245,165,36,.07); }
-.glyph svg { display: block; fill: var(--amber); }
+.glyph svg { display: block; fill: var(--amber); overflow: visible; }
+/* Four bars that rest when paused and move when playing. Purely a CSS
+   animation on the mark: nothing is tapped off the audio, because the one
+   thing this page must never do is change what you are judging. */
+.glyph rect { transform-origin: 10px 10px; }
+.glyph.playing rect { animation: lvl 880ms ease-in-out infinite; }
+.glyph.playing rect:nth-child(2) { animation-duration: 610ms;
+                                   animation-delay: -.21s; }
+.glyph.playing rect:nth-child(3) { animation-duration: 1180ms;
+                                   animation-delay: -.53s; }
+.glyph.playing rect:nth-child(4) { animation-duration: 740ms;
+                                   animation-delay: -.36s; }
+@keyframes lvl { 0%, 100% { transform: scaleY(.4); }
+                 50%      { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .glyph.playing rect { animation: none; } }
 .name { font-size: 15px; font-weight: 650; color: var(--fg-0);
         letter-spacing: -.01em; }
 /* "dev" is a label about the build, not part of the title. */
@@ -72,20 +86,33 @@ a:hover { text-decoration: underline; }
        letter-spacing: .12em; color: var(--fg-3); border: 1px solid var(--line-2);
        border-radius: 999px; padding: 3px 7px 2px; line-height: 1; }
 
-/* How far through the bench you are, as a bar and as the number. Counting
-   thirty-six pips to answer "how much is left" is not reading. */
-.prog { margin-left: auto; display: flex; align-items: center;
-        gap: var(--gap-3); flex: none; }
-.prog-txt { font-family: var(--font-mono); font-size: 12px; color: var(--fg-2);
-            white-space: nowrap; }
-.prog-track { width: 140px; height: 6px; border-radius: 999px;
-              background: var(--bg-3); border: 1px solid var(--line);
-              overflow: hidden; flex: none; }
-.prog-track i { display: block; height: 100%; border-radius: 999px;
-                background: linear-gradient(90deg, var(--success), #8ef0b0);
-                transition: width .35s cubic-bezier(.4, 0, .2, 1); }
-@media (max-width: 620px) { .prog-track { display: none; } }
-@media (prefers-reduced-motion: reduce) { .prog-track i { transition: none; } }
+/* The bench itself: a segment per group, as wide as the group is big and
+   filled as far as it is judged. One bar said 61%; this says which work is
+   left and takes you there. */
+.map { display: flex; align-items: center; gap: 5px;
+       flex: 0 1 460px; margin-left: auto; }
+.mapseg { flex: 1 1 0; min-width: 20px; height: 10px; padding: 0;
+          border-radius: 999px; background: var(--bg-3);
+          border: 1px solid var(--line); overflow: hidden;
+          transition: border-color .12s, box-shadow .12s, transform .12s; }
+.mapseg i { display: block; height: 100%;
+            background: linear-gradient(90deg, var(--success), #8ef0b0);
+            transition: width .4s cubic-bezier(.4, 0, .2, 1); }
+.mapseg:hover:not(:disabled) { background: var(--bg-3);
+       border-color: var(--line-2); transform: translateY(-1px); }
+.mapseg.here { border-color: rgba(245,165,36,.65);
+               box-shadow: 0 0 0 1px rgba(245,165,36,.3),
+                           0 0 12px rgba(245,165,36,.14); }
+.mapseg:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.prog-txt { flex: none; font-family: var(--font-mono); font-size: 12px;
+            color: var(--fg-2); white-space: nowrap;
+            font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) { .map { display: none; }
+                            .prog-txt { margin-left: auto; } }
+@media (prefers-reduced-motion: reduce) {
+  .mapseg i { transition: none; }
+  .mapseg:hover:not(:disabled) { transform: none; }
+}
 
 /* Where you move between comparisons, directly above the comparison. In the
    header it was chrome sitting 1,100 px from the thing it changed. */
@@ -424,10 +451,8 @@ select#sets { max-width: 360px; }
       <span class="name">Listening bench</span>
       <span class="tag">dev</span>
     </div>
-    <div class="prog" id="prog" hidden>
-      <span class="prog-txt" id="benchcount"></span>
-      <span class="prog-track"><i id="progfill" style="width:0"></i></span>
-    </div>
+    <nav class="map" id="map" aria-label="Groups on the bench" hidden></nav>
+    <span class="prog-txt" id="benchcount"></span>
   </header>
 <div class="round" id="round" hidden>
     <div class="setbar">
@@ -872,11 +897,13 @@ function select(i) {
 
 function play() { if (!cur || !buffers.length) return;
                   ctx.resume(); build(); playing = true;
+                  document.querySelector('.glyph').classList.add('playing');
                   $('play').innerHTML = '❚❚ Pause <kbd>space</kbd>'; }
 function stop() {
   if (playing && ctx) startOffset = pos();
   sources.forEach(s => { try { s.stop(); } catch (e) {} });
   sources = []; playing = false;
+  document.querySelector('.glyph').classList.remove('playing');
   if ($('play')) $('play').innerHTML = '▶ Play <kbd>space</kbd>';
 }
 function pos() {
@@ -1379,10 +1406,9 @@ async function refreshSets() {
   if (!ids.length) { showEmpty(); return; }
   byId_ = new Map(rows_.map(r => [r.id, r]));
   const doneAll = rows_.filter(r => r.judged).length;
-  $('prog').hidden = !rows_.length;
-  $('benchcount').textContent = `${doneAll} of ${rows_.length} judged`;
-  $('progfill').style.width =
-    (rows_.length ? (100 * doneAll / rows_.length) : 0).toFixed(1) + '%';
+  $('benchcount').textContent =
+    `${doneAll} of ${rows_.length} on the bench judged`;
+  renderMap();
   renderPicker();
   if (cur && byId_.has(cur.id)) { idx = ids.indexOf(cur.id); renderRound(cur.id); }
 }
@@ -1412,6 +1438,32 @@ function renderPicker() {
   if (cur) $('sets').value = cur.id;
 }
 
+/* The bench in one strip. Each group is a segment: width tells you how big
+   it is, fill tells you how much is judged, and clicking goes to the first
+   set in it that still needs a verdict. */
+function renderMap() {
+  const el = $('map');
+  const all = GROUPS.concat([OTHER])
+    .map(g => ({g: g, rs: inGroup(g)})).filter(x => x.rs.length);
+  el.hidden = !all.length;
+  if (!all.length) { el.innerHTML = ''; return; }
+  const hereP = cur && byId_.has(cur.id) ? byId_.get(cur.id).group.p : null;
+  el.innerHTML = all.map(({g, rs}) => {
+    const done = rs.filter(r => r.judged).length;
+    const pct = Math.round(1000 * done / rs.length) / 10;
+    return `<button class="mapseg${g.p === hereP ? ' here' : ''}" ` +
+      `data-p="${esc(g.p)}" style="flex-grow:${rs.length}" ` +
+      `title="${esc(g.name)} — ${done} of ${rs.length} judged" ` +
+      `aria-label="${esc(g.name)}, ${done} of ${rs.length} judged">` +
+      `<i style="width:${pct}%"></i></button>`;
+  }).join('');
+  el.querySelectorAll('.mapseg').forEach(b => b.onclick = () => {
+    const g = GROUPS.concat([OTHER]).find(x => x.p === b.dataset.p);
+    const to = firstUnjudged(g) || inGroup(g)[0];
+    if (to) open_(to.id);
+  });
+}
+
 /* The strip above the candidates: group, count, one pip per set. */
 function renderRound(id) {
   const row = byId_.get(id);
@@ -1423,7 +1475,14 @@ function renderRound(id) {
   const done = rs.filter(r => r.judged).length;
   $('roundgroup').textContent = row.group.name;
   $('roundwhat').textContent = row.group.what;
-  $('roundcount').textContent = `${done} of ${rs.length} in this group`;
+  // Say the scope, or the number beside it in the header looks like a
+  // contradiction instead of a subtotal.
+  const all = done === rs.length && rs.length > 0;
+  $('roundcount').textContent = all
+    ? `all ${rs.length} in this group judged`
+    : `${done} of ${rs.length} in this group judged`;
+  $('roundcount').classList.toggle('ok', all);
+  renderMap();               // the ring follows the group you are in
   $('pips').innerHTML = rs.map((r, i) =>
     `<button class="pip" data-id="${esc(r.id)}" data-judged="${!!r.judged}"` +
     ` aria-current="${r.id === id}" title="${esc(r.title || r.id)}` +
