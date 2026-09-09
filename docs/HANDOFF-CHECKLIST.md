@@ -476,7 +476,7 @@ count.
       level or shape error. If that is not worth writing, do not write it —
       a test this weak is worse than none, because it will be cited.
 
-- [ ] **14. Make the References tool's report trustworthy.**
+- [x] **14. Make the References tool's report trustworthy.**
       (Added 2026-09-08.) It reported "8.4 dB darker" as a headline from a
       plain median over 15 captures, two of which were broken (−50.6 and
       −43.6 dB at 10 kHz, against a 1st-percentile of −29.1 across 317
@@ -494,6 +494,31 @@ count.
       excerpt-bias correction; broken captures are rejected with a reason
       shown on the page; and re-running it on the existing 15 reproduces the
       13/2 split.
+      **DONE 2026-09-08.** `shimmer/references.py`, 12 tests in
+      `tests/test_references_gate.py`, 367 pass. What shipped:
+      `gate()` derives bounds from `docs/tone-reference.json` at run time —
+      309 masters, 1st percentile: 10 kHz ≥ −29.2 dB, 16 kHz ≥ −40.2 dB,
+      4–16 kHz slope ≥ −14.0 dB/oct — **not** from the tone target, and a
+      test asserts a curve 8 dB darker than the target still passes, because
+      a gate that rejects disagreement can only ever confirm the target.
+      `rejection()` returns a plain-language reason, stored on the row at
+      save time and shown on the page. Level is recorded (`rms_dbfs`,
+      `peak_dbfs`, reset per track) — the missing evidence that would have
+      diagnosed the two broken captures. The report gives n, se and a 95%
+      interval, applies the −0.6 dB excerpt correction while carrying its own
+      ±0.4 dB, and calls a difference "unclear" rather than a finding when
+      the interval spans zero. *Verified on the live library:* 23 captured →
+      **13 commercial, 8 controls, 2 rejected**, the same two, for the stated
+      reason; −7.92 raw, −7.33 corrected, 95% CI [−9.51, −5.14].
+      **Two defects this work found.** (a) *Controls were being pooled with
+      evidence.* Captures of our own files played back — the chain check —
+      are mostly masters from the service the target came from, so counting
+      them dragged the difference from −7.9 dB to −4.7 dB. `is_control()`
+      separates them by matching the label against `sources/`. (b) *The
+      remove button would have deleted the wrong track.* Filtering the shown
+      list while `delete(index)` indexes the file is silent and destructive;
+      found in the browser, fixed by listing every row with a status, and
+      pinned by a regression test.
       **Two corrections, same day.** (i) The −1.35 dB excerpt figure is weak
       — n=8, se 0.78, 95% CI [−3.19, +0.50], and the captures' brightness
       correlates with duration the *wrong* way (r = −0.362). Use
@@ -603,6 +628,26 @@ count.
       not just uncalibrated; item 10's edges do not fix that, and the
       feature itself needs a transient-aware measure before it can be
       trusted as evidence of absence.
+      *Followed up the same day, and it is worse than a gate:* with
+      2.0 sones injected on "Hey" the brilliance band's measured flicker
+      **falls** (5.2 dB clean → 4.1 → 3.9), whatever transient gate is
+      used (full-band 6 dB, high-band 6 or 9 dB, 150 ms hold; gated share
+      0 → 0.40 makes no difference), because added noise fills the gaps
+      in a band that already moves with the music and makes its level
+      steadier. The feature is not monotonic in hash on dynamic
+      material. Four replacement statistics were then tested for
+      monotonicity on three hosts at 0.5 and 2.0 sones, both models
+      (sub-band coherence, per-bin coherence, coherence excess over the
+      body, 10-50 Hz modulation share): **none rises with hash on "Hey"**
+      (all fall: its own drums drive the band's coherence to 0.90
+      clean), all move only at 2.0 sones on the steadier hosts and drift
+      the wrong way at 0.5, and on the real corpus coherence does not
+      separate the hashed files (0.78-0.81) from clean masters (up to
+      0.92). Hash *detection* on dynamic material is beyond hand-built
+      envelope statistics for the same reason its removal is: the host's
+      own noise-like content shares every statistic tried. The same
+      learned model that would remove it is what would detect it, and
+      both wait on round 5.
 
 ## DEFERRED — the 80% stake
 
