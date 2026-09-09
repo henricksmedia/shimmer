@@ -397,7 +397,8 @@ select#sets { max-width: 360px; }
       <span class="time" id="clock">0:00 / 0:00</span>
       <button class="quiet" id="whole" hidden>Whole track</button>
       <span class="spacer"></span>
-      <label class="chk"><input type="checkbox" id="auto"> auto-swap</label>
+      <label class="chk"><input type="checkbox" id="auto">
+        <span id="autolabel">auto-swap</span></label>
       <select id="every" style="padding:5px 8px;font-size:12px">
         <option value="2">2s</option><option value="3" selected>3s</option>
         <option value="5">5s</option><option value="0">per loop</option>
@@ -481,8 +482,7 @@ select#sets { max-width: 360px; }
     <details>
       <summary>Keys, and what "Difference" can and cannot tell you</summary>
       <div class="body">
-        <p><kbd>space</kbd> play · <kbd>1</kbd>…<kbd>4</kbd> hear that
-           version · <span id="keyswap"><kbd>S</kbd> next version</span> ·
+        <p><kbd>space</kbd> play · <span id="keynums"></span> · <span id="keyswap"><kbd>S</kbd> next version</span> ·
            <span id="keydiff" hidden><kbd>D</kbd> difference · </span>
            <kbd>L</kbd> loop four seconds from here ·
            <kbd>0</kbd> back to loop start ·
@@ -538,6 +538,11 @@ async function loadSet(id) {
   $('keyswap').textContent = '';
   $('keyswap').append(Object.assign(document.createElement('kbd'), {textContent: 'S'}),
     cur.arms.length > 2 ? ' next version' : ' swap the two');
+  $('keynums').textContent = cur.arms.length > 2
+    ? '1…' + cur.arms.length + ' hear that version'
+    : '1 or 2 hear that version';
+  $('autolabel').textContent =
+    cur.arms.length > 2 ? 'cycle versions every' : 'auto-swap every';
   if (cur.residual) {
     // The difference signal is not one of the matched versions: it is lifted
     // so it can be heard at all. Saying so where the matching is explained
@@ -548,7 +553,11 @@ async function loadSet(id) {
       'is lifted ' + (cur.residual.fixed_lift_db || cur.residual.gain_db) +
       ' dB to be audible — by the same fixed amount on every set, so a bigger ' +
       'difference still sounds bigger.';
-    $('diffbtn').innerHTML = esc(cur.residual.label || 'Difference') +
+    // When the set's own check says the label does not match the signal,
+    // do not put the disputed word on the control.
+    $('diffbtn').innerHTML =
+      esc(cur.residual.kind_disagrees ? 'Difference'
+                                      : (cur.residual.label || 'Difference')) +
       ' <kbd>D</kbd>';
     $('diffwhat').innerHTML = esc(cur.residual.explain || '') +
       ` <span style="color:var(--fg-3)">This signal is ` +
@@ -566,7 +575,7 @@ async function loadSet(id) {
     `<button aria-pressed="false" data-p="${a.letter}">${a.letter} was better</button>`)
     .join('') + '<button aria-pressed="false" data-p="tie">No preference</button>';
   $('picks').querySelectorAll('button').forEach(b => b.onclick = () => {
-    picked = b.dataset.p;
+    picked = b.dataset.p; $('saved').textContent = '';
     $('picks').querySelectorAll('button').forEach(x =>
       x.setAttribute('aria-pressed', x === b));
   });
@@ -734,12 +743,23 @@ function abxRunning() {
 
 $('save').onclick = async () => {
   if (!picked) { $('saved').textContent = 'pick one first'; return; }
-  await api('score/' + encodeURIComponent(cur.id), {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({preferred: picked, confidence: 'n/a',
-      note: $('notes').value, switches, seconds: listened,
-      abx: abxPayload(),
-      revealed_first: !!$('answer').textContent})});
+  $('saved').textContent = '';
+  try {
+    await api('score/' + encodeURIComponent(cur.id), {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({preferred: picked, confidence: 'n/a',
+        note: $('notes').value, switches, seconds: listened,
+        abx: abxPayload(),
+        revealed_first: !!$('answer').textContent})});
+  } catch (err) {
+    // A verdict is a minute of careful listening. Losing one silently is
+    // worse than losing it loudly: you walk away believing it was recorded.
+    const why = String(err.why || err.message || 'the server refused it')
+                  .replace(/[.\s]+$/, '');
+    $('saved').innerHTML = '<span class="warn">Not saved — ' + esc(why) +
+      '. Your pick and note are still here; try again.</span>';
+    return;
+  }
   await afterSave();   // the advice line reports the save; a tick here
                        // is wiped by the set change before it can be read
 };
@@ -754,8 +774,9 @@ addEventListener('keydown', e => {
   if (['TEXTAREA','INPUT','SELECT'].includes(e.target.tagName)) return;
   const k = e.key.toLowerCase();
   if (k === ' ') { e.preventDefault(); $('play').click(); }
-  else if (k === 's') $('swap').click();
-  else if (k === 'd' && cur && cur.residual) $('diffbtn').click();
+  else if (k === 's') { if (!abxRunning()) $('swap').click(); }
+  else if (k === 'd' && cur && cur.residual) {
+    if (!abxRunning()) $('diffbtn').click(); }
   else if (k === 'l' && cur) {
     // Always four seconds. Taking pos()-4 to pos() gave a 0.2 s loop
     // anywhere in the first four seconds, which is not what the key says.
@@ -796,7 +817,7 @@ function beginLoad(id) {
   // A check in progress is work the listener has done. Changing set throws
   // it away, and the arrows and the picker used to do that without a word.
   if (typeof abxRunning === 'function' && abxRunning()) {
-    say('Listening check on ' + (cur ? cur.id : 'the last set') +
+    say('Listening check on ' + (cur ? (cur.title || cur.id) : 'the last set') +
         ' was abandoned part way, so nothing was proved there.');
   }
   stop();
@@ -961,7 +982,12 @@ addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const n = ARM_KEYS.indexOf(e.key);
   if (n < 0 || !cur) return;
-  if (n < cur.arms.length) { e.preventDefault(); select(n); }
+  if (n >= cur.arms.length) return;
+  // During a check only the two on trial may be auditioned. Wandering onto a
+  // third arm mid-trial makes the answer you then give about audio that was
+  // not in the question.
+  if (abxRunning() && !abx.pair.includes(n)) return;
+  e.preventDefault(); select(n);
 });
 
 /* ── replacements for existing functions ──────────────────────────── */
@@ -1152,9 +1178,16 @@ function evidence(row) {
   const p = typeof a.p_value === 'number'
     ? (a.p_value >= 0.001 ? a.p_value.toFixed(3) : a.p_value.toExponential(1))
     : '?';
-  return a.audible
-    ? `<span class="ok">${a.correct}/${a.trials}, p ${p}</span>`
-    : `<span class="warn">${a.correct}/${a.trials}, p ${p}</span>`;
+  // Name the pair. A check on C and D says nothing about a preference for
+  // A, and without the pair on screen a green tick beside "A" reads as
+  // evidence for a comparison that was never run.
+  const pair = Array.isArray(a.pair) ? a.pair.join(' v ') : '?';
+  const covers = Array.isArray(a.pair) && row.preferred_letter &&
+                 a.pair.includes(row.preferred_letter);
+  const body = `${a.correct}/${a.trials}, p ${p} <small>(${esc(pair)})</small>`;
+  if (!a.audible) return `<span class="warn">${body}</span>`;
+  return covers ? `<span class="ok">${body}</span>`
+                : `<span class="warn">${body} — not this pick</span>`;
 }
 
 async function renderSoFar() {
@@ -1313,9 +1346,14 @@ function abxReset() {
   $('abxB').value = String(Math.min(1, Math.max(0, arms.length - 1)));
   // With two arms there is no pair to choose, so do not ask.
   $('abxPair').hidden = arms.length < 3;
-  $('abxWhy').firstChild.nodeValue = arms.length < 3
+  // The paragraph is a single text node, so assigning to firstChild wiped
+  // all of it — the only explanation of what the check is never rendered.
+  $('abxWhy').textContent = (arms.length < 3
     ? 'X is secretly one of the two. '
-    : 'X is secretly one of the two you pick. ';
+    : 'X is secretly one of the two you pick. ') +
+    'Say which one it matches, several times over. Getting it right often ' +
+    'enough proves the two really do sound different — until then a ' +
+    'preference is a guess.';
   $('abxSetup').hidden = false;
   $('abxRun').hidden = true;
   $('abxResult').hidden = true;
@@ -1390,15 +1428,21 @@ function abxFinish() {
       `few seconds, or run more trials. A preference saved now is a coin flip.`;
   $('abxSeq').innerHTML = 'X was ' + abx.trials.map(t => t.correct
     ? `<b>${esc(t.x)}</b>` : `<s>${esc(t.x)}</s>`).join(' ') +
-    ' &nbsp;— green is one you got right.';
+    ' &nbsp;— green are the ones you got right.';
   abxPaint();
 }
 
 function abxStopRun() {
   // A half-finished run proves nothing, so it is thrown away rather than
   // scored on the trials that happened to go well.
+  // Read the pair BEFORE discarding the run. The previous version nulled
+  // abx and then reached into it, so stopping while listening to X threw,
+  // skipped everything after it, and left a dead check panel that still
+  // looked live and could not be restarted.
+  const back = abx && abx.pair ? abx.pair[0] : 0;
+  const wasOnX = active === xIndex();
   abx = null; setXArm(-1);
-  if (active === xIndex()) select(abx.pair[0]);   // back to the pair, not to A
+  if (wasOnX) select(back);
   $('abxRun').hidden = true; $('abxSetup').hidden = false;
   $('abxFlag').hidden = false;
   $('abxFlag').textContent = 'Check stopped part way, so nothing was proved. ' +
