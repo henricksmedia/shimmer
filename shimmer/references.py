@@ -53,6 +53,15 @@ LIBRARY = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 SR = 48000
 BLOCK = 4096
+# Analyse in 16384-sample windows, not in the 4096-sample blocks the recorder
+# hands over. A 4096-point FFT at 48 kHz has 11.7 Hz bins, and the 40 Hz
+# third-octave band spans 35.6-44.9 Hz — no bin lands inside it, so
+# `analyze_spectrum` returned its empty-band sentinel and every capture read
+# about -155 dB there. A sentinel that looks like a measurement is worse than
+# a gap: 13 of 13 captures carried it and it was invisible until a target was
+# derived from them. 16384 samples gives 2.9 Hz bins, so every band from
+# 31.5 Hz up has real content behind it.
+ANALYSIS = 16384
 MIN_SECONDS = 20.0        # below this a long-term average is not stable
 MAX_SECONDS = 600.0       # a safety stop, not a target
 SILENCE_DBFS = -60.0      # blocks quieter than this do not count as music
@@ -331,6 +340,8 @@ _ACTIVE: Optional[Capture] = None
 def _run(cap: Capture) -> None:
     import soundcard as sc
     poll = 0.0
+    buf: List[np.ndarray] = []      # audio held back until a window is full
+    held = 0
     try:
         mic = sc.get_microphone(cap.device_id, include_loopback=True)
         with mic.recorder(samplerate=SR, channels=2, blocksize=BLOCK) as rec:
@@ -357,6 +368,10 @@ def _run(cap: Capture) -> None:
                         # it was playing under, then start the next one.
                         if cap.track:
                             cap._flush(cap.track)
+                        # Held-back audio belongs to the track that just
+                        # ended; carrying it forward would put the tail of
+                        # one song into the head of the next.
+                        buf, held = [], 0
                         with cap._lock:
                             cap.track = name
                     elif not cap.track and name:
@@ -366,13 +381,21 @@ def _run(cap: Capture) -> None:
                 # Silence is not music. A paused player would otherwise pull
                 # the average toward whatever the noise floor looks like.
                 if rms > 10.0 ** (SILENCE_DBFS / 20.0):
-                    bp = np.array(analyze_spectrum(mono, SR)["band_power_db"])
-                    lin = 10.0 ** (bp / 10.0)
+                    buf.append(mono)
+                    held += len(mono)
                     with cap._lock:
-                        cap._acc = lin if cap._acc is None else cap._acc + lin
-                        cap._n += 1
                         cap._sq += rms * rms
                         cap.heard += dur
+                    # Wait for a window long enough to resolve the lowest
+                    # bands before measuring anything.
+                    if held >= ANALYSIS:
+                        chunk = np.concatenate(buf)[:ANALYSIS]
+                        buf, held = [], 0
+                        bp = np.array(analyze_spectrum(chunk, SR)["band_power_db"])
+                        lin = 10.0 ** (bp / 10.0)
+                        with cap._lock:
+                            cap._acc = lin if cap._acc is None else cap._acc + lin
+                            cap._n += 1
     except Exception as e:  # noqa: BLE001
         with cap._lock:
             cap.error = str(e)

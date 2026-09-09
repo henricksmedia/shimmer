@@ -31,6 +31,36 @@ def realistic():
                                 + 10.0 * np.log10(0.2316 * F))
 
 
+# ── every band must have real content behind it ─────────────────────────
+
+def test_the_analysis_window_resolves_every_band():
+    """A band with no FFT bin in it returns a sentinel that reads as data.
+
+    The capture analysed 4096-sample blocks. At 48 kHz that is 11.7 Hz per
+    bin, and the 40 Hz third-octave band spans 35.6-44.9 Hz, so no bin landed
+    inside it: `analyze_spectrum` returned -120 dB and every capture recorded
+    about -155 dB there. Thirteen of thirteen carried it and nobody saw it
+    until a tone target was derived from them.
+    """
+    edges_lo = F / 2.0 ** (1.0 / 6.0)
+    edges_hi = F * 2.0 ** (1.0 / 6.0)
+    bins = np.fft.rfftfreq(R.ANALYSIS, 1.0 / R.SR)
+    for lo, hi, centre in zip(edges_lo, edges_hi, F):
+        if centre > R.SR / 2:
+            continue
+        inside = int(((bins >= lo) & (bins <= hi)).sum())
+        assert inside >= 1, f"{centre:.0f} Hz band has no FFT bin in it"
+
+
+def test_the_old_block_size_would_have_failed_this():
+    """Guards the guard: if the assertion above cannot fail it proves nothing."""
+    bins = np.fft.rfftfreq(4096, 1.0 / R.SR)
+    empty = [float(c) for c in F
+             if c <= R.SR / 2 and not ((bins >= c / 2 ** (1 / 6))
+                                       & (bins <= c * 2 ** (1 / 6))).any()]
+    assert empty, "expected the old 4096-sample window to leave a band empty"
+
+
 # ── the gate itself ─────────────────────────────────────────────────────
 
 def test_gate_comes_from_real_masters_not_from_the_target():
