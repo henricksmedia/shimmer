@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference library · Shimmer</title>
+<link rel="stylesheet" href="/static/marketing/marketing.css">
+<style>
+  .wrap { max-width: 980px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .lede { max-width: 62ch; }
+  .panel { border: 1px solid var(--line, #2a2f3a); border-radius: 10px;
+           padding: 1.1rem 1.25rem; margin: 1.25rem 0;
+           background: var(--card, #171a21); }
+  .row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  .row > * { flex: 0 0 auto; }
+  select, input[type=text] { background: #10131a; color: inherit;
+      border: 1px solid #2a2f3a; border-radius: 6px; padding: .45rem .6rem;
+      font: inherit; min-width: 12rem; }
+  button { background: #2b6cb0; color: #fff; border: 0; border-radius: 6px;
+           padding: .5rem .9rem; font: inherit; cursor: pointer; }
+  button.ghost { background: transparent; border: 1px solid #2a2f3a;
+                 color: inherit; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.rec { background: #b02b2b; }
+  .meter { height: 8px; background: #10131a; border-radius: 4px;
+           overflow: hidden; flex: 1 1 12rem; min-width: 8rem; }
+  .meter > i { display: block; height: 100%; width: 0;
+               background: linear-gradient(90deg,#2b6cb0,#4ade80);
+               transition: width .15s linear; }
+  table { width: 100%; border-collapse: collapse; margin-top: .75rem; }
+  th, td { text-align: left; padding: .4rem .5rem;
+           border-bottom: 1px solid #232833; font-variant-numeric: tabular-nums; }
+  th { font-weight: 600; opacity: .75; font-size: .85rem; }
+  .muted { opacity: .68; }
+  .warn { color: #f0b429; }
+  .ok { color: #4ade80; }
+  canvas { width: 100%; height: 260px; display: block; }
+  code { background: #10131a; padding: .1rem .35rem; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Reference library</h1>
+  <p class="lede muted">
+    Play music through this machine and Shimmer measures its tone, then throws
+    the audio away and keeps only the curve. That curve is what the tone target
+    is built from. Developer tooling — not part of the app users see.
+  </p>
+
+  <div class="panel">
+    <h2>Record</h2>
+    <div class="row">
+      <select id="device"><option>loading…</option></select>
+      <input type="text" id="label" placeholder="Artist — Title" size="28">
+      <input type="text" id="genre" placeholder="genre (optional)" size="14">
+      <button id="go">Start</button>
+      <button id="stop" class="ghost" disabled>Stop &amp; save</button>
+    </div>
+    <div class="row" style="margin-top:.8rem">
+      <span id="clock" class="muted">0.0 s</span>
+      <div class="meter"><i id="bar"></i></div>
+      <span id="peak" class="muted"></span>
+    </div>
+    <p id="msg" class="muted" style="margin:.7rem 0 0"></p>
+    <p class="muted" style="margin:.6rem 0 0;font-size:.86rem">
+      Turn <strong>off</strong> your player's volume normalisation first. Level
+      itself does not matter — the curve is normalised, so a track played 12 dB
+      louder measures identically. But a normaliser also <em>limits</em> when it
+      raises a quiet track, and that changes the audio. Loudness is never
+      recorded from a capture for the same reason.
+      Needs about 20 s of music per track.
+    </p>
+  </div>
+
+  <div class="panel">
+    <h2>Library <span id="count" class="muted"></span></h2>
+    <canvas id="plot" width="1800" height="520"></canvas>
+    <p class="muted" style="font-size:.86rem;margin:.5rem 0 0">
+      <span style="color:#4ade80">green</span> — the median of what you have
+      captured. <span style="color:#8aa">grey band</span> — where the middle
+      68&nbsp;% of it sits. <span style="color:#f0b429">amber</span> — the tone
+      target Shimmer ships today. Where green sits above amber, real music has
+      more energy than the target expects.
+    </p>
+    <table id="rows"><thead><tr>
+      <th>Track</th><th>Genre</th><th>Heard</th><th></th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <p class="muted" style="font-size:.86rem">
+    Stored in <code>docs/reference-library.json</code> — curves only, no audio.
+    Feed it to the target with <code>scripts/build_tone_reference.py</code>.
+  </p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const api = (p, body) => fetch('/api/dev/references/' + p, body ? {
+  method: 'POST', headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify(body)} : undefined).then(r => r.json());
+
+let timer = null;
+
+async function loadDevices() {
+  const d = await api('devices');
+  const sel = $('device');
+  sel.innerHTML = '';
+  if (!d.available || !d.devices.length) {
+    sel.innerHTML = '<option>no loopback device</option>';
+    $('go').disabled = true;
+    $('msg').innerHTML = '<span class="warn">Cannot capture: ' +
+      (d.hint || 'no loopback device found') + '</span>';
+    return;
+  }
+  for (const dev of d.devices) {
+    const o = document.createElement('option');
+    o.value = dev.id;
+    o.textContent = dev.name + (dev.is_default ? '  (default)' : '');
+    if (dev.is_default) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+function tick() {
+  api('status').then(s => {
+    if (!s.running) { clearInterval(timer); timer = null; return; }
+    $('clock').textContent = s.seconds.toFixed(1) + ' s   ·   ' +
+      s.heard_seconds.toFixed(1) + ' s of music';
+    $('bar').style.width = Math.min(100, (s.heard_seconds / 20) * 100) + '%';
+    $('peak').textContent = s.peak_dbfs > -90 ? s.peak_dbfs + ' dBFS peak' : '';
+    $('stop').disabled = !s.enough;
+    $('msg').textContent = s.enough
+      ? 'Enough captured — stop whenever you like. Longer is steadier.'
+      : 'Listening… need ' + (20 - s.heard_seconds).toFixed(0) + ' s more music.';
+    if (s.error) $('msg').innerHTML = '<span class="warn">' + s.error + '</span>';
+  });
+}
+
+$('go').onclick = async () => {
+  const r = await api('start', {device_id: $('device').value,
+                                label: $('label').value});
+  if (!r.ok) { $('msg').innerHTML = '<span class="warn">' + r.error + '</span>'; return; }
+  $('go').disabled = true; $('go').classList.add('rec');
+  $('go').textContent = 'Recording…';
+  timer = setInterval(tick, 400); tick();
+};
+
+$('stop').onclick = async () => {
+  const r = await api('stop', {label: $('label').value, genre: $('genre').value});
+  clearInterval(timer); timer = null;
+  $('go').disabled = false; $('go').classList.remove('rec');
+  $('go').textContent = 'Start'; $('stop').disabled = true;
+  $('clock').textContent = '0.0 s'; $('bar').style.width = '0';
+  if (!r.ok) { $('msg').innerHTML = '<span class="warn">' + r.error + '</span>'; return; }
+  $('msg').innerHTML = '<span class="ok">Saved “' + r.row.label +
+    '”. ' + r.count + ' in the library.</span>';
+  $('label').value = '';
+  refresh();
+};
+
+function draw(lib) {
+  const c = $('plot'), g = c.getContext('2d');
+  const W = c.width, H = c.height, L = 70, R = 20, T = 20, B = 40;
+  g.clearRect(0, 0, W, H);
+  const f = lib.bands_hz, lo = -28, hi = 12;
+  const X = i => L + (i / (f.length - 1)) * (W - L - R);
+  const Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+
+  g.strokeStyle = '#232833'; g.fillStyle = '#8aa'; g.lineWidth = 1;
+  g.font = '20px system-ui';
+  for (let v = -25; v <= 10; v += 5) {
+    g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(W - R, Y(v)); g.stroke();
+    g.fillText(v + ' dB', 6, Y(v) + 7);
+  }
+  f.forEach((hz, i) => {
+    if (![63, 250, 1000, 4000, 10000, 20000].includes(Math.round(hz))) return;
+    g.fillText(hz >= 1000 ? (hz / 1000) + 'k' : hz, X(i) - 14, H - 12);
+  });
+
+  const line = (arr, col, w) => {
+    g.strokeStyle = col; g.lineWidth = w; g.beginPath();
+    arr.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)));
+    g.stroke();
+  };
+  if (lib.p16_db && lib.p84_db) {
+    g.fillStyle = 'rgba(138,170,170,.18)'; g.beginPath();
+    lib.p84_db.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)));
+    for (let i = lib.p16_db.length - 1; i >= 0; i--) g.lineTo(X(i), Y(lib.p16_db[i]));
+    g.closePath(); g.fill();
+  }
+  line(lib.target_db, '#f0b429', 3);
+  if (lib.median_db) line(lib.median_db, '#4ade80', 4);
+}
+
+async function refresh() {
+  const lib = await api('library');
+  $('count').textContent = lib.count ? '· ' + lib.count + ' tracks' : '· empty';
+  const tb = $('rows').querySelector('tbody');
+  tb.innerHTML = '';
+  lib.tracks.forEach((t, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + t.label + '</td><td class="muted">' +
+      (t.genre || '—') + '</td><td class="muted">' +
+      (t.heard_seconds || 0).toFixed(0) + ' s</td>' +
+      '<td><button class="ghost" data-i="' + i + '">remove</button></td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('button').forEach(b => b.onclick = async () => {
+    await api('delete', {index: +b.dataset.i}); refresh();
+  });
+  draw(lib);
+}
+
+loadDevices(); refresh();
+</script>
+</body>
+</html>

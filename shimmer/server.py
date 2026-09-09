@@ -723,6 +723,58 @@ async def api_chain(payload: Dict[str, Any]) -> JSONResponse:
     ))
 
 
+# ── Reference library (developer tooling) ───────────────────────────────
+#
+# Builds the tone target from music playing on this machine. Reachable at
+# /static/references/ and deliberately NOT in the app's navigation — the same
+# arrangement as /static/marketing/. Users get the constant this produces,
+# not the machine that produces it. See shimmer/references.py.
+
+
+@app.get("/api/dev/references/devices")
+async def api_ref_devices() -> JSONResponse:
+    from . import references as refs
+    if not refs.available():
+        return JSONResponse({"available": False, "devices": [],
+                             "hint": "pip install soundcard"})
+    try:
+        return JSONResponse({"available": True, "devices": refs.devices()})
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"available": False, "devices": [], "hint": str(e)})
+
+
+@app.post("/api/dev/references/start")
+async def api_ref_start(payload: Dict[str, Any]) -> JSONResponse:
+    from . import references as refs
+    return JSONResponse(refs.start(str(payload.get("device_id") or ""),
+                                   str(payload.get("label") or "")))
+
+
+@app.get("/api/dev/references/status")
+async def api_ref_status() -> JSONResponse:
+    from . import references as refs
+    return JSONResponse(refs.status())
+
+
+@app.post("/api/dev/references/stop")
+async def api_ref_stop(payload: Dict[str, Any]) -> JSONResponse:
+    from . import references as refs
+    return JSONResponse(refs.stop(str(payload.get("label") or ""),
+                                  str(payload.get("genre") or "")))
+
+
+@app.get("/api/dev/references/library")
+async def api_ref_library() -> JSONResponse:
+    from . import references as refs
+    return JSONResponse(refs.summary())
+
+
+@app.post("/api/dev/references/delete")
+async def api_ref_delete(payload: Dict[str, Any]) -> JSONResponse:
+    from . import references as refs
+    return JSONResponse(refs.delete(int(payload.get("index", -1))))
+
+
 @app.get("/api/settings")
 async def api_settings_get() -> JSONResponse:
     return JSONResponse(load_settings())
