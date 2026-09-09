@@ -953,11 +953,36 @@ number.
 
 §2.1 established that the old target was a sixty-year average used as a
 present-day target, and the fix pointed `_REF_SHAPE_DB` at a curve measured
-from 309 masters. That fix is wrong, in the opposite direction, and by more
-than the original error. This section is the evidence and the retraction.
+from a catalogue of finished masters. That fix is wrong, in the opposite
+direction, and by more than the original error. This section is the evidence
+and the retraction.
 
-The 309 masters were produced by **one automated mastering service, from AI
-renders**. `docs/tone-reference.json` says so in its own metadata: *"This is
+Precisely: the shipped curve is the median of the **135 Neutral rows** of the
+309-row corpus in `docs/tone-reference.json` — matching to a maximum
+deviation of 0.05 dB — and all 309 were produced by **one automated mastering
+service, from AI renders**. (Comparisons below labelled "service" use the
+full 309 unless stated; the all-309 median is −1.53 dB over 2.5–12.5 kHz
+against the shipped −0.80, so the two are close but not interchangeable.)
+
+**What was replaced matters as much as what replaced it.** Before `97609c0`,
+`_REF_SHAPE_DB` was derived from Pestana, Ma, Reiss, Barbosa & Black, AES 135
+(2013) — 772 commercial recordings, published. The swap therefore went from a
+peer-reviewed corpus to one vendor's house algorithm applied to AI renders.
+The criticism that motivated it was sound: a 1950–2010 average *is* shifted
+for present-day music. But the answer to "this study is too old" is a newer
+study, and Elowsson & Friberg (2017, 12,345 tracks) existed and was not
+looked for. The commit's own comment records the reasoning — *"an honest
+specific in place of a wrong universal"* — which reads as restraint and is
+not: it replaced a dated measurement of music with a current measurement of a
+vendor, and quietly redefined the goal as sounding like that vendor.
+
+That comment also states, as fact, that *"real masters hold roughly level
+from 315 Hz to 10 kHz and then fall off a cliff."* *Measured:* they do not.
+Across that span the published mean falls **15.7 dB** (+0.17 at 315 Hz,
+−8.54 at 4 kHz, −15.57 at 10 kHz). What holds level there is the service's
+own output: **+0.28, +0.41, −0.00**. An observation about one algorithm was
+written down as a property of commercial music, and everything downstream
+inherited it. `docs/tone-reference.json` says so in its own metadata: *"This is
 a target for this tool's material, not a general commercial reference."* It
 was shipped as a general commercial reference anyway. AI renders are bright
 before anything touches them (§1, Suno source measures −4.83 in the presence
