@@ -1,0 +1,41 @@
+source: Distrokid_Hey.wav  (20s)
+This master carries no measurable hash, so every number is collateral.
+
+preset                       purity           says |  lin_dist  missing   added    verdict
+Suno Hash (5-12 kHz Flicke    0.962 noise, not music |     0.642    0.054   0.184    audible
+Cymbal Sheen                  0.855          mixed |     0.038    0.003   0.006      clean
+Laser Whistle                 0.888          mixed |     0.037    0.003   0.005      clean
+Brittle Air                   1.000 noise, not music |     0.188    0.005   0.010      clean
+Sibilance Rattle              0.933 noise, not music |     1.144    0.053   0.088    audible
+Cymbal Chatter                0.947 noise, not music |     0.087    0.004   0.006      clean
+Broadband Fizz                0.861          mixed |     0.433    0.007   0.016      clean
+Checkerboard Grid             0.947 noise, not music |     0.076    0.003   0.005      clean
+Reverb Flutter                0.881          mixed |     0.041    0.009   0.009      clean
+Vocal Glaze                   0.822          mixed |     1.126    0.049   0.082      clean
+Vocal Glaze + Top End         0.970 noise, not music |     6.580    0.126   1.217    audible
+Echo Sheen                    0.888          mixed |     1.924    0.036   0.069      clean
+Presence Haze                 0.917 noise, not music |     4.388    0.057   0.108    audible
+Phantom Cymbal                0.733          mixed |     0.242    0.020   0.034      clean
+Harsh Veil                    0.815          mixed |     2.535    0.032   0.076      clean
+Deep Scrub                    0.758          mixed |    18.051    0.122   0.924    audible
+
+purity  range 0.733 - 1.000  (spread 0.267)
+missing range 0.003 - 0.126  (ratio  44x)
+
+Ranked by audible damage on artifact-free audio:
+     0.126 sones   purity 0.970   Vocal Glaze + Top End
+     0.122 sones   purity 0.758   Deep Scrub
+     0.057 sones   purity 0.917   Presence Haze
+     0.054 sones   purity 0.962   Suno Hash (5-12 kHz Flicker)
+     0.053 sones   purity 0.933   Sibilance Rattle
+     0.049 sones   purity 0.822   Vocal Glaze
+     0.036 sones   purity 0.888   Echo Sheen
+     0.032 sones   purity 0.815   Harsh Veil
+     0.020 sones   purity 0.733   Phantom Cymbal
+     0.009 sones   purity 0.881   Reverb Flutter
+     0.007 sones   purity 0.861   Broadband Fizz
+     0.005 sones   purity 1.000   Brittle Air
+     0.004 sones   purity 0.947   Cymbal Chatter
+     0.003 sones   purity 0.947   Checkerboard Grid
+     0.003 sones   purity 0.855   Cymbal Sheen
+     0.003 sones   purity 0.888   Laser Whistle

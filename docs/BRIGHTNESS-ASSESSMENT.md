@@ -1066,17 +1066,56 @@ bracket on the bright side.
 it is **+7.76 dB**, or +6.4 dB after the excerpt-bias correction. The shape
 test above says the captures are the better contemporary estimate.
 
-**Best estimate: about 6.7 dB too bright in the presence band and 8.5 dB too
-bright in the air band. Bass, low-mid and mid are within about 2 dB and need
-no change.**
+**Best estimate: the target runs about 8 dB hot over 2.5–12.5 kHz against
+contemporary commercial masters, and the divergence begins at 1.25–1.6 kHz,
+not at 4.5 kHz.** Target minus capture median, band by band: +1.30 at
+1.25 kHz, +2.37 at 1.6 kHz, +4.12 at 2 kHz, +5.75 at 2.5 kHz, +8.03 at 4 kHz,
++8.47 over 5–12.5 kHz. The published corpus agrees with the captures to
+within 0.2 dB at 1.6 and 2 kHz — two corpora with opposite era and genre
+biases converging on the same numbers, both disagreeing with the target.
 
-One correction to an intermediate claim made while this was being worked out:
-the 89 Hz – 4.5 kHz invariant slope is −4.28 for the target against −4.53
-published, and it is tempting to read that agreement as "the target is fine
-below 4.5 kHz". It is not. A two-point slope is blind to a symmetric smile,
-and the target is +7.4 dB at 100 Hz and +1.1 dB at 4 kHz relative to the
-paper's curve — a similar tilt across the span, a different shape within it.
-The invariant is a useful check on tilt and nothing more.
+Note that 2 kHz sits *inside* the 200 Hz – 2 kHz normalisation window, so the
+error has begun eating its own anchor. And the root of it is a mid-slope
+disagreement rather than a treble defect: from 315 Hz to 2 kHz the paper falls
+4.4 dB and the captures track it, while the target falls 0.3 dB. A curve that
+is flat where real music tilts down reads high at both ends once it is
+normalised to the middle. That is the same mechanism §2.1 identified in the
+*old* target — "the excess is inherited from the mids, not created in the
+top" — which is why a fix scoped to the air band would not work.
+
+Bass, low-mid and mid are within about 2 dB of contemporary masters and need
+no change. Against the paper the target is +8.45 dB in the bass, but the
+captures are +7.1 there too, so that gap is the paper's era bias rather than
+a target defect.
+
+**The 89 Hz – 4.5 kHz invariant slope must not be used as evidence that the
+low end is calibrated.** An earlier draft of this section did exactly that,
+on the grounds that the target reads −4.28 against −4.53 published. Seven
+independent reviews rejected it and they are right, for two reasons.
+
+*Measured.* It is a two-point secant, structurally blind to any error common
+to both endpoints. The target's PSD error against the paper is **+9.36 dB at
+89 Hz and +10.10 dB at 4.5 kHz**; the slope sees only the 0.74 dB difference,
+while the **RMS residual across the very span the test covers is 4.82 dB**.
+A statistic that passes a curve 4.8 dB RMS wrong is measuring nothing. The
+decisive counterexample is in this repository's own history: the pre-`97609c0`
+target scores −4.545, *closer* to the paper than the current one, while
+sitting about 4.9 dB above it everywhere.
+
+*Cited and measured.* The ±0.055 dB/oct figure is not a tolerance. It is the
+standard deviation between eleven **group means of ~1122 tracks each**
+(§4.2), and it is the argmin of a two-dimensional search over endpoint pairs
+(Fig. 8) — a selected minimum. The per-track standard deviation of the same
+statistic measured here is **0.744 dB/oct across the 309 service masters and
+1.085 across the captures**, thirteen to twenty times larger. Against a real
+tolerance the target (−4.281), the service masters (−4.404) and the paper
+(−4.412) are indistinguishable, and the captures (−5.188) are about 0.7 SE
+out rather than anomalous.
+
+This is the `purity` trap from §2.5 in a new costume: a number that cannot
+fail, read as evidence because it looked like one. The invariant is worth
+keeping as a coarse tilt check with an honest tolerance near ±1.5 dB/oct, and
+it must never be quoted as a statement about level or shape.
 
 ### 7.6 What follows
 
@@ -1104,7 +1143,64 @@ The invariant is a useful check on tilt and nothing more.
    broken capture; and `report()` states a verdict with no uncertainty and no
    excerpt-bias correction.
 
-**Confidence.** The direction and rough magnitude above 2 kHz are *measured*
-and agree across three independent routes. The exact per-band values are
+**Confidence.** The direction and rough magnitude above 1.6 kHz are
+*measured* and agree across independent routes. The exact per-band values are
 *not* settled and should not be until item 2 is done — 13 tracks cannot set a
 29-band curve.
+
+### 7.7 What was done to try to break this
+
+§7.1–7.6 were written first and then attacked, because the same investigation
+had already produced three claims that did not survive checking (§2.1, §2.11,
+and the loudness recommendation withdrawn in §4). Everything below either
+confirms or corrects what is above; nothing here was known when it was
+written.
+
+**The capture path was validated end to end, twice.** *Measured.* The
+loopback leg first: a file played through the speakers and caught on loopback
+matched the file on disk to **0.28 dB** mean, 0.53 worst, 250 Hz – 12.5 kHz.
+That left Spotify's own decoder and equalizer untested, and every commercial
+capture came through them. So eight service masters that exist on this disk
+were played through Spotify as local files and captured:
+**−0.57 dB ± 0.38 over 2.5–12.5 kHz across eight paired controls**, with a
+flat per-band difference — no tilt, no codec ramp, no equalizer signature,
+and every capture landing inside the range of windows from its own source.
+`scripts/tone-evidence/spotify_control.py`. **The captures are sound.**
+
+**Seven independent reviews and a synthesis were run against §7.1–7.6.** Four
+re-derivations, each on a different lens, and three skeptics briefed to refute
+it — one of them specifically to argue the shipped target is closer to right
+than the published corpus is. *Measured.* **All three skeptics returned "not
+refuted"**, the assigned defender reporting that its position lost. The
+headline arithmetic reproduced by five independent routes, including a
+from-scratch reimplementation of the paper's §2.2 pipeline and a synthesis
+check that built noise to the paper's exact PSD and measured −11.65 against
+−11.75 predicted. **13 of 13 captures sit below the target in every band from
+2.5 to 8 kHz** (sign test p = 0.00024); the brightest single commercial
+capture in the set is still 2.00 dB below it.
+
+Three things they corrected, all of which make the defect **larger**:
+
+1. **"Correctly calibrated below 4.5 kHz" was false**, unanimously. The
+   divergence begins at 1.25–1.6 kHz. §7.5 above is the corrected version;
+   the claim came from over-reading the invariant-slope test.
+2. **The invariant-slope test is invalid as evidence about level**, for the
+   reasons now recorded in §7.5. This is the `purity` failure of §2.5
+   repeating: a statistic that cannot fail, mistaken for evidence because it
+   returned a number. It was nearly written into the test suite as
+   checklist item 13 before this caught it.
+3. **The excerpt-bias correction of −1.35 dB is not a solid measurement**
+   (n=8, se 0.78, 95% CI [−3.19, +0.50]) and the Spotify control supersedes
+   it: 21–23 s captures land within 0.75 dB of the full file. Carry
+   **−0.6 ± 0.4 dB**.
+
+One quoted figure was also simply wrong and is withdrawn: an intermediate
+summary gave the lower bound of the defect as "+3 dB versus the captures".
+That number is the *captures'* distance from the paper, not the target's
+distance from the captures. **Target minus captures is +7.92 dB.** The
+defensible bracket is +7.9 to +10.7 dB, and the paper half of it should be
+carried as a direction-of-agreement witness rather than quoted as a bound.
+
+**Everything above is re-runnable.** The scripts, what each one establishes,
+the numbers they produced, and the two results that are traps rather than
+evidence are indexed in `scripts/tone-evidence/README.md`.
