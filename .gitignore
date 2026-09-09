@@ -114,3 +114,8 @@ git-release.ps1
 
 # Demo video: too large for the repo. Distribute as a release asset or LFS.
 assets/demo/
+
+# Tone-target analysis scripts: local working evidence, not product.
+# Kept in the repo so they are alongside the data they read, but never
+# pushed - they hardcode local paths and read audio that is not distributed.
+scripts/tone-evidence/

@@ -1201,6 +1201,10 @@ distance from the captures. **Target minus captures is +7.92 dB.** The
 defensible bracket is +7.9 to +10.7 dB, and the paper half of it should be
 carried as a direction-of-agreement witness rather than quoted as a bound.
 
-**Everything above is re-runnable.** The scripts, what each one establishes,
-the numbers they produced, and the two results that are traps rather than
-evidence are indexed in `scripts/tone-evidence/README.md`.
+**Everything above is re-runnable.** The scripts that produced every number
+in §7, what each one establishes, and the two results that are traps rather
+than evidence are indexed in `scripts/tone-evidence/README.md`,
+which is gitignored: it is local working evidence, not product. They are
+scripts with hardcoded paths and no tests, reading local audio that is not
+distributed. Kept because without them §7 is a set of assertions
+nobody can re-check, and re-deriving it costs days.
