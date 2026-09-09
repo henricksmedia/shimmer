@@ -88,8 +88,8 @@ count.
       range -1.7 to 13.0, 34/35 positive.** Tilt is the 1/3-octave level at
       6.3 kHz minus 800 Hz, middle 90 s, the tone reference's own analysis.
       The quotable sentence is therefore "about 6 dB, not 11": the six-song
-      figure was measured against references on mixed settings and against
-      Shimmer's densest excerpts. These Shimmer masters are what earlier
+      figure was measured on six songs against references on mixed
+      settings. These Shimmer masters are what earlier
       versions of the chain shipped (20 of 35 carry a Shimmer tag note
       naming the pass); the current chain's gap is `verify_tone_fix.py`'s
       question and stays at the 6.58 dB measured after the target swap on
