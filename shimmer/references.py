@@ -57,6 +57,127 @@ MIN_SECONDS = 20.0        # below this a long-term average is not stable
 MAX_SECONDS = 600.0       # a safety stop, not a target
 SILENCE_DBFS = -60.0      # blocks quieter than this do not count as music
 
+# A short excerpt reads slightly darker than the whole master, because a
+# capture tends to catch quieter passages. Measured on the chain itself:
+# eight masters that exist on disk, played through the player and captured,
+# landed 0.6 dB below the file over 2.5-12.5 kHz (se 0.4, n=8). An earlier
+# figure of -1.35 dB came from comparing 30 s windows against whole files and
+# had a 95% interval of [-3.19, +0.50] — too wide to correct with. See
+# BRIGHTNESS-ASSESSMENT.md §7.7.
+EXCERPT_BIAS_DB = -0.6
+EXCERPT_BIAS_SE_DB = 0.4
+
+TONE_REFERENCE = os.path.join(os.path.dirname(LIBRARY), "tone-reference.json")
+
+
+# ── Is a capture music, or a broken recording? ──────────────────────────
+
+_GATE: Optional[Dict[str, float]] = None
+
+
+def gate() -> Dict[str, float]:
+    """Bounds that real masters stay inside, measured from the shipped corpus.
+
+    Two captures in the first library read -50 and -43 dB at 10 kHz. No
+    record does that; those were broken recordings, not dark music. But a
+    plain median over the library counted them, and they set its headline.
+
+    The bounds come from `docs/tone-reference.json` — masters known to be
+    real — and deliberately NOT from the tone target. A gate that asks "does
+    this look like the target?" rejects captures for disagreeing with it,
+    which is the one question the library exists to answer. This asks only
+    whether the roll-off is physically like music.
+
+    The 1st percentile, so it rejects what no master in the corpus does
+    rather than what an unusual one might.
+    """
+    global _GATE
+    if _GATE is not None:
+        return _GATE
+    f = np.asarray(_REF_FREQS, dtype=np.float64)
+    i10 = int(np.argmin(np.abs(f - 10000.0)))
+    i16 = int(np.argmin(np.abs(f - 16000.0)))
+    curves: List[np.ndarray] = []
+    try:
+        with open(TONE_REFERENCE, "r", encoding="utf-8") as fh:
+            for row in json.load(fh).get("tracks", []):
+                c = np.asarray(row["rel_db"], dtype=np.float64)
+                if c.shape == f.shape:
+                    curves.append(c)
+    except (OSError, ValueError, KeyError):
+        curves = []
+    if len(curves) < 30:
+        # Corpus missing or unreadable. Fall back to the values it produced
+        # when this was written (317 masters), so the gate still works.
+        _GATE = {"n": 0, "hz10_db": -29.1, "hz16_db": -40.1,
+                 "slope_db_oct": -14.0}
+        return _GATE
+    arr = np.array(curves)
+    hi = (f >= 4000.0) & (f <= 16000.0)
+    slopes = np.array([float(np.polyfit(np.log2(f[hi]), c[hi], 1)[0])
+                       for c in arr])
+    _GATE = {"n": float(len(arr)),
+             "hz10_db": float(np.percentile(arr[:, i10], 1)),
+             "hz16_db": float(np.percentile(arr[:, i16], 1)),
+             "slope_db_oct": float(np.percentile(slopes, 1))}
+    return _GATE
+
+
+SOURCES = os.path.join(os.path.dirname(os.path.dirname(LIBRARY)), "sources")
+
+
+def is_control(row: Dict[str, Any]) -> bool:
+    """Is this a capture of a file we already have, rather than new evidence?
+
+    Playing a local file through the player and capturing it is how the chain
+    gets validated — it is the only way to compare a capture against a known
+    truth. Those rows are useful and must be kept, but they are not commercial
+    music. Most are masters from the same service the tone target was built
+    from, so pooling them into the median pulls the answer toward the target
+    and hides the very difference the library exists to measure. Measured: the
+    difference moves from -7.8 dB to -4.7 dB when eight of them are mixed in.
+
+    A row is a control when a file of the same name sits in `sources/`.
+    """
+    label = str(row.get("label") or "").strip()
+    if not label:
+        return False
+    for ext in (".wav", ".flac", ".mp3", ".m4a", ".ogg"):
+        if os.path.exists(os.path.join(SOURCES, label + ext)):
+            return True
+    return False
+
+
+def rejection(row: Dict[str, Any]) -> str:
+    """Why this row is not usable, or "" if it is. Reasons are user-facing."""
+    heard = float(row.get("heard_seconds") or 0.0)
+    if heard < MIN_SECONDS:
+        return (f"Only {heard:.0f}s of music. A tone average needs at least "
+                f"{MIN_SECONDS:.0f}s to settle.")
+    try:
+        c = np.asarray(row["rel_db"], dtype=np.float64)
+    except (KeyError, TypeError, ValueError):
+        return "No tone curve was recorded."
+    f = np.asarray(_REF_FREQS, dtype=np.float64)
+    if c.shape != f.shape:
+        return "The tone curve does not match the current bands."
+    g = gate()
+    i10 = int(np.argmin(np.abs(f - 10000.0)))
+    i16 = int(np.argmin(np.abs(f - 16000.0)))
+    if c[i10] < g["hz10_db"]:
+        return (f"Almost nothing at 10 kHz ({c[i10]:.0f} dB). No real master "
+                f"goes below {g['hz10_db']:.0f} dB there, so this is a broken "
+                f"recording rather than a dark track.")
+    if c[i16] < g["hz16_db"]:
+        return (f"Almost nothing at 16 kHz ({c[i16]:.0f} dB), below anything "
+                f"in the reference corpus ({g['hz16_db']:.0f} dB).")
+    hi = (f >= 4000.0) & (f <= 16000.0)
+    slope = float(np.polyfit(np.log2(f[hi]), c[hi], 1)[0])
+    if slope < g["slope_db_oct"]:
+        return (f"The top end falls off a cliff ({slope:.0f} dB per octave "
+                f"above 4 kHz). Music rolls off; it does not drop like this.")
+    return ""
+
 
 def available() -> bool:
     try:
@@ -144,6 +265,12 @@ class Capture:
     peak: float = 0.0
     _acc: Optional[np.ndarray] = None      # summed band power, linear
     _n: int = 0
+    # Level is recorded per track, not because a tone curve needs it — the
+    # curve is level-invariant by construction — but because without it a
+    # capture that is really the noise floor is indistinguishable from a
+    # genuinely dark master. The first library had two of those and there was
+    # no way to tell which. It stays out of `rel_db`; it is diagnostics.
+    _sq: float = 0.0                       # summed mean-square, linear
     track: str = ""                        # what is playing right now
     saved: List[str] = field(default_factory=list)
     auto: bool = True                      # follow track changes
@@ -168,20 +295,30 @@ class Capture:
         """Save what has accumulated as one row. Caller holds no lock."""
         with self._lock:
             acc, n, heard = self._acc, self._n, self.heard
+            sq, pk = self._sq, self.peak
             self._acc, self._n, self.heard = None, 0, 0.0
+            self._sq, self.peak = 0.0, 0.0
         if acc is None or n == 0 or heard < MIN_SECONDS:
             return None            # too short to be a stable average
         rel = relative_band_levels(
             10.0 * np.log10(np.maximum(acc / n, 1e-20)))
-        lib = load()
-        lib["tracks"].append({
+        row = {
             "label": (name or "untitled").strip(),
             "genre": "",
             "source": "capture",
             "tone_only": True,
             "heard_seconds": round(heard, 1),
+            "rms_dbfs": round(10.0 * float(np.log10(max(sq / n, 1e-20))), 1),
+            "peak_dbfs": round(20.0 * float(np.log10(max(pk, 1e-9))), 1),
             "rel_db": [round(float(v), 2) for v in rel],
-        })
+        }
+        # Say so at the moment of saving rather than only in the report, so a
+        # bad capture is caught while the track is still fresh in mind.
+        why = rejection(row)
+        if why:
+            row["rejected"] = why
+        lib = load()
+        lib["tracks"].append(row)
         save(lib)
         with self._lock:
             self.saved.append(name)
@@ -234,6 +371,7 @@ def _run(cap: Capture) -> None:
                     with cap._lock:
                         cap._acc = lin if cap._acc is None else cap._acc + lin
                         cap._n += 1
+                        cap._sq += rms * rms
                         cap.heard += dur
     except Exception as e:  # noqa: BLE001
         with cap._lock:
@@ -315,18 +453,44 @@ def summary() -> Dict[str, Any]:
     it is obvious whether captured material agrees with it or not."""
     lib = load()
     rows = lib.get("tracks", [])
-    out: Dict[str, Any] = {"count": len(rows),
-                           "bands_hz": [float(f) for f in _REF_FREQS],
-                           "target_db": [round(float(v), 2) for v in _REF_DB],
-                           "tracks": [{"label": r["label"],
-                                       "genre": r.get("genre", ""),
-                                       "heard_seconds": r.get("heard_seconds")}
-                                      for r in rows]}
-    if rows:
-        arr = np.array([r["rel_db"] for r in rows], dtype=np.float64)
+    good, bad, controls = [], [], []
+    for r in rows:
+        why = r.get("rejected") or rejection(r)
+        if why:
+            bad.append((r, why))
+        elif is_control(r):
+            controls.append((r, ""))
+        else:
+            good.append((r, why))
+    out: Dict[str, Any] = {
+        "count": len(good),
+        "captured": len(rows),
+        "controls": [{"label": r["label"],
+                      "heard_seconds": r.get("heard_seconds")}
+                     for r, _ in controls],
+        "rejected": [{"label": r["label"], "why": why,
+                      "heard_seconds": r.get("heard_seconds"),
+                      "rms_dbfs": r.get("rms_dbfs")} for r, why in bad],
+        "gate": gate(),
+        "bands_hz": [float(f) for f in _REF_FREQS],
+        "target_db": [round(float(v), 2) for v in _REF_DB],
+        # Every row, in library order, each carrying its own status. The list
+        # must stay aligned with the file because `delete(index)` indexes the
+        # file: filtering here and indexing there removes the wrong track.
+        "tracks": [{"label": r["label"], "genre": r.get("genre", ""),
+                    "heard_seconds": r.get("heard_seconds"),
+                    "rms_dbfs": r.get("rms_dbfs"),
+                    "status": ("rejected" if (r.get("rejected") or rejection(r))
+                               else "control" if is_control(r) else "ok"),
+                    "why": r.get("rejected") or rejection(r)}
+                   for r in rows]}
+    if good:
+        arr = np.array([r["rel_db"] for r, _ in good], dtype=np.float64)
         out["median_db"] = [round(float(v), 2) for v in np.median(arr, axis=0)]
         out["p16_db"] = [round(float(v), 2) for v in np.percentile(arr, 16, axis=0)]
         out["p84_db"] = [round(float(v), 2) for v in np.percentile(arr, 84, axis=0)]
+        out["sd_db"] = [round(float(v), 2) for v in arr.std(axis=0, ddof=1)] \
+            if len(arr) > 1 else [0.0] * arr.shape[1]
         out["vs_target_db"] = [round(float(a - b), 2)
                                for a, b in zip(out["median_db"], out["target_db"])]
     return out
@@ -362,10 +526,18 @@ def report() -> Dict[str, Any]:
     than as a verdict.
     """
     s = summary()
-    out: Dict[str, Any] = {"count": s["count"], "bands_hz": s["bands_hz"],
+    out: Dict[str, Any] = {"count": s["count"], "captured": s["captured"],
+                           "rejected": s["rejected"], "gate": s["gate"],
+                           "controls": s["controls"],
+                           "bands_hz": s["bands_hz"],
                            "target_db": s["target_db"], "caveats": [], "rows": []}
     if s["count"] == 0:
-        out["headline"] = "Nothing captured yet."
+        out["n"] = 0
+        out["verdict"] = "unclear"
+        out["headline"] = (
+            "Nothing usable captured yet." if not s["captured"] else
+            f"All {s['captured']} captures were left out as broken. "
+            f"See the reasons below.")
         return out
 
     f = np.array(s["bands_hz"])
@@ -383,7 +555,34 @@ def report() -> Dict[str, Any]:
                             "diff": round(float(diff[i]), 2)})
 
     band = (f >= 2500) & (f <= 12500)
-    out["presence_mean_diff"] = round(float(diff[band].mean()), 2)
+    n = int(s["count"])
+    raw = float(diff[band].mean())
+
+    # How much of this is the sample, and how much is real? Each track gives
+    # one number for the band; their spread across tracks divided by root-n is
+    # how far the median may move as more arrive. Reporting the difference
+    # without it is how "8.4 dB darker" was published from a set that included
+    # two broken captures.
+    rows_ok = [t for t in load().get("tracks", [])
+               if not (t.get("rejected") or rejection(t)) and not is_control(t)]
+    vals = np.array([np.asarray(t["rel_db"], dtype=np.float64)[band].mean()
+                     for t in rows_ok])
+    se = float(vals.std(ddof=1) / np.sqrt(len(vals))) if len(vals) > 1 else 0.0
+
+    # A capture reads slightly dark because it catches quieter passages, so
+    # remove that before judging the target. Its own uncertainty is carried
+    # too: correcting with a number and hiding its error bar is not better
+    # than not correcting.
+    corrected = raw - EXCERPT_BIAS_DB
+    total_se = float(np.sqrt(se ** 2 + EXCERPT_BIAS_SE_DB ** 2))
+    lo, hi = corrected - 1.96 * total_se, corrected + 1.96 * total_se
+
+    out["n"] = n
+    out["presence_mean_diff"] = round(raw, 2)
+    out["presence_corrected"] = round(corrected, 2)
+    out["presence_se"] = round(total_se, 2)
+    out["presence_ci"] = [round(lo, 2), round(hi, 2)]
+    out["excerpt_bias_db"] = EXCERPT_BIAS_DB
     # Search only where the report shows values. The 31.5 and 40 Hz bands sit
     # below most program material, so a track with nothing there produces a
     # meaningless outlier that would otherwise be reported as the headline.
@@ -394,38 +593,46 @@ def report() -> Dict[str, Any]:
     out["slope_captured"] = round(_slope(f, med, 4000.0, 16000.0), 2)
     out["slope_target"] = round(_slope(f, tgt, 4000.0, 16000.0), 2)
 
-    d = out["presence_mean_diff"]
-    if abs(d) < 1.5:
-        out["headline"] = ("The captured music agrees with the tone target "
-                           f"({d:+.1f} dB mean across 2.5-12.5 kHz).")
-        out["verdict"] = "agrees"
-    else:
-        direction = "darker" if d < 0 else "brighter"
+    # The verdict is about the interval, not the point estimate. A difference
+    # is only a finding when the interval excludes zero; otherwise the honest
+    # answer is that there is not enough here to say.
+    direction = "darker" if corrected < 0 else "brighter"
+    if lo <= 0.0 <= hi:
+        out["verdict"] = "unclear"
         out["headline"] = (
-            f"The captured music is {abs(d):.1f} dB {direction} than the tone "
-            f"target across 2.5-12.5 kHz. If that holds up, the target does "
-            f"not describe commercial music.")
+            f"Not enough captured yet to say. The {n} tracks read "
+            f"{corrected:+.1f} dB against the tone target across "
+            f"2.5-12.5 kHz, but the range that fits the evidence is "
+            f"{lo:+.1f} to {hi:+.1f} dB, which includes no difference at all.")
+    else:
         out["verdict"] = "disagrees"
+        out["headline"] = (
+            f"The captured music is {abs(corrected):.1f} dB {direction} than "
+            f"the tone target across 2.5-12.5 kHz, from {n} tracks. The range "
+            f"that fits the evidence is {lo:+.1f} to {hi:+.1f} dB, so the "
+            f"direction is not in doubt even at the edge of it.")
 
-    # A large disagreement is more likely to be a measurement fault than a
-    # discovery, so the things that would cause one are listed before it is
-    # believed.
-    if out["verdict"] == "disagrees":
-        out["caveats"] = [
-            "System audio effects. Realtek, NVIDIA or Windows 'Audio "
-            "enhancements' colour everything captured. Turn them off and "
-            "recapture one track to check.",
-            "The player's own equaliser. Spotify has one, and it is easy to "
-            "leave on by accident.",
-            "Lossy streaming. Ogg Vorbis rolls off the very top, which "
-            "explains 16 kHz and above but not the presence band.",
-            "The verification test below settles all three at once.",
-        ]
-    if s["count"] < 20:
+    bad_count = len(out.get("rejected", []))
+    if bad_count:
         out["caveats"].append(
-            f"Only {s['count']} tracks. The spread between them is already "
+            f"{bad_count} capture{'s' if bad_count > 1 else ''} left out as "
+            f"broken, listed below with the reason. They are not counted in "
+            f"the {n} above.")
+    out["caveats"].append(
+        f"Corrected for excerpt bias: the raw difference is "
+        f"{raw:+.1f} dB and a capture reads about {abs(EXCERPT_BIAS_DB):.1f} dB "
+        f"dark because it catches quieter passages, so the figure above is "
+        f"{corrected:+.1f} dB.")
+    if n < 20:
+        out["caveats"].append(
+            f"Only {n} tracks. The spread between them is "
             f"{spread[(f >= 4000) & (f <= 10000)].mean():.1f} dB in the "
             f"presence band, so the median will move as more arrive.")
+    out["caveats"].append(
+        "The capture chain itself has been checked: playing a known file "
+        "through the player and capturing it back agreed with the file to "
+        "0.6 dB across eight masters. Re-run that check after changing "
+        "anything in the audio path.")
     return out
 
 

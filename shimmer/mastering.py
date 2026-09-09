@@ -74,7 +74,7 @@ _REF_SHAPE_DB = np.array([
 
 # How far a real master may sit from the target and still be normal, per band:
 # half the 16th-84th percentile spread of the same 135 masters. Tolerance is
-# not uniform — 1.6 dB at 400 Hz, 4.1 dB at 6.3 kHz, 11 dB at 20 kHz — and
+# not uniform — 1.6 dB at 500 Hz, 4.1 dB at 6.3 kHz, 11 dB at 20 kHz — and
 # treating it as flat is why the Tone step kept prescribing air trims on
 # tracks that were inside the normal range. Not yet consumed by
 # compute_tone_curve, which has no deadband; see HANDOFF-CHECKLIST.md.

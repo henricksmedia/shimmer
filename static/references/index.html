@@ -120,6 +120,7 @@
   <div class="panel" id="reportPanel" hidden>
     <h2>Report</h2>
     <p id="headline" style="font-size:1.05rem;margin:.2rem 0 .8rem"></p>
+    <div id="excluded"></div>
     <div id="caveats"></div>
     <table id="reportTable"><thead><tr>
       <th>Band</th><th>Captured</th><th>±1sd</th><th>Target</th><th>Difference</th>
@@ -139,6 +140,12 @@
 
 <script>
 const $ = id => document.getElementById(id);
+
+// Track names come from whatever is playing, by way of the media player, so
+// they are not ours and must not be pasted into markup as-is.
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;',
+          '"': '&quot;', "'": '&#39;' }[c]));
 const api = (p, body) => fetch('/api/dev/references/' + p, body ? {
   method: 'POST', headers: {'Content-Type': 'application/json'},
   body: JSON.stringify(body)} : undefined).then(r => r.json());
@@ -258,11 +265,39 @@ function draw(lib) {
 
 function renderReport(r) {
   const panel = $('reportPanel');
-  if (!r.count) { panel.hidden = true; return; }
+  // Show the panel even with nothing usable: if every capture was thrown out,
+  // that is the thing worth saying, and hiding it looks like nothing happened.
+  if (!r.count && !(r.rejected || []).length) { panel.hidden = true; return; }
   panel.hidden = false;
   const bad = r.verdict === 'disagrees';
-  $('headline').innerHTML = (bad ? '<span class="warn">⚠ </span>' :
-    '<span class="ok">✓ </span>') + r.headline;
+  const mark = r.verdict === 'unclear' ? '<span class="muted">— </span>'
+    : bad ? '<span class="warn">⚠ </span>' : '<span class="ok">✓ </span>';
+  $('headline').innerHTML = mark + r.headline;
+
+  // What was left out, and why. A row silently dropped is indistinguishable
+  // from one that was never captured, and it is the row nobody re-examines.
+  const parts = [];
+  for (const b of (r.rejected || [])) {
+    parts.push('<li><strong>' + esc(b.label) + '</strong> — ' + esc(b.why)
+      + (b.rms_dbfs != null ? ' <span class="muted">(level ' +
+          b.rms_dbfs.toFixed(0) + ' dBFS)</span>' : '') + '</li>');
+  }
+  let html = parts.length
+    ? '<p class="muted" style="margin:.2rem 0 .4rem"><strong>Left out as broken:</strong></p>'
+      + '<ul class="muted" style="margin:0 0 .8rem;padding-left:1.2rem;line-height:1.6">'
+      + parts.join('') + '</ul>'
+    : '';
+  const ctl = r.controls || [];
+  if (ctl.length) {
+    html += '<p class="muted" style="margin:.2rem 0 .8rem">'
+      + '<strong>' + ctl.length + ' control capture'
+      + (ctl.length > 1 ? 's' : '') + '</strong> not counted: '
+      + ctl.map(c => esc(c.label)).join(', ')
+      + '. These are our own files played back, so they check the capture '
+      + 'chain rather than tell us what commercial music sounds like.</p>';
+  }
+  $('excluded').innerHTML = html;
+
   $('caveats').innerHTML = r.caveats.length
     ? '<p class="muted" style="margin:.2rem 0 .6rem"><strong>Before believing it:</strong></p><ul class="muted" style="margin:0 0 .8rem;padding-left:1.2rem;line-height:1.6">'
       + r.caveats.map(c => '<li>' + c + '</li>').join('') + '</ul>'
@@ -291,8 +326,11 @@ async function refresh() {
   tb.innerHTML = '';
   lib.tracks.forEach((t, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + t.label + '</td><td class="muted">' +
-      (t.genre || '—') + '</td><td class="muted">' +
+    const tag = t.status === 'rejected'
+      ? ' <span class="warn" title="' + esc(t.why) + '">broken</span>'
+      : t.status === 'control' ? ' <span class="muted">control</span>' : '';
+    tr.innerHTML = '<td>' + esc(t.label) + tag + '</td><td class="muted">' +
+      esc(t.genre || '—') + '</td><td class="muted">' +
       (t.heard_seconds || 0).toFixed(0) + ' s</td>' +
       '<td><button class="ghost" data-i="' + i + '">remove</button></td>';
     tb.appendChild(tr);
