@@ -73,11 +73,27 @@ count.
 
 ## To do before handoff
 
-- [ ] **2. Re-measure the tilt gap on the MediumNeutral pairs.**
+- [x] **2. Re-measure the tilt gap on the MediumNeutral pairs.**
       *Done when:* one number with a spread, measured against a
       settings-consistent reference, replacing "11 dB against a mixed
       reference." 30 pairs available. **This was dropped once; it is needed
       because the documents will quote it.**
+      **DONE 2026-09-08.** `scripts/tilt_gap.py`, cached in
+      `docs/tilt-gap.json`. 88 MediumNeutral masters in the catalogue, 129
+      Shimmer exports, 38 paired by song stem, 3 rejected: one is not the
+      same performance (envelope correlation 0.21, the corpus check's own
+      test at its own threshold) and two "references" are service masters
+      made *from* Shimmer exports, so not independent. **n = 35: mean
+      6.34 dB, median 6.06, sd 2.88, 16th-84th percentile 4.42 to 9.65,
+      range -1.7 to 13.0, 34/35 positive.** Tilt is the 1/3-octave level at
+      6.3 kHz minus 800 Hz, middle 90 s, the tone reference's own analysis.
+      The quotable sentence is therefore "about 6 dB, not 11": the six-song
+      figure was measured against references on mixed settings and against
+      Shimmer's densest excerpts. These Shimmer masters are what earlier
+      versions of the chain shipped (20 of 35 carry a Shimmer tag note
+      naming the pass); the current chain's gap is `verify_tone_fix.py`'s
+      question and stays at the 6.58 dB measured after the target swap on
+      its 8 sources.
 
 - [ ] **3. Preset harness — all 19.**
       *Done when:* a script produces the full damage matrix, a committed
