@@ -478,6 +478,55 @@ count.
 
 ---
 
+- [ ] **15. Make the hash stage remove hash.** (Added 2026-09-08 after
+      round 4, where "still has shimmer" was the author's verdict on two
+      files after either treatment, and the untouched render beat Suno Hash
+      at 100 % on a hashed track.) *Done when:* the efficacy harness reads
+      Suno Hash, or its replacement, above 50 % on the hash model at 0.5
+      and 2.0 sones with net cost under the budget's ceiling, and a
+      listening round on real hashed renders agrees.
+      *Measured so far, 2026-09-08 (two clean hosts, hash at 0.5 sones):*
+      - Stage ablation of Suno Hash: core ShimmerStage, denoise, DeHarsh and
+        DeRes each read **0.00** efficacy alone and 0.01 together; the
+        FlickerTamer alone 4-7 %, at maximum settings (threshold 0, slope 1,
+        cap 40 dB) 6-10 %; with its transient gate forced open 4-17 % at
+        seven times the cost. The gate is not the limiter.
+      - The tamer's own diagnostics: with hash present the band-mean
+        envelope's detrended spread is 2.2 dB against 1.8 without (one
+        host) and unchanged (the other), so it barely sees the hash; on the
+        reference "Hey" it already attenuates the host's own dynamics by
+        2.8 dB mean, 18 dB peak. It ducks a sub-band when the sub-band's
+        total moves, which is not what makes hash audible.
+      - What real hash is, on the fine grid (1024/256, 4.5-12 kHz, the
+        detector's hot 5 s): on the two `the-little-things` files
+        (flicker excess +2.4 to +2.6) the band-mean envelope moves
+        **2.0-2.6 dB rms in every rate band from 2 to 50 Hz**, with no
+        peak in 10-50 Hz (modulation energy there sits *below* the 1-8 Hz
+        level), sub-band coherence **0.78-0.81** and per-bin coherence
+        0.49-0.53; the reference "Hey" reads 0.3-0.7 dB rms, coherence
+        0.51 / 0.06. Side modulates as much as Mid. So real hash is a
+        coherent, aperiodic movement of the whole band, not the fast
+        periodic AM the stage was built for; the "10-50 Hz" premise in
+        presets.py and finepass.py is not what the corpus contains. The
+        harness's model (gated noise at 20 Hz) matches the real thing in
+        rms per rate band (1.7-3.4) and coherence (0.89), so the tamer's
+        failure on it should generalise; the model's periodicity does not
+        match and should be replaced by an aperiodic gate before more
+        design is done against it.
+      - One replacement tried and rejected: a per-bin gain keyed on how
+        much of the bin's envelope variance the band-coherent flicker
+        explains. **2-18 % efficacy at tilt 0.6-22 and 0.03-0.29 sones on
+        the clean host alone.** Music in that band moves with the band
+        too (cymbals, transients), so coherence does not separate hash
+        from music either.
+      *What follows:* the four existing stages cannot reach this artifact
+      by level or by band dynamics, and coherence alone cannot either.
+      Candidates not yet measured: an aperiodic hash model first; then
+      separation by *both* coherence and spectral flatness per bin
+      (cymbal partials are peaky, hash is flat), or stem-split cleaning
+      (the review's own recommendation), each judged by the harness. This
+      is the product's core problem and the largest open item.
+
 ## DEFERRED — the 80% stake
 
 Decided against for this pass, with the reason. These stay on the list so they
