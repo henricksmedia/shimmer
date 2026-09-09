@@ -190,6 +190,42 @@ count.
       follows from "slight": scores of 0.1-0.5 describe differences a
       careful listener calls slight, so the copy should say so rather than
       be rescaled.
+      **JUDGED 2026-09-09 on the listening bench — 36 sets, 40 rounds, all
+      blind (`revealed_first` false everywhere), verdicts in each set's
+      `SCORES.json`.** Letters are randomised per set and the winning
+      letter varies, so these are not a fixed-button bias; labels were
+      decoded against each set's own `ANSWER-KEY.json`. One probe verdict
+      on `tone-kindling` is marked "ignore" and is excluded, which leaves
+      kindling with no tone verdict.
+
+      | Comparison | Songs | Result |
+      |---|---|---|
+      | `service` — chain today vs the service master | 8 | service **8-0** |
+      | `r8` — chain today / service / chain before / untouched | 8 (+1 repeat) | service **8**, chain-before 1, chain today **0**, untouched 0 |
+      | `chain` — full chain vs untouched render | 4 | untouched **3**, tie 1, chain **0** |
+      | `clean` — untouched vs cleaned | 4 (5 rounds) | **all ties** |
+      | `tone` — derived target vs retracted service curve | 8 | retracted **7**, tie 1, derived **0** |
+      | `era` — derived / 1950-2010 / retracted | 4 | retracted **3**, tie 1, derived **0** |
+
+      **The chain as it ships won nothing, on any comparison, on any
+      song.** Three findings, in order of how much they cost.
+      (a) *Cleaning is inaudible.* The `clean` sets put untouched against
+      cleaned directly and every one is a tie. This is the same verdict the
+      harness gives (item 6: most presets 0-7 %) and the same one item 15
+      keeps reaching; it is now heard, not just measured.
+      (b) *The chain is a net negative.* The untouched render beat the full
+      chain 3 of 4, the fourth noted "sounds too similar". So the mastering
+      half is taking something away that cleaning is not putting back.
+      (c) *The tone target is backwards* — see item 12.
+      The service master beat Shimmer **16 times out of 16** across
+      `service` and `r8`.
+      *Limits of this round, so it is not over-read:* one preferred pick
+      per round, no rankings, so "the chain never won" is known but its
+      placing is not; auditions were short on the tone sets (4-9 s on six
+      of eight), which favours whichever arm reads brighter first; and no
+      set carries an ABX run, so nothing here has a stated audibility
+      p-value. None of that touches the direction, which is one-sided in
+      every group.
 
 - [x] **5. Fix the verified score. (Highest-value single change.)**
       *Done when:* a preset can no longer score well by removing a lot.
@@ -488,6 +524,15 @@ count.
       More captures remain
       welcome — a handful of non-electronic tracks as a **hold-out test** of
       the finished target is worth more than another twenty inputs.
+      **OVERTURNED BY LISTENING 2026-09-09 — see item 4.** Blind, level
+      matched, the derived target lost to the retracted service curve on
+      **7 of 8 songs** (1 tie), and in the three-way era test the retracted
+      curve beat both the derived target and the 1950-2010 average on 3 of
+      4 (1 tie). The derived target won nothing. GOALS.md rule 4 says
+      listening is final and outranks measurement, so this item is no
+      longer done: the target that ships is the one that lost. Do not
+      re-derive it from a better corpus before establishing why the
+      measured-best curve is the least preferred one.
 
 - [ ] **13. Put the percussion-invariant slope in the test suite.**
       (Added 2026-09-08.) Elowsson & Friberg §4.2/§6.3: the PSD slope from
