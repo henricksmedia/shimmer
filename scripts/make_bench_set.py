@@ -37,7 +37,21 @@ from shimmer.presets import PRESETS                          # noqa: E402
 
 SECONDS = 30.0
 
-DERIVED = M._REF_SHAPE_DB.copy()
+# Pinned as a literal, not read from mastering.py. It was `M._REF_SHAPE_DB.copy()`
+# until 2026-09-09, which silently meant "whatever ships today": the moment the
+# shipping target changed, the tone and era sets started comparing a curve
+# against itself and reported a 0.00 dB difference in every band. A named
+# historical curve has to be a constant or it is not a comparison.
+#
+# This is the curve derived from the paper plus 13 captures (docs/tone-target.json)
+# that lost the 2026-09-09 listening round 7-1 and was reverted.
+DERIVED = np.array([
+    -0.5, 2.0, 4.9, 6.4, 6.7, 6.0, 4.3, 2.8, 2.1, 1.9, 1.7, 1.1, 0.5, 0.0,
+    -0.7, -1.5, -2.4, -3.4, -4.5, -5.4, -6.2, -7.3, -8.3, -9.4, -10.5,
+    -12.0, -14.6, -18.4, -25.0,
+], dtype=np.float64)
+# Whatever the chain aims at right now, for sets that mean "as it ships".
+SHIPPING = M._REF_SHAPE_DB.copy()
 # What shipped before 97609c0: the 1950-2010 average. These are the masters
 # the "dull and flat" complaint was actually made about, so this curve is the
 # one the current chain has to beat.
@@ -74,6 +88,50 @@ def loudest(x, sr, seconds=SECONDS):
     return np.ascontiguousarray(x[at:at + n])
 
 
+def _band(x, sr, lo=4500.0, hi=12500.0):
+    """The 4.5-12.5 kHz band, where every measured residual puts its energy."""
+    F = np.fft.rfft(x)
+    f = np.fft.rfftfreq(len(x), 1 / sr)
+    F[(f < lo) | (f >= hi)] = 0.0
+    return np.fft.irfft(F, n=len(x))
+
+
+def exposed(x, cleaned, sr, seconds=20.0):
+    """The window where the artifact is least masked, not the loudest one.
+
+    `loudest` picks a chorus. That is the worst place to judge cleaning:
+    the removed material measures 37-56 dB below the source and sits at
+    4.5-12.5 kHz, so a dense chorus masks it and the comparison returns a
+    tie no matter how well the repair worked — which is exactly what the
+    first clean round did, on all four songs.
+
+    This picks the window where the removed material is loudest *relative
+    to the music around it*, using the repair's own residual to find it.
+    That is where a listener can hear whether the junk went. Windows whose
+    band energy is near silence are refused, because a ratio against
+    nothing is not exposure.
+    """
+    n = int(seconds * sr)
+    m = x.mean(axis=1) if x.ndim > 1 else x
+    c = cleaned.mean(axis=1) if cleaned.ndim > 1 else cleaned
+    k = min(len(m), len(c))
+    m, c = m[:k], c[:k]
+    if k <= n:
+        return np.ascontiguousarray(x)
+    bm = _band(m, sr) ** 2
+    bd = _band(m - c, sr) ** 2
+    cm = np.concatenate([[0.0], np.cumsum(bm)])
+    cd = np.concatenate([[0.0], np.cumsum(bd)])
+    hop = int(sr // 2)
+    starts = np.arange(0, k - n, hop)
+    em = cm[starts + n] - cm[starts]
+    ed = cd[starts + n] - cd[starts]
+    floor = np.max(em) * 0.02          # ignore near-silent windows
+    ratio = np.where(em > floor, ed / np.maximum(em, 1e-20), 0.0)
+    at = int(starts[int(np.argmax(ratio))])
+    return np.ascontiguousarray(x[at:at + n])
+
+
 def master(ref, sr, shape):
     use(shape)
     y, _, _ = clean_and_master(ref, sr, PRESETS["generic"](),
@@ -102,7 +160,7 @@ def tone_sets():
             residual_kind="eq")
         made.append(m["id"])
         print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
-    use(DERIVED)
+    use(SHIPPING)
     return made
 
 
@@ -112,7 +170,7 @@ def clean_sets():
         song = os.path.basename(p).replace("suno-", "").replace(".wav", "")
         x, sr = load_audio(p)
         ref = loudest(x, sr)
-        use(DERIVED)
+        use(SHIPPING)
         cleaned, _, _ = clean_and_master(ref, sr, PRESETS["generic"](),
                                          master_params=None, eq_params=None)
         n = min(len(ref), len(cleaned))
@@ -122,6 +180,43 @@ def clean_sets():
             sr,
             note=("No mastering — cleaning only, so the tone target plays no "
                   "part. The removed part is literally what the repair took."),
+            residual_of=("untouched render", "cleaned"),
+            residual_kind="removed")
+        made.append(m["id"])
+        print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
+    return made
+
+
+def quiet_sets():
+    """Cleaning, judged where the artifact can actually be heard.
+
+    Same comparison as `clean_sets` — untouched against cleaned, no
+    mastering — but on the passage the repair's own residual says is most
+    exposed, and asking a different question. "Which sounds better" returned
+    four ties on the chorus; the question a repair tool has to answer is
+    "which one still has the shimmer".
+    """
+    made = []
+    for p in sorted(glob.glob(os.path.join(ROOT, "sources", "suno-*.wav"))):
+        song = os.path.basename(p).replace("suno-", "").replace(".wav", "")
+        x, sr = load_audio(p)
+        use(SHIPPING)
+        full, _, _ = clean_and_master(x, sr, PRESETS["generic"](),
+                                      master_params=None, eq_params=None)
+        ref = exposed(x, full, sr)
+        cleaned, _, _ = clean_and_master(ref, sr, PRESETS["generic"](),
+                                         master_params=None, eq_params=None)
+        n = min(len(ref), len(cleaned))
+        m = abtest.build(
+            f"quiet-{song}", f"Still shimmering? · {song.replace('-', ' ')}",
+            [("untouched render", ref[:n]), ("cleaned", cleaned[:n])],
+            sr,
+            note=("Cleaning only, no mastering. This is the most exposed "
+                  "passage in the song, not the loudest one, so the repair "
+                  "is not hidden behind a chorus. Do not ask which sounds "
+                  "better — ask which one still has the shimmer, the high "
+                  "pitched sheen and the pops. The removed part is what the "
+                  "repair took."),
             residual_of=("untouched render", "cleaned"),
             residual_kind="removed")
         made.append(m["id"])
@@ -145,7 +240,7 @@ def service_sets():
         if not os.path.exists(ref_path):
             continue
         x, sr = load_audio(p)
-        ours = master(loudest(x, sr), sr, DERIVED)
+        ours = master(loudest(x, sr), sr, SHIPPING)
         theirs, sr2 = load_audio(ref_path)
         # The service master is the whole song; take the same passage by
         # matching where the Suno excerpt sits, then trim both to length.
@@ -163,7 +258,7 @@ def service_sets():
             note="Our current chain against an automated mastering service's master of the same song, matched for loudness, so neither can win on volume alone. This is the comparison the whole investigation was founded on, and it has never been made fairly until now.")
         made.append(m["id"])
         print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
-    use(DERIVED)
+    use(SHIPPING)
     return made
 
 
@@ -184,12 +279,12 @@ def era_sets():
             f"era-{song}", f"Three targets · {song.replace('-', ' ')}",
             [("1950-2010 average (what sounded dull)", master(ref, sr, PESTANA)),
              ("service curve (retracted)", master(ref, sr, RETRACTED)),
-             ("derived (shipping now)", master(ref, sr, DERIVED))],
+             ("derived (reverted 2026-09-09)", master(ref, sr, DERIVED))],
             sr,
             note='Every tone target this tool has aimed at, on one song, with everything else held identical. They are in random order.')
         made.append(m["id"])
         print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
-    use(DERIVED)
+    use(SHIPPING)
     return made
 
 
@@ -203,7 +298,7 @@ def chain_sets():
         m = abtest.build(
             f"chain-{song}", f"Does it help · {song.replace('-', ' ')}",
             [("untouched Suno render", ref),
-             ("Shimmer, full chain", master(ref, sr, DERIVED))],
+             ("Shimmer, full chain", master(ref, sr, SHIPPING))],
             sr,
             note=("The raw render against the finished master. If the "
                   "untouched one wins, that is a real result and the most "
@@ -212,7 +307,7 @@ def chain_sets():
             residual_kind="removed")
         made.append(m["id"])
         print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
-    use(DERIVED)
+    use(SHIPPING)
     return made
 
 
@@ -220,7 +315,8 @@ GROUPS = {"service": ("Ours vs the service (the founding question):", service_se
           "era": ("All three tone targets:", era_sets),
           "chain": ("Untouched render vs the full chain:", chain_sets),
           "tone": ("Tone target, retracted vs derived:", tone_sets),
-          "clean": ("Cleaning only, untouched vs cleaned:", clean_sets)}
+          "clean": ("Cleaning only, untouched vs cleaned:", clean_sets),
+          "quiet": ("Cleaning, on the passage where it can be heard:", quiet_sets)}
 
 if __name__ == "__main__":
     what = sys.argv[1:] or ["all"]
