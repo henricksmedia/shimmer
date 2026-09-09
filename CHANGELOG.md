@@ -351,6 +351,20 @@ Versions follow [Semantic Versioning](https://semver.org/).
   every anchor measured; the budget's tilt ceiling and the pinned magnitude
   test are unchanged.
 
+- **The damage model level-matches its inputs.** A pure −3 dB gain with no
+  spectral change used to score 13.6 of linear distortion, more than half
+  of what a −6 dB shelf scores, because the model's level adaptation
+  rescales the reference toward a quieter test and the tilt measure then
+  compares that rescaled reference with the raw one. `measure_damage` now
+  scales the test to the reference's RMS first (Kabal's own experiments
+  gain-align test to reference) and reports the gain it applied. The pure
+  gain now reads zero on every measure; real changes move by under 6 %.
+
+- **Golden-value tests for the hearing model.** Every standard-mandated
+  constant is pinned to its cited value, and the model's outputs on fixed
+  signals are pinned to 0.2 %, so a silent change to any stage fails a
+  test. Eight such changes had survived the suite before.
+
 - **Hearing model 6× faster.** The per-band Python loops in the spreading,
   band-grouping and adaptation stages are now matrix operations; output is
   identical to 3e-15 relative, and `measure_damage` on a 5 s clip takes

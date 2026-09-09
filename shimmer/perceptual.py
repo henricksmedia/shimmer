@@ -481,6 +481,7 @@ class Damage:
     asym: float          # added + 0.5 * missing (the standard's combination)
     frames: int
     gated_frames: int
+    level_gain_db: float = 0.0   # gain applied to `test` to match the reference
 
     def as_dict(self) -> Dict[str, float]:
         return {"lin_dist": round(self.lin_dist, 4),
@@ -488,20 +489,47 @@ class Damage:
                 "added": round(self.added, 4),
                 "asym": round(self.asym, 4),
                 "frames": self.frames,
-                "gated_frames": self.gated_frames}
+                "gated_frames": self.gated_frames,
+                "level_gain_db": round(self.level_gain_db, 3)}
+
+
+def _mono_rms(x: np.ndarray) -> float:
+    mono = x.mean(axis=1) if x.ndim > 1 else x
+    return float(np.sqrt(np.mean(np.square(mono)))) if mono.size else 0.0
 
 
 def measure_damage(reference: np.ndarray, test: np.ndarray,
-                   sr: int) -> Damage:
+                   sr: int, level_match: bool = True) -> Damage:
     """Compare a processed signal against what went in.
 
     `reference` is the audio before processing, `test` after. Both must be the
     same length and sample rate. Returns audible-difference measures in sones.
+
+    `level_match` scales `test` to the reference's RMS (mono mix, common
+    length) before the ear model. The model's loudness mapping depends on
+    absolute level (Kabal §2.4: "Some of the perceptual quality factors
+    depend on the actual sound pressure level of the test signal"), the
+    level adaptation rescales the *reference* toward a quieter test (PQadapt,
+    Kabal §G.1), and AvgLinDist then compares that rescaled reference with
+    the raw one — so an unmatched level offset reads as linear distortion.
+    Measured before this: a pure -3 dB gain with no spectral change scored
+    13.6 on `lin_dist`, against 20.6 for a -6 dB shelf. Kabal's own
+    experiments gain-align the test to the reference (§ on mean removal:
+    "time aligned and gain aligned with the reference"). The gain applied
+    is reported as `level_gain_db`.
     """
     ref = np.asarray(reference, dtype=np.float64)
     tst = np.asarray(test, dtype=np.float64)
     n = min(ref.shape[0], tst.shape[0])
     ref, tst = ref[:n], tst[:n]
+
+    gain_db = 0.0
+    if level_match:
+        r_rms, t_rms = _mono_rms(ref), _mono_rms(tst)
+        if r_rms > 1e-9 and t_rms > 1e-9:
+            g = r_rms / t_rms
+            tst = tst * g
+            gain_db = 20.0 * math.log10(g)
 
     eu_r, es_r = excitation_patterns(ref, sr)
     eu_t, es_t = excitation_patterns(tst, sr)
@@ -546,4 +574,5 @@ def measure_damage(reference: np.ndarray, test: np.ndarray,
         asym=rms_added + 0.5 * rms_missing,
         frames=frames,
         gated_frames=kept,
+        level_gain_db=gain_db,
     )
