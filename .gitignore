@@ -121,5 +121,5 @@ assets/demo/
 scripts/tone-evidence/
 
 # hash_data/      : generated training pairs for the learned hash remover (large, regenerable)
-hash_data/
+hash_data*/
 scripts/hash_learn/*.pt
