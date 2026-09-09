@@ -96,3 +96,21 @@ class TestMarketingKit:
                            "tensorflow", "sklearn"):
                 assert banned not in source, \
                     f"{os.path.basename(module.__file__)} now imports {banned}"
+
+
+def test_folder_urls_serve_their_index():
+    """/static/marketing/ must work, not just .../index.html.
+
+    The static mount had html=False, so a folder URL returned FastAPI's
+    {"detail":"Not Found"} and only the spelled-out index.html worked. That
+    is not what the CHANGELOG advertised, not what anyone types, and the
+    existing tests missed it because they read the files from disk rather
+    than over HTTP.
+    """
+    from fastapi.testclient import TestClient
+    from shimmer.server import app
+    client = TestClient(app)
+    for url in ("/static/marketing/", "/static/references/"):
+        r = client.get(url)
+        assert r.status_code == 200, f"{url} returned {r.status_code}"
+        assert b"<html" in r.content.lower()

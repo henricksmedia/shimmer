@@ -27,6 +27,11 @@ if not defined SHIMMER_PORT set "SHIMMER_PORT=7860"
 set "PORT=%SHIMMER_PORT%"
 set "URL=http://localhost:%PORT%"
 
+REM Landing page. references.bat sets this to open the reference
+REM library instead of the app, so both share one launcher rather than
+REM duplicating two hundred lines of setup.
+if not defined SHIMMER_OPEN_PATH set "SHIMMER_OPEN_PATH=/"
+
 REM ── Step 1: uv ────────────────────────────────────────────────────────
 REM uv manages an isolated, hardlinked .venv for this project so installs
 REM never touch the global Python and disk usage stays minimal. It also
@@ -189,7 +194,7 @@ REM   * The URL is opened with cmd's `start`, the standard ShellExecute
 REM     path, which reuses the running browser and opens a NEW TAB.
 REM The waiter lives in scripts\open-when-ready.ps1 — inline PowerShell in a
 REM .bat has to survive two quoting layers and silently breaks.
-start "" /b powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\open-when-ready.ps1" -Url "%URL%/" -Port %PORT%
+start "" /b powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\open-when-ready.ps1" -Url "%URL%%SHIMMER_OPEN_PATH%" -Port %PORT%
 
 REM No blind retry here: the port was verified free above, so a failure now
 REM is a real error worth reading. Retrying used to silently start a SECOND

@@ -112,7 +112,12 @@ class _NoCacheStaticFiles(StaticFiles):
 
 
 app = FastAPI(title="Shimmer by The Treq")
-app.mount("/static", _NoCacheStaticFiles(directory=str(STATIC_DIR)), name="static")
+# html=True so a folder URL serves its index.html. Without it
+# /static/marketing/ and /static/references/ both returned FastAPI's
+# {"detail":"Not Found"} and only worked with index.html spelled out — which
+# is not what anything links to, and not what the CHANGELOG said shipped.
+app.mount("/static", _NoCacheStaticFiles(directory=str(STATIC_DIR), html=True),
+          name="static")
 
 
 # ───────────────────────────────────────────────────────────────────────────
