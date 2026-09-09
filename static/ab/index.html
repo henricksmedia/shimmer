@@ -52,14 +52,15 @@ button.quiet:hover:not(:disabled) { color: var(--fg-0); border-color: var(--line
                                     background: var(--bg-2); }
 
 /* ── the two candidates: the whole point of the screen ──────────── */
-.stage { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-3); }
+.stage { display: grid; grid-auto-columns: 1fr; grid-auto-flow: column;
+         gap: var(--gap-3); }
 .cand { position: relative; border: 1px solid var(--line);
         background: var(--bg-2); border-radius: var(--radius);
         padding: 26px 16px 20px; text-align: center; cursor: pointer;
         transition: border-color .12s, background .12s, box-shadow .12s;
         user-select: none; }
 .cand:hover { border-color: var(--line-2); }
-.cand .letter { font-size: 46px; line-height: 1; font-weight: 700;
+.cand .letter { font-size: clamp(34px, 6vw, 46px); line-height: 1; font-weight: 700;
                 color: var(--fg-3); font-family: var(--font-mono);
                 transition: color .12s; }
 .cand .state { margin-top: 10px; font-size: 11px; letter-spacing: .14em;
@@ -106,7 +107,8 @@ label.chk { display: inline-flex; align-items: center; gap: 6px;
 .verdict { margin-top: var(--gap-6); padding-top: var(--gap-5);
            border-top: 1px solid var(--line); }
 .q { font-size: 13px; color: var(--fg-2); margin: 0 0 var(--gap-3); }
-.picks { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-2); }
+.picks { display: grid; gap: var(--gap-2);
+         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 .picks button { padding: 13px 8px; font-size: 13.5px; }
 .picks button[aria-pressed="true"] { background: var(--success);
         border-color: transparent; color: #08130c; font-weight: 650; }
@@ -137,7 +139,7 @@ kbd { font-family: var(--font-mono); background: var(--bg-3);
 .matched { color: var(--fg-2); font-size: 12.5px; }
 .empty { text-align: center; color: var(--fg-2); padding: 56px 20px; }
 .empty code { font-family: var(--font-mono); color: var(--cyan); font-size: 12.5px; }
-@media (max-width: 620px) { .stage { grid-template-columns: 1fr; }
+@media (max-width: 620px) { .stage { grid-auto-flow: row; }
                             .picks { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -185,6 +187,7 @@ kbd { font-family: var(--font-mono); background: var(--bg-3);
       </select>
       <button class="diff" id="diffbtn" aria-pressed="false" hidden>Difference</button>
     </div>
+    <p id="diffwhat" class="matched" style="margin:var(--gap-2) 0 0;max-width:70ch" hidden></p>
 
     <div class="verdict">
       <p class="q" id="q">Which sounded better?</p>
@@ -267,6 +270,19 @@ async function open_(id) {
   $('title').textContent = cur.title;
   $('note').textContent = cur.note || '';
   $('diffbtn').hidden = !cur.residual;
+  // "Difference" means two different things depending on the set, and calling
+  // both of them the same is how a listener ends up hearing the whole song
+  // and wondering what is broken.
+  $('diffwhat').hidden = !cur.residual;
+  if (cur.residual) {
+    $('diffbtn').textContent = cur.residual.label || 'Difference';
+    $('diffwhat').innerHTML = esc(cur.residual.explain || '') +
+      ` <span style="color:var(--fg-3)">(${cur.residual.song_correlation} ` +
+      `correlated with the music)</span>` +
+      (cur.residual.kind_disagrees
+        ? ' <span class="warn">— this set is labelled wrongly; the signal ' +
+          'does not match the kind it claims.</span>' : '');
+  }
 
   $('stage').innerHTML = cur.arms.map((a, i) =>
     `<div class="cand" role="button" aria-pressed="${i === 0}" data-i="${i}">

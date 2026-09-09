@@ -38,6 +38,14 @@ from shimmer.presets import PRESETS                          # noqa: E402
 SECONDS = 30.0
 
 DERIVED = M._REF_SHAPE_DB.copy()
+# What shipped before 97609c0: the 1950-2010 average. These are the masters
+# the "dull and flat" complaint was actually made about, so this curve is the
+# one the current chain has to beat.
+PESTANA = np.array([
+    -2.5, 1.0, 3.5, 4.5, 5.0, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0,
+    0.5, 0.0, -0.5, -1.0, -1.5, -2.0, -2.5, -3.0, -4.3, -5.8, -7.5,
+    -9.5, -12.0, -16.0, -22.0,
+], dtype=np.float64)
 # The curve retracted on 2026-09-08 — one service's median on AI renders.
 RETRACTED = np.array([
     -3.7, 4.3, 8.3, 8.8, 7.9, 7.4, 7.4, 6.3, 4.5, 2.1, 0.3, -0.7, 0.0, 0.5,
@@ -92,7 +100,8 @@ def tone_sets():
                   "difference is the tone target. The new one sits about "
                   "8 dB darker through presence and air."),
             residual_of=("old target (service curve)",
-                         "new target (research + captures)"))
+                         "new target (research + captures)"),
+            residual_kind="eq")
         made.append(m["id"])
         print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
     use(DERIVED)
@@ -115,19 +124,116 @@ def clean_sets():
             sr,
             note=("No mastering — cleaning only, so the tone target plays no "
                   "part. The removed part is literally what the repair took."),
-            residual_of=("untouched render", "cleaned"))
+            residual_of=("untouched render", "cleaned"),
+            residual_kind="removed")
         made.append(m["id"])
         print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
     return made
 
 
+def service_sets():
+    """The judgement this whole investigation rests on, made fairly.
+
+    "The service master sounded better and richer" was the finding that
+    started everything, and it was made unmatched: those masters are 2.7 LU
+    louder, 3.4 dB heavier in the bass and 8.8 dB brighter on average. All
+    three flatter on an A/B. With the level matched and the labels hidden,
+    does it still hold?
+    """
+    made = []
+    for p in sorted(glob.glob(os.path.join(ROOT, "sources", "suno-*.wav"))):
+        song = os.path.basename(p).replace("suno-", "").replace(".wav", "")
+        ref_path = os.path.join(ROOT, "sources", f"distrokid-{song}.wav")
+        if not os.path.exists(ref_path):
+            continue
+        x, sr = load_audio(p)
+        ours = master(loudest(x, sr), sr, DERIVED)
+        theirs, sr2 = load_audio(ref_path)
+        # The service master is the whole song; take the same passage by
+        # matching where the Suno excerpt sits, then trim both to length.
+        theirs = loudest(theirs, sr2)
+        n = min(len(ours), len(theirs))
+        m = abtest.build(
+            f"service-{song}", f"Ours vs the service · {song.replace('-', ' ')}",
+            [("Shimmer, current chain", ours[:n]),
+             ("the automated service's master", theirs[:n])],
+            sr,
+            note=("The comparison this investigation was founded on, with the "
+                  "level matched. Unmatched, the service master is 2.7 LU "
+                  "louder, 3.4 dB heavier in the bass and 8.8 dB brighter — "
+                  "all three flatter on a quick listen."))
+        made.append(m["id"])
+        print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
+    use(DERIVED)
+    return made
+
+
+def era_sets():
+    """All three targets this tool has ever aimed at, on one song.
+
+    The 1950-2010 average made the masters that were called dull. The
+    service curve replaced it and was retracted. The derived one ships now.
+    Three arms, so the question is not "is this better than the last one"
+    but "which of these is right".
+    """
+    made = []
+    for p in sorted(glob.glob(os.path.join(ROOT, "sources", "suno-*.wav")))[:4]:
+        song = os.path.basename(p).replace("suno-", "").replace(".wav", "")
+        x, sr = load_audio(p)
+        ref = loudest(x, sr)
+        m = abtest.build(
+            f"era-{song}", f"Three targets · {song.replace('-', ' ')}",
+            [("1950-2010 average (what sounded dull)", master(ref, sr, PESTANA)),
+             ("service curve (retracted)", master(ref, sr, RETRACTED)),
+             ("derived (shipping now)", master(ref, sr, DERIVED))],
+            sr,
+            note=("Every tone target this tool has aimed at, same song, same "
+                  "everything else. The first made the masters that started "
+                  "this investigation."))
+        made.append(m["id"])
+        print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
+    use(DERIVED)
+    return made
+
+
+def chain_sets():
+    """Does the tool help at all? Raw render against the finished master."""
+    made = []
+    for p in sorted(glob.glob(os.path.join(ROOT, "sources", "suno-*.wav")))[:4]:
+        song = os.path.basename(p).replace("suno-", "").replace(".wav", "")
+        x, sr = load_audio(p)
+        ref = loudest(x, sr)
+        m = abtest.build(
+            f"chain-{song}", f"Does it help · {song.replace('-', ' ')}",
+            [("untouched Suno render", ref),
+             ("Shimmer, full chain", master(ref, sr, DERIVED))],
+            sr,
+            note=("The raw render against the finished master. If the "
+                  "untouched one wins, that is a real result and the most "
+                  "useful thing on this bench."),
+            residual_of=("untouched Suno render", "Shimmer, full chain"),
+            residual_kind="removed")
+        made.append(m["id"])
+        print(f"  {m['id']:<44} matched to {m['matched_lufs']:.1f} LUFS")
+    use(DERIVED)
+    return made
+
+
+GROUPS = {"service": ("Ours vs the service (the founding question):", service_sets),
+          "era": ("All three tone targets:", era_sets),
+          "chain": ("Untouched render vs the full chain:", chain_sets),
+          "tone": ("Tone target, retracted vs derived:", tone_sets),
+          "clean": ("Cleaning only, untouched vs cleaned:", clean_sets)}
+
 if __name__ == "__main__":
-    what = sys.argv[1] if len(sys.argv) > 1 else "tone"
+    what = sys.argv[1:] or ["all"]
     os.makedirs(abtest.BENCH, exist_ok=True)
-    if what in ("tone", "both"):
-        print("Tone target, old vs new:")
-        tone_sets()
-    if what in ("clean", "both"):
-        print("Cleaning, untouched vs cleaned:")
-        clean_sets()
+    names = list(GROUPS) if what == ["all"] or "all" in what else what
+    for name in names:
+        if name not in GROUPS:
+            print(f"  (no such group: {name}; have {', '.join(GROUPS)})")
+            continue
+        head, fn = GROUPS[name]
+        print(head)
+        fn()
     print(f"\nOpen http://localhost:7860/static/ab/")

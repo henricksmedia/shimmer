@@ -97,8 +97,32 @@ def align(a: np.ndarray, b: np.ndarray, sr: int, max_ms: float = 20.0) -> int:
     return lag
 
 
+def _song_correlation(a: np.ndarray, d: np.ndarray) -> float:
+    """How much of the difference signal is just the song again.
+
+    Subtracting two versions of one song gives very different things
+    depending on what was done to them, and the two are easy to confuse:
+
+      * a stage REMOVED something — the difference is the removed material
+        and barely correlates with the music;
+      * a stage RESHAPED everything — an EQ change, say — and the difference
+        is the whole song through the difference filter. Nothing was removed.
+        It sounds like the song at low volume, because it is.
+
+    Correlation tells them apart, so a set cannot claim to show a removal
+    when it is showing an EQ move.
+    """
+    x = a.mean(axis=1) if a.ndim > 1 else a
+    y = d.mean(axis=1) if d.ndim > 1 else d
+    n = min(len(x), len(y))
+    x, y = x[:n] - np.mean(x[:n]), y[:n] - np.mean(y[:n])
+    den = float(np.linalg.norm(x) * np.linalg.norm(y))
+    return float(abs(np.dot(x, y)) / den) if den > 1e-20 else 0.0
+
+
 def build(set_id: str, title: str, arms: List[Tuple[str, np.ndarray]], sr: int,
           note: str = "", residual_of: Optional[Tuple[str, str]] = None,
+          residual_kind: str = "removed",
           seed: Optional[int] = None) -> Dict[str, Any]:
     """Write a comparison set. `arms` is [(true_label, audio), ...].
 
@@ -155,6 +179,12 @@ def build(set_id: str, title: str, arms: List[Tuple[str, np.ndarray]], sr: int,
             clip_trim = 20.0 * np.log10(0.99 / _peak(lifted))
             lifted = lifted * (10.0 ** (clip_trim / 20.0))
         save_audio(os.path.join(out, "residual.wav"), lifted, sr)
+        corr = _song_correlation(a, d)
+        # If the caller says "removed" but the signal is largely the song
+        # again, the caller is wrong. Say so in the manifest rather than
+        # letting the page put a misleading word on a button.
+        measured = "eq" if corr >= 0.25 else "removed"
+        kind = residual_kind if residual_kind in ("removed", "eq") else "removed"
         residual = {"file": "residual.wav", "of": [la, lb],
                     "align_samples": int(lag),
                     "gain_db": round(float(rg + clip_trim), 2),
@@ -162,7 +192,25 @@ def build(set_id: str, title: str, arms: List[Tuple[str, np.ndarray]], sr: int,
                     "clip_trim_db": round(float(clip_trim), 2),
                     "peak_dbfs_raw": round(20.0 * np.log10(max(pk, 1e-9)), 2),
                     "rms_dbfs_raw": round(10.0 * np.log10(
-                        max(float(np.mean(d ** 2)), 1e-20)), 2)}
+                        max(float(np.mean(d ** 2)), 1e-20)), 2),
+                    "kind": kind,
+                    "song_correlation": round(corr, 3),
+                    "kind_disagrees": bool(kind != measured),
+                    "label": ("The tone change" if kind == "eq"
+                              else "What was removed"),
+                    "explain": (
+                        "Nothing was removed here. Both versions are the same "
+                        "audio with a different EQ, so this is the whole song "
+                        "through the difference between the two curves. It is "
+                        "meant to sound like the song, quietly, weighted "
+                        "toward the frequencies the two targets disagree "
+                        "about."
+                        if kind == "eq" else
+                        "What one version has and the other does not. It tells "
+                        "you whether the thing taken out was noise or music. "
+                        "It cannot tell you whether too much was taken: "
+                        "removed air sounds like shhh on its own and never "
+                        "like music.")}
 
     order = list(range(len(rows)))
     random.Random(seed if seed is not None else set_id).shuffle(order)
