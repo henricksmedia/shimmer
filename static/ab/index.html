@@ -356,8 +356,8 @@ select#sets { max-width: 360px; }
   </div>
 
   <div id="loading" class="panel loading" hidden>
-    <p>Loading <span id="loadingid" class="mono"></span> — about 44 MB of
-       audio is being decoded.</p>
+    <p>Loading <span id="loadingid" class="mono"></span><span
+      id="loadingsize"></span></p>
   </div>
 
   <div id="failure" class="panel failure" hidden>
@@ -409,9 +409,9 @@ select#sets { max-width: 360px; }
       <div class="abx-head">
         <div>
           <h2>Listening check <span class="abx-sub">ABX</span></h2>
-          <p class="abx-why" id="abxWhy">X is secretly one of the two you
-          pick. Say which one it matches, several times over. Getting it right
-          often enough proves the two really do sound different — until then a
+          <p class="abx-why" id="abxWhy">X is secretly one of the two.
+          Say which one it matches, several times over. Getting it right often
+          enough proves the two really do sound different — until then a
           preference is a guess.</p>
         </div>
         <div class="abx-setup" id="abxSetup">
@@ -471,18 +471,25 @@ select#sets { max-width: 360px; }
       <div class="body">
         <table id="fair"><thead><tr><th>Arm</th><th>Own loudness</th>
           <th>Gain applied</th><th>Playing at</th></tr></thead><tbody></tbody></table>
-        <p>Everything is matched to the quietest arm, so nothing is turned up and
-        nothing clips. The louder file wins an unmatched comparison every time —
-        that is how this project got its first wrong answer.</p>
+        <p>The versions are matched to the quietest of them, so none is
+        turned up and none clips. The louder file always wins an unmatched
+        comparison — that is how this project got its first wrong answer.</p>
+        <p id="liftnote" hidden></p>
       </div>
     </details>
 
     <details>
       <summary>Keys, and what "Difference" can and cannot tell you</summary>
       <div class="body">
-        <p><kbd>space</kbd> play · <kbd>S</kbd> swap · <kbd>D</kbd> difference ·
-           <kbd>L</kbd> loop the last 4 s · <kbd>0</kbd> back to loop start ·
+        <p><kbd>space</kbd> play · <kbd>1</kbd>…<kbd>4</kbd> hear that
+           version · <span id="keyswap"><kbd>S</kbd> next version</span> ·
+           <span id="keydiff" hidden><kbd>D</kbd> difference · </span>
+           <kbd>L</kbd> loop four seconds from here ·
+           <kbd>0</kbd> back to loop start ·
            <kbd>←</kbd> <kbd>→</kbd> previous / next comparison</p>
+        <p style="margin-top:6px">During a listening check:
+           <kbd>X</kbd> hear the unknown one, the version's own number to hear
+           it, and <kbd>⇧</kbd> with that number to answer.</p>
         <p style="margin-top:10px"><strong class="warn">Difference</strong> plays
         what one version has and the other does not. It tells you whether the
         thing taken out was noise or music. It <em>cannot</em> tell you whether
@@ -513,6 +520,7 @@ async function loadSet(id) {
 
   const files = cur.arms.map(a => a.file);
   if (cur.residual) files.push(cur.residual.file);
+  sayLoadSize(files, cur.seconds, cur.sr);
   buffers = await loadBuffers(id, files);
 
   endLoad();
@@ -523,13 +531,30 @@ async function loadSet(id) {
   // both of them the same is how a listener ends up hearing the whole song
   // and wondering what is broken.
   $('diffwhat').hidden = !cur.residual;
+  $('liftnote').hidden = true;
+  // Twenty of the thirty-six sets have no difference signal. Advertising the
+  // key on those sets promises something that does nothing.
+  $('keydiff').hidden = !cur.residual;
+  $('keyswap').textContent = '';
+  $('keyswap').append(Object.assign(document.createElement('kbd'), {textContent: 'S'}),
+    cur.arms.length > 2 ? ' next version' : ' swap the two');
   if (cur.residual) {
+    // The difference signal is not one of the matched versions: it is lifted
+    // so it can be heard at all. Saying so where the matching is explained
+    // stops "nothing is turned up" from reading as a claim about it too.
+    $('liftnote').hidden = false;
+    $('liftnote').textContent =
+      'The difference signal is not one of the versions. It is quiet, so it ' +
+      'is lifted ' + (cur.residual.fixed_lift_db || cur.residual.gain_db) +
+      ' dB to be audible — by the same fixed amount on every set, so a bigger ' +
+      'difference still sounds bigger.';
     $('diffbtn').innerHTML = esc(cur.residual.label || 'Difference') +
       ' <kbd>D</kbd>';
     $('diffwhat').innerHTML = esc(cur.residual.explain || '') +
-      ` <span style="color:var(--fg-3)">It matches the music ` +
-      `${Math.round(cur.residual.song_correlation * 100)}% — a removal ` +
-      `matches it hardly at all, a tone change matches it closely.</span>` +
+      ` <span style="color:var(--fg-3)">This signal is ` +
+      `${Math.round(cur.residual.song_correlation * 100)}% alike to the music ` +
+      `itself: something removed is hardly alike at all, a tone change is very ` +
+      `alike.</span>` +
       (cur.residual.kind_disagrees
         ? ' <span class="warn">— this set is labelled wrongly; the signal ' +
           'does not match the kind it claims.</span>' : '');
@@ -731,7 +756,12 @@ addEventListener('keydown', e => {
   if (k === ' ') { e.preventDefault(); $('play').click(); }
   else if (k === 's') $('swap').click();
   else if (k === 'd' && cur && cur.residual) $('diffbtn').click();
-  else if (k === 'l' && cur) { loopA = Math.max(0, pos() - 4); loopB = pos() + .2;
+  else if (k === 'l' && cur) {
+    // Always four seconds. Taking pos()-4 to pos() gave a 0.2 s loop
+    // anywhere in the first four seconds, which is not what the key says.
+    const want = 4;
+    loopA = Math.max(0, Math.min(pos(), cur.seconds - want));
+    loopB = Math.min(cur.seconds, loopA + want);
     startOffset = loopA; if (playing) play(); else paint(); arm(); }
   else if (k === '0' && cur) { startOffset = loopA; if (playing) play(); paint(); }
   else if (e.key === 'ArrowLeft') $('prev').click();
@@ -763,6 +793,12 @@ const ARM_KEYS = '123456789';   // key 1 plays arm 0
    the set named at the top. So unload first, say something honest, and
    only bring the page back when the audio is really here. */
 function beginLoad(id) {
+  // A check in progress is work the listener has done. Changing set throws
+  // it away, and the arrows and the picker used to do that without a word.
+  if (typeof abxRunning === 'function' && abxRunning()) {
+    say('Listening check on ' + (cur ? cur.id : 'the last set') +
+        ' was abandoned part way, so nothing was proved there.');
+  }
   stop();
   cur = null; buffers = []; sources = []; gains = [];
   idx = Math.max(0, ids.indexOf(id));
@@ -771,6 +807,9 @@ function beginLoad(id) {
   $('empty').hidden = true;
   $('main').hidden = true;
   $('loadingid').textContent = id;
+  // Say the real size or say nothing. The old line claimed 44 MB for every
+  // set; nothing on the bench is 44 MB.
+  $('loadingsize').textContent = '';
   $('loading').hidden = false;
 }
 
@@ -803,6 +842,8 @@ function showFailure(id, err) {
 function showEmpty() {
   stop();
   cur = null; buffers = [];
+  const rd = document.getElementById('round');
+  if (rd) rd.hidden = true;      // no sets means no round to be part way through
   $('loading').hidden = true;
   $('main').hidden = true;
   $('failure').hidden = true;
@@ -852,7 +893,11 @@ function paintArms() {
   $('stage').querySelectorAll('.cand').forEach(c => {
     const live = !onDiff && !onX && +c.dataset.i === active;
     c.setAttribute('aria-pressed', live);
-    c.querySelector('.state').textContent = live ? 'playing' : 'silent';
+    // "playing" has to mean playing. The card used to report which gain
+    // was open, so a stopped page said PLAYING four lines above a strip
+    // saying PRESS PLAY.
+    c.querySelector('.state').textContent =
+      live ? (playing ? 'playing' : 'selected') : 'silent';
   });
   const arm = cur.arms[active];
   // Say what is sounding AND whether it is actually sounding. The old text
@@ -871,6 +916,15 @@ function paintArms() {
 }
 
 /* ── loading audio, with every failure named ──────────────────────── */
+
+/* Once the manifest is in we know the arm count and the duration, so the
+   decoded size is arithmetic rather than a guess: 4 bytes a sample, two
+   channels, one buffer per file. */
+function sayLoadSize(files, seconds, rate) {
+  const mb = files.length * seconds * (rate || 48000) * 2 * 4 / 1048576;
+  $('loadingsize').textContent =
+    ' — decoding about ' + Math.round(mb) + ' MB of audio.';
+}
 
 async function loadBuffers(id, files) {
   return Promise.all(files.map(async f => {
@@ -995,7 +1049,7 @@ function renderPicker() {
     const done = rs.filter(r => r.judged).length;
     out.push(
       `<optgroup label="${esc(g.name)} — ${done} of ${rs.length} judged">` +
-      rs.map(r => `<option value="${esc(r.id)}">${r.judged ? '✓' : '·'} ` +
+      rs.map(r => `<option value="${esc(r.id)}">${r.judged ? '✓ ' : ''}` +
                   `${esc(songOf(r))}</option>`).join('') +
       `</optgroup>`);
   }
@@ -1090,6 +1144,19 @@ async function afterSave() {
 /* Round so far. Preferred LETTERS are shown by default; what those letters
    were is behind a checkbox, because reading "the chain won" before judging
    the next set in the same group is the bias this bench exists to remove. */
+/* Did this verdict come with proof the difference was audible? Without
+   this column the record cannot answer the question the check exists for. */
+function evidence(row) {
+  const a = row && row.abx;
+  if (!a || !a.trials) return '<span class="warn">coin flip</span>';
+  const p = typeof a.p_value === 'number'
+    ? (a.p_value >= 0.001 ? a.p_value.toFixed(3) : a.p_value.toExponential(1))
+    : '?';
+  return a.audible
+    ? `<span class="ok">${a.correct}/${a.trials}, p ${p}</span>`
+    : `<span class="warn">${a.correct}/${a.trials}, p ${p}</span>`;
+}
+
 async function renderSoFar() {
   if (sofarBusy) return;
   sofarBusy = true;
@@ -1115,16 +1182,17 @@ async function renderSoFar() {
     $('sofartable').innerHTML =
       `<table><thead><tr><th>Set</th><th>Preferred</th>` +
       (reveal ? `<th>Which was that</th>` : ``) +
-      `<th>When</th><th>Note</th></tr></thead><tbody>` +
+      `<th>Heard it?</th><th>When</th><th>Note</th></tr></thead><tbody>` +
       got.map(({r, rounds}) => {
         if (rounds === null) return `<tr><td>${esc(r.title || r.id)}</td>` +
-          `<td colspan="${reveal ? 4 : 3}" class="warn">could not read</td></tr>`;
+          `<td colspan="${reveal ? 5 : 4}" class="warn">could not read</td></tr>`;
         const last = rounds[rounds.length - 1] || {};
         const again = rounds.length > 1 ? ` (${rounds.length} times)` : '';
         return `<tr><td>${esc(r.title || r.id)}${again}</td>` +
           `<td>${esc(last.preferred_letter === 'tie' ? 'no preference'
                      : last.preferred_letter || '—')}</td>` +
           (reveal ? `<td class="lab">${esc(last.preferred_label || '—')}</td>` : ``) +
+          `<td>${evidence(last)}</td>` +
           `<td class="when">${esc((last.at || '').replace('T', ' ').slice(5, 16))}</td>` +
           `<td class="note">${esc((last.note || '').slice(0, 80))}</td></tr>`;
       }).join('') + `</tbody></table>`;
@@ -1245,6 +1313,9 @@ function abxReset() {
   $('abxB').value = String(Math.min(1, Math.max(0, arms.length - 1)));
   // With two arms there is no pair to choose, so do not ask.
   $('abxPair').hidden = arms.length < 3;
+  $('abxWhy').firstChild.nodeValue = arms.length < 3
+    ? 'X is secretly one of the two. '
+    : 'X is secretly one of the two you pick. ';
   $('abxSetup').hidden = false;
   $('abxRun').hidden = true;
   $('abxResult').hidden = true;
@@ -1257,7 +1328,10 @@ function abxStart() {
   if (!cur) return;
   const a = +$('abxA').value, b = +$('abxB').value;
   if (a === b) { $('abxFlag').textContent = 'Pick two different versions.'; return; }
-  const n = Math.max(4, Math.min(50, Math.round(+$('abxN').value) || 12));
+  // 8 is the shortest run that can pass: a perfect 4 of 4 scores p =
+  // 0.0625, above the 0.05 threshold, so a 4-trial check can only ever
+  // report failure. The input says min 8; this has to agree with it.
+  const n = Math.max(8, Math.min(50, Math.round(+$('abxN').value) || 12));
   $('abxN').value = n;
   abx = {pair: [a, b], letters: [cur.arms[a].letter, cur.arms[b].letter],
          n: n, i: 0, trials: [], xArm: null, done: false,
@@ -1324,7 +1398,7 @@ function abxStopRun() {
   // A half-finished run proves nothing, so it is thrown away rather than
   // scored on the trials that happened to go well.
   abx = null; setXArm(-1);
-  if (active === xIndex()) select(0);
+  if (active === xIndex()) select(abx.pair[0]);   // back to the pair, not to A
   $('abxRun').hidden = true; $('abxSetup').hidden = false;
   $('abxFlag').hidden = false;
   $('abxFlag').textContent = 'Check stopped part way, so nothing was proved. ' +
