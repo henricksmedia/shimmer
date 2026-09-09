@@ -714,6 +714,24 @@ count.
       and only the listener can say which. The weights (1.6 MB) are not
       committed until round 6 says they earn it; the plan if they do is
       inference in numpy/scipy so users install nothing.
+      **Round 6 judged 2026-09-08** (`round-6/blind/SCORES.json`). Six
+      renders: cleaned letter preferred on **1** (algorithms-lure:
+      "shimmer reduced, music intact"); **4** "too close" to tell apart
+      (falling-for-you, kindling, the-little-things, we-were-meant), music
+      intact on all four, shimmer marked "gone" on two of them and
+      "reduced" on two — read that as the difference being below what a
+      careful listener resolves at 100 %, not as the hash being gone;
+      **1** neither (leave-the-world-behind: "shimmer is so bad", the
+      network changed 0.025 sones and did not touch it). Verdict: **does
+      no harm on real renders; mostly too gentle to hear at 100 %.**
+      Hearing model agrees: 0.012-0.054 sones taken on five of six. One
+      note to chase: on kindling "a higher frequency sound sitting in the
+      back" — either a fixed line the notch plan would take or a residue
+      of the mask. Next: the same renders at 2-4x mask strength (the
+      inference supports it), judged by the hearing model first and a
+      round after; and training on both hash models and a wider level
+      range, since the harness showed it does not generalise to the
+      periodic one at high level.
 
 ## DEFERRED — the 80% stake
 

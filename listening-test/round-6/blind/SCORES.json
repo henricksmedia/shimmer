@@ -1,43 +1,43 @@
 {
- "judged_by": "",
- "date": "",
+ "judged_by": "author",
+ "date": "2026-09-08",
  "how": "For each song, fill in the letter you preferred, whether the shimmer went, and whether the music stayed intact. Write anything else in note. Save, then tell Claude it is filled in.",
  "rankings": {
   "suno-algorithms-lure": {
-   "preferred": null,
-   "shimmer": "gone | reduced | same | worse",
-   "music": "intact | slightly damaged | damaged",
+   "preferred": "B",
+   "shimmer": "reduced",
+   "music": "intact",
    "note": ""
   },
   "suno-falling-for-you": {
-   "preferred": null,
-   "shimmer": "gone | reduced | same | worse",
-   "music": "intact | slightly damaged | damaged",
-   "note": ""
+   "preferred": "both",
+   "shimmer": "reduced",
+   "music": "intact",
+   "note": "sound too close"
   },
   "suno-kindling": {
-   "preferred": null,
-   "shimmer": "gone | reduced | same | worse",
-   "music": "intact | slightly damaged | damaged",
-   "note": ""
+   "preferred": "both",
+   "shimmer": "gone",
+   "music": "intact",
+   "note": "sound too close, but has a higher frequency sound I can hear sitting in back of sound"
   },
   "suno-leave-the-world-behind": {
-   "preferred": null,
-   "shimmer": "gone | reduced | same | worse",
-   "music": "intact | slightly damaged | damaged",
-   "note": ""
+   "preferred": "neither",
+   "shimmer": "worse",
+   "music": "slightly damaged",
+   "note": "shimmer is so bad."
   },
   "suno-the-little-things": {
-   "preferred": null,
-   "shimmer": "gone | reduced | same | worse",
-   "music": "intact | slightly damaged | damaged",
+   "preferred": "both",
+   "shimmer": "gone",
+   "music": "intact",
    "note": ""
   },
   "suno-we-were-meant-for-the-stars": {
-   "preferred": null,
-   "shimmer": "gone | reduced | same | worse",
-   "music": "intact | slightly damaged | damaged",
-   "note": ""
+   "preferred": "both",
+   "shimmer": "reduced",
+   "music": "intact",
+   "note": "sounds too close"
   }
  }
 }
