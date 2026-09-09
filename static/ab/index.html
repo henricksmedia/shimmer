@@ -415,7 +415,8 @@ select#sets { max-width: 360px; }
           <p class="abx-why" id="abxWhy">X is secretly one of the two.
           Say which one it matches, several times over. Getting it right often
           enough is good evidence the two really do sound different — the
-          bar is a result that guessing would beat less than 1 time in 20.
+          bar is a score that guessing would match or beat at most 1 time
+          in 20.
           Until then a preference is a guess.</p>
         </div>
         <div class="abx-setup" id="abxSetup">
@@ -447,6 +448,7 @@ select#sets { max-width: 360px; }
       </div>
 
       <div id="abxResult" hidden>
+        <p class="abx-flag" id="abxRepeat" hidden></p>
         <p class="abx-score" id="abxScore"></p>
         <p class="abx-plain" id="abxPlain"></p>
         <p class="abx-seq" id="abxSeq"></p>
@@ -509,7 +511,10 @@ select#sets { max-width: 360px; }
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt = s => Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
+// Playback is scheduled 50 ms ahead, so pos() is briefly negative and the
+// clock read -1:-1 until the start time arrived.
+const fmt = s => { const t = Math.max(0, s || 0);
+  return Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0'); };
 
 let ctx, cur = null, buffers = [], gains = [], sources = [];
 let ids = [], idx = 0, active = 0, playing = false, startedAt = 0, startOffset = 0;
@@ -521,13 +526,17 @@ let loadGen = 0;
 async function loadSet(id) {
   const gen = ++loadGen;          // only the newest load may touch the page
   beginLoad(id);
-  cur = await api('set/' + encodeURIComponent(id));
+  const got = await api('set/' + encodeURIComponent(id));
+  if (gen !== loadGen) return;    // a newer set was asked for; drop this one
+  cur = got;
   ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
 
   const files = cur.arms.map(a => a.file);
   if (cur.residual) files.push(cur.residual.file);
   sayLoadSize(files, cur.seconds, cur.sr);
-  buffers = await loadBuffers(id, files);
+  const decoded = await loadBuffers(id, files);
+  if (gen !== loadGen) return;    // and again after the slow part
+  buffers = decoded;
 
   endLoad();
   $('title').textContent = cur.title || cur.id;
@@ -596,8 +605,11 @@ async function loadSet(id) {
 
   loopA = 0; loopB = cur.seconds; switches = 0; listened = 0;
   active = 0; startOffset = 0;
-  if (gen !== loadGen) return;   // a newer set was asked for while this
-                                 // one was decoding; drop this one silently
+  // beginLoad sets the picker optimistically, for responsiveness, but a load
+  // that is later abandoned leaves it naming a set that never finished. Only
+  // the load that actually reaches here may say which set you are on.
+  idx = Math.max(0, ids.indexOf(id));
+  if (ids.indexOf(id) >= 0) $('sets').value = id;
   renderArms(); drawWave(); paint(); abxReset();
 }
 
@@ -770,11 +782,25 @@ $('save').onclick = async () => {
       '. Your pick and note are still here; try again.</span>';
     return;
   }
-  await afterSave();   // the advice line reports the save; a tick here
+  const abandoned = abxRunning();
+  await afterSave();
+  if (abandoned) {
+    say($('advice').textContent.trim() + ' The listening check that was ' +
+        'running was not finished, so it counts for nothing.');
+  }
+  // the advice line reports the save; a tick here
                        // is wiped by the set change before it can be read
 };
 $('revealbtn').onclick = async () => {
-  const k = await api('reveal/' + encodeURIComponent(cur.id));
+  let k;
+  try {
+    k = await api('reveal/' + encodeURIComponent(cur.id));
+  } catch (err) {
+    $('answer').innerHTML = '<span class="warn">Could not reveal — ' +
+      esc(String(err.why || err.message || 'the server refused it')
+            .replace(/[.\s]+$/, '')) + '.</span>';
+    return;
+  }
   $('answer').innerHTML = Object.entries(k.answer)
     .map(([l, v]) => `<strong style="color:var(--fg-0)">${l}</strong> ${esc(v)}`)
     .join(' &nbsp;·&nbsp; ');
@@ -833,14 +859,18 @@ function unsavedWork() {
 function beginLoad(id) {
   // A check in progress is work the listener has done. Changing set throws
   // it away, and the arrows and the picker used to do that without a word.
+  // One message, not two: say() replaces what is there, so calling it twice
+  // reported the check and silently swallowed the lost pick and note.
   const lost = unsavedWork();
-  if (lost) {
-    say('Left ' + (cur ? (cur.title || cur.id) : 'that set') + ' without saving' +
-        (lost === 3 ? ' a pick and a note.' : lost === 1 ? ' a pick.' : ' a note.'));
-  }
-  if (typeof abxRunning === 'function' && abxRunning()) {
-    say('Listening check on ' + (cur ? (cur.title || cur.id) : 'the last set') +
-        ' was abandoned part way, so nothing was proved there.');
+  const mid = typeof abxRunning === 'function' && abxRunning();
+  if (lost || mid) {
+    const what = cur ? (cur.title || cur.id) : 'that set';
+    const bits = [];
+    if (lost & 1) bits.push('a pick');
+    if (lost & 2) bits.push('a note');
+    if (mid) bits.push('a listening check part way through');
+    say('Left ' + what + ' without saving ' +
+        bits.join(bits.length > 2 ? ', ' : ' and ') + '.');
   }
   stop();
   cur = null; buffers = []; sources = []; gains = [];
@@ -917,11 +947,17 @@ function renderArms() {
       '<div class="state">' + (i === active ? 'playing' : 'silent') + '</div>' +
     '</div>').join('');
   st.querySelectorAll('.cand').forEach(c => {
-    c.onclick = () => select(+c.dataset.i);
+    // Same rule as the number keys: during a check only the two on
+    // trial may be auditioned. The keyboard path had this guard; clicking
+    // a card did not, so the check panel could show C/D/X while the cards
+    // and the big letter said A.
+    const pick = i => { if (abxRunning() && !abx.pair.includes(i)) return;
+                        select(i); };
+    c.onclick = () => pick(+c.dataset.i);
     c.onkeydown = e => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        select(+c.dataset.i);
+        pick(+c.dataset.i);
       }
     };
   });
@@ -1204,7 +1240,8 @@ function evidence(row) {
   const a = row && row.abx;
   if (!a || !a.trials) return '<span class="warn">coin flip</span>';
   const p = typeof a.p_value === 'number'
-    ? (a.p_value >= 0.001 ? a.p_value.toFixed(3) : a.p_value.toExponential(1))
+    ? (a.p_value >= 0.001 ? a.p_value.toFixed(3)
+                          : a.p_value.toFixed(6).replace(/0+$/, ''))
     : '?';
   // Name the pair. A check on C and D says nothing about a preference for
   // A, and without the pair on screen a green tick beside "A" reads as
@@ -1212,7 +1249,8 @@ function evidence(row) {
   const pair = Array.isArray(a.pair) ? a.pair.join(' v ') : '?';
   const covers = Array.isArray(a.pair) && row.preferred_letter &&
                  a.pair.includes(row.preferred_letter);
-  const body = `${a.correct}/${a.trials}, p ${p} <small>(${esc(pair)})</small>`;
+  const many = a.run_count > 1 ? ` <small>${a.run_count} runs</small>` : '';
+  const body = `${a.correct}/${a.trials}, p ${p} <small>(${esc(pair)})</small>${many}`;
   if (!a.audible) return `<span class="warn">${body}</span>`;
   return covers ? `<span class="ok">${body}</span>`
                 : `<span class="warn">${body} — not this pick</span>`;
@@ -1271,6 +1309,11 @@ const _openSet = open_;
 open_ = async function (id) {
   clearSay();
   const r = await _openSet(id);
+  // Only the load that actually won may say which set you are on. This
+  // wrapper used to stamp the strip and the picker unconditionally, so a
+  // slow load that had already been abandoned still relabelled the page
+  // after a newer set had finished loading.
+  if (!cur || cur.id !== id) return r;
   renderRound(id);
   $('sets').value = id;
   return r;
@@ -1382,7 +1425,8 @@ function abxReset(keepRuns) {
     : 'X is secretly one of the two you pick. ') +
     'Say which one it matches, several times over. Getting it right often ' +
     'enough is good evidence the two really do sound different — the bar is ' +
-    'a result that guessing would beat less than 1 time in 20. Until then a ' +
+    'a score that guessing would match or beat at most 1 time in 20. Until ' +
+    'then a ' +
     'preference is a guess.';
   $('abxSetup').hidden = false;
   $('abxRun').hidden = true;
@@ -1460,13 +1504,17 @@ function abxFinish() {
   $('abxScore').textContent =
     `${abx.correct} of ${abx.n}, p = ${pTxt} — ` +
     (abx.audible ? 'you can hear it' : 'not proof you can hear it');
-  if (abxRuns.length > 1) {
-    $('abxSeq').insertAdjacentHTML('beforebegin',
-      '<p class="abx-flag" id="abxRepeat">This is check ' + abxRuns.length +
-      ' on this pair. Running it again until one passes makes a pass much ' +
-      'more likely by luck than the number below suggests. Every run is ' +
-      'saved with the verdict, so the record shows all ' + abxRuns.length +
-      '.</p>');
+  // Count runs on THIS pair, not on the set: a check of A against B says
+  // nothing about how many times C and D were compared.
+  const key = abx.letters.join('|');
+  const samePair = abxRuns.filter(r => r.pair.join('|') === key).length;
+  const rep = $('abxRepeat');
+  rep.hidden = samePair < 2;
+  if (samePair >= 2) {
+    rep.textContent = 'This is check ' + samePair + ' on ' + abx.letters[0] +
+      ' against ' + abx.letters[1] + '. Running a check again until one ' +
+      'passes makes a pass more likely by luck than the number below ' +
+      'suggests. All ' + samePair + ' are saved with the verdict.';
   }
   $('abxPlain').textContent = abx.audible
     ? `Guessing would score this well ${chance}. So ${abx.letters[0]} and ` +
@@ -1533,7 +1581,17 @@ function abxPaint() {
 /* What goes with the verdict, so a preference can be read later as evidence
    or as a coin flip. Null until a full run is finished. */
 function abxPayload() {
-  if (!abx || !abx.done) return null;
+  // Completed runs are evidence even if the listener later started another
+  // and stopped it. Returning null in that case wrote "abx": null over a
+  // finished 8-of-8 and the record then read "coin flip".
+  if (!abx || !abx.done) {
+    if (!abxRuns.length) return null;
+    const best = abxRuns[abxRuns.length - 1];
+    return {runs: abxRuns.slice(), run_count: abxRuns.length,
+            pair: best.pair, trials: best.trials, correct: best.correct,
+            p_value: best.p_value, audible: best.audible, alpha: ABX_ALPHA,
+            abandoned_after: true};
+  }
   return {runs: abxRuns.slice(), run_count: abxRuns.length,
           pair: abx.letters, trials: abx.n, correct: abx.correct,
           p_value: +abx.p.toFixed(6), audible: abx.audible, alpha: ABX_ALPHA,
