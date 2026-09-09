@@ -116,7 +116,15 @@ count.
       commercial music; the 6.58 dB current-chain figure is therefore
       against a disputed target and should not be quoted until that is
       settled. The 6.34 dB catalogue figure above does not depend on the
-      target: it compares two masters' own spectra.*
+      target: it compares two masters' own spectra.* *And, read against
+      §7.3: the yardstick here is the mastering service, which §7 measures
+      about 6 dB above contemporary commercial masters in presence and 8 dB
+      in air. So "6.3 dB duller than the service" is not "6.3 dB duller
+      than commercial music"; §7.3's own zone table puts Shimmer output
+      2.9 dB* above *commercial in presence and 1.2 dB above in air. Item
+      12's done-when re-measures this gap against captured commercial
+      masters; until then this number describes distance from the service,
+      nothing more.*
 
 - [x] **3. Preset harness — all 19.**
       *Done when:* a script produces the full damage matrix, a committed
