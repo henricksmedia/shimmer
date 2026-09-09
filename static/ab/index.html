@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Listening bench · Shimmer</title>
+<title>Shimmer · Listening room</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet"
@@ -49,47 +49,64 @@ a:hover { text-decoration: underline; }
    so the blurred surface reaches both edges instead of floating in a gutter. */
 .top { position: sticky; top: 0; z-index: 20;
        display: flex; align-items: center; gap: var(--gap-3);
-       height: 54px; margin: -14px -22px var(--gap-4); padding: 0 22px;
+       height: 62px; margin: -14px -22px var(--gap-4); padding: 0 22px;
        background: color-mix(in srgb, var(--bg-0) 78%, transparent);
        backdrop-filter: blur(14px) saturate(1.3);
        -webkit-backdrop-filter: blur(14px) saturate(1.3);
        border-bottom: 1px solid var(--line); }
 
-.brand { display: flex; align-items: center; gap: 11px; flex: none; }
+.brand { display: flex; align-items: center; gap: 13px; flex: none; }
 /* Four bars at unequal heights: the thing the page is for, at 30 px. */
-/* Solid amber, bars punched out in the page's own background. Amber-on-
-   amber was the fault: figure and ground have to differ in value, not only
-   in alpha. */
-.glyph { display: block; width: 28px; height: 28px; flex: none;
-         border-radius: 8px;
-         background: linear-gradient(168deg, #ffc25c 0%, var(--amber) 52%,
-                                     #d98b12 100%);
-         box-shadow: inset 0 1px 0 rgba(255,255,255,.28),
-                     0 1px 2px rgba(0,0,0,.5),
-                     0 0 22px rgba(245,165,36,.16); }
-.glyph svg { display: block; fill: var(--bg-0); overflow: visible; }
-/* Four bars that rest when paused and move when playing. Purely a CSS
-   animation on the mark: nothing is tapped off the audio, because the one
-   thing this page must never do is change what you are judging. */
-.glyph rect { transform-origin: 14px 14px; }
-.glyph.playing rect { animation: lvl 880ms ease-in-out infinite; }
-.glyph.playing rect:nth-child(2) { animation-duration: 610ms;
-                                   animation-delay: -.21s; }
-.glyph.playing rect:nth-child(3) { animation-duration: 1180ms;
-                                   animation-delay: -.53s; }
-.glyph.playing rect:nth-child(4) { animation-duration: 740ms;
-                                   animation-delay: -.36s; }
-@keyframes lvl { 0%, 100% { transform: scaleY(.4); }
+/* The mirror: a waveform and its twin, one version against the other. No
+   container and no gradient inside it — sixteen bars at 29 px need figure
+   and ground to differ in value, which is what sank the amber-on-amber
+   chip that came before. */
+.glyph { display: block; flex: none; }
+.glyph svg { display: block; overflow: visible; }
+.glyph .up rect { fill: var(--amber); }
+.glyph .dn rect { fill: #3a434f; }
+/* The two halves move while audio plays, out of phase with each other, so
+   the mark says the transport is running. CSS only: nothing is tapped off
+   the audio graph, because the one thing this page must never do is change
+   what is being judged. */
+.glyph .up rect { transform-origin: 50% 100%; }
+.glyph .dn rect { transform-origin: 50% 0%; }
+.glyph.playing rect { animation: lvl 900ms ease-in-out infinite; }
+.glyph.playing rect:nth-child(2n) { animation-duration: 640ms;
+                                    animation-delay: -.23s; }
+.glyph.playing rect:nth-child(3n) { animation-duration: 1160ms;
+                                    animation-delay: -.51s; }
+.glyph.playing .dn rect { animation-delay: -.37s; }
+@keyframes lvl { 0%, 100% { transform: scaleY(.42); }
                  50%      { transform: scaleY(1); } }
-@media (prefers-reduced-motion: reduce) { .glyph.playing rect { animation: none; } }
-.name { font-size: 15.5px; font-weight: 650; color: var(--fg-0);
-        letter-spacing: -.015em; }
-/* A label on the mark, not a control beside the title: no border, and the
-   mark's own colour so it joins the lockup instead of competing with it. */
-.tag { font-size: 9.5px; font-weight: 700; text-transform: uppercase;
-       letter-spacing: .13em; color: var(--amber); border: 0;
-       background: rgba(245,165,36,.13); border-radius: 5px;
-       padding: 3px 6px 2px; line-height: 1; }
+
+/* Shimmer's own wordmark, lifted from layout.css because this page does not
+   load it: heavy uppercase, wide tracking, a gradient swept through the
+   letters. The app's rail reads SHIMMER over "AI-track mastering"; this
+   surface reads SHIMMER over what this surface is. */
+.lockup { display: block; line-height: 1; }
+.aurora-wm { display: block; font-weight: 750; font-size: 15px;
+             text-transform: uppercase; letter-spacing: .26em;
+             margin-right: -.26em;
+             background: linear-gradient(100deg,
+                 var(--amber) 0%, #ffd97a 18%, var(--gold) 38%,
+                 #f472b6 55%, var(--amber) 75%, #ffd97a 100%);
+             background-size: 220% 100%;
+             -webkit-background-clip: text; background-clip: text;
+             -webkit-text-fill-color: transparent; color: transparent;
+             animation: aurora-sweep 7s linear infinite; }
+@keyframes aurora-sweep { to { background-position: -220% 0; } }
+.lockup small { display: block; margin-top: 5px; font-size: 9px;
+                font-weight: 600; text-transform: uppercase;
+                letter-spacing: .26em; margin-right: -.26em;
+                color: var(--fg-2); }
+.lockup small i { font-style: normal; color: var(--amber); }
+.lockup small i::before { content: '\00b7'; color: var(--fg-3);
+                          margin: 0 5px 0 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .aurora-wm { animation: none; }
+  .glyph.playing rect { animation: none; }
+}
 
 /* How far through the bench you are. The figure says what the bar measures,
    so the bar needs no legend of its own. */
@@ -434,14 +451,25 @@ select#sets { max-width: 360px; }
 
   <header class="top">
     <div class="brand">
-      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 28 28"
-        width="28" height="28"><rect x="5" y="10" width="3.4" height="8"
-        rx="1.7"/><rect x="10.9" y="6" width="3.4" height="16"
-        rx="1.7"/><rect x="16.8" y="8.5" width="3.4" height="11"
-        rx="1.7"/><rect x="22" y="12" width="3.4" height="4"
-        rx="1.7"/></svg></span>
-      <span class="name">Listening bench</span>
-      <span class="tag">dev</span>
+      <span class="glyph" aria-hidden="true"><svg viewBox="0 0 40 34"
+        width="38" height="32"><g class="up"><rect x="0" y="8" width="3"
+        height="9" rx="1.5"/><rect x="5.3" y="3" width="3" height="14"
+        rx="1.5"/><rect x="10.6" y="6" width="3" height="11" rx="1.5"/><rect
+        x="15.9" y="0" width="3" height="17" rx="1.5"/><rect x="21.2" y="5"
+        width="3" height="12" rx="1.5"/><rect x="26.5" y="9" width="3"
+        height="8" rx="1.5"/><rect x="31.8" y="4" width="3" height="13"
+        rx="1.5"/><rect x="37" y="10" width="3" height="7" rx="1.5"/></g>
+        <g class="dn"><rect x="0" y="17" width="3" height="7" rx="1.5"/><rect
+        x="5.3" y="17" width="3" height="12" rx="1.5"/><rect x="10.6" y="17"
+        width="3" height="9" rx="1.5"/><rect x="15.9" y="17" width="3"
+        height="15" rx="1.5"/><rect x="21.2" y="17" width="3" height="10"
+        rx="1.5"/><rect x="26.5" y="17" width="3" height="6" rx="1.5"/><rect
+        x="31.8" y="17" width="3" height="11" rx="1.5"/><rect x="37" y="17"
+        width="3" height="5" rx="1.5"/></g></svg></span>
+      <span class="lockup">
+        <span class="aurora-wm">Shimmer</span>
+        <small>Listening room <i>dev</i></small>
+      </span>
     </div>
     <div class="prog" id="prog" hidden>
       <span class="prog-txt" id="benchcount"></span>
@@ -1401,8 +1429,7 @@ async function refreshSets() {
   byId_ = new Map(rows_.map(r => [r.id, r]));
   const doneAll = rows_.filter(r => r.judged).length;
   $('prog').hidden = !rows_.length;
-  $('benchcount').textContent =
-    `${doneAll} of ${rows_.length} on the bench judged`;
+  $('benchcount').textContent = `${doneAll} of ${rows_.length} judged`;
   $('progfill').style.width =
     (rows_.length ? (100 * doneAll / rows_.length) : 0).toFixed(1) + '%';
   renderPicker();
@@ -1541,7 +1568,7 @@ async function afterSave() {
            id: first.id});
     } else {
       say(`Saved. All ${rs.length} judged in ${row2.group.name}, ` +
-          `and every set on the bench has a verdict.`);
+          `and every set in the room has a verdict.`);
     }
   }
 }
