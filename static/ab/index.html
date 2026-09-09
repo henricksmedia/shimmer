@@ -4,218 +4,334 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Listening bench · Shimmer</title>
-<link rel="stylesheet" href="/static/marketing/marketing.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/css/tokens.css">
 <style>
-  .wrap { max-width: 980px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-  .lede { max-width: 64ch; }
-  .panel { border: 1px solid #2a2f3a; border-radius: 10px;
-           padding: 1.1rem 1.25rem; margin: 1.25rem 0; background: #171a21; }
-  .row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
-  button { background: #2b6cb0; color: #fff; border: 0; border-radius: 6px;
-           padding: .5rem .9rem; font: inherit; cursor: pointer; }
-  button.ghost { background: transparent; border: 1px solid #2a2f3a;
-                 color: inherit; }
-  button:disabled { opacity: .4; cursor: default; }
-  button.on { background: #4ade80; color: #08130c; font-weight: 700; }
-  button.res { background: #6b46c1; }
-  button.big { font-size: 1.35rem; padding: 1rem 2.2rem; min-width: 6rem; }
-  select, input[type=text], textarea { background: #10131a; color: inherit;
-      border: 1px solid #2a2f3a; border-radius: 6px; padding: .45rem .6rem;
-      font: inherit; }
-  textarea { width: 100%; min-height: 4rem; }
-  table { width: 100%; border-collapse: collapse; margin-top: .75rem; }
-  th, td { text-align: left; padding: .4rem .5rem;
-           border-bottom: 1px solid #232833; font-variant-numeric: tabular-nums; }
-  th { font-weight: 600; opacity: .75; font-size: .85rem; }
-  .muted { color: #9aa4b2; }
-  body { background:#0f1218; color:#e6e9ee; }
-  h1,h2,h3 { color:#f3f5f8; }
-  .warn { color: #f0b429; } .ok { color: #4ade80; }
-  kbd { background:#10131a; border:1px solid #2a2f3a; border-bottom-width:2px;
-        border-radius:4px; padding:.05rem .35rem; font-size:.85em; }
-  .bar { position: relative; height: 46px; background:#10131a;
-         border:1px solid #2a2f3a; border-radius:6px; cursor: pointer;
-         overflow: hidden; }
-  .bar .loop { position:absolute; top:0; bottom:0; background:#2b6cb033;
-               border-left:2px solid #2b6cb0; border-right:2px solid #2b6cb0; }
-  .bar .head { position:absolute; top:0; bottom:0; width:2px; background:#4ade80; }
-  .arms { display:flex; gap:.5rem; flex-wrap:wrap; margin:.4rem 0 0; }
+/* The bench is one instrument, not a page of panels. You look at it rarely —
+   most of the time your eyes are shut and you are pressing one key. So the
+   two candidates own the screen, the live one is readable from the corner of
+   your eye, and everything that is read once is folded away. */
+
+body { background: var(--bg-0); color: var(--fg-1); font-family: var(--font-ui);
+       font-size: 14px; line-height: 1.5; }
+.shell { max-width: 860px; margin: 0 auto; padding: 20px 20px 64px; }
+a { color: var(--cyan); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── header ─────────────────────────────────────────────────────── */
+.top { display: flex; align-items: center; gap: var(--gap-3);
+       padding-bottom: var(--gap-4); border-bottom: 1px solid var(--line);
+       margin-bottom: var(--gap-5); flex-wrap: wrap; }
+.mark { font-weight: 700; color: var(--fg-0); font-size: 15px;
+        letter-spacing: .2px; margin-right: auto; }
+.mark span { color: var(--fg-3); font-weight: 500; margin-left: 8px;
+             font-size: 12.5px; }
+select { background: var(--bg-2); color: var(--fg-0);
+         border: 1px solid var(--line-2); border-radius: var(--radius-s);
+         padding: 7px 10px; font: inherit; font-size: 13px; max-width: 320px; }
+.nav { display: flex; gap: 2px; }
+.nav button { width: 34px; padding: 7px 0; }
+
+/* ── buttons ────────────────────────────────────────────────────── */
+button { display: inline-flex; align-items: center; justify-content: center;
+         gap: 7px; padding: 7px 14px; border-radius: var(--radius);
+         background: var(--bg-4); border: 1px solid var(--line-2);
+         color: var(--fg-0); font: inherit; font-size: 13px; font-weight: 500;
+         cursor: pointer; transition: background .12s, border-color .12s; }
+button:hover:not(:disabled) { background: #232a35; border-color: #3d4756; }
+button:disabled { opacity: .35; cursor: not-allowed; }
+button.primary { background: var(--amber); border-color: transparent;
+                 color: #17130a; font-weight: 650; }
+button.primary:hover:not(:disabled) { filter: brightness(1.08);
+  box-shadow: 0 0 0 1px rgba(245,165,36,.35), 0 0 18px rgba(245,165,36,.18); }
+button.quiet { background: transparent; border-color: var(--line); color: var(--fg-2); }
+button.quiet:hover:not(:disabled) { color: var(--fg-0); border-color: var(--line-2);
+                                    background: var(--bg-2); }
+
+/* ── the two candidates: the whole point of the screen ──────────── */
+.stage { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-3); }
+.cand { position: relative; border: 1px solid var(--line);
+        background: var(--bg-2); border-radius: var(--radius);
+        padding: 26px 16px 20px; text-align: center; cursor: pointer;
+        transition: border-color .12s, background .12s, box-shadow .12s;
+        user-select: none; }
+.cand:hover { border-color: var(--line-2); }
+.cand .letter { font-size: 46px; line-height: 1; font-weight: 700;
+                color: var(--fg-3); font-family: var(--font-mono);
+                transition: color .12s; }
+.cand .state { margin-top: 10px; font-size: 11px; letter-spacing: .14em;
+               text-transform: uppercase; color: var(--fg-3); font-weight: 600; }
+.cand[aria-pressed="true"] { border-color: var(--amber); background: var(--amber-soft);
+        box-shadow: 0 0 0 1px rgba(245,165,36,.35), 0 0 26px rgba(245,165,36,.10); }
+.cand[aria-pressed="true"] .letter { color: var(--amber); }
+.cand[aria-pressed="true"] .state { color: var(--amber); }
+
+.swap { margin-top: var(--gap-3); width: 100%; padding: 16px;
+        font-size: 15px; font-weight: 650; letter-spacing: .2px; }
+.swap kbd { opacity: .55; font-size: 11px; }
+
+/* ── waveform ───────────────────────────────────────────────────── */
+.wave { position: relative; margin-top: var(--gap-5); height: 92px;
+        background: var(--bg-2); border: 1px solid var(--line);
+        border-radius: var(--radius); overflow: hidden; cursor: crosshair; }
+.wave canvas { position: absolute; inset: 0; width: 100%; height: 100%;
+               display: block; }
+.wave .dim { position: absolute; top: 0; bottom: 0; background: rgba(11,13,16,.62);
+             pointer-events: none; }
+.wave .head { position: absolute; top: 0; bottom: 0; width: 2px;
+              background: var(--amber); pointer-events: none;
+              box-shadow: 0 0 10px rgba(245,165,36,.6); }
+.hint { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+        color: var(--fg-1); font-size: 11.5px; pointer-events: none;
+        background: rgba(11,13,16,.86); border: 1px solid var(--line-2);
+        border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+
+/* ── transport ──────────────────────────────────────────────────── */
+.bar { display: flex; align-items: center; gap: var(--gap-3);
+       margin-top: var(--gap-3); flex-wrap: wrap; }
+.time { font-family: var(--font-mono); font-size: 12.5px; color: var(--fg-2);
+        min-width: 92px; }
+.spacer { margin-left: auto; }
+.diff { border-color: rgba(167,139,250,.4); color: var(--purple); }
+.diff[aria-pressed="true"] { background: var(--purple-soft);
+        border-color: var(--purple); color: var(--purple);
+        box-shadow: 0 0 0 1px rgba(167,139,250,.3); }
+label.chk { display: inline-flex; align-items: center; gap: 6px;
+            color: var(--fg-2); font-size: 12.5px; cursor: pointer; }
+
+/* ── verdict, inline so you never scroll away mid-listen ────────── */
+.verdict { margin-top: var(--gap-6); padding-top: var(--gap-5);
+           border-top: 1px solid var(--line); }
+.q { font-size: 13px; color: var(--fg-2); margin: 0 0 var(--gap-3); }
+.picks { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-2); }
+.picks button { padding: 13px 8px; font-size: 13.5px; }
+.picks button[aria-pressed="true"] { background: var(--success);
+        border-color: transparent; color: #08130c; font-weight: 650; }
+textarea { width: 100%; margin-top: var(--gap-3); background: var(--bg-2);
+           color: var(--fg-0); border: 1px solid var(--line-2);
+           border-radius: var(--radius-s); padding: 10px 12px; font: inherit;
+           font-size: 13px; min-height: 60px; resize: vertical; }
+
+/* ── folded away: read once, then noise ─────────────────────────── */
+details { margin-top: var(--gap-4); border-top: 1px solid var(--line);
+          padding-top: var(--gap-3); }
+summary { cursor: pointer; color: var(--fg-2); font-size: 12.5px;
+          list-style: none; padding: 3px 0; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: '▸ '; color: var(--fg-3); }
+details[open] summary::before { content: '▾ '; }
+details .body { padding: var(--gap-3) 0 var(--gap-2); color: var(--fg-2);
+                font-size: 12.5px; max-width: 66ch; }
+table { width: 100%; border-collapse: collapse; margin: var(--gap-2) 0; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line);
+         font-family: var(--font-mono); font-size: 12px; }
+th { color: var(--fg-3); font-family: var(--font-ui); font-weight: 600;
+     font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+kbd { font-family: var(--font-mono); background: var(--bg-3);
+      border: 1px solid var(--line-2); border-bottom-width: 2px;
+      border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--fg-1); }
+.ok { color: var(--success); } .warn { color: var(--amber); }
+.matched { color: var(--fg-2); font-size: 12.5px; }
+.empty { text-align: center; color: var(--fg-2); padding: 56px 20px; }
+.empty code { font-family: var(--font-mono); color: var(--cyan); font-size: 12.5px; }
+@media (max-width: 620px) { .stage { grid-template-columns: 1fr; }
+                            .picks { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="shell">
 
-<h1>Listening bench</h1>
-<p class="muted" style="margin:.2rem 0 1.2rem;font-size:.9rem">Developer pages: <a href="/static/ab/" style="color:#7aa7d9">Listening bench</a> &middot; <a href="/static/references/" style="color:#7aa7d9">Reference library</a> &middot; <a href="/" style="color:#7aa7d9">back to Shimmer</a></p>
-<p class="lede">
-  Two versions of the same music, both playing at once. The button swaps which
-  one reaches your ears — same instant, no gap, no restart. Levels are matched
-  before anything is written, so you are hearing the difference and not the
-  volume. Developer tooling; not part of the app.
-</p>
-
-<div class="panel">
-  <div class="row">
+  <div class="top">
+    <div class="mark">Listening bench<span>Shimmer dev</span></div>
+    <div class="nav">
+      <button id="prev" class="quiet" title="previous">‹</button>
+      <button id="next" class="quiet" title="next">›</button>
+    </div>
     <select id="sets"><option>loading…</option></select>
-    <button id="load">Open</button>
-    <span id="setnote" class="muted"></span>
   </div>
-</div>
 
-<div class="panel" id="player" hidden>
-  <h2 id="title" style="margin:.1rem 0 .3rem"></h2>
-  <p class="muted" id="sub" style="margin:0 0 .9rem"></p>
-
-  <div class="row" style="justify-content:center;margin-bottom:.8rem">
-    <button id="play" class="big">▶ Play</button>
-    <button id="swap" class="big">Swap A / B</button>
+  <div id="empty" class="empty" hidden>
+    <p>No comparisons built yet.</p>
+    <p><code>.venv\Scripts\python.exe scripts\make_bench_set.py both</code></p>
   </div>
-  <div class="arms" id="armbtns"></div>
 
-  <div class="bar" id="bar" title="click to jump; drag to set a loop">
-    <div class="loop" id="loopbox" hidden></div>
-    <div class="head" id="head" style="left:0"></div>
-  </div>
-  <div class="row" style="margin-top:.6rem">
-    <span class="muted" id="clock">0:00</span>
-    <button class="ghost" id="clearloop">Whole track</button>
-    <label class="muted"><input type="checkbox" id="auto"> auto-swap every</label>
-    <select id="every">
-      <option value="2">2 s</option><option value="3" selected>3 s</option>
-      <option value="5">5 s</option><option value="0">each loop</option>
-    </select>
-    <button class="res ghost" id="resbtn" hidden>Hear what was removed</button>
-  </div>
-</div>
+  <main id="main" hidden>
+    <h1 id="title" style="font-size:19px;color:var(--fg-0);margin:0 0 4px">…</h1>
+    <p id="note" style="color:var(--fg-2);font-size:13px;margin:0 0 var(--gap-5);max-width:70ch"></p>
 
-<div class="panel" id="verdict" hidden>
-  <h3 style="margin:.1rem 0 .5rem">Which sounded better?</h3>
-  <div class="row" id="pick"></div>
-  <div class="row" style="margin-top:.6rem">
-    <select id="conf">
-      <option value="clear">clear difference</option>
-      <option value="slight" selected>slight difference</option>
-      <option value="none">could not tell them apart</option>
-    </select>
-  </div>
-  <textarea id="note" placeholder="What did you hear? (optional)"
-            style="margin-top:.6rem"></textarea>
-  <div class="row" style="margin-top:.6rem">
-    <button id="save">Save verdict</button>
-    <button class="ghost" id="revealbtn">Reveal what they were</button>
-    <span id="saved" class="ok"></span>
-  </div>
-  <div id="answer" class="muted" style="margin-top:.7rem"></div>
-</div>
+    <div class="stage" id="stage"></div>
+    <button class="primary swap" id="swap">Swap &nbsp;⇄&nbsp; <kbd>S</kbd></button>
 
-<div class="panel" id="fair" hidden>
-  <h3 style="margin:.1rem 0 .4rem">Proof this is a fair comparison</h3>
-  <table id="fairtable"><thead><tr>
-    <th>Arm</th><th>Its own loudness</th><th>Gain applied</th><th>Now</th>
-  </tr></thead><tbody></tbody></table>
-  <p class="muted" style="margin:.6rem 0 0;font-size:.9rem">
-    Everything is matched to the quietest arm, so nothing is ever turned up
-    and nothing clips. The louder file always wins an unmatched comparison —
-    that is how this project got its first wrong answer.
-  </p>
-</div>
+    <div class="wave" id="wave">
+      <canvas id="cv"></canvas>
+      <div class="dim" id="dimL" hidden></div>
+      <div class="dim" id="dimR" hidden></div>
+      <div class="head" id="head" style="left:0"></div>
+      <div class="hint" id="hint">drag to loop a phrase</div>
+    </div>
 
-<div class="panel">
-  <h3 style="margin:.1rem 0 .4rem">Keys</h3>
-  <p class="muted"><kbd>space</kbd> play / pause · <kbd>S</kbd> swap ·
-  <kbd>R</kbd> what was removed · <kbd>L</kbd> loop the last 4 seconds ·
-  <kbd>0</kbd> back to the start</p>
-  <p class="muted" style="font-size:.9rem;margin:.5rem 0 0">
-    <strong class="warn">About "what was removed":</strong> it tells you
-    whether the thing taken out was noise or music. It cannot tell you whether
-    too much was taken. Removed air sounds like <em>shhh</em> on its own and
-    never like music, so a track can lose real openness while the removed part
-    still sounds like nothing. Judge how much by comparing A and B, not by
-    listening to the difference.
-  </p>
+    <div class="bar">
+      <button class="primary" id="play" style="min-width:104px">▶ Play</button>
+      <span class="time" id="clock">0:00 / 0:00</span>
+      <button class="quiet" id="whole" hidden>Whole track</button>
+      <span class="spacer"></span>
+      <label class="chk"><input type="checkbox" id="auto"> auto-swap</label>
+      <select id="every" style="padding:5px 8px;font-size:12px">
+        <option value="2">2s</option><option value="3" selected>3s</option>
+        <option value="5">5s</option><option value="0">per loop</option>
+      </select>
+      <button class="diff" id="diffbtn" aria-pressed="false" hidden>Difference</button>
+    </div>
+
+    <div class="verdict">
+      <p class="q" id="q">Which sounded better?</p>
+      <div class="picks" id="picks"></div>
+      <textarea id="notes" placeholder="What did you hear? (optional)"></textarea>
+      <div class="bar" style="margin-top:var(--gap-3)">
+        <button class="primary" id="save">Save verdict</button>
+        <button class="quiet" id="revealbtn">Reveal</button>
+        <span id="saved" class="ok" style="font-size:12.5px"></span>
+        <span class="spacer"></span>
+        <span class="matched" id="answer"></span>
+      </div>
+    </div>
+
+    <details>
+      <summary id="fairsum">Level match</summary>
+      <div class="body">
+        <table id="fair"><thead><tr><th>Arm</th><th>Own loudness</th>
+          <th>Gain applied</th><th>Playing at</th></tr></thead><tbody></tbody></table>
+        <p>Everything is matched to the quietest arm, so nothing is turned up and
+        nothing clips. The louder file wins an unmatched comparison every time —
+        that is how this project got its first wrong answer.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Keys, and what "Difference" can and cannot tell you</summary>
+      <div class="body">
+        <p><kbd>space</kbd> play · <kbd>S</kbd> swap · <kbd>D</kbd> difference ·
+           <kbd>L</kbd> loop the last 4 s · <kbd>0</kbd> restart ·
+           <kbd>←</kbd> <kbd>→</kbd> previous / next comparison</p>
+        <p style="margin-top:10px"><strong class="warn">Difference</strong> plays
+        what one version has and the other does not. It tells you whether the
+        thing taken out was noise or music. It <em>cannot</em> tell you whether
+        too much was taken: removed air sounds like <em>shhh</em> on its own and
+        never like music, so a track can lose real openness while the removed
+        part still sounds like nothing. Judge how much by swapping, not by
+        listening to the difference.</p>
+      </div>
+    </details>
+  </main>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = s => Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
 
 let ctx, cur = null, buffers = [], gains = [], sources = [];
-let active = 0, playing = false, startedAt = 0, startOffset = 0;
-let loopA = 0, loopB = 0, autoTimer = null, switches = 0, listened = 0;
+let ids = [], idx = 0, active = 0, playing = false, startedAt = 0, startOffset = 0;
+let loopA = 0, loopB = 0, autoTimer = null, switches = 0, listened = 0, picked = '';
 
-async function api(path, opts) {
-  const r = await fetch('/api/dev/ab/' + path, opts);
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
+const api = (p, opts) => fetch('/api/dev/ab/' + p, opts).then(r => {
+  if (!r.ok) throw new Error(r.status); return r.json(); });
 
-async function listSets() {
+async function boot() {
   const d = await api('sets');
-  const s = $('sets');
-  s.innerHTML = d.sets.length
-    ? d.sets.map(x => `<option value="${esc(x.id)}">${esc(x.title)}` +
-        (x.judged ? ` — judged ${x.judged}×` : '') + `</option>`).join('')
-    : '<option value="">nothing built yet</option>';
+  ids = d.sets.map(s => s.id);
+  $('sets').innerHTML = d.sets.map(s =>
+    `<option value="${esc(s.id)}">${esc(s.title)}${s.judged ? '  ✓' : ''}</option>`).join('');
+  if (!ids.length) { $('empty').hidden = false; return; }
+  await open_(ids[0]);
 }
 
 async function open_(id) {
   stop();
+  idx = Math.max(0, ids.indexOf(id));
+  $('sets').value = id;
   cur = await api('set/' + encodeURIComponent(id));
   ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
 
   const files = cur.arms.map(a => a.file);
   if (cur.residual) files.push(cur.residual.file);
-  buffers = await Promise.all(files.map(async f => {
-    const r = await fetch(`/api/dev/ab/audio/${encodeURIComponent(id)}/${f}`);
-    return ctx.decodeAudioData(await r.arrayBuffer());
-  }));
+  buffers = await Promise.all(files.map(async f =>
+    ctx.decodeAudioData(await (await fetch(
+      `/api/dev/ab/audio/${encodeURIComponent(id)}/${f}`)).arrayBuffer())));
 
+  $('main').hidden = false; $('empty').hidden = true;
   $('title').textContent = cur.title;
-  $('sub').innerHTML = esc(cur.note || '') +
-    `<br>${cur.seconds.toFixed(1)} s · all arms matched to ` +
-    `${cur.matched_lufs.toFixed(1)} LUFS`;
-  $('player').hidden = false; $('verdict').hidden = false; $('fair').hidden = false;
-  $('resbtn').hidden = !cur.residual;
+  $('note').textContent = cur.note || '';
+  $('diffbtn').hidden = !cur.residual;
 
-  $('armbtns').innerHTML = cur.arms.map((a, i) =>
-    `<button class="ghost" data-i="${i}">${a.letter}</button>`).join('');
-  $('armbtns').querySelectorAll('button').forEach(b =>
-    b.onclick = () => select(+b.dataset.i));
-  $('pick').innerHTML = cur.arms.map(a =>
-    `<button class="ghost" data-p="${a.letter}">${a.letter} was better</button>`)
-    .join('') + '<button class="ghost" data-p="tie">no preference</button>';
-  let picked = '';
-  $('pick').querySelectorAll('button').forEach(b => b.onclick = () => {
+  $('stage').innerHTML = cur.arms.map((a, i) =>
+    `<div class="cand" role="button" aria-pressed="${i === 0}" data-i="${i}">
+       <div class="letter">${a.letter}</div>
+       <div class="state">${i === 0 ? 'playing' : 'silent'}</div></div>`).join('');
+  $('stage').querySelectorAll('.cand').forEach(c =>
+    c.onclick = () => select(+c.dataset.i));
+
+  picked = '';
+  $('picks').innerHTML = cur.arms.map(a =>
+    `<button aria-pressed="false" data-p="${a.letter}">${a.letter} was better</button>`)
+    .join('') + '<button aria-pressed="false" data-p="tie">No preference</button>';
+  $('picks').querySelectorAll('button').forEach(b => b.onclick = () => {
     picked = b.dataset.p;
-    $('pick').querySelectorAll('button').forEach(x => x.classList.remove('on'));
-    b.classList.add('on');
+    $('picks').querySelectorAll('button').forEach(x =>
+      x.setAttribute('aria-pressed', x === b));
   });
-  $('save').onclick = async () => {
-    if (!picked) { $('saved').textContent = 'pick one first'; return; }
-    await api('score/' + encodeURIComponent(id), {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({preferred: picked, confidence: $('conf').value,
-        note: $('note').value, switches, seconds: listened,
-        revealed_first: !!$('answer').textContent})});
-    $('saved').textContent = 'saved';
-    listSets();
-  };
-  $('revealbtn').onclick = async () => {
-    const k = await api('reveal/' + encodeURIComponent(id));
-    $('answer').innerHTML = '<strong>Answer:</strong> ' +
-      Object.entries(k.answer).map(([l, v]) => `${l} = ${esc(v)}`).join(' · ');
-  };
+  $('notes').value = ''; $('saved').textContent = ''; $('answer').textContent = '';
 
-  const tb = $('fairtable').querySelector('tbody');
-  tb.innerHTML = cur.arms.map(a => `<tr><td>${a.letter}</td>` +
-    `<td>${a.lufs_before.toFixed(1)} LUFS</td>` +
+  $('fairsum').innerHTML = `Level match — all arms at ` +
+    `${cur.matched_lufs.toFixed(1)} LUFS <span class="ok">✓</span>`;
+  $('fair').querySelector('tbody').innerHTML = cur.arms.map(a =>
+    `<tr><td>${a.letter}</td><td>${a.lufs_before.toFixed(1)}</td>` +
     `<td>${a.gain_db > 0 ? '+' : ''}${a.gain_db.toFixed(1)} dB</td>` +
     `<td>${cur.matched_lufs.toFixed(1)} LUFS</td></tr>`).join('');
 
   loopA = 0; loopB = cur.seconds; switches = 0; listened = 0;
-  $('loopbox').hidden = true; active = 0; startOffset = 0;
-  paint();
+  active = 0; startOffset = 0;
+  drawWave(); paint();
+}
+
+/* The waveform is the only way to aim a loop at a chorus rather than at a
+   number of seconds. Peaks per column from the first arm; the arms differ by
+   a couple of dB, so one envelope describes both. */
+function drawWave() {
+  const cv = $('cv'), b = buffers[0];
+  const w = cv.clientWidth || 800, h = cv.clientHeight || 92, dpr = devicePixelRatio || 1;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  g.clearRect(0, 0, w, h);
+  const data = b.getChannelData(0), step = Math.floor(data.length / w) || 1;
+  // Peaks alone render a loud master as a solid block, which gives you
+  // nothing to aim a loop at. Drawing the RMS body over the peak envelope
+  // brings the arrangement back: choruses read as a thicker core.
+  const peaks = new Float32Array(w), rms = new Float32Array(w);
+  for (let x = 0; x < w; x++) {
+    let pk = 0, sum = 0, n = 0;
+    for (let i = x * step, e = Math.min(i + step, data.length); i < e; i += 4) {
+      const v = Math.abs(data[i]);
+      if (v > pk) pk = v;
+      sum += v * v; n++;
+    }
+    peaks[x] = pk; rms[x] = n ? Math.sqrt(sum / n) : 0;
+  }
+  const H = h - 10;
+  g.fillStyle = 'rgba(56,189,248,.22)';
+  for (let x = 0; x < w; x++) {
+    const bh = Math.max(1, peaks[x] * H);
+    g.fillRect(x, (h - bh) / 2, 1, bh);
+  }
+  g.fillStyle = 'rgba(56,189,248,.85)';
+  for (let x = 0; x < w; x++) {
+    const bh = Math.max(1, rms[x] * H * 1.6);
+    g.fillRect(x, (h - bh) / 2, 1, bh);
+  }
 }
 
 function build() {
@@ -235,108 +351,124 @@ function build() {
 
 function select(i) {
   if (i === active) return;
-  if (i !== active) switches++;
-  active = i;
+  switches++; active = i;
   const t = ctx ? ctx.currentTime : 0;
   gains.forEach((g, j) => {
     g.gain.cancelScheduledValues(t);
     g.gain.setValueAtTime(g.gain.value, t);
-    // 15 ms: short enough not to hear as a fade, long enough not to click.
+    // 15 ms: too short to hear as a fade, long enough not to click.
     g.gain.linearRampToValueAtTime(j === i ? 1 : 0, t + 0.015);
   });
   paint();
 }
 
-function play() {
-  if (!cur) return;
-  ctx.resume();
-  build(); playing = true; $('play').textContent = '❚❚ Pause';
-}
-
+function play() { if (!cur) return; ctx.resume(); build(); playing = true;
+                  $('play').textContent = '❚❚ Pause'; }
 function stop() {
   if (playing && ctx) startOffset = pos();
   sources.forEach(s => { try { s.stop(); } catch (e) {} });
   sources = []; playing = false;
   if ($('play')) $('play').textContent = '▶ Play';
 }
-
 function pos() {
   if (!playing || !ctx) return startOffset;
   const span = Math.max(loopB - loopA, 0.01);
-  const gone = ctx.currentTime - startedAt;
   const from = Math.min(Math.max(startOffset, loopA), loopB);
-  return loopA + ((from - loopA) + gone) % span;
+  return loopA + ((from - loopA) + (ctx.currentTime - startedAt)) % span;
 }
 
 function paint() {
   if (!cur) return;
-  const p = pos() / cur.seconds;
-  $('head').style.left = (p * 100).toFixed(2) + '%';
-  $('clock').textContent = fmt(pos()) + ' / ' + fmt(cur.seconds);
-  const lb = $('loopbox');
-  if (loopA > 0 || loopB < cur.seconds) {
-    lb.hidden = false;
-    lb.style.left = (100 * loopA / cur.seconds) + '%';
-    lb.style.width = (100 * (loopB - loopA) / cur.seconds) + '%';
-  } else lb.hidden = true;
-  $('armbtns').querySelectorAll('button').forEach(b =>
-    b.classList.toggle('on', +b.dataset.i === active));
-  const onRes = cur.residual && active === cur.arms.length;
-  $('resbtn').classList.toggle('on', !!onRes);
+  const p = pos();
+  $('head').style.left = (100 * p / cur.seconds) + '%';
+  $('clock').textContent = fmt(p) + ' / ' + fmt(cur.seconds);
+  const looped = loopA > 0 || loopB < cur.seconds;
+  $('whole').hidden = !looped; $('hint').hidden = looped || playing;
+  $('dimL').hidden = $('dimR').hidden = !looped;
+  if (looped) {
+    $('dimL').style.left = '0'; $('dimL').style.width = (100*loopA/cur.seconds)+'%';
+    $('dimR').style.left = (100*loopB/cur.seconds)+'%'; $('dimR').style.right = '0';
+    $('dimR').style.width = 'auto';
+  }
+  const onDiff = cur.residual && active === cur.arms.length;
+  $('diffbtn').setAttribute('aria-pressed', !!onDiff);
+  $('stage').querySelectorAll('.cand').forEach(c => {
+    const live = +c.dataset.i === active;
+    c.setAttribute('aria-pressed', live);
+    c.querySelector('.state').textContent =
+      live ? 'playing' : (onDiff ? 'silent' : 'silent');
+  });
 }
-const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 
 $('play').onclick = () => playing ? (stop(), paint()) : play();
-$('swap').onclick = () => select((active + 1) % cur.arms.length);
-$('resbtn').onclick = () => select(active === cur.arms.length ? 0 : cur.arms.length);
-$('clearloop').onclick = () => { loopA = 0; loopB = cur.seconds;
+$('swap').onclick = () => cur && select(active >= cur.arms.length ? 0
+                                        : (active + 1) % cur.arms.length);
+$('diffbtn').onclick = () => select(active === cur.arms.length ? 0 : cur.arms.length);
+$('whole').onclick = () => { loopA = 0; loopB = cur.seconds;
   sources.forEach(s => { s.loopStart = loopA; s.loopEnd = loopB; }); paint(); };
+$('sets').onchange = () => open_($('sets').value);
+$('prev').onclick = () => ids.length && open_(ids[(idx - 1 + ids.length) % ids.length]);
+$('next').onclick = () => ids.length && open_(ids[(idx + 1) % ids.length]);
 
-let dragFrom = null;
-$('bar').addEventListener('mousedown', e => {
-  const r = $('bar').getBoundingClientRect();
-  dragFrom = (e.clientX - r.left) / r.width * cur.seconds;
+let from = null;
+$('wave').addEventListener('mousedown', e => {
+  const r = $('wave').getBoundingClientRect();
+  from = (e.clientX - r.left) / r.width * cur.seconds;
 });
-$('bar').addEventListener('mouseup', e => {
-  if (!cur) return;
-  const r = $('bar').getBoundingClientRect();
-  const to = (e.clientX - r.left) / r.width * cur.seconds;
-  if (dragFrom != null && Math.abs(to - dragFrom) > 0.4) {
-    loopA = Math.max(0, Math.min(dragFrom, to));
-    loopB = Math.min(cur.seconds, Math.max(dragFrom, to));
-    startOffset = loopA;
+addEventListener('mouseup', e => {
+  if (from == null || !cur) return;
+  const r = $('wave').getBoundingClientRect();
+  const to = Math.max(0, Math.min(cur.seconds,
+    (e.clientX - r.left) / r.width * cur.seconds));
+  if (Math.abs(to - from) > 0.35) {
+    loopA = Math.min(from, to); loopB = Math.max(from, to); startOffset = loopA;
   } else { startOffset = to; }
-  dragFrom = null;
+  from = null;
   if (playing) play(); else paint();
+  arm();
 });
 
-$('auto').onchange = arm;
-$('every').onchange = arm;
+$('auto').onchange = arm; $('every').onchange = arm;
 function arm() {
   clearInterval(autoTimer); autoTimer = null;
-  if (!$('auto').checked) return;
-  const secs = +$('every').value;
-  const period = secs > 0 ? secs : Math.max(loopB - loopA, 1);
-  autoTimer = setInterval(() => {
-    if (playing) select((active + 1) % cur.arms.length);
-  }, period * 1000);
+  if (!$('auto').checked || !cur) return;
+  const s = +$('every').value;
+  autoTimer = setInterval(() => { if (playing) $('swap').click(); },
+                          (s > 0 ? s : Math.max(loopB - loopA, 1)) * 1000);
 }
 
+$('save').onclick = async () => {
+  if (!picked) { $('saved').textContent = 'pick one first'; return; }
+  await api('score/' + encodeURIComponent(cur.id), {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({preferred: picked, confidence: 'n/a',
+      note: $('notes').value, switches, seconds: listened,
+      revealed_first: !!$('answer').textContent})});
+  $('saved').textContent = 'saved';
+};
+$('revealbtn').onclick = async () => {
+  const k = await api('reveal/' + encodeURIComponent(cur.id));
+  $('answer').innerHTML = Object.entries(k.answer)
+    .map(([l, v]) => `<strong style="color:var(--fg-0)">${l}</strong> ${esc(v)}`)
+    .join(' &nbsp;·&nbsp; ');
+};
+
 addEventListener('keydown', e => {
-  if (['TEXTAREA', 'INPUT', 'SELECT'].includes(e.target.tagName)) return;
+  if (['TEXTAREA','INPUT','SELECT'].includes(e.target.tagName)) return;
   const k = e.key.toLowerCase();
   if (k === ' ') { e.preventDefault(); $('play').click(); }
   else if (k === 's') $('swap').click();
-  else if (k === 'r' && cur && cur.residual) $('resbtn').click();
-  else if (k === 'l' && cur) { loopA = Math.max(0, pos() - 4); loopB = pos() + 0.2;
+  else if (k === 'd' && cur && cur.residual) $('diffbtn').click();
+  else if (k === 'l' && cur) { loopA = Math.max(0, pos() - 4); loopB = pos() + .2;
     startOffset = loopA; if (playing) play(); else paint(); arm(); }
   else if (k === '0' && cur) { startOffset = loopA; if (playing) play(); paint(); }
+  else if (e.key === 'ArrowLeft') $('prev').click();
+  else if (e.key === 'ArrowRight') $('next').click();
 });
 
-setInterval(() => { if (playing) { listened += 0.1; paint(); } }, 100);
-$('load').onclick = () => $('sets').value && open_($('sets').value);
-listSets();
+addEventListener('resize', () => { if (cur) drawWave(); });
+setInterval(() => { if (playing) { listened += .1; paint(); } }, 100);
+boot();
 </script>
-</div>
 </body>
 </html>
