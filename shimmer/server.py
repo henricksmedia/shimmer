@@ -70,7 +70,7 @@ from .repair import NotchPlan, estimate_cutoff_hz, plan_from_lines
 from .detect import scan_fixed_lines
 from .eq import EqParams, eq_params_from_json
 from .jobs import JOB_STORE, Job
-from .params import Params, apply_preset_strength, MasterParams
+from .params import Params, apply_preset_strength, preset_overrides, MasterParams
 from .mastering import (
     master, master_params_from_json, analyze_track, measure_loudness,
     get_export_ceiling_dbtp,
@@ -354,6 +354,26 @@ def _tag_export(path: str, source_path: str, req: Optional[Dict[str, Any]],
     return rep
 
 
+def _eq_moves(eq_params: Optional[EqParams], sr: int) -> List[str]:
+    """The EQ as applied, for the export note: `5.6kHz +3.0dB Q0.8`.
+    A band count alone cannot tell a brightening plan from a darkening one."""
+    if eq_params is None or not eq_params.is_active(sr):
+        return []
+    out: List[str] = []
+    for b in eq_params.active_bands(sr):
+        f = f"{b.freq_hz / 1000:g}kHz" if b.freq_hz >= 1000 else f"{b.freq_hz:g}Hz"
+        out.append(f"{f} {b.gain_db:+.1f}dB Q{b.q:g}")
+    return out
+
+
+def _tone_label(mp: Optional[MasterParams]) -> str:
+    """Mastering tone setting, e.g. `med/neutral` — the pair that decides
+    how hard the pre-clean tone curve pulls and in which direction."""
+    if mp is None or not mp.enabled:
+        return ""
+    return f"{mp.intensity}/{mp.tilt}"
+
+
 def _pass_label(source_path: str) -> str:
     """Pass number for the note: one more than the Shimmer notes already in
     the source's comment (a pass-1 export carries one)."""
@@ -494,13 +514,17 @@ def _run_job_sync(job: Job, upload_path: str, params: Params,
 
     # Tags: the source's own, the user's defaults, and one note per pass.
     eq_bands = len(eq_params.active_bands(sr)) if eq_params is not None and eq_params.is_active(sr) else 0
+    preset_strength = float(export_meta.get("preset_strength", 1.0))
     note = shimmer_note(
         f"Shimmer {SHIMMER_VERSION}", _pass_label(upload_path),
         label_for(job.preset_name) if job.preset_name in PRESET_NAMES else job.preset_name,
-        float(export_meta.get("preset_strength", 1.0)), use_mastering,
+        preset_strength, use_mastering,
         float(master_params.target_lufs) if use_mastering else None,
         float(master_params.ceiling_dbtp) if use_mastering else None,
-        eq_bands=eq_bands)
+        eq_bands=eq_bands,
+        overrides=preset_overrides(params, job.preset_name, preset_strength),
+        eq_moves=_eq_moves(eq_params, sr),
+        tone=_tone_label(master_params if use_mastering else None))
     tags_report = _tag_export(processed_path, upload_path, export_meta.get("tags"), note)
 
     # Silence trim is an export-only variant: the playback files above stay
@@ -1344,13 +1368,22 @@ def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
     mastered = master_params is not None and master_params.enabled
     eq_bands = len(eq_params.active_bands(44100)) if eq_params is not None and eq_params.is_active(44100) else 0
     chosen = detected_info.get("detected_preset") or preset_name
+    eff_strength = float(detected_info.get("effective_strength", preset_strength))
     note = shimmer_note(
         f"Shimmer {SHIMMER_VERSION}", _pass_label(src),
         label_for(chosen) if chosen in PRESET_NAMES else chosen,
-        float(detected_info.get("effective_strength", preset_strength)), mastered,
+        eff_strength, mastered,
         float(master_params.target_lufs) if mastered else None,
         float(master_params.ceiling_dbtp) if mastered else None,
-        eq_bands=eq_bands)
+        eq_bands=eq_bands,
+        # Diff against the EXACT strength the scaling used, not the rounded
+        # copy in detected_info. `_batch_prepare` scales with the unrounded
+        # value and rounds only for display, so rebuilding the baseline from
+        # the rounded number makes every scaled field differ by a hair and the
+        # note then lists the whole preset recipe as if the user typed it.
+        overrides=preset_overrides(params, chosen, preset_strength),
+        eq_moves=_eq_moves(eq_params, 44100),
+        tone=_tone_label(master_params if mastered else None))
     tag_rep = _tag_export(dst, src, tags_req, note)
     result["tags_written"] = bool(tag_rep.get("written"))
     if result.get("release"):
@@ -1397,6 +1430,15 @@ def _album_clean_one(src: str, tmp_dst: str, preset_name: str,
         "strength": float(strength),
         "eq_bands": len(eqp.active_bands(sr)) if eqp is not None and eqp.is_active(sr) else 0,
         "preset": detected_info.get("detected_preset") or preset_name,
+        # Carried to pass 2, which writes the tags but no longer holds the
+        # params: without these the album note names a preset the run may
+        # not have used unmodified.
+        # The exact strength, not detected_info's rounded copy — see the note
+        # in _batch_one for why the rounded one fabricates tweaks.
+        "overrides": preset_overrides(
+            params, detected_info.get("detected_preset") or preset_name,
+            strength),
+        "eq_moves": _eq_moves(eqp, sr),
     }
     info.update(detected_info)
     return info
@@ -1447,7 +1489,10 @@ def _album_master_one(info: Dict[str, Any], src: str, dst: str,
         label_for(chosen) if chosen in PRESET_NAMES else chosen,
         float(info.get("effective_strength", info.get("strength", 1.0))), True,
         float(master_params.target_lufs), float(master_params.ceiling_dbtp),
-        eq_bands=int(info.get("eq_bands", 0)))
+        eq_bands=int(info.get("eq_bands", 0)),
+        overrides=list(info.get("overrides") or []),
+        eq_moves=list(info.get("eq_moves") or []),
+        tone=_tone_label(master_params))
     tag_rep = _tag_export(dst, src, tags_req, note)
     ext = os.path.splitext(dst)[1].lstrip(".").lower()
     # This track's level under album mode: its cleaned loudness plus the

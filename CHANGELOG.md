@@ -7,6 +7,31 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **The export note records the run, not just the preset.** A finished file
+  said "Vocal Glaze + Top End 100%, EQ 2 bands" — enough to name the preset,
+  not enough to reproduce the master, because the sliders the user moved, the
+  EQ moves themselves and the mastering tone setting were all missing. Two
+  files with the same note could differ by several dB in the top end. The
+  note now carries the knobs moved off the preset (`params.preset_overrides`
+  diffs the run against the strength-scaled preset), the EQ as applied with
+  frequency, gain and Q, and the tone `intensity/tilt` pair. Album mode
+  carries them from pass 1, which holds the params, to pass 2, which writes
+  the tags. Untouched presets add nothing, so a stock run's note is unchanged.
+
+- **A marketing kit ships with the app.** `static/marketing/` holds three
+  pages in Shimmer's own colours, reachable from a running copy at
+  `/static/marketing/` or by opening the files: a **message reference**
+  (the approved wording, the five claims worth repeating, every number
+  quoted from the app, the words to skip and the claims never to make),
+  a **plan** (who to talk to, where, the first 30 days, what to measure,
+  what could go wrong), and **ten written posts** with per-post copy
+  buttons, live character counts against a 280 box, one-click copy of
+  all ten, and a save-to-text-file button. `tests/test_marketing.py`
+  ties the pages to the app: the preset count, the loudness targets and
+  the true-peak ceilings must match the code, no post may make a claim
+  the kit forbids, and the cleaning path must stay free of machine
+  learning imports, because the kit says it is.
+
 - **A release copy: WAV 16-bit at 44.1 kHz, dithered.** Exports were
   24-bit at the source rate, so a Suno track came out at 48 kHz and the
   16-bit option lived only in the CLI. Format now offers "WAV release

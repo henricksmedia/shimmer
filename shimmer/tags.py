@@ -289,14 +289,35 @@ def build_tags(source: Optional[Dict[str, str]], defaults: Optional[Dict[str, An
     return out
 
 
+MAX_NOTE_OVERRIDES = 8   # keep one pass's note readable in a comment field
+
+
 def shimmer_note(software: str, pass_label: str, preset_label: str,
                  strength: float, mastered: bool, target_lufs: Optional[float],
-                 ceiling_dbtp: Optional[float], eq_bands: int = 0) -> str:
+                 ceiling_dbtp: Optional[float], eq_bands: int = 0,
+                 overrides: Optional[List[str]] = None,
+                 eq_moves: Optional[List[str]] = None,
+                 tone: str = "") -> str:
     """One provenance line, e.g.
-    `Shimmer 1.4: pass 2, Sibilance rattle 80%, EQ 3 bands, mastered -14 LUFS / -1.0 dBTP`."""
+    `Shimmer 1.4: pass 2, Sibilance rattle 80%, EQ 3 bands, mastered -14 LUFS / -1.0 dBTP`.
+
+    `overrides` are the knobs moved off the preset (see
+    params.preset_overrides), `eq_moves` the EQ bands as applied, and
+    `tone` the mastering tone setting. They are what makes a finished
+    file reproducible: without them the note names a preset the run may
+    not actually have used.
+    """
     parts = [f"{pass_label}, {preset_label} {int(round(strength * 100))}%"]
-    if eq_bands:
+    if overrides:
+        shown = list(overrides)[:MAX_NOTE_OVERRIDES]
+        more = len(overrides) - len(shown)
+        parts.append("tweaks " + "; ".join(shown) + (f"; +{more} more" if more else ""))
+    if eq_moves:
+        parts.append("EQ " + "; ".join(eq_moves))
+    elif eq_bands:
         parts.append(f"EQ {eq_bands} band{'s' if eq_bands != 1 else ''}")
+    if tone:
+        parts.append(f"tone {tone}")
     if mastered:
         m = "mastered"
         if target_lufs is not None:

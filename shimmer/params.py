@@ -7,7 +7,7 @@ presets create instances of it; the CLI populates it from argparse.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 
 @dataclass
@@ -338,8 +338,13 @@ _STRENGTH_AMOUNT_KEYS = (
     ("density_floor",     0.0, 0.95),
     ("deq_density_floor", 0.0, 0.95),
 
-    # High-shelf air cut: more cut at higher strength (negative dB).
-    ("high_shelf_db", -12.0, 0.0),
+    # High-shelf: cut at higher strength, but the range allows boost.
+    # It was (-12, 0) — cut-only — which meant no path anywhere in the app
+    # could add top end, on a tool whose measured failure is removing it.
+    # The upper bound is deliberately larger than the tone curve's 2 dB
+    # because this one is a control a user moves and hears, not an automatic
+    # correction applied on their behalf.
+    ("high_shelf_db", -12.0, 6.0),
 
     # Low-mid de-mud bell: deeper cut at higher strength (negative dB).
     ("lowmid_db", -8.0, 0.0),
@@ -399,6 +404,46 @@ def apply_preset_strength(p: "Params", strength: float) -> None:
     elif scaled_iter > 3:
         scaled_iter = 3
     p.iterations = scaled_iter
+
+
+# Fields the server fills in from per-file analysis, not from any control the
+# user touched. They must never appear in the export note's "tweaks" list: a
+# note claiming the user set `cutoff_hz 16193` advertises a knob that does not
+# exist, and it costs one of the note's limited slots, pushing a real tweak
+# into "+N more".
+_ANALYSIS_FIELDS = frozenset({"cutoff_hz"})
+
+
+def preset_overrides(p: "Params", preset_name: str,
+                     strength: float = 1.0) -> list[str]:
+    """Which fields of `p` differ from the named preset at `strength`.
+
+    A run is only reproducible if the export records the knobs the user
+    actually moved, not just the preset they started from: "Vocal Glaze +
+    Top End 100%" and the same preset with `flicker_tame` pushed to 1.0
+    and a -1.5 dB high shelf are very different masters. Returns short
+    "field value" strings, ordered as the fields are declared, or [] when
+    the preset ran untouched (or is unknown).
+    """
+    try:
+        from .presets import PRESETS
+        base = PRESETS[str(preset_name)]()
+    except Exception:  # noqa: BLE001 — unknown preset: nothing to diff against
+        return []
+    apply_preset_strength(base, strength)
+
+    out: list[str] = []
+    for f in fields(base):
+        if f.name in _ANALYSIS_FIELDS:
+            continue
+        want, got = getattr(base, f.name), getattr(p, f.name)
+        if isinstance(want, float) and isinstance(got, (int, float)):
+            if abs(float(got) - want) <= 1e-6:
+                continue
+            out.append(f"{f.name} {float(got):g}")
+        elif want != got:
+            out.append(f"{f.name} {got}")
+    return out
 
 
 # ---------------------------------------------------------------------------

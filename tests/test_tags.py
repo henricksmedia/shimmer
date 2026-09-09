@@ -126,3 +126,41 @@ def test_read_unknown_or_missing_never_raises(tmp_path):
     p.write_bytes(b"not audio at all")
     assert T.read_tags(str(p)) == {}
     assert T.write_tags(str(tmp_path / "x.aac"), {"title": "t"})["written"] is False
+
+
+class TestExportNoteTruthfulness:
+    """The note is written permanently into files handed to other people, so a
+    false entry is worse than a missing one. Both cases below shipped once."""
+
+    def test_server_set_analysis_fields_are_not_reported_as_tweaks(self):
+        """`cutoff_hz` is set per file by the server from bandwidth analysis,
+        not by any control. Every bandlimited source produced a note reading
+        `tweaks cutoff_hz 16193`, advertising a knob that does not exist and
+        eating one of the note's limited slots."""
+        from shimmer.params import preset_overrides
+        from shimmer.presets import get_preset
+        p = get_preset("generic")
+        assert preset_overrides(p, "generic", 1.0) == []
+        p.cutoff_hz = 16193.0
+        assert preset_overrides(p, "generic", 1.0) == []
+
+    def test_a_real_tweak_still_shows_next_to_an_analysis_field(self):
+        from shimmer.params import preset_overrides
+        from shimmer.presets import get_preset
+        p = get_preset("suno_hash")
+        p.deharsh = 0.66
+        p.cutoff_hz = 16193.0
+        assert preset_overrides(p, "suno_hash", 1.0) == ["deharsh 0.66"]
+
+    def test_diffing_against_a_rounded_strength_fabricates_tweaks(self):
+        """Guards the shape of the bug, so the fix cannot be undone quietly:
+        scaling by an exact strength and rebuilding the baseline from a
+        2-decimal copy makes every scaled field differ. Batch and album mode
+        both did this, listing the whole preset recipe as user edits."""
+        from shimmer.params import preset_overrides, apply_preset_strength
+        from shimmer.presets import get_preset
+        exact = 1.0625
+        p = get_preset("vocal_glaze_plus")
+        apply_preset_strength(p, exact)
+        assert preset_overrides(p, "vocal_glaze_plus", exact) == []
+        assert len(preset_overrides(p, "vocal_glaze_plus", round(exact, 2))) > 5
