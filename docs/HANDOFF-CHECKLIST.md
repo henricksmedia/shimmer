@@ -648,6 +648,14 @@ count.
       own noise-like content shares every statistic tried. The same
       learned model that would remove it is what would detect it, and
       both wait on round 5.
+      **Round 5 judged 2026-09-08.** The author, on the mixed files and on
+      the model alone next to what the prototype pulls out of two real
+      renders: "yes, good examples of shimmer." The aperiodic model is
+      accepted as the artifact for measurement and training purposes;
+      the harness numbers above stand as measurements of the real
+      problem. The next build is the learned remover and detector trained
+      on clean-master-plus-model pairs, judged by the harness on held-out
+      hosts and by a listening round on real renders.
 
 ## DEFERRED — the 80% stake
 

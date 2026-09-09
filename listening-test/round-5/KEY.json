@@ -16,5 +16,10 @@
   "only-model-periodic-2.wav": "the periodic model alone, at the gain that injects 2.0 sones into Alive Again; matched to -30 LUFS",
   "only-real-removed-suno-the-little-things.wav": "what per-bin gated subtraction takes out of the real render's hot window: mostly hash, with some cymbal and hit energy in it; matched to -30 LUFS",
   "only-real-removed-suno-kindling.wav": "what per-bin gated subtraction takes out of the real render's hot window: mostly hash, with some cymbal and hit energy in it; matched to -30 LUFS"
+ },
+ "verdict": {
+  "judged_by": "author",
+  "date": "2026-09-08",
+  "answer": "same kind of noise: \"yes, good examples of shimmer\""
  }
 }
