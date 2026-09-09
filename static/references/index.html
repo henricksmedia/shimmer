@@ -31,7 +31,9 @@
   th, td { text-align: left; padding: .4rem .5rem;
            border-bottom: 1px solid #232833; font-variant-numeric: tabular-nums; }
   th { font-weight: 600; opacity: .75; font-size: .85rem; }
-  .muted { opacity: .68; }
+  .muted { color: #9aa4b2; }
+  body { background:#0f1218; color:#e6e9ee; }
+  h1,h2 { color:#f3f5f8; }
   .warn { color: #f0b429; }
   .ok { color: #4ade80; }
   canvas { width: 100%; height: 260px; display: block; }
@@ -42,11 +44,34 @@
 <div class="wrap">
 
   <h1>Reference library</h1>
-  <p class="lede muted">
+  <p class="lede">
     Play music through this machine and Shimmer measures its tone, then throws
-    the audio away and keeps only the curve. That curve is what the tone target
-    is built from. Developer tooling — not part of the app users see.
+    the audio away and keeps only the curve. Developer tooling — not part of
+    the app users see.
   </p>
+
+  <div class="panel" style="border-color:#2b6cb0">
+    <h2 style="margin-top:0">How to use it</h2>
+    <ol style="margin:.4rem 0 0;padding-left:1.2rem;line-height:1.75">
+      <li>Start Shimmer the usual way (<code>start.bat</code>) and open this
+          page at <code>http://localhost:7860/static/references/</code>.
+          It will not work from a file:// URL — it talks to the running app.</li>
+      <li>Turn <strong>off</strong> volume normalisation in your player.
+          Spotify: Settings → Playback → Audio normalisation.</li>
+      <li>Pick the output device you actually hear sound from.</li>
+      <li>Type the artist and title, press <strong>Start</strong>, then play the
+          track.</li>
+      <li>Let it run about 20 seconds of <em>music</em>, then press
+          <strong>Stop &amp; save</strong>.</li>
+    </ol>
+    <p style="margin:.7rem 0 0">
+      <strong>It does not capture automatically.</strong> You press Start, it
+      listens; you press Stop, it measures and saves one row. One track at a
+      time, so each row is one piece of music rather than a blur of several.
+      Aim for commercial releases by other people — that is the material the
+      tone target is missing.
+    </p>
+  </div>
 
   <div class="panel">
     <h2>Record</h2>
@@ -103,7 +128,17 @@ const api = (p, body) => fetch('/api/dev/references/' + p, body ? {
 let timer = null;
 
 async function loadDevices() {
-  const d = await api('devices');
+  let d;
+  try {
+    d = await api('devices');
+  } catch (e) {
+    $('device').innerHTML = '<option>app not running</option>';
+    $('go').disabled = true;
+    $('msg').innerHTML = '<span class="warn">Cannot reach Shimmer. Start it ' +
+      'with start.bat, then open this page at ' +
+      '<code>http://localhost:7860/static/references/</code> — not as a file.</span>';
+    return;
+  }
   const sel = $('device');
   sel.innerHTML = '';
   if (!d.available || !d.devices.length) {
