@@ -2,7 +2,7 @@
  {
   "file": "distrokid-algorithms-lure",
   "preset": "suno_hash",
-  "prior": 0.081,
+  "prior": 0.193,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -17.66,
@@ -30,7 +30,7 @@
  {
   "file": "distrokid-algorithms-lure",
   "preset": "laser_whistle",
-  "prior": 0.948,
+  "prior": 0.945,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -42.77,
@@ -39,12 +39,12 @@
   "missing": 0.0022,
   "lin_dist": 0.037,
   "added": 0.005,
-  "score": 0.008
+  "score": 0.007
  },
  {
   "file": "distrokid-algorithms-lure",
   "preset": "air_brittle",
-  "prior": 0.753,
+  "prior": 0.738,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -62.15,
@@ -86,7 +86,7 @@
  {
   "file": "distrokid-algorithms-lure",
   "preset": "broadband_fizz",
-  "prior": 0.498,
+  "prior": 0.009,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -62.93,
@@ -114,7 +114,7 @@
  {
   "file": "distrokid-algorithms-lure",
   "preset": "reverb_flutter",
-  "prior": 0.202,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -43.8,
@@ -128,7 +128,7 @@
  {
   "file": "distrokid-algorithms-lure",
   "preset": "vocal_glaze",
-  "prior": 0.771,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -19.81,
@@ -137,12 +137,12 @@
   "missing": 0.136,
   "lin_dist": 1.274,
   "added": 0.1127,
-  "score": 0.116
+  "score": 0.0
  },
  {
   "file": "distrokid-algorithms-lure",
   "preset": "vocal_glaze_plus",
-  "prior": 0.62,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -12.67,
@@ -170,7 +170,7 @@
  {
   "file": "distrokid-algorithms-lure",
   "preset": "presence_haze",
-  "prior": 0.611,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -29.57,
@@ -184,7 +184,7 @@
  {
   "file": "distrokid-algorithms-lure",
   "preset": "phantom_cymbal",
-  "prior": 0.257,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -27.86,
@@ -198,7 +198,7 @@
  {
   "file": "distrokid-algorithms-lure",
   "preset": "harsh_veil",
-  "prior": 0.518,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -29.1,
@@ -212,7 +212,7 @@
  {
   "file": "distrokid-algorithms-lure",
   "preset": "deep_scrub",
-  "prior": 0.824,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.7,
   "artifact_db": -13.64,
@@ -296,7 +296,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "cymbal_chatter",
-  "prior": 0.268,
+  "prior": 0.136,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -28.67,
@@ -310,7 +310,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "broadband_fizz",
-  "prior": 0.642,
+  "prior": 0.12,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -34.39,
@@ -324,7 +324,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "checkerboard_grid",
-  "prior": 0.069,
+  "prior": 0.053,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -29.91,
@@ -338,7 +338,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "reverb_flutter",
-  "prior": 0.468,
+  "prior": 0.135,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -31.8,
@@ -352,7 +352,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "vocal_glaze",
-  "prior": 0.514,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -20.11,
@@ -366,7 +366,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "vocal_glaze_plus",
-  "prior": 0.574,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -15.38,
@@ -394,7 +394,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "presence_haze",
-  "prior": 0.462,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -25.13,
@@ -408,7 +408,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "phantom_cymbal",
-  "prior": 0.495,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -22.58,
@@ -422,7 +422,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "harsh_veil",
-  "prior": 0.433,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -24.87,
@@ -436,7 +436,7 @@
  {
   "file": "distrokid-alive-again",
   "preset": "deep_scrub",
-  "prior": 0.576,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.6,
   "artifact_db": -15.82,
@@ -450,7 +450,7 @@
  {
   "file": "distrokid-couldve-been-stories",
   "preset": "suno_hash",
-  "prior": 0.047,
+  "prior": 0.15,
   "tone_w": 0.0,
   "flicker_excess_db": 0.62,
   "artifact_db": -18.5,
@@ -506,7 +506,7 @@
  {
   "file": "distrokid-couldve-been-stories",
   "preset": "sibilance_rattle",
-  "prior": 0.573,
+  "prior": 0.405,
   "tone_w": 0.0,
   "flicker_excess_db": 0.62,
   "artifact_db": -20.84,
@@ -520,7 +520,7 @@
  {
   "file": "distrokid-couldve-been-stories",
   "preset": "cymbal_chatter",
-  "prior": 0.126,
+  "prior": 0.01,
   "tone_w": 0.0,
   "flicker_excess_db": 0.62,
   "artifact_db": -32.73,
@@ -534,7 +534,7 @@
  {
   "file": "distrokid-couldve-been-stories",
   "preset": "broadband_fizz",
-  "prior": 0.081,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.62,
   "artifact_db": -35.21,
@@ -548,7 +548,7 @@
  {
   "file": "distrokid-couldve-been-stories",
   "preset": "checkerboard_grid",
-  "prior": 0.0,
+  "prior": 0.011,
   "tone_w": 0.0,
   "flicker_excess_db": 0.62,
   "artifact_db": -34.11,
@@ -562,7 +562,7 @@
  {
   "file": "distrokid-couldve-been-stories",
   "preset": "reverb_flutter",
-  "prior": 0.309,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.62,
   "artifact_db": -32.58,
@@ -632,7 +632,7 @@
  {
   "file": "distrokid-couldve-been-stories",
   "preset": "phantom_cymbal",
-  "prior": 0.492,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.62,
   "artifact_db": -26.93,
@@ -730,7 +730,7 @@
  {
   "file": "distrokid-falling-for-you",
   "preset": "sibilance_rattle",
-  "prior": 0.378,
+  "prior": 0.05,
   "tone_w": 0.0,
   "flicker_excess_db": 0.31,
   "artifact_db": -12.31,
@@ -758,7 +758,7 @@
  {
   "file": "distrokid-falling-for-you",
   "preset": "broadband_fizz",
-  "prior": 0.457,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.31,
   "artifact_db": -51.83,
@@ -786,7 +786,7 @@
  {
   "file": "distrokid-falling-for-you",
   "preset": "reverb_flutter",
-  "prior": 0.13,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.31,
   "artifact_db": -42.94,
@@ -800,7 +800,7 @@
  {
   "file": "distrokid-falling-for-you",
   "preset": "vocal_glaze",
-  "prior": 0.777,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.31,
   "artifact_db": -19.16,
@@ -814,7 +814,7 @@
  {
   "file": "distrokid-falling-for-you",
   "preset": "vocal_glaze_plus",
-  "prior": 0.596,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.31,
   "artifact_db": -13.35,
@@ -842,7 +842,7 @@
  {
   "file": "distrokid-falling-for-you",
   "preset": "presence_haze",
-  "prior": 0.768,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.31,
   "artifact_db": -23.82,
@@ -870,7 +870,7 @@
  {
   "file": "distrokid-falling-for-you",
   "preset": "harsh_veil",
-  "prior": 0.499,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.31,
   "artifact_db": -23.03,
@@ -884,7 +884,7 @@
  {
   "file": "distrokid-falling-for-you",
   "preset": "deep_scrub",
-  "prior": 0.714,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.31,
   "artifact_db": -15.02,
@@ -940,7 +940,7 @@
  {
   "file": "distrokid-leave-the-world-behind",
   "preset": "air_brittle",
-  "prior": 0.285,
+  "prior": 0.085,
   "tone_w": 0.0,
   "flicker_excess_db": 0.3,
   "artifact_db": -80.51,
@@ -982,7 +982,7 @@
  {
   "file": "distrokid-leave-the-world-behind",
   "preset": "broadband_fizz",
-  "prior": 0.567,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.3,
   "artifact_db": -60.52,
@@ -1010,7 +1010,7 @@
  {
   "file": "distrokid-leave-the-world-behind",
   "preset": "reverb_flutter",
-  "prior": 0.322,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.3,
   "artifact_db": -41.89,
@@ -1024,7 +1024,7 @@
  {
   "file": "distrokid-leave-the-world-behind",
   "preset": "vocal_glaze",
-  "prior": 0.662,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.3,
   "artifact_db": -18.15,
@@ -1038,7 +1038,7 @@
  {
   "file": "distrokid-leave-the-world-behind",
   "preset": "vocal_glaze_plus",
-  "prior": 0.613,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.3,
   "artifact_db": -17.99,
@@ -1066,7 +1066,7 @@
  {
   "file": "distrokid-leave-the-world-behind",
   "preset": "presence_haze",
-  "prior": 0.641,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.3,
   "artifact_db": -29.36,
@@ -1094,7 +1094,7 @@
  {
   "file": "distrokid-leave-the-world-behind",
   "preset": "harsh_veil",
-  "prior": 0.733,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.3,
   "artifact_db": -28.23,
@@ -1108,7 +1108,7 @@
  {
   "file": "distrokid-leave-the-world-behind",
   "preset": "deep_scrub",
-  "prior": 0.679,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.3,
   "artifact_db": -19.63,
@@ -1122,7 +1122,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "suno_hash",
-  "prior": 0.763,
+  "prior": 1.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -16.97,
@@ -1131,7 +1131,7 @@
   "missing": 0.0797,
   "lin_dist": 0.944,
   "added": 0.3351,
-  "score": 0.105
+  "score": 0.483
  },
  {
   "file": "distrokid-the-little-things",
@@ -1150,7 +1150,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "laser_whistle",
-  "prior": 0.037,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -31.32,
@@ -1178,7 +1178,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "sibilance_rattle",
-  "prior": 0.248,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -16.02,
@@ -1206,7 +1206,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "broadband_fizz",
-  "prior": 0.315,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -34.22,
@@ -1234,7 +1234,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "reverb_flutter",
-  "prior": 0.885,
+  "prior": 0.552,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -32.42,
@@ -1243,12 +1243,12 @@
   "missing": 0.0087,
   "lin_dist": 0.02,
   "added": 0.0138,
-  "score": 0.061
+  "score": 0.002
  },
  {
   "file": "distrokid-the-little-things",
   "preset": "vocal_glaze",
-  "prior": 0.251,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -22.21,
@@ -1262,7 +1262,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "vocal_glaze_plus",
-  "prior": 0.438,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -11.92,
@@ -1290,7 +1290,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "presence_haze",
-  "prior": 0.159,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -28.16,
@@ -1304,7 +1304,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "phantom_cymbal",
-  "prior": 0.276,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -26.26,
@@ -1318,7 +1318,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "harsh_veil",
-  "prior": 0.179,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -26.69,
@@ -1332,7 +1332,7 @@
  {
   "file": "distrokid-the-little-things",
   "preset": "deep_scrub",
-  "prior": 0.348,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.41,
   "artifact_db": -12.94,
@@ -1346,7 +1346,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "suno_hash",
-  "prior": 0.0,
+  "prior": 0.012,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -17.91,
@@ -1374,7 +1374,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "laser_whistle",
-  "prior": 0.435,
+  "prior": 0.402,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -31.38,
@@ -1388,7 +1388,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "air_brittle",
-  "prior": 0.292,
+  "prior": 0.123,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -49.44,
@@ -1402,7 +1402,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "sibilance_rattle",
-  "prior": 0.269,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -16.27,
@@ -1416,7 +1416,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "cymbal_chatter",
-  "prior": 0.076,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -30.04,
@@ -1430,7 +1430,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "broadband_fizz",
-  "prior": 0.519,
+  "prior": 0.002,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -34.9,
@@ -1458,7 +1458,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "reverb_flutter",
-  "prior": 0.308,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -32.37,
@@ -1472,7 +1472,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "vocal_glaze",
-  "prior": 0.42,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -19.68,
@@ -1486,7 +1486,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "vocal_glaze_plus",
-  "prior": 0.467,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -13.06,
@@ -1514,7 +1514,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "presence_haze",
-  "prior": 0.352,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -31.31,
@@ -1528,7 +1528,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "phantom_cymbal",
-  "prior": 0.292,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -24.04,
@@ -1542,7 +1542,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "harsh_veil",
-  "prior": 0.491,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -23.26,
@@ -1556,7 +1556,7 @@
  {
   "file": "distrokid-we-were-meant-for-the-stars",
   "preset": "deep_scrub",
-  "prior": 0.493,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.34,
   "artifact_db": -14.67,
@@ -1570,7 +1570,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "suno_hash",
-  "prior": 0.0,
+  "prior": 0.022,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -26.6,
@@ -1598,7 +1598,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "laser_whistle",
-  "prior": 0.035,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -37.29,
@@ -1612,7 +1612,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "air_brittle",
-  "prior": 0.21,
+  "prior": 0.01,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -89.31,
@@ -1626,7 +1626,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "sibilance_rattle",
-  "prior": 0.14,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -19.06,
@@ -1640,7 +1640,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "cymbal_chatter",
-  "prior": 0.151,
+  "prior": 0.031,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -37.97,
@@ -1654,7 +1654,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "broadband_fizz",
-  "prior": 0.241,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -41.38,
@@ -1682,7 +1682,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "reverb_flutter",
-  "prior": 0.082,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -38.73,
@@ -1696,7 +1696,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "vocal_glaze",
-  "prior": 0.208,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -24.59,
@@ -1710,7 +1710,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "vocal_glaze_plus",
-  "prior": 0.224,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -23.13,
@@ -1724,7 +1724,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "echo_sheen",
-  "prior": 0.032,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -30.07,
@@ -1738,7 +1738,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "presence_haze",
-  "prior": 0.132,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -33.78,
@@ -1752,7 +1752,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "phantom_cymbal",
-  "prior": 0.123,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -33.98,
@@ -1766,7 +1766,7 @@
  {
   "file": "shimmer-algorithms-lure",
   "preset": "harsh_veil",
-  "prior": 0.04,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.36,
   "artifact_db": -38.38,
@@ -1836,7 +1836,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "air_brittle",
-  "prior": 0.256,
+  "prior": 0.056,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -45.67,
@@ -1864,7 +1864,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "cymbal_chatter",
-  "prior": 0.134,
+  "prior": 0.014,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -30.05,
@@ -1878,7 +1878,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "broadband_fizz",
-  "prior": 0.652,
+  "prior": 0.254,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -31.97,
@@ -1906,7 +1906,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "reverb_flutter",
-  "prior": 0.15,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -29.99,
@@ -1920,7 +1920,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "vocal_glaze",
-  "prior": 0.242,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -25.51,
@@ -1934,7 +1934,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "vocal_glaze_plus",
-  "prior": 0.397,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -22.21,
@@ -1948,7 +1948,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "echo_sheen",
-  "prior": 0.213,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -29.92,
@@ -1962,7 +1962,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "presence_haze",
-  "prior": 0.203,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -33.29,
@@ -1976,7 +1976,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "phantom_cymbal",
-  "prior": 0.106,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -32.08,
@@ -1990,7 +1990,7 @@
  {
   "file": "shimmer-alive-again",
   "preset": "harsh_veil",
-  "prior": 0.157,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.18,
   "artifact_db": -33.54,
@@ -2018,7 +2018,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "suno_hash",
-  "prior": 0.031,
+  "prior": 0.13,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -28.25,
@@ -2060,7 +2060,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "air_brittle",
-  "prior": 0.144,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -53.59,
@@ -2074,7 +2074,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "sibilance_rattle",
-  "prior": 0.399,
+  "prior": 0.09,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -23.14,
@@ -2088,7 +2088,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "cymbal_chatter",
-  "prior": 0.39,
+  "prior": 0.27,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -34.54,
@@ -2102,7 +2102,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "broadband_fizz",
-  "prior": 0.566,
+  "prior": 0.16,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -38.26,
@@ -2130,7 +2130,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "reverb_flutter",
-  "prior": 0.161,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -35.38,
@@ -2144,7 +2144,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "vocal_glaze",
-  "prior": 0.023,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -27.92,
@@ -2158,7 +2158,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "vocal_glaze_plus",
-  "prior": 0.114,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -23.66,
@@ -2200,7 +2200,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "phantom_cymbal",
-  "prior": 0.352,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -34.73,
@@ -2214,7 +2214,7 @@
  {
   "file": "shimmer-falling-for-you",
   "preset": "harsh_veil",
-  "prior": 0.006,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.58,
   "artifact_db": -36.11,
@@ -2242,7 +2242,7 @@
  {
   "file": "shimmer-kindling",
   "preset": "suno_hash",
-  "prior": 0.166,
+  "prior": 0.301,
   "tone_w": 0.0,
   "flicker_excess_db": 0.92,
   "artifact_db": -28.74,
@@ -2270,7 +2270,7 @@
  {
   "file": "shimmer-kindling",
   "preset": "laser_whistle",
-  "prior": 0.009,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.92,
   "artifact_db": -48.65,
@@ -2284,7 +2284,7 @@
  {
   "file": "shimmer-kindling",
   "preset": "air_brittle",
-  "prior": 0.378,
+  "prior": 0.178,
   "tone_w": 0.0,
   "flicker_excess_db": 0.92,
   "artifact_db": -57.92,
@@ -2312,7 +2312,7 @@
  {
   "file": "shimmer-kindling",
   "preset": "cymbal_chatter",
-  "prior": 0.002,
+  "prior": 0.008,
   "tone_w": 0.0,
   "flicker_excess_db": 0.92,
   "artifact_db": -43.83,
@@ -2326,7 +2326,7 @@
  {
   "file": "shimmer-kindling",
   "preset": "broadband_fizz",
-  "prior": 0.292,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.92,
   "artifact_db": -54.62,
@@ -2340,7 +2340,7 @@
  {
   "file": "shimmer-kindling",
   "preset": "checkerboard_grid",
-  "prior": 0.004,
+  "prior": 0.019,
   "tone_w": 0.0,
   "flicker_excess_db": 0.92,
   "artifact_db": -45.06,
@@ -2354,7 +2354,7 @@
  {
   "file": "shimmer-kindling",
   "preset": "reverb_flutter",
-  "prior": 0.145,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.92,
   "artifact_db": -49.2,
@@ -2424,7 +2424,7 @@
  {
   "file": "shimmer-kindling",
   "preset": "phantom_cymbal",
-  "prior": 0.295,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.92,
   "artifact_db": -41.24,
@@ -2438,7 +2438,7 @@
  {
   "file": "shimmer-kindling",
   "preset": "harsh_veil",
-  "prior": 0.012,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.92,
   "artifact_db": -40.91,
@@ -2466,7 +2466,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "suno_hash",
-  "prior": 0.0,
+  "prior": 0.001,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -24.75,
@@ -2508,7 +2508,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "air_brittle",
-  "prior": 0.498,
+  "prior": 0.298,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -79.11,
@@ -2536,7 +2536,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "cymbal_chatter",
-  "prior": 0.05,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -31.88,
@@ -2550,7 +2550,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "broadband_fizz",
-  "prior": 0.549,
+  "prior": 0.043,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -56.04,
@@ -2578,7 +2578,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "reverb_flutter",
-  "prior": 0.217,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -39.07,
@@ -2592,7 +2592,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "vocal_glaze",
-  "prior": 0.339,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -23.75,
@@ -2606,7 +2606,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "vocal_glaze_plus",
-  "prior": 0.431,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -20.95,
@@ -2634,7 +2634,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "presence_haze",
-  "prior": 0.3,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -32.19,
@@ -2662,7 +2662,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "harsh_veil",
-  "prior": 0.437,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -30.75,
@@ -2676,7 +2676,7 @@
  {
   "file": "shimmer-leave-the-world-behind",
   "preset": "deep_scrub",
-  "prior": 0.495,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.32,
   "artifact_db": -19.59,
@@ -2718,7 +2718,7 @@
  {
   "file": "shimmer-we-were-meant-for-the-stars",
   "preset": "laser_whistle",
-  "prior": 0.084,
+  "prior": 0.03,
   "tone_w": 0.0,
   "flicker_excess_db": -0.32,
   "artifact_db": -36.17,
@@ -2732,7 +2732,7 @@
  {
   "file": "shimmer-we-were-meant-for-the-stars",
   "preset": "air_brittle",
-  "prior": 0.346,
+  "prior": 0.146,
   "tone_w": 0.0,
   "flicker_excess_db": -0.32,
   "artifact_db": -56.45,
@@ -2746,7 +2746,7 @@
  {
   "file": "shimmer-we-were-meant-for-the-stars",
   "preset": "sibilance_rattle",
-  "prior": 0.94,
+  "prior": 1.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.32,
   "artifact_db": -24.63,
@@ -2760,7 +2760,7 @@
  {
   "file": "shimmer-we-were-meant-for-the-stars",
   "preset": "cymbal_chatter",
-  "prior": 0.121,
+  "prior": 0.001,
   "tone_w": 0.0,
   "flicker_excess_db": -0.32,
   "artifact_db": -35.02,
@@ -2774,7 +2774,7 @@
  {
   "file": "shimmer-we-were-meant-for-the-stars",
   "preset": "broadband_fizz",
-  "prior": 0.41,
+  "prior": 0.084,
   "tone_w": 0.0,
   "flicker_excess_db": -0.32,
   "artifact_db": -39.09,
@@ -2872,7 +2872,7 @@
  {
   "file": "shimmer-we-were-meant-for-the-stars",
   "preset": "phantom_cymbal",
-  "prior": 0.335,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.32,
   "artifact_db": -31.66,
@@ -2886,7 +2886,7 @@
  {
   "file": "shimmer-we-were-meant-for-the-stars",
   "preset": "harsh_veil",
-  "prior": 0.008,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.32,
   "artifact_db": -32.69,
@@ -2942,7 +2942,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "laser_whistle",
-  "prior": 0.967,
+  "prior": 0.965,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -40.79,
@@ -2956,7 +2956,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "air_brittle",
-  "prior": 0.771,
+  "prior": 0.761,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -57.74,
@@ -2970,7 +2970,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "sibilance_rattle",
-  "prior": 0.529,
+  "prior": 0.326,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -16.68,
@@ -2984,7 +2984,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "cymbal_chatter",
-  "prior": 0.089,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -37.69,
@@ -2998,7 +2998,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "broadband_fizz",
-  "prior": 0.433,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -47.85,
@@ -3026,7 +3026,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "reverb_flutter",
-  "prior": 0.06,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -43.87,
@@ -3040,7 +3040,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "vocal_glaze",
-  "prior": 0.528,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -19.18,
@@ -3054,7 +3054,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "vocal_glaze_plus",
-  "prior": 0.478,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -11.55,
@@ -3082,7 +3082,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "presence_haze",
-  "prior": 0.485,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -30.96,
@@ -3096,7 +3096,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "phantom_cymbal",
-  "prior": 0.265,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -27.5,
@@ -3110,7 +3110,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "harsh_veil",
-  "prior": 0.366,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -28.67,
@@ -3124,7 +3124,7 @@
  {
   "file": "suno-algorithms-lure",
   "preset": "deep_scrub",
-  "prior": 0.756,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -1.07,
   "artifact_db": -13.25,
@@ -3180,7 +3180,7 @@
  {
   "file": "suno-alive-again",
   "preset": "air_brittle",
-  "prior": 0.293,
+  "prior": 0.093,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -44.4,
@@ -3208,7 +3208,7 @@
  {
   "file": "suno-alive-again",
   "preset": "cymbal_chatter",
-  "prior": 0.347,
+  "prior": 0.215,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -28.91,
@@ -3222,7 +3222,7 @@
  {
   "file": "suno-alive-again",
   "preset": "broadband_fizz",
-  "prior": 0.736,
+  "prior": 0.202,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -33.85,
@@ -3236,7 +3236,7 @@
  {
   "file": "suno-alive-again",
   "preset": "checkerboard_grid",
-  "prior": 0.068,
+  "prior": 0.053,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -30.2,
@@ -3250,7 +3250,7 @@
  {
   "file": "suno-alive-again",
   "preset": "reverb_flutter",
-  "prior": 0.159,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -31.37,
@@ -3264,7 +3264,7 @@
  {
   "file": "suno-alive-again",
   "preset": "vocal_glaze",
-  "prior": 0.302,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -22.04,
@@ -3278,7 +3278,7 @@
  {
   "file": "suno-alive-again",
   "preset": "vocal_glaze_plus",
-  "prior": 0.472,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -16.02,
@@ -3292,7 +3292,7 @@
  {
   "file": "suno-alive-again",
   "preset": "echo_sheen",
-  "prior": 0.163,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -20.31,
@@ -3306,7 +3306,7 @@
  {
   "file": "suno-alive-again",
   "preset": "presence_haze",
-  "prior": 0.253,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -27.44,
@@ -3320,7 +3320,7 @@
  {
   "file": "suno-alive-again",
   "preset": "phantom_cymbal",
-  "prior": 0.415,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -24.6,
@@ -3334,7 +3334,7 @@
  {
   "file": "suno-alive-again",
   "preset": "harsh_veil",
-  "prior": 0.306,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -25.83,
@@ -3348,7 +3348,7 @@
  {
   "file": "suno-alive-again",
   "preset": "deep_scrub",
-  "prior": 0.27,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.75,
   "artifact_db": -15.83,
@@ -3362,7 +3362,7 @@
  {
   "file": "suno-couldve-been-stories",
   "preset": "suno_hash",
-  "prior": 0.041,
+  "prior": 0.143,
   "tone_w": 0.0,
   "flicker_excess_db": 0.6,
   "artifact_db": -17.89,
@@ -3418,7 +3418,7 @@
  {
   "file": "suno-couldve-been-stories",
   "preset": "sibilance_rattle",
-  "prior": 0.637,
+  "prior": 0.523,
   "tone_w": 0.0,
   "flicker_excess_db": 0.6,
   "artifact_db": -20.79,
@@ -3432,7 +3432,7 @@
  {
   "file": "suno-couldve-been-stories",
   "preset": "cymbal_chatter",
-  "prior": 0.129,
+  "prior": 0.011,
   "tone_w": 0.0,
   "flicker_excess_db": 0.6,
   "artifact_db": -33.63,
@@ -3446,7 +3446,7 @@
  {
   "file": "suno-couldve-been-stories",
   "preset": "broadband_fizz",
-  "prior": 0.057,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.6,
   "artifact_db": -37.24,
@@ -3460,7 +3460,7 @@
  {
   "file": "suno-couldve-been-stories",
   "preset": "checkerboard_grid",
-  "prior": 0.0,
+  "prior": 0.006,
   "tone_w": 0.0,
   "flicker_excess_db": 0.6,
   "artifact_db": -35.01,
@@ -3474,7 +3474,7 @@
  {
   "file": "suno-couldve-been-stories",
   "preset": "reverb_flutter",
-  "prior": 0.415,
+  "prior": 0.082,
   "tone_w": 0.0,
   "flicker_excess_db": 0.6,
   "artifact_db": -34.32,
@@ -3544,7 +3544,7 @@
  {
   "file": "suno-couldve-been-stories",
   "preset": "phantom_cymbal",
-  "prior": 0.31,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.6,
   "artifact_db": -27.45,
@@ -3586,7 +3586,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "suno_hash",
-  "prior": 0.005,
+  "prior": 0.097,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -16.52,
@@ -3628,7 +3628,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "air_brittle",
-  "prior": 0.053,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -52.27,
@@ -3642,7 +3642,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "sibilance_rattle",
-  "prior": 0.464,
+  "prior": 0.208,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -13.42,
@@ -3656,7 +3656,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "cymbal_chatter",
-  "prior": 0.097,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -30.09,
@@ -3670,7 +3670,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "broadband_fizz",
-  "prior": 0.467,
+  "prior": 0.034,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -46.48,
@@ -3698,7 +3698,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "reverb_flutter",
-  "prior": 0.174,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -38.5,
@@ -3712,7 +3712,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "vocal_glaze",
-  "prior": 0.475,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -21.95,
@@ -3726,7 +3726,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "vocal_glaze_plus",
-  "prior": 0.471,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -12.87,
@@ -3754,7 +3754,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "presence_haze",
-  "prior": 0.459,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -25.5,
@@ -3768,7 +3768,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "phantom_cymbal",
-  "prior": 0.014,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -22.4,
@@ -3782,7 +3782,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "harsh_veil",
-  "prior": 0.343,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -23.77,
@@ -3796,7 +3796,7 @@
  {
   "file": "suno-falling-for-you",
   "preset": "deep_scrub",
-  "prior": 0.471,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.51,
   "artifact_db": -13.87,
@@ -3810,7 +3810,7 @@
  {
   "file": "suno-kindling",
   "preset": "suno_hash",
-  "prior": 0.358,
+  "prior": 0.544,
   "tone_w": 0.0,
   "flicker_excess_db": 1.4,
   "artifact_db": -22.99,
@@ -3838,7 +3838,7 @@
  {
   "file": "suno-kindling",
   "preset": "laser_whistle",
-  "prior": 0.48,
+  "prior": 0.45,
   "tone_w": 0.0,
   "flicker_excess_db": 1.4,
   "artifact_db": -44.33,
@@ -3852,7 +3852,7 @@
  {
   "file": "suno-kindling",
   "preset": "air_brittle",
-  "prior": 0.332,
+  "prior": 0.176,
   "tone_w": 0.0,
   "flicker_excess_db": 1.4,
   "artifact_db": -52.94,
@@ -3880,7 +3880,7 @@
  {
   "file": "suno-kindling",
   "preset": "cymbal_chatter",
-  "prior": 0.009,
+  "prior": 0.011,
   "tone_w": 0.0,
   "flicker_excess_db": 1.4,
   "artifact_db": -40.32,
@@ -3894,7 +3894,7 @@
  {
   "file": "suno-kindling",
   "preset": "broadband_fizz",
-  "prior": 0.338,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.4,
   "artifact_db": -49.56,
@@ -3908,7 +3908,7 @@
  {
   "file": "suno-kindling",
   "preset": "checkerboard_grid",
-  "prior": 0.02,
+  "prior": 0.027,
   "tone_w": 0.0,
   "flicker_excess_db": 1.4,
   "artifact_db": -41.53,
@@ -3922,7 +3922,7 @@
  {
   "file": "suno-kindling",
   "preset": "reverb_flutter",
-  "prior": 0.368,
+  "prior": 0.035,
   "tone_w": 0.0,
   "flicker_excess_db": 1.4,
   "artifact_db": -45.53,
@@ -3992,7 +3992,7 @@
  {
   "file": "suno-kindling",
   "preset": "phantom_cymbal",
-  "prior": 0.298,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.4,
   "artifact_db": -36.66,
@@ -4006,7 +4006,7 @@
  {
   "file": "suno-kindling",
   "preset": "harsh_veil",
-  "prior": 0.042,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.4,
   "artifact_db": -35.89,
@@ -4034,7 +4034,7 @@
  {
   "file": "suno-leave-the-world-behind",
   "preset": "suno_hash",
-  "prior": 0.346,
+  "prior": 0.528,
   "tone_w": 0.0,
   "flicker_excess_db": 1.37,
   "artifact_db": -17.64,
@@ -4076,7 +4076,7 @@
  {
   "file": "suno-leave-the-world-behind",
   "preset": "air_brittle",
-  "prior": 0.576,
+  "prior": 0.376,
   "tone_w": 0.0,
   "flicker_excess_db": 1.37,
   "artifact_db": -50.04,
@@ -4118,7 +4118,7 @@
  {
   "file": "suno-leave-the-world-behind",
   "preset": "broadband_fizz",
-  "prior": 0.638,
+  "prior": 0.036,
   "tone_w": 0.0,
   "flicker_excess_db": 1.37,
   "artifact_db": -45.29,
@@ -4146,7 +4146,7 @@
  {
   "file": "suno-leave-the-world-behind",
   "preset": "reverb_flutter",
-  "prior": 0.167,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.37,
   "artifact_db": -36.58,
@@ -4160,7 +4160,7 @@
  {
   "file": "suno-leave-the-world-behind",
   "preset": "vocal_glaze",
-  "prior": 0.596,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.37,
   "artifact_db": -19.61,
@@ -4174,7 +4174,7 @@
  {
   "file": "suno-leave-the-world-behind",
   "preset": "vocal_glaze_plus",
-  "prior": 0.616,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.37,
   "artifact_db": -13.65,
@@ -4202,7 +4202,7 @@
  {
   "file": "suno-leave-the-world-behind",
   "preset": "presence_haze",
-  "prior": 0.595,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.37,
   "artifact_db": -28.45,
@@ -4230,7 +4230,7 @@
  {
   "file": "suno-leave-the-world-behind",
   "preset": "harsh_veil",
-  "prior": 0.705,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.37,
   "artifact_db": -24.2,
@@ -4244,7 +4244,7 @@
  {
   "file": "suno-leave-the-world-behind",
   "preset": "deep_scrub",
-  "prior": 0.653,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.37,
   "artifact_db": -16.16,
@@ -4258,7 +4258,7 @@
  {
   "file": "suno-the-little-things",
   "preset": "suno_hash",
-  "prior": 0.828,
+  "prior": 1.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.57,
   "artifact_db": -19.12,
@@ -4267,7 +4267,7 @@
   "missing": 0.0619,
   "lin_dist": 0.767,
   "added": 0.1568,
-  "score": 0.151
+  "score": 0.364
  },
  {
   "file": "suno-the-little-things",
@@ -4314,7 +4314,7 @@
  {
   "file": "suno-the-little-things",
   "preset": "sibilance_rattle",
-  "prior": 0.291,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.57,
   "artifact_db": -17.71,
@@ -4342,7 +4342,7 @@
  {
   "file": "suno-the-little-things",
   "preset": "broadband_fizz",
-  "prior": 0.085,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.57,
   "artifact_db": -37.95,
@@ -4370,7 +4370,7 @@
  {
   "file": "suno-the-little-things",
   "preset": "reverb_flutter",
-  "prior": 0.815,
+  "prior": 0.481,
   "tone_w": 0.0,
   "flicker_excess_db": 2.57,
   "artifact_db": -36.0,
@@ -4379,12 +4379,12 @@
   "missing": 0.0066,
   "lin_dist": 0.01,
   "added": 0.0095,
-  "score": 0.038
+  "score": 0.0
  },
  {
   "file": "suno-the-little-things",
   "preset": "vocal_glaze",
-  "prior": 0.059,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.57,
   "artifact_db": -25.37,
@@ -4398,7 +4398,7 @@
  {
   "file": "suno-the-little-things",
   "preset": "vocal_glaze_plus",
-  "prior": 0.221,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.57,
   "artifact_db": -13.74,
@@ -4440,7 +4440,7 @@
  {
   "file": "suno-the-little-things",
   "preset": "phantom_cymbal",
-  "prior": 0.164,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.57,
   "artifact_db": -29.66,
@@ -4454,7 +4454,7 @@
  {
   "file": "suno-the-little-things",
   "preset": "harsh_veil",
-  "prior": 0.027,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 2.57,
   "artifact_db": -30.84,
@@ -4482,7 +4482,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "suno_hash",
-  "prior": 0.223,
+  "prior": 0.373,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -18.42,
@@ -4510,7 +4510,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "laser_whistle",
-  "prior": 0.471,
+  "prior": 0.44,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -33.76,
@@ -4524,7 +4524,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "air_brittle",
-  "prior": 0.324,
+  "prior": 0.165,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -44.6,
@@ -4538,7 +4538,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "sibilance_rattle",
-  "prior": 0.94,
+  "prior": 1.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -19.63,
@@ -4547,7 +4547,7 @@
   "missing": 0.045,
   "lin_dist": 1.016,
   "added": 0.131,
-  "score": 0.058
+  "score": 0.111
  },
  {
   "file": "suno-we-were-meant-for-the-stars",
@@ -4566,7 +4566,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "broadband_fizz",
-  "prior": 0.511,
+  "prior": 0.02,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -37.95,
@@ -4608,7 +4608,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "vocal_glaze",
-  "prior": 0.267,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -23.98,
@@ -4622,7 +4622,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "vocal_glaze_plus",
-  "prior": 0.369,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -12.81,
@@ -4650,7 +4650,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "presence_haze",
-  "prior": 0.21,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -33.17,
@@ -4664,7 +4664,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "phantom_cymbal",
-  "prior": 0.515,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -26.66,
@@ -4678,7 +4678,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "harsh_veil",
-  "prior": 0.293,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -25.94,
@@ -4692,7 +4692,7 @@
  {
   "file": "suno-we-were-meant-for-the-stars",
   "preset": "deep_scrub",
-  "prior": 0.655,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.06,
   "artifact_db": -13.71,
@@ -4776,7 +4776,7 @@
  {
   "file": "reference-hey",
   "preset": "cymbal_chatter",
-  "prior": 0.001,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.2,
   "artifact_db": -31.82,
@@ -4790,7 +4790,7 @@
  {
   "file": "reference-hey",
   "preset": "broadband_fizz",
-  "prior": 0.521,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.2,
   "artifact_db": -53.57,
@@ -4818,7 +4818,7 @@
  {
   "file": "reference-hey",
   "preset": "reverb_flutter",
-  "prior": 0.231,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.2,
   "artifact_db": -44.43,
@@ -4832,7 +4832,7 @@
  {
   "file": "reference-hey",
   "preset": "vocal_glaze",
-  "prior": 0.713,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.2,
   "artifact_db": -21.51,
@@ -4846,7 +4846,7 @@
  {
   "file": "reference-hey",
   "preset": "vocal_glaze_plus",
-  "prior": 0.609,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.2,
   "artifact_db": -23.38,
@@ -4874,7 +4874,7 @@
  {
   "file": "reference-hey",
   "preset": "presence_haze",
-  "prior": 0.547,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.2,
   "artifact_db": -26.66,
@@ -4902,7 +4902,7 @@
  {
   "file": "reference-hey",
   "preset": "harsh_veil",
-  "prior": 0.484,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.2,
   "artifact_db": -28.6,
@@ -4916,7 +4916,7 @@
  {
   "file": "reference-hey",
   "preset": "deep_scrub",
-  "prior": 0.623,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": -0.2,
   "artifact_db": -23.53,
@@ -4930,7 +4930,7 @@
  {
   "file": "reference-leave-the-world-behind",
   "preset": "suno_hash",
-  "prior": 0.259,
+  "prior": 0.418,
   "tone_w": 0.0,
   "flicker_excess_db": 1.15,
   "artifact_db": -16.51,
@@ -4972,7 +4972,7 @@
  {
   "file": "reference-leave-the-world-behind",
   "preset": "air_brittle",
-  "prior": 0.307,
+  "prior": 0.107,
   "tone_w": 0.0,
   "flicker_excess_db": 1.15,
   "artifact_db": -49.63,
@@ -5014,7 +5014,7 @@
  {
   "file": "reference-leave-the-world-behind",
   "preset": "broadband_fizz",
-  "prior": 0.555,
+  "prior": 0.078,
   "tone_w": 0.0,
   "flicker_excess_db": 1.15,
   "artifact_db": -43.73,
@@ -5042,7 +5042,7 @@
  {
   "file": "reference-leave-the-world-behind",
   "preset": "reverb_flutter",
-  "prior": 0.203,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.15,
   "artifact_db": -39.27,
@@ -5056,7 +5056,7 @@
  {
   "file": "reference-leave-the-world-behind",
   "preset": "vocal_glaze",
-  "prior": 0.833,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.15,
   "artifact_db": -14.99,
@@ -5070,7 +5070,7 @@
  {
   "file": "reference-leave-the-world-behind",
   "preset": "vocal_glaze_plus",
-  "prior": 0.68,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.15,
   "artifact_db": -12.07,
@@ -5098,7 +5098,7 @@
  {
   "file": "reference-leave-the-world-behind",
   "preset": "presence_haze",
-  "prior": 1.0,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.15,
   "artifact_db": -25.48,
@@ -5126,7 +5126,7 @@
  {
   "file": "reference-leave-the-world-behind",
   "preset": "harsh_veil",
-  "prior": 0.925,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.15,
   "artifact_db": -22.06,
@@ -5140,7 +5140,7 @@
  {
   "file": "reference-leave-the-world-behind",
   "preset": "deep_scrub",
-  "prior": 0.919,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 1.15,
   "artifact_db": -15.23,
@@ -5154,7 +5154,7 @@
  {
   "file": "synth-clean",
   "preset": "suno_hash",
-  "prior": 0.097,
+  "prior": 0.213,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -25.29,
@@ -5196,7 +5196,7 @@
  {
   "file": "synth-clean",
   "preset": "air_brittle",
-  "prior": 1.0,
+  "prior": 0.942,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -37.15,
@@ -5205,7 +5205,7 @@
   "missing": 0.0128,
   "lin_dist": 0.261,
   "added": 0.0124,
-  "score": 0.041
+  "score": 0.026
  },
  {
   "file": "synth-clean",
@@ -5238,7 +5238,7 @@
  {
   "file": "synth-clean",
   "preset": "broadband_fizz",
-  "prior": 0.947,
+  "prior": 0.433,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -27.67,
@@ -5247,7 +5247,7 @@
   "missing": 0.0291,
   "lin_dist": 0.769,
   "added": 0.0222,
-  "score": 0.004
+  "score": 0.0
  },
  {
   "file": "synth-clean",
@@ -5266,7 +5266,7 @@
  {
   "file": "synth-clean",
   "preset": "reverb_flutter",
-  "prior": 0.05,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -24.6,
@@ -5280,7 +5280,7 @@
  {
   "file": "synth-clean",
   "preset": "vocal_glaze",
-  "prior": 0.338,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -21.86,
@@ -5294,7 +5294,7 @@
  {
   "file": "synth-clean",
   "preset": "vocal_glaze_plus",
-  "prior": 0.566,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -20.95,
@@ -5308,7 +5308,7 @@
  {
   "file": "synth-clean",
   "preset": "echo_sheen",
-  "prior": 1.0,
+  "prior": 0.615,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -21.99,
@@ -5317,12 +5317,12 @@
   "missing": 0.1124,
   "lin_dist": 1.612,
   "added": 0.0448,
-  "score": 0.463
+  "score": 0.0
  },
  {
   "file": "synth-clean",
   "preset": "presence_haze",
-  "prior": 0.406,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -28.84,
@@ -5350,7 +5350,7 @@
  {
   "file": "synth-clean",
   "preset": "harsh_veil",
-  "prior": 0.46,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -24.61,
@@ -5364,7 +5364,7 @@
  {
   "file": "synth-clean",
   "preset": "deep_scrub",
-  "prior": 0.982,
+  "prior": 0.332,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -15.77,
@@ -5420,7 +5420,7 @@
  {
   "file": "synth-hash",
   "preset": "air_brittle",
-  "prior": 0.674,
+  "prior": 0.474,
   "tone_w": 0.0,
   "flicker_excess_db": 3.33,
   "artifact_db": -37.79,
@@ -5462,7 +5462,7 @@
  {
   "file": "synth-hash",
   "preset": "broadband_fizz",
-  "prior": 0.998,
+  "prior": 0.345,
   "tone_w": 0.0,
   "flicker_excess_db": 3.33,
   "artifact_db": -29.75,
@@ -5490,7 +5490,7 @@
  {
   "file": "synth-hash",
   "preset": "reverb_flutter",
-  "prior": 0.027,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 3.33,
   "artifact_db": -26.38,
@@ -5504,7 +5504,7 @@
  {
   "file": "synth-hash",
   "preset": "vocal_glaze",
-  "prior": 0.699,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 3.33,
   "artifact_db": -18.35,
@@ -5513,12 +5513,12 @@
   "missing": 0.0879,
   "lin_dist": 0.911,
   "added": 0.0503,
-  "score": 0.047
+  "score": 0.0
  },
  {
   "file": "synth-hash",
   "preset": "vocal_glaze_plus",
-  "prior": 0.836,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 3.33,
   "artifact_db": -14.69,
@@ -5532,7 +5532,7 @@
  {
   "file": "synth-hash",
   "preset": "echo_sheen",
-  "prior": 1.0,
+  "prior": 0.35,
   "tone_w": 0.0,
   "flicker_excess_db": 3.33,
   "artifact_db": -15.71,
@@ -5541,12 +5541,12 @@
   "missing": 0.0877,
   "lin_dist": 1.754,
   "added": 0.047,
-  "score": 0.292
+  "score": 0.0
  },
  {
   "file": "synth-hash",
   "preset": "presence_haze",
-  "prior": 0.839,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 3.33,
   "artifact_db": -27.0,
@@ -5574,7 +5574,7 @@
  {
   "file": "synth-hash",
   "preset": "harsh_veil",
-  "prior": 0.816,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 3.33,
   "artifact_db": -18.55,
@@ -5588,7 +5588,7 @@
  {
   "file": "synth-hash",
   "preset": "deep_scrub",
-  "prior": 0.999,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 3.33,
   "artifact_db": -12.25,
@@ -5602,7 +5602,7 @@
  {
   "file": "synth-tone",
   "preset": "suno_hash",
-  "prior": 0.097,
+  "prior": 0.213,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -25.34,
@@ -5644,7 +5644,7 @@
  {
   "file": "synth-tone",
   "preset": "air_brittle",
-  "prior": 0.99,
+  "prior": 0.79,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -37.12,
@@ -5653,7 +5653,7 @@
   "missing": 0.0127,
   "lin_dist": 0.262,
   "added": 0.0125,
-  "score": 0.037
+  "score": 0.0
  },
  {
   "file": "synth-tone",
@@ -5686,7 +5686,7 @@
  {
   "file": "synth-tone",
   "preset": "broadband_fizz",
-  "prior": 0.989,
+  "prior": 0.29,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -27.84,
@@ -5695,7 +5695,7 @@
   "missing": 0.0287,
   "lin_dist": 0.77,
   "added": 0.0222,
-  "score": 0.024
+  "score": 0.0
  },
  {
   "file": "synth-tone",
@@ -5714,7 +5714,7 @@
  {
   "file": "synth-tone",
   "preset": "reverb_flutter",
-  "prior": 0.073,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -24.82,
@@ -5728,7 +5728,7 @@
  {
   "file": "synth-tone",
   "preset": "vocal_glaze",
-  "prior": 0.338,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -21.83,
@@ -5742,7 +5742,7 @@
  {
   "file": "synth-tone",
   "preset": "vocal_glaze_plus",
-  "prior": 0.579,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -20.99,
@@ -5756,7 +5756,7 @@
  {
   "file": "synth-tone",
   "preset": "echo_sheen",
-  "prior": 1.0,
+  "prior": 0.615,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -21.96,
@@ -5765,12 +5765,12 @@
   "missing": 0.1116,
   "lin_dist": 1.611,
   "added": 0.0446,
-  "score": 0.463
+  "score": 0.0
  },
  {
   "file": "synth-tone",
   "preset": "presence_haze",
-  "prior": 0.406,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -28.81,
@@ -5798,7 +5798,7 @@
  {
   "file": "synth-tone",
   "preset": "harsh_veil",
-  "prior": 0.561,
+  "prior": 0.0,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -24.73,
@@ -5812,7 +5812,7 @@
  {
   "file": "synth-tone",
   "preset": "deep_scrub",
-  "prior": 0.997,
+  "prior": 0.83,
   "tone_w": 0.0,
   "flicker_excess_db": 0.74,
   "artifact_db": -16.06,

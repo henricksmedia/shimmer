@@ -236,6 +236,9 @@ count.
       at least the hash stage measures as effective; until then the honest
       product answer for "many artifacts" is the notch plan plus one
       preset, which is what the score now produces.
+      Later on 2026-09-08: item 10 is done, and with the recalibrated
+      priors no corpus file fires more than one preset above the actionable
+      score. Precondition (b) stands: the stages are the blocker now.
 
 - [x] **8. Retire the routine second pass.**
       *Done when:* the automated flow is one pass by default. Measured: on
@@ -267,7 +270,7 @@ count.
       - `STYLE.md` — the house rules currently scattered in docstrings
       - `PITFALLS.md` — every wrong turn taken here, so it is not retaken
 
-- [ ] **10. Give the prior a real "nothing is wrong" state.** (Added
+- [x] **10. Give the prior a real "nothing is wrong" state.** (Added
       2026-09-08 while doing item 5; it is the assessment's recommendation
       2.) *Done when:* on artifact-free music the priors read near zero.
       Measured on the hot windows of the 9 finished masters: `vocal_glaze`
@@ -280,6 +283,32 @@ count.
       `priors_from_evidence` were set from 26 Suno renders with no clean
       control. Recalibrate against the labelled corpus (9 finished masters
       are available in `sources/` and `assets/reference/`).
+      **DONE 2026-09-08.** `scripts/prior_calibration.py` prints, per
+      feature, its range on the 9 finished masters, on the 5 clean hosts
+      with each modelled artifact injected (from the efficacy harness), and
+      the edges one rule gives: **lo = the clean 84th percentile, hi = the
+      median with the model injected at 2.0 sones** (no model: old width
+      above the new lo; tone bands keep their old edges, lo raised to the
+      clean 84th, because clean reads exactly 0 there and the model is a
+      pure sine). What the table showed: `presence_db` reads -4.5 to -1.6
+      on clean masters against a ramp from -14; `flat_3_8` 0.44-0.55 on a
+      ramp ending at 0.55; `umid_db` -8 to -4 on a ramp from -16;
+      `upper_db` -12 on a ramp ending at -10. Those four are why
+      Vocal Glaze, Presence Haze, Harsh Veil and Broadband Fizz read
+      0.5-1.0 on finished masters. The flicker feature is weaker than
+      assumed: hash injected at 0.5 sones reads *below* the clean median
+      (0.23 vs 0.61), and the real corpus overlaps (masters median 0.34,
+      renders 0.83). Applied in `priors_from_evidence` with the rule in its
+      docstring. Measured after, `score_probe.py` over the corpus: finished
+      masters firing 2/9 -> **1/9** (the service master whose own flicker
+      excess is +2.4 dB; Suno Hash at 0.48); references 0/2; the synthetic
+      clean bed 0.46 -> 0.03 (no longer fires); the synthetic hash now
+      picks Suno Hash (0.23) instead of Echo Sheen; renders firing 2/7
+      (Suno Hash 0.36, Sibilance Rattle 0.11). Per-file maximum prior:
+      finished masters median 0.40 (was 0.7-1.0 for the presence presets),
+      renders 0.53. Nine masters is a small clean sample — the 84th
+      percentile of nine is the second-highest file — so widen it before
+      tightening any edge. Test suite 323 passed.
 
 - [ ] **11. Re-examine the actionable threshold and the confidence
       scale.** (Added 2026-09-08.) `MIN_ACTIONABLE_SCORE = 0.05` and the

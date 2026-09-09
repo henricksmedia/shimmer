@@ -325,6 +325,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
   the prior is gone (the prior is inside the score); unverified runs still
   rank on the prior alone.
 
+- **The evidence priors can now say "nothing is wrong".** Their ramp edges
+  were set from 26 Suno renders with no clean control, so on finished
+  masters the presence-band presets read 0.7 to 1.0: `presence_db` sits at
+  −4.5 to −1.6 dB on clean masters while its ramp started at −14. Every
+  edge is now derived by one rule from measurements
+  (`scripts/prior_calibration.py`): the lower edge is the 84th percentile
+  of nine finished masters, the upper edge the median reading with the
+  matching modelled artifact injected at a plainly audible level. Measured
+  after: finished masters that get a recommendation 2 of 9 → 1 of 9 (the one
+  whose own hash measure reads +2.4 dB), the synthetic clean bed no longer
+  fires, and the synthetic hash picks Suno Hash itself.
+
 - **Analyze is one pass by default.** The routine second-pass check (run
   the runner-ups on the winner's output) is off unless asked for. Measured
   on three multi-artifact tracks it found no new artifact but raised other

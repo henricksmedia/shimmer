@@ -787,38 +787,59 @@ def evidence_scan(x: np.ndarray, sr: int, window_s: float = 5.0,
 def priors_from_evidence(ev: Evidence) -> Dict[str, float]:
     """0..1 plausibility per artifact preset from the evidence scan.
 
-    Ramp edges were set from a corpus of 26 Suno renders (roughly the
-    20th and 85th percentiles of each measurement) so a prior of 1.0
-    means "unusually strong for this kind of material", not merely
-    "present".  A prior gates how much of a trial clean's audible removal
-    counts as benefit rather than cost (see `verified_score`).
+    A prior gates how much of a trial clean's audible removal counts as
+    benefit rather than cost (see `verified_score`), so it has to be able
+    to say "nothing is wrong".  The ramp edges below were derived on
+    2026-09-08 by one rule (`scripts/prior_calibration.py`):
+
+      lo  the 84th percentile of the feature on 9 finished masters
+          (4 service masters + reference "Hey" + 4 more service masters
+          that carry hash, excluded for the flicker feature only), so
+          run-of-the-mill clean music reads 0;
+      hi  the median reading on clean hosts with the matching modelled
+          artifact injected at 2.0 sones (shimmer/artifacts.py; "plainly
+          there"), so a clearly present artifact reads 1.  Features with no
+          model (ring, periodicity, tail contrast, top tilt, upper level,
+          click rate) keep their old ramp width above the new lo.
+
+    The tone bands are the exception: the whole-file scan finds no line on
+    most masters (clean reads exactly 0) and the injected model is a pure
+    sine (46-64 dB excess), so neither end of the rule is informative there.
+    They keep their old edges, with lo raised to the clean 84th percentile
+    where that is higher.  Fixed lines are the static repair's job anyway.
+
+    Before this the edges were the ~20th and ~85th percentiles of 26 Suno
+    renders with no clean control, and on finished masters the presence-band
+    presets read 0.7-1.0.  Nine masters is a small clean sample; the 84th
+    percentile of nine is the second-highest file.  Widen it before
+    tightening any edge.
     """
     t8, t9 = ev.tone_8_12, ev.tone_9_15
     t_hi = ev.tone_9_15 if ev.tone_9_15.excess_db >= ev.tone_12_20.excess_db else ev.tone_12_20
     pr: Dict[str, float] = {}
     pr["cymbal_sheen"] = _ramp(t8.excess_db, 3.0, 12.0) * (1.0 if t8.duty >= 0.5 else 0.5)
-    pr["laser_whistle"] = _ramp(t_hi.excess_db, 3.0, 12.0) * (1.0 if t_hi.duty < 0.85 else 0.7)
-    pr["air_brittle"] = max(_ramp(ev.top_tilt_db, -12.0, -3.0),
-                            0.8 * _ramp(ev.tone_12_20.excess_db, 4.0, 12.0))
+    pr["laser_whistle"] = _ramp(t_hi.excess_db, 3.5, 12.0) * (1.0 if t_hi.duty < 0.85 else 0.7)
+    pr["air_brittle"] = max(_ramp(ev.top_tilt_db, -10.2, -1.2),
+                            0.8 * _ramp(ev.tone_12_20.excess_db, 6.0, 12.0))
     # Sibilance Rattle also carries the de-clicker, so crackle counts here.
     # Dense hi-hats register a few blips a second too, so the ramp starts
     # high.
-    pr["sibilance_rattle"] = max(_ramp(ev.sib_burst, 0.05, 0.25),
+    pr["sibilance_rattle"] = max(_ramp(ev.sib_burst, 0.12, 0.23),
                                  0.8 * _ramp(ev.click_rate, 10.0, 40.0))
-    pr["cymbal_chatter"] = (0.6 * _ramp(ev.period_excess, 0.05, 0.30)
-                            + 0.4 * _ramp(ev.comb, 0.15, 0.40))
-    pr["broadband_fizz"] = (0.5 * _ramp(ev.flat_8_18, 0.15, 0.45)
-                            + 0.5 * _ramp(ev.upper_db, -24.0, -10.0))
-    pr["checkerboard_grid"] = _ramp(ev.comb, 0.15, 0.45)
-    pr["reverb_flutter"] = _ramp(ev.tail_contrast, 0.0, 0.03)
-    pr["suno_hash"] = _ramp(ev.flicker_excess_db, 0.5, 3.0)
-    pr["vocal_glaze"] = _ramp(ev.presence_db, -14.0, -2.0) * _ramp(ev.flat_3_8, 0.25, 0.55)
+    pr["cymbal_chatter"] = (0.6 * _ramp(ev.period_excess, 0.10, 0.35)
+                            + 0.4 * _ramp(ev.comb, 0.14, 0.72))
+    pr["broadband_fizz"] = (0.5 * _ramp(ev.flat_8_18, 0.21, 0.76)
+                            + 0.5 * _ramp(ev.upper_db, -10.3, 3.7))
+    pr["checkerboard_grid"] = _ramp(ev.comb, 0.14, 0.72)
+    pr["reverb_flutter"] = _ramp(ev.tail_contrast, 0.01, 0.04)
+    pr["suno_hash"] = _ramp(ev.flicker_excess_db, 0.32, 2.30)
+    pr["vocal_glaze"] = _ramp(ev.presence_db, -2.6, 9.3) * _ramp(ev.flat_3_8, 0.53, 0.76)
     pr["vocal_glaze_plus"] = math.sqrt(
         pr["vocal_glaze"] * max(pr["suno_hash"], pr["broadband_fizz"]))
-    pr["echo_sheen"] = _ramp(ev.echo_corr, 0.30, 0.60) * _ramp(ev.flat_3_8, 0.20, 0.50)
-    pr["presence_haze"] = _ramp(ev.presence_db, -14.0, -4.0) * _ramp(ev.flat_3_8, 0.30, 0.60)
-    pr["phantom_cymbal"] = _ramp(ev.presence_db, -14.0, -2.0) * _ramp(ev.ring_4_10, 0.10, 0.40)
-    pr["harsh_veil"] = _ramp(ev.umid_db, -16.0, -4.0) * _ramp(ev.flat_4_12, 0.25, 0.55)
+    pr["echo_sheen"] = _ramp(ev.echo_corr, 0.17, 0.67) * _ramp(ev.flat_3_8, 0.53, 0.76)
+    pr["presence_haze"] = _ramp(ev.presence_db, -2.6, 9.3) * _ramp(ev.flat_3_8, 0.53, 0.76)
+    pr["phantom_cymbal"] = _ramp(ev.presence_db, -2.6, 9.3) * _ramp(ev.ring_4_10, 0.27, 0.57)
+    pr["harsh_veil"] = _ramp(ev.umid_db, -4.6, 8.2) * _ramp(ev.flat_4_12, 0.51, 0.60)
     vals = sorted(pr.values())
     n_strong = sum(1 for v in pr.values() if v > 0.4)
     pr["deep_scrub"] = float(np.mean(vals[-3:])) * _ramp(n_strong, 2.0, 4.0)
