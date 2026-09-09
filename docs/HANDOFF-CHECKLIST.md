@@ -329,7 +329,7 @@ count.
       below rather than done here. Test:
       `test_the_automated_flow_is_one_pass_by_default`.
 
-- [ ] **9. The four documents.**
+- [x] **9. The four documents.**
       - `GOALS.md` — goal, anti-goals, decision rule, frozen corpus
       - `IMPLEMENTATION.md` — the PRD: what to build, in order, with
         executable acceptance criteria
@@ -341,6 +341,22 @@ count.
       are the author's to state, and the house rules need a pass over the
       docstrings that this session did not make. `IMPLEMENTATION.md` is
       being maintained by whoever is in the tree.
+      **DONE 2026-09-09.** `GOALS.md` written from the author's own
+      statement: clean up the artifacts AI generators leave — pops,
+      crackles, shimmer, sheen, the faults the Suno and AI-music communities
+      report — and master to the same standard as a modern mastering tool
+      using better algorithms. It carries the anti-goals, the decision rule
+      (efficacy, then cost in sones, then distance from real records, then a
+      level-matched blind listen, which outranks the other three), the
+      frozen corpus, and the open questions. FK grade 6.8.
+      `STYLE.md` written, FK 7.2. It was a **missing file, not a missing
+      decision** — the house rules were already settled and already followed,
+      just scattered across docstrings, commit messages and conversation,
+      which is why they kept being asked about rather than looked up. Asking
+      the author to restate them was the error; collecting them was the work.
+      **One thing needs the author's eye:** the anti-goals in `GOALS.md` are
+      inferred from decisions made, not stated. They are marked as inferred.
+      Correct them rather than assume they were agreed.
 
 - [x] **10. Give the prior a real "nothing is wrong" state.** (Added
       2026-09-08 while doing item 5; it is the assessment's recommendation
@@ -506,6 +522,18 @@ count.
       dB/oct, and only if the test name and docstring say it cannot detect a
       level or shape error. If that is not worth writing, do not write it —
       a test this weak is worse than none, because it will be cited.
+      **DEFERRED 2026-09-09 — reason:** taking the revised done-when at its
+      word, it is not worth writing. At an honest ±1.5 dB/oct the test
+      passes the published curve (−4.41), the service masters (−4.40), the
+      captures (−5.31), the retracted target (−4.28) and the derived target
+      (−5.53) alike. It separates nothing in the range we care about, and
+      the one thing it would catch — a wildly tilted curve — is already
+      caught by `references.gate()`, which is derived from real masters and
+      does discriminate. Shipping it would put a second metric-that-cannot-
+      fail in the suite next to the one that cost this project months.
+      Revisit only if a target is ever proposed whose tilt is in question;
+      the check is three lines and lives in
+      `scripts/tone-evidence/check_new_target.py` meanwhile.
 
 - [x] **14. Make the References tool's report trustworthy.**
       (Added 2026-09-08.) It reported "8.4 dB darker" as a headline from a
