@@ -939,3 +939,172 @@ against judgement:
 only "steeper". That is the gap item 4 has to close empirically, and it is
 the reason item 4 calls for a corpus and a tolerance band rather than a
 number.
+
+> **Closed 2026-09-08 — see §7.2.** A source does quantify it. The 4.53
+> dB/octave figure attributed to Nyberg above originates in Elowsson &
+> Friberg (AES 142, 2017), and that paper publishes the slope at every
+> frequency to 15.7 kHz, not just the invariant range.
+
+---
+
+## 7. The replacement target is wrong too
+
+**Added 2026-09-08, after §1–§6 had already shipped as commit `97609c0`.**
+
+§2.1 established that the old target was a sixty-year average used as a
+present-day target, and the fix pointed `_REF_SHAPE_DB` at a curve measured
+from 309 masters. That fix is wrong, in the opposite direction, and by more
+than the original error. This section is the evidence and the retraction.
+
+The 309 masters were produced by **one automated mastering service, from AI
+renders**. `docs/tone-reference.json` says so in its own metadata: *"This is
+a target for this tool's material, not a general commercial reference."* It
+was shipped as a general commercial reference anyway. AI renders are bright
+before anything touches them (§1, Suno source measures −4.83 in the presence
+band), so a curve fitted to masters *of* them inherits that.
+
+### 7.1 What the new evidence is
+
+*Measured.* Thirteen contemporary commercial tracks captured through the
+References tool (electronic, pop, country and metal; `reference-library.json`).
+Two of fifteen were rejected: they read −50.6 and −43.6 dB at 10 kHz, against
+a 1st percentile of −29.1 dB across 317 masters known to be real. No record
+does that; those two captures are broken, not dark. The gate is derived from
+the known-real distribution, not from agreement with any target, so it cannot
+reject a capture merely for disagreeing.
+
+*Measured.* The capture chain was validated by playing a known file through
+the speakers and capturing it back through loopback: **0.28 dB mean error,
+0.53 dB worst, 250 Hz – 12.5 kHz**. The chain colours nothing. (An earlier
+run of this test was invalid — other audio was playing and the loopback heard
+both. The script now aborts unless the recording correlates with what it
+played.)
+
+*Measured.* Short excerpts understate a master's top end by **−1.35 dB on
+average, −4.45 dB worst**, with up to 5.71 dB of spread between 30 s windows
+of the same track. Applied as a correction throughout this section.
+
+*Cited.* **Elowsson & Friberg, "Long-term Average Spectrum in Popular Music
+and its Relation to the Level of the Percussion", AES 142nd Convention (2017),
+paper 9762. 12,345 tracks.**
+
+### 7.2 The slope above 4.5 kHz — §6's open question, closed
+
+The paper fits the mean LTAS with two quadratics on a log-frequency axis of
+60 bins/octave over 30 Hz – 15.7 kHz, and publishes the derivative, so the
+slope is available at every frequency rather than as one average:
+
+| centre | slope dB/oct (PSD) |
+|---|---:|
+| 200 Hz | −2.350 |
+| 400 Hz | −3.668 |
+| 800 Hz | −4.985 |
+| 1.6 kHz | −6.303 |
+| 3.2 kHz | −7.621 |
+| 6.4 kHz | −8.938 |
+
+*Measured.* Their Eq. 7 reproduces every row of that table to three decimals
+in our code, which is the check that the axis mapping is right. The 800 Hz
+row (−4.985) is what the "≈5 dB/octave" figure in §6 refers to, and the
+"4.53 dB/octave" is their 89 Hz → 4.5 kHz two-point slope, not a broadband
+constant. **The slope is not linear in log frequency — it steepens
+continuously**, which is why a single number was never going to describe it.
+
+*Measured.* Their figures are vector art, so the plotted curves are in the
+PDF as polylines. Figure 5 draws both fittings over the actual mean LTAS, and
+because the fitted curve has a known closed form it calibrates its own axes:
+fitting page coordinates to Eq. 6 gives a residual of **0.001 dB**. Reading
+the grey curve through that mapping recovers their real measured mean.
+**The quadratic misstates it by only −0.26 dB across 2.5–12.5 kHz**, so the
+fit is faithful and "the target only looks bad because a quadratic
+extrapolates badly" is not available as a defence.
+
+### 7.3 The measurement
+
+Departure from the paper's measured mean, in dB, by zone. Normalised the same
+way throughout: 1/3-octave band power relative to the 200 Hz – 2 kHz median,
+with the paper's density converted to band power by +10·log₁₀(0.2316·f₍c₎).
+
+| zone | commercial (13) | Shimmer output | service (309) | **`_REF_SHAPE_DB`** |
+|---|---:|---:|---:|---:|
+| bass 63–160 Hz | +7.1 | +6.6 | +9.3 | **+9.3** |
+| low-mid 200–500 Hz | +1.1 | +0.4 | +0.9 | **+0.7** |
+| mid 630 Hz–1.6 kHz | +0.4 | +1.2 | +0.9 | **+0.8** |
+| presence 2–5 kHz | +0.9 | +3.8 | +7.0 | **+7.6** |
+| air 6.3–12.5 kHz | +4.4 | +5.6 | +12.2 | **+12.9** |
+
+### 7.4 Why the captures are the trustworthy side
+
+Thirteen tracks is a small sample, and it leans electronic. It would be easy
+to dismiss. The reason not to is that they depart from the paper's mean in
+precisely the shape the paper predicts they should.
+
+The paper's §4.1 and Figure 7: material with more percussion sits above the
+dataset mean **in the bass and in the treble**, and tracks it through the
+mids, monotonically across all 11 percussion groups. Separately, Hove, Vuust
+& Stupacher (*JASA* 145, 2019, Billboard Hot 100 1955–2016) find bass has
+risen over time, strongest below 100 Hz. Contemporary pop and electronic
+music is at the percussive end of a corpus whose heaviest contributors are
+folk and classic rock CD masters.
+
+So the prediction is a smile: up at both ends, flat in the middle. The
+captures give **+7.1 bass, +1.1 low-mid, +0.4 mid, +0.9 presence, +4.4 air**
+— that is the predicted shape, and the presence band lands within 1 dB of a
+12,345-track mean. The shipped target instead climbs from +0.8 in the mids to
++7.6 to +12.9 and never comes back. Nothing in the literature predicts a
+monotonic ramp, and no corpus measured here produces one.
+
+**Two corpora with opposite biases bracket the answer.** The published mean
+skews old and folky; the captures skew contemporary and electronic. They
+differ by 4.4 dB in the air band. The shipped target sits 8.5 dB outside that
+bracket on the bright side.
+
+### 7.5 How wrong, and where
+
+*Measured, triangulated three ways.* Against the paper's real measured curve,
+`_REF_SHAPE_DB` is **+10.69 dB** across 2.5–12.5 kHz. Against the 13 captures
+it is **+7.76 dB**, or +6.4 dB after the excerpt-bias correction. The shape
+test above says the captures are the better contemporary estimate.
+
+**Best estimate: about 6.7 dB too bright in the presence band and 8.5 dB too
+bright in the air band. Bass, low-mid and mid are within about 2 dB and need
+no change.**
+
+One correction to an intermediate claim made while this was being worked out:
+the 89 Hz – 4.5 kHz invariant slope is −4.28 for the target against −4.53
+published, and it is tempting to read that agreement as "the target is fine
+below 4.5 kHz". It is not. A two-point slope is blind to a symmetric smile,
+and the target is +7.4 dB at 100 Hz and +1.1 dB at 4 kHz relative to the
+paper's curve — a similar tilt across the span, a different shape within it.
+The invariant is a useful check on tilt and nothing more.
+
+### 7.6 What follows
+
+1. **`97609c0` must not merge as-is.** It is branch-only, so nothing has
+   shipped to a user. `main` still carries the sixty-year-average target from
+   §2.1, which is wrong in the other direction. Neither is correct; the
+   product needs a derived target, not a choice between two bad ones.
+
+2. **Derive the target, and make the derivation the artifact.** Not a
+   hand-edited curve. The constraint is sample size: per-track standard
+   deviation in the 2.5–12.5 kHz mean is 3.7 dB, so **≈55 captures brings the
+   standard error under 0.5 dB and ≈150 under 0.3 dB**. There are 13. The
+   References tool is the machine for this and already exists.
+
+3. **Adopt the 89 Hz – 4.5 kHz invariant as a standing check**, at −4.53
+   dB/oct. Across the paper's 11 percussion groups its between-group standard
+   deviation is 0.055 dB/oct, so it is genre- and material-independent —
+   the one figure in the paper that does not inherit its corpus bias. It
+   belongs in the test suite against any target we ship.
+
+4. **Fix the References tool before believing another of its reports.** It
+   published "8.4 dB darker" from a median over 15 captures, two of which
+   were broken. Three defects in `shimmer/references.py`: no validity gate;
+   capture level is discarded, which is the evidence that would diagnose a
+   broken capture; and `report()` states a verdict with no uncertainty and no
+   excerpt-bias correction.
+
+**Confidence.** The direction and rough magnitude above 2 kHz are *measured*
+and agree across three independent routes. The exact per-band values are
+*not* settled and should not be until item 2 is done — 13 tracks cannot set a
+29-band curve.

@@ -29,7 +29,14 @@ descending size:
 
 1. The tone target was a 1950–2010 average used as a present-day target, so
    every contemporary master read as too bright and every automatic decision
-   came out a cut. **Fixed.**
+   came out a cut. **The replacement is wrong too — see
+   `BRIGHTNESS-ASSESSMENT.md` §7, added 2026-09-08.** The curve now on this
+   branch was measured from 309 masters that one automated service produced
+   from AI renders, and it runs about 6.7 dB hot in the presence band and
+   8.5 dB hot in the air band against contemporary commercial music. Do not
+   calibrate anything against `_REF_SHAPE_DB`, and do not merge `97609c0`
+   until §7 item 2 is done. Artifact and detector work is unaffected: it
+   reads audio, not the tone target.
 2. The detector's self-check (`purity`) measures nothing. **Fixed
    2026-09-08** — see §4 and checklist item 5. Two follow-ups it exposed
    are checklist items 10 and 11.
@@ -88,7 +95,7 @@ reading before altering anything they touch:
 |---|---|
 | `65621cf` | marketing kit and its claims tests |
 | `6370094` | export-note provenance, two defects that wrote false data |
-| `97609c0` | the tone target swap — the actual dullness fix |
+| `97609c0` | the tone target swap — **superseded, see §1 and `BRIGHTNESS-ASSESSMENT.md` §7** |
 | `77164be` | the damage measurement, tooling, de-branding |
 | `e9daf27` | documentation |
 
@@ -99,9 +106,15 @@ reading before altering anything they touch:
 - `shimmer/budget.py` — caps cleaning at what the measured artifact justifies.
   **Do not wire this into the pipeline yet**; preconditions in §5.
 
-**Changed and verified:**
-- `shimmer/mastering.py` — the tone target is now measured from 135 real
-  masters. Caps lifted so the curve can reach it.
+**Changed, and one of them since disproved:**
+- `shimmer/mastering.py` — **the tone target here is wrong; do not build on
+  it.** It was measured from masters that one automated service produced from
+  AI renders, and it runs ~6.7 dB hot in the presence band and ~8.5 dB hot in
+  the air band against contemporary commercial music, triangulated against a
+  published 12,345-track corpus and 13 captured commercial masters.
+  `BRIGHTNESS-ASSESSMENT.md` §7 has the evidence and what to do. The lifted
+  caps let the curve reach that target, so they are part of the same problem.
+  Bass, low-mid and mid are within ~2 dB and are fine.
 - `shimmer/params.py`, `server.py`, `tags.py` — export-note provenance, plus
   two fixed defects that wrote false data into shipped files.
 
