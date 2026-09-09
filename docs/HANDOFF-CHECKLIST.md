@@ -591,6 +591,18 @@ count.
       the model must be refit from real renders first (the modulation
       spectrum and per-bin coherence measured above are the constraints).
       This is the product's core problem and the largest open item.
+      *Round 5 built for that listening check:* `listening-test/round-5`,
+      `scripts/make_round5.py`, `KEY.json` gives each file's readings.
+      Side finding from building it: on the reference "Hey", 2.0 sones of
+      modelled hash reads **-2.6 dB** on `flicker_excess_db` (0.5 sones
+      -1.8) while on "Alive Again" the same injection reads +3.5 / +0.9.
+      "Hey" is transient-rich (the fine-pass gate is held 30 % of the
+      time on it) and its own body flickers more than its brilliance, so
+      the hash feature cannot see plainly audible hash on that kind of
+      material. The prior for Suno Hash is therefore blind on some music,
+      not just uncalibrated; item 10's edges do not fix that, and the
+      feature itself needs a transient-aware measure before it can be
+      trusted as evidence of absence.
 
 ## DEFERRED — the 80% stake
 

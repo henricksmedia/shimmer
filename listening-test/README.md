@@ -30,6 +30,14 @@ different from the last one.
   `scripts/make_round4.py`. Listen in `round-4/blind`; `round-4/renders` is
   the unblinded audio.
 
+- **round-5** — is the modelled hash the real thing? Per clean host: the
+  untouched master, plus the aperiodic hash model at 2.0 and 0.5 sones,
+  plus the periodic model at 2.0; alongside the hot 8 s of two real Suno
+  renders with high flicker. Not blind: the names say what each is, because
+  the question is whether the model sounds like the artifact, not which is
+  better. Built by `scripts/make_round5.py`; `KEY.json` gives each file's
+  hearing-model and flicker readings. Item 15 rests on the answer.
+
 ## How to listen
 
 1. Play a song's four `*-master-*.wav` back to back. They are level-matched to

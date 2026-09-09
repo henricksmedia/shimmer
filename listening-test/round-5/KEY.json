@@ -1,0 +1,15 @@
+{
+ "question": "Do the modelled files carry the same kind of noise as the real renders?",
+ "files": {
+  "distrokid-alive-again-clean.wav": "untouched finished master",
+  "distrokid-alive-again-model-aperiodic-2.wav": "model aperiodic 2 sones of modelled hash; hearing model added 2.00, flicker excess +3.53 dB",
+  "distrokid-alive-again-model-aperiodic-05.wav": "model aperiodic 05 sones of modelled hash; hearing model added 0.50, flicker excess +0.94 dB",
+  "distrokid-alive-again-model-periodic-2.wav": "model periodic 2 sones of modelled hash; hearing model added 2.00, flicker excess +2.89 dB",
+  "reference-hey-clean.wav": "untouched finished master",
+  "reference-hey-model-aperiodic-2.wav": "model aperiodic 2 sones of modelled hash; hearing model added 2.00, flicker excess -2.58 dB",
+  "reference-hey-model-aperiodic-05.wav": "model aperiodic 05 sones of modelled hash; hearing model added 0.50, flicker excess -1.83 dB",
+  "reference-hey-model-periodic-2.wav": "model periodic 2 sones of modelled hash; hearing model added 1.99, flicker excess -2.71 dB",
+  "real-suno-the-little-things.wav": "real Suno render, hot window, flicker excess +2.57 dB",
+  "real-suno-kindling.wav": "real Suno render, hot window, flicker excess +1.40 dB"
+ }
+}
