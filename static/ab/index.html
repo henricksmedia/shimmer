@@ -228,6 +228,8 @@ button.tiny { padding: 3px 9px; font-size: 12px; }
 /* The panel lives inside the strip, so it must not inherit the page's
    "folded away at the bottom" rule. */
 .round details { margin-top: var(--gap-3); border-top: 0; padding-top: 0; }
+.sofar { overflow-x: auto; }          /* the table is wider than a phone */
+.sofar table { min-width: 460px; }
 .sofar td.lab { color: var(--fg-0); }
 .sofar td.when { color: var(--fg-3); }
 .sofar td.note { font-family: var(--font-ui); color: var(--fg-2); }
@@ -412,8 +414,9 @@ select#sets { max-width: 360px; }
           <h2>Listening check <span class="abx-sub">ABX</span></h2>
           <p class="abx-why" id="abxWhy">X is secretly one of the two.
           Say which one it matches, several times over. Getting it right often
-          enough proves the two really do sound different — until then a
-          preference is a guess.</p>
+          enough is good evidence the two really do sound different — the
+          bar is a result that guessing would beat less than 1 time in 20.
+          Until then a preference is a guess.</p>
         </div>
         <div class="abx-setup" id="abxSetup">
           <label class="chk" id="abxPair" hidden>pair
@@ -473,7 +476,7 @@ select#sets { max-width: 360px; }
         <table id="fair"><thead><tr><th>Arm</th><th>Own loudness</th>
           <th>Gain applied</th><th>Playing at</th></tr></thead><tbody></tbody></table>
         <p>The versions are matched to the quietest of them, so none is
-        turned up and none clips. The louder file always wins an unmatched
+        turned up and none clips. The louder file usually wins an unmatched
         comparison — that is how this project got its first wrong answer.</p>
         <p id="liftnote" hidden></p>
       </div>
@@ -513,7 +516,10 @@ let ids = [], idx = 0, active = 0, playing = false, startedAt = 0, startOffset =
 let loopA = 0, loopB = 0, autoTimer = null, switches = 0, listened = 0, picked = '';
 
 
+let loadGen = 0;
+
 async function loadSet(id) {
+  const gen = ++loadGen;          // only the newest load may touch the page
   beginLoad(id);
   cur = await api('set/' + encodeURIComponent(id));
   ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
@@ -590,6 +596,8 @@ async function loadSet(id) {
 
   loopA = 0; loopB = cur.seconds; switches = 0; listened = 0;
   active = 0; startOffset = 0;
+  if (gen !== loadGen) return;   // a newer set was asked for while this
+                                 // one was decoding; drop this one silently
   renderArms(); drawWave(); paint(); abxReset();
 }
 
@@ -696,9 +704,11 @@ function paint() {
 }
 
 $('play').onclick = () => playing ? (stop(), paint()) : play();
-$('swap').onclick = () => cur && select(active >= cur.arms.length ? 0
+$('swap').onclick = () => !abxRunning() && cur &&
+  select(active >= cur.arms.length ? 0
                                         : (active + 1) % cur.arms.length);
-$('diffbtn').onclick = () => select(active === cur.arms.length ? 0 : cur.arms.length);
+$('diffbtn').onclick = () => { if (abxRunning()) return;   // derived from the
+  select(active === cur.arms.length ? 0 : cur.arms.length); }; // pair on trial
 $('whole').onclick = () => { loopA = 0; loopB = cur.seconds;
   sources.forEach(s => { s.loopStart = loopA; s.loopEnd = loopB; }); paint(); };
 $('sets').onchange = () => open_($('sets').value);
@@ -813,9 +823,21 @@ const ARM_KEYS = '123456789';   // key 1 plays arm 0
    and forever if the load threw — you would then judge audio that is not
    the set named at the top. So unload first, say something honest, and
    only bring the page back when the audio is really here. */
+/* Anything the listener has typed or chosen but not saved. Changing set
+   throws it away, and the arrows and pips used to do that in silence. */
+function unsavedWork() {
+  const note = ($('notes') && $('notes').value || '').trim();
+  return (picked ? 1 : 0) + (note ? 2 : 0);
+}
+
 function beginLoad(id) {
   // A check in progress is work the listener has done. Changing set throws
   // it away, and the arrows and the picker used to do that without a word.
+  const lost = unsavedWork();
+  if (lost) {
+    say('Left ' + (cur ? (cur.title || cur.id) : 'that set') + ' without saving' +
+        (lost === 3 ? ' a pick and a note.' : lost === 1 ? ' a pick.' : ' a note.'));
+  }
   if (typeof abxRunning === 'function' && abxRunning()) {
     say('Listening check on ' + (cur ? (cur.title || cur.id) : 'the last set') +
         ' was abandoned part way, so nothing was proved there.');
@@ -848,8 +870,10 @@ function showFailure(id, err) {
   $('main').hidden = true;
   $('empty').hidden = true;
   $('failure').hidden = false;
-  $('failtitle').textContent = id ? id + ' did not load'
-                                  : 'The bench did not load';
+  $('failtitle').textContent = id
+    ? ((byId_ && byId_.get && byId_.get(id) && byId_.get(id).title) || id) +
+      ' did not load'
+    : 'The bench did not load';
   $('failwhy').textContent =
     (err && (err.why || err.message)) || 'Something went wrong.';
   const d = (err && err.detail) || '';
@@ -1053,6 +1077,10 @@ async function refreshSets() {
     GROUP_ORDER.indexOf(a.group.p) - GROUP_ORDER.indexOf(b.group.p) ||
     (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   ids = rows_.map(r => r.id);                 // arrows follow the visible order
+  // refreshSets also runs after a save. If the bench has emptied underneath
+  // us, leaving the last set rendered and playable is the stale-audio failure
+  // this page exists to prevent.
+  if (!ids.length) { showEmpty(); return; }
   byId_ = new Map(rows_.map(r => [r.id, r]));
   renderPicker();
   if (cur && byId_.has(cur.id)) { idx = ids.indexOf(cur.id); renderRound(cur.id); }
@@ -1336,7 +1364,8 @@ function setXArm(i) {
   });
 }
 
-function abxReset() {
+function abxReset(keepRuns) {
+  if (!keepRuns) abxRuns = [];
   abx = null;
   const arms = cur ? cur.arms : [];
   const opts = arms.map((a, i) =>
@@ -1352,7 +1381,8 @@ function abxReset() {
     ? 'X is secretly one of the two. '
     : 'X is secretly one of the two you pick. ') +
     'Say which one it matches, several times over. Getting it right often ' +
-    'enough proves the two really do sound different — until then a ' +
+    'enough is good evidence the two really do sound different — the bar is ' +
+    'a result that guessing would beat less than 1 time in 20. Until then a ' +
     'preference is a guess.';
   $('abxSetup').hidden = false;
   $('abxRun').hidden = true;
@@ -1381,9 +1411,13 @@ function abxStart() {
   abxNextTrial();
 }
 
-/* A fresh coin flip every trial. Fixing the order, or balancing it so each
-   arm comes up the same number of times, hands the listener a pattern to ride
-   instead of a difference to hear. */
+/* A fresh coin flip every trial. Balancing the sequence so each arm comes up
+   equally would stop a constant answer from ever scoring above half — but it
+   also hands the listener a pattern to count, and it makes the binomial the
+   wrong test (the null becomes hypergeometric). Independent draws keep the
+   p-value exact and the 1-in-20 false pass is the threshold working as
+   stated, not a defect. What has to be guarded instead is running the check
+   again and again until one passes; see abxRuns. */
 function abxNextTrial() {
   abx.xArm = abx.pair[Math.random() < 0.5 ? 0 : 1];
   setXArm(abx.xArm);
@@ -1398,6 +1432,11 @@ function abxAnswer(which) {
   abx.i++;
   if (abx.i >= abx.n) abxFinish(); else abxNextTrial();
 }
+
+/* Every completed run on this set, in order. Keeping only the last one lets
+   a listener re-roll until something passes and save that, which is a
+   different and much weaker procedure than the one the p-value describes. */
+let abxRuns = [];
 
 function abxFinish() {
   abx.done = true;
@@ -1415,13 +1454,23 @@ function abxFinish() {
   const chance = p >= 0.01 ? Math.round(p * 100) + ' times in 100'
                : p >= 0.001 ? (p * 100).toFixed(1) + ' times in 100'
                : 'less than once in 1,000';
+  abxRuns.push({pair: abx.letters.slice(), trials: abx.n, correct: abx.correct,
+                p_value: +abx.p.toFixed(6), audible: abx.audible});
   $('abxScore').className = 'abx-score ' + (abx.audible ? 'pass' : 'fail');
   $('abxScore').textContent =
     `${abx.correct} of ${abx.n}, p = ${pTxt} — ` +
     (abx.audible ? 'you can hear it' : 'not proof you can hear it');
+  if (abxRuns.length > 1) {
+    $('abxSeq').insertAdjacentHTML('beforebegin',
+      '<p class="abx-flag" id="abxRepeat">This is check ' + abxRuns.length +
+      ' on this pair. Running it again until one passes makes a pass much ' +
+      'more likely by luck than the number below suggests. Every run is ' +
+      'saved with the verdict, so the record shows all ' + abxRuns.length +
+      '.</p>');
+  }
   $('abxPlain').textContent = abx.audible
     ? `Guessing would score this well ${chance}. So ${abx.letters[0]} and ` +
-      `${abx.letters[1]} really do sound different to you, and a preference ` +
+      `${abx.letters[1]} sound different to you, and a preference ` +
       `between them counts as evidence.`
     : `Guessing would score this well ${chance}, which is often enough that ` +
       `this run does not show you heard anything. Pick a louder spot, loop a ` +
@@ -1485,7 +1534,8 @@ function abxPaint() {
    or as a coin flip. Null until a full run is finished. */
 function abxPayload() {
   if (!abx || !abx.done) return null;
-  return {pair: abx.letters, trials: abx.n, correct: abx.correct,
+  return {runs: abxRuns.slice(), run_count: abxRuns.length,
+          pair: abx.letters, trials: abx.n, correct: abx.correct,
           p_value: +abx.p.toFixed(6), audible: abx.audible, alpha: ABX_ALPHA,
           seconds: +abx.seconds.toFixed(1), sequence: abx.trials};
 }
