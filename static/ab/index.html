@@ -91,7 +91,12 @@ a:hover { text-decoration: underline; }
    header it was chrome sitting 1,100 px from the thing it changed. */
 .setbar { display: flex; align-items: center; gap: var(--gap-4);
           flex-wrap: wrap; }
-.setbar .pips { flex: 1 1 auto; }
+/* The pips and their count are one thing, so they sit together and the slack
+   falls after them. Growing the pips pushed the count to the right edge,
+   under the bench-wide figure in the header — a column of two numbers that
+   count different things. */
+.setbar .pips { flex: none; gap: 5px; }
+.setbar .round-count { margin-right: auto; }
 
 /* prev / picker / next read as one control because they do one job. Bare
    chevrons at 34 px with no border are neither a target nor a hint. */
