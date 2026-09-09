@@ -89,7 +89,9 @@ ALPHA = 1.5
 TF0 = 0.15
 S0_ADDED = 0.5            # RmsNoiseLoud
 S0_MISSING = 1.0          # RmsMissingComponents
-S0_LINDIST = 0.5          # AvgLinDist uses the noise-loudness S0
+S0_LINDIST = 1.0          # AvgLinDist: Kabal eq. 105-106, p. 39 (alpha 1.5,
+                          # T0 0.15, S0 1). The Basic-model MATLAB's S0 = 0.5
+                          # belongs to RmsNoiseLoud only (Kabal H.2).
 
 DELAY_S = 0.5             # delayed averaging (Kabal §5.2.1)
 N_THRES_SONE = 0.1        # loudness gate (Kabal §5.3.1)
@@ -224,46 +226,85 @@ def _spread_norm(b: _Bands) -> np.ndarray:
     return _spread(np.ones(b.n), b, norm=None)
 
 
-def _spread(e: np.ndarray, b: _Bands, norm: Optional[np.ndarray]) -> np.ndarray:
-    """PQ_SpreadCB — level-dependent frequency spreading of one frame.
+_LOWER: Dict[int, np.ndarray] = {}
+
+
+def _lower_matrix(b: _Bands) -> np.ndarray:
+    """Level-independent lower skirt as a matrix: es[i] = sum_{k>=i}
+    a_le^(k-i) ene[k], the closed form of the downward recursion."""
+    key = id(b)
+    if key not in _LOWER:
+        a_le = (10.0 ** (-2.7 * b.dz)) ** 0.4
+        m = np.arange(b.n)
+        d = m[:, None] - m[None, :]              # d[k, i] = k - i
+        _LOWER[key] = np.where(d >= 0, a_le ** np.maximum(d, 0), 0.0)
+    return _LOWER[key]
+
+
+def _spread_frames(E: np.ndarray, b: _Bands,
+                   norm: Optional[np.ndarray]) -> np.ndarray:
+    """PQ_SpreadCB for a block of frames at once, [frames, bands].
 
     Lower skirt is fixed at -27 dB/Bark; the upper skirt flattens as level
     rises (-24 - 230/fc + level dependence), which is what makes loud content
     mask more of its neighbourhood. Powers combine with exponent 0.4.
+
+    The per-band loops of the reference implementation are the two matrix
+    products below: the lower skirt does not depend on level, so it is one
+    constant matrix; the upper skirt does, so its matrix is built per frame
+    from a_uce^(j - i). Results match the loop form to rounding.
     """
     n, dz = b.n, b.dz
     e_pow = 0.4
+    E = np.asarray(E, dtype=np.float64)
     a_l = 10.0 ** (-2.7 * dz)
     a_uc = 10.0 ** ((-2.4 - 23.0 / b.fc) * dz)
-    a_uce = a_uc * np.power(np.maximum(e, E_MIN), 0.2 * dz)
+    a_uce = a_uc[None, :] * np.power(np.maximum(E, E_MIN), 0.2 * dz)
 
     m = np.arange(n)
     g_il = (1.0 - a_l ** (m + 1)) / (1.0 - a_l)
-    g_iu = np.where(np.abs(a_uce - 1.0) < 1e-12,
-                    (n - m).astype(np.float64),
-                    (1.0 - a_uce ** (n - m)) / (1.0 - a_uce))
-    en = e / (g_il + g_iu - 1.0)
+    nm = (n - m).astype(np.float64)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        g_iu = np.where(np.abs(a_uce - 1.0) < 1e-12, nm[None, :],
+                        (1.0 - a_uce ** nm[None, :]) / (1.0 - a_uce))
+    en = E / (g_il[None, :] + g_iu - 1.0)
     ene = np.power(np.maximum(en, 0.0), e_pow)
     a_uce_e = np.power(a_uce, e_pow)
 
-    es = np.zeros(n)
-    # Lower spreading: one recursive pass down the band index.
-    a_le = a_l ** e_pow
-    acc = 0.0
-    for i in range(n - 1, -1, -1):
-        acc = a_le * acc + ene[i]
-        es[i] = acc
-    # Upper spreading: each band leaks into the ones above it.
-    for i in range(n - 1):
-        r = ene[i]
-        a = a_uce_e[i]
-        for j in range(i + 1, n):
-            r *= a
-            if r < 1e-30:
-                break
-            es[j] += r
+    d = m[None, :] - m[:, None]                  # d[i, j] = j - i
+    upper = np.where((d > 0)[None, :, :],
+                     np.power(a_uce_e[:, :, None], np.maximum(d, 0)[None, :, :]),
+                     0.0)
+    es = ene @ _lower_matrix(b) + np.einsum("fi,fij->fj", ene, upper)
     es = np.power(es, 1.0 / e_pow)
-    return es if norm is None else es / norm
+    return es if norm is None else es / norm[None, :]
+
+
+def _spread(e: np.ndarray, b: _Bands, norm: Optional[np.ndarray]) -> np.ndarray:
+    """One frame of `_spread_frames`."""
+    return _spread_frames(np.asarray(e, dtype=np.float64)[None, :], b, norm)[0]
+
+
+_GROUP: Dict[Tuple[int, int], np.ndarray] = {}
+
+
+def _band_matrix(b: _Bands, n_bins: int) -> np.ndarray:
+    """PQ_CBMapping as one [bins, bands] matrix: the two edge bins of each
+    band weighted fractionally, the interior bins fully."""
+    key = (id(b), n_bins)
+    if key not in _GROUP:
+        W = np.zeros((n_bins, b.n))
+        for i in range(b.n):
+            lo, hi = int(b.kl[i]), int(b.ku[i])
+            W[lo, i] = b.ul[i]
+            if hi > lo:
+                W[lo + 1:hi, i] = 1.0
+                W[hi, i] = b.uu[i]
+        _GROUP[key] = W
+    return _GROUP[key]
+
+
+_CHUNK_FRAMES = 256
 
 
 def excitation_patterns(x: np.ndarray, sr: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -289,29 +330,26 @@ def excitation_patterns(x: np.ndarray, sr: int) -> Tuple[np.ndarray, np.ndarray]
     e_int = _internal_noise(b.fc)
     norm = _spread_norm(b)
     a_exc = _time_constants(b.fc, TAU_100_EXC)
+    W = _band_matrix(b, freqs.size)
 
-    eb = np.zeros((n_frames, b.n))
-    for t in range(n_frames):
-        seg = mono[t * NADV: t * NADV + NF] * win
-        x2 = np.abs(np.fft.rfft(seg)) ** 2 * w2
-        # Group into critical bands, weighting the two edge bins fractionally.
-        for i in range(b.n):
-            lo, hi = b.kl[i], b.ku[i]
-            if hi > lo:
-                acc = (b.ul[i] * x2[lo] + x2[lo + 1:hi].sum()
-                       + b.uu[i] * x2[hi])
-            else:
-                acc = b.ul[i] * x2[lo]
-            eb[t, i] = max(acc, E_MIN)
-
+    # Frames in blocks: FFT, ear weighting, band grouping and spreading are
+    # all frame-independent, so they run as matrix operations per block.
     e_unsmeared = np.zeros((n_frames, b.n))
+    for t0 in range(0, n_frames, _CHUNK_FRAMES):
+        t1 = min(n_frames, t0 + _CHUNK_FRAMES)
+        idx = t0 * NADV + np.arange(t1 - t0)[:, None] * NADV + np.arange(NF)[None, :]
+        seg = mono[idx] * win[None, :]
+        x2 = np.abs(np.fft.rfft(seg, axis=1)) ** 2 * w2[None, :]
+        eb = np.maximum(x2 @ W, E_MIN)
+        e_unsmeared[t0:t1] = _spread_frames(eb + e_int[None, :], b, norm)
+
+    # Forward masking: decay is smoothed, onsets are instantaneous.
     e_smeared = np.zeros((n_frames, b.n))
     prev = np.zeros(b.n)
+    one_minus = 1.0 - a_exc
     for t in range(n_frames):
-        es = _spread(eb[t] + e_int, b, norm)
-        e_unsmeared[t] = es
-        # Forward masking: decay is smoothed, onsets are instantaneous.
-        prev = a_exc * prev + (1.0 - a_exc) * es
+        es = e_unsmeared[t]
+        prev = a_exc * prev + one_minus * es
         e_smeared[t] = np.maximum(prev, es)
     return e_unsmeared, e_smeared
 
@@ -355,6 +393,11 @@ def _adapt(e_ref: np.ndarray, e_test: np.ndarray
     idx = np.arange(b.n)
     lo = np.maximum(idx - M1_BASIC, 0)
     hi = np.minimum(idx + M2_BASIC, b.n - 1)
+    cnt = (hi - lo + 1).astype(np.float64)
+
+    def _neighbour_mean(r: np.ndarray) -> np.ndarray:
+        cs = np.concatenate(([0.0], np.cumsum(r)))
+        return (cs[hi + 1] - cs[lo]) / cnt
 
     for t in range(n_frames):
         p_ref = a * p_ref + one_minus * e_ref[t]
@@ -379,8 +422,8 @@ def _adapt(e_ref: np.ndarray, e_test: np.ndarray
         r1[lt] = rn[lt] / rd[lt]
 
         # Average the correction over neighbouring bands, then smooth in time.
-        c1 = np.array([r1[lo[m]:hi[m] + 1].mean() for m in idx])
-        c2 = np.array([r2[lo[m]:hi[m] + 1].mean() for m in idx])
+        c1 = _neighbour_mean(r1)
+        c2 = _neighbour_mean(r2)
         pc_ref = a * pc_ref + one_minus * c1
         pc_test = a * pc_test + one_minus * c2
         ep_ref[t] = er * pc_ref
