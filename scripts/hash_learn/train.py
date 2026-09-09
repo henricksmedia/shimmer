@@ -141,6 +141,8 @@ def main(argv):
             busy = time.time() - ts
             time.sleep(max(0.0, busy * (1.0 - duty) / max(duty, 0.05)))   # duty cycle
             step_n += 1
+            if step_n % 50 == 0:
+                print(f"  step {step_n} loss {np.mean(tl[-50:]):.4f} {time.strftime('%H:%M:%S')}", flush=True)
             if step_n % 20 == 0:
                 while (t := gpu_temp()) > max_temp:
                     print(f"  gpu {t:.0f} C > {max_temp:.0f}: cooling", flush=True)
