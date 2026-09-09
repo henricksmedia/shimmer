@@ -85,13 +85,24 @@ def main(argv) -> int:
             rows.append({"letter": letter, "what_it_is": MEANING[variant],
                          "variant": variant})
         key["songs"][stem] = sorted(rows, key=lambda r: r["letter"])
-        print(f"  {stem[:34]:34s} " +
-              " ".join(f"{r['letter']}={r['variant']}" for r in rows))
+        print(f"  {stem[:34]:34s} {len(rows)} letters")   # never print which is which
 
-    with open(os.path.join(out, "ANSWER-KEY.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(out, "ANSWER-KEY.json"), "w", encoding="utf-8", newline="\n") as f:
         json.dump(key, f, indent=1)
+    # A blank scores file for the listener to fill in, beside the key. The
+    # listener writes here first, then opens the key.
+    scores = {
+        "judged_by": "", "date": "",
+        "how": ("For each song, fill in the letter you preferred and what you heard. "
+                "Save, then open ANSWER-KEY.json."),
+        "rankings": {stem: {"preferred": None, "note": ""} for stem in songs},
+    }
+    scores_path = os.path.join(out, "SCORES.json")
+    if not os.path.exists(scores_path):
+        with open(scores_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(scores, f, indent=1)
     print(f"\n{len(songs)} songs written to {out}")
-    print("Listen first. ANSWER-KEY.json spoils it.")
+    print("Listen first, write your answers in SCORES.json, then open ANSWER-KEY.json.")
     return 0
 
 
