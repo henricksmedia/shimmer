@@ -101,8 +101,22 @@ def test_played_note_with_harmonics_is_not_a_resonance():
     assert not [m for m in plan["moves"] if m["kind"] == "resonance"], plan["moves"]
 
 
+# A base shape for deviation tests that does NOT depend on _REF_DB.
+#
+# Tests that build their signal as `_REF_DB + a deviation` are testing the
+# detector against a moving input: change the reference and the test's own
+# stimulus changes with it. That bit when the tone target was replaced with a
+# measured one — the new reference's steeper low end let the mud detector's
+# fitted trend absorb part of the bump, so a +5 dB mud stack scored 1.95
+# against a 2.0 threshold and the test failed. The detector was fine; the
+# stimulus had moved.
+#
+# A gentle fixed slope stands in for "an ordinary track" and stays put.
+_FLAT_BASE = np.zeros(len(_REF_FREQS))
+
+
 def test_mud_stack_gets_one_bell_cut_in_the_zone():
-    shape = _REF_DB.copy()
+    shape = _FLAT_BASE.copy()
     mud = (_REF_FREQS >= 250) & (_REF_FREQS <= 400)
     shape[mud] += 5.0
     plan = plan_tone(_shaped_noise(3, shape), SR, family="neutral")

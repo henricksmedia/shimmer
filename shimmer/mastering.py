@@ -32,29 +32,58 @@ from .dsp import as_2d, apply_highpass, db_to_lin, lin_to_db
 from .params import MasterParams, LOUDNESS_TARGETS, intensity_to_eq_strength
 
 
-# Neutral long-term spectrum reference: 1/3-octave band POWER of a typical
-# commercial master, in dB relative to the median of the 200 Hz - 2 kHz
-# bands. Grounded in the AES study of released music (Pestana, Ma, Reiss,
-# Barbosa, Black, "Spectral characteristics of popular commercial
-# recordings 1950-2010", AES 135, 2013): the average spectrum decays about
-# 5 dB per octave from 100 Hz to 4 kHz, flattening in recent decades. In
-# band-power terms (which add 3 dB per octave) that is a slope of about
-# -1.5 dB per octave for modern masters, the same convention that makes a
-# finished record look flat on a 4.5 dB/oct analyzer. Above 4 kHz the
-# decay steepens; below 60 Hz the band power rolls off. The measured track
-# is normalised the same way (relative_band_levels), so the comparison is
-# shape against shape. Only the difference matters, and it is bounded to
-# a couple of dB; the reference sets the direction, not a template.
+# The tone target: 1/3-octave band POWER a finished master should look like,
+# in dB relative to the median of the 200 Hz - 2 kHz bands. Every automatic
+# tone decision is measured against this, so being wrong here makes every
+# decision wrong in the same direction.
+#
+# MEASURED, from 135 contemporary masters (docs/tone-reference.json, built by
+# scripts/build_tone_reference.py from 309 masters labelled by the setting
+# used). The per-track rows are stored in that file, so this array can be
+# re-derived without the audio.
+#
+# What it replaced, and why. The previous array came from the AES study of
+# released music (Pestana, Ma, Reiss, Barbosa, Black, "Spectral characteristics
+# of popular commercial recordings 1950-2010", AES 135, 2013). It was faithful
+# to that study: its 100 Hz - 4 kHz slope of -4.5 dB/oct PSD matches both the
+# paper and an independent LTAS corpus almost exactly. The problem was not the
+# transcription, it was the source — that study averages sixty years of
+# recordings and itself reports the spectrum flattening since the 2000s, so a
+# present-day master measured against it read as too bright by 5-9 dB from
+# 4 kHz up, and every automatic decision came out a cut. See
+# docs/BRIGHTNESS-ASSESSMENT.md §2.1.
+#
+# The shape of the difference: real masters hold roughly level from 315 Hz to
+# 10 kHz and then fall off a cliff, where the old curve sloped down the whole
+# way. They also carry 3-5 dB more below 200 Hz.
+#
+# Scope: masters of AI renders from one catalogue, processed by one automated
+# service on its neutral setting. That makes this the right target for this
+# tool's material rather than a general commercial reference — an honest
+# specific in place of a wrong universal.
 _REF_FREQS = np.array([
     31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630,
     800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000,
     10000, 12500, 16000, 20000,
 ], dtype=np.float64)
 _REF_SHAPE_DB = np.array([
-    -2.5, 1.0, 3.5, 4.5, 5.0, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0,
-    0.5, 0.0, -0.5, -1.0, -1.5, -2.0, -2.5, -3.0, -4.3, -5.8, -7.5,
-    -9.5, -12.0, -16.0, -22.0,
+    -3.7, 4.3, 8.3, 8.8, 7.9, 7.4, 7.4, 6.3, 4.5, 2.1, 0.3, -0.7, 0.0, 0.5,
+    -1.5, -1.5, -1.4, -0.7, 0.0, 0.6, 0.7, 1.1, -0.1, -1.0, -0.4,
+    -1.5, -5.8, -13.1, -25.4,
 ], dtype=np.float64)
+
+# How far a real master may sit from the target and still be normal, per band:
+# half the 16th-84th percentile spread of the same 135 masters. Tolerance is
+# not uniform — 1.6 dB at 400 Hz, 4.1 dB at 6.3 kHz, 11 dB at 20 kHz — and
+# treating it as flat is why the Tone step kept prescribing air trims on
+# tracks that were inside the normal range. Not yet consumed by
+# compute_tone_curve, which has no deadband; see HANDOFF-CHECKLIST.md.
+_REF_TOL_DB = np.array([
+    6.1, 6.1, 4.4, 2.7, 2.8, 3.0, 2.8, 2.9, 2.7, 2.8, 2.7, 1.9, 1.6, 1.7,
+    1.8, 1.8, 1.9, 1.9, 2.4, 3.0, 3.0, 3.4, 3.5, 4.1, 3.5,
+    3.4, 3.6, 4.2, 11.1,
+], dtype=np.float64)
+
 _MID_BANDS = (_REF_FREQS >= 200.0) & (_REF_FREQS <= 2000.0)
 _REF_DB = _REF_SHAPE_DB - np.median(_REF_SHAPE_DB[_MID_BANDS])
 
@@ -80,9 +109,29 @@ TILT_POSITIONS: dict[str, float] = {
     "bright": 1.0,
     "brightest": 2.0,
 }
-_HARSH_LO_HZ = 5000.0     # harshness band: boosts are limited here...
-_HARSH_HI_HZ = 12000.0    # ...so EQ can't reintroduce AI fizz
-_HARSH_MAX_BOOST_DB = 0.5
+_HARSH_LO_HZ = 5000.0     # the band AI fizz lives in
+_HARSH_HI_HZ = 12000.0
+# Boosts here were capped at 0.5 dB, against a global cap of 2.0. The reason
+# given was that EQ must not re-boost the fizz the cleaner removed, and that
+# concern is real — a Suno render carries its hash in exactly this band.
+#
+# But the cap was doing a second job it was never meant to: with the old tone
+# target reading every contemporary master as 5-9 dB too bright up here, the
+# guard was the only thing stopping a wrong target from being acted on. With
+# a measured target that job is gone, and what remains is an ordinary
+# mastering decision.
+#
+# Measured on the corpus with the new target: 94% of 5-12 kHz bands ask for
+# more than the old 0.5 dB, and the median ask is +2.3 dB. So the old cap
+# blocked essentially every correction the target wanted.
+#
+# Set equal to the global boost cap — no special case. 2 dB is also the
+# conventional ceiling for a mastering EQ move; a track asking for 8 dB here
+# (one in the corpus does) has a mix problem that mastering should not try to
+# fix, and clipping it to 2 dB under-corrects safely rather than amplifying
+# the hash by 8 dB. Raising it further needs listening evidence, not
+# arithmetic.
+_HARSH_MAX_BOOST_DB = 2.0
 _OVERSAMPLE = 4
 
 # Codec-aware true-peak export ceilings (dBTP). Lossy encoders overshoot

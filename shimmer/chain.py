@@ -319,11 +319,11 @@ def build_chain(p: Params,
     modules.append(_mod(
         "tone", "Pre", "Tone Curve",
         "gentle EQ match, applied before cleaning",
-        ("With mastering on, a gentle EQ curve matched to a neutral "
-         "reference is applied before cleaning. Boosts are limited to "
-         "+2 dB (+0.5 dB from 5 to 12 kHz), so hiss and fizz are never "
-         "boosted. If the render's top end stops early, nothing above that "
-         "point is boosted."),
+        ("With mastering on, a gentle EQ curve is applied before cleaning. "
+         "It moves the track toward the tone target: the shape measured "
+         "from finished masters. Boosts are limited to +2 dB, so hiss and "
+         "fizz cannot be lifted far. If the render's top end stops early, "
+         "nothing above that point is boosted."),
         badges=tone_badges, active=mastering_on,
         off_reason="mastering is off",
     ))
