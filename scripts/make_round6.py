@@ -48,7 +48,8 @@ def main(argv):
     readings = {}
     if "--blind-only" not in argv:
         from infer import Remover, SR
-        rem = Remover(os.path.join(ROOT, "scripts", "hash_learn", "masknet.pt"))
+        model = argv[argv.index("--model") + 1] if "--model" in argv else os.path.join(ROOT, "scripts", "hash_learn", "masknet.pt")
+        rem = Remover(model)
         for name in RENDERS:
             x, sr = load_audio(os.path.join(ROOT, "sources", name + ".wav"))
             scan = D.evidence_scan(x, sr)
