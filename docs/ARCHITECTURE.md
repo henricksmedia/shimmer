@@ -861,7 +861,11 @@ one before it is done.
 
 *Done when:* each result is written into the checklist, with its limits.
 
-### Step 3 — Contracts and the route map
+### Step 3 — Contracts and the route map — in progress (started 2026-09-12)
+
+Contract tests are written in `tests/core/` and `tests/api/`. They are marked
+"expected to fail" until `shimmer.core` and `shimmer.api` exist, so the rest of
+the suite stays green. The route map goes in `docs/API.md`.
 
 1. Write the contract tests (§12) against the new interface, before the
    engine exists.
@@ -906,6 +910,23 @@ end to end on the new core.
 1. Fetch the sources first (the `STYLE.md` rule), then build:
    - every Loudness target choice reaching its level cleanly: gain into
      unused headroom first, then gentle limiting, as measured
+   - **Proposed 2026-09-12, needs a mockup and sign-off.** New names for
+     the Loudness target choices, each with a plain sub-label:
+
+     | Label | Sub-label | Level |
+     |---|---|---|
+     | Commercial (default) | As loud as most released songs | -9 LUFS |
+     | Balanced | A little quieter, with more punch left in | -11 LUFS |
+     | Streaming standard | The level streaming apps play songs at; sounds quiet in other players | -14 LUFS |
+
+     The choices would show as three cards, not a dropdown. The "distortion
+     risk" warning would be dropped: the author hears no damage at -9
+     (checklist 18).
+
+     Why: the goal is to master at the level most studios deliver. A
+     314,876-track study puts the median at -9.5 LUFS (pop -9.5, electronic
+     -9.3). Every earlier export sat at -14 because "Streaming" read as the
+     right choice for a streaming release.
    - the tone target as a replaceable input, with a deadband
    - reference-track matching
    - genre targets
