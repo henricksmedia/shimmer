@@ -18,6 +18,7 @@ Which subtype, codec and bitrate a format uses is decided by the caller
 """
 from __future__ import annotations
 
+import hashlib
 import io as _bytesio
 import json
 import os
@@ -174,6 +175,22 @@ def wav_bytes(y: np.ndarray, sr: int, subtype: str = "PCM_16") -> bytes:
     sf.write(buf, _as_2d(np.asarray(y, dtype=np.float32)), int(sr), format="WAV",
              subtype=subtype)
     return buf.getvalue()
+
+
+# ── Identity ────────────────────────────────────────────────────────────
+
+def file_digest(path) -> str:
+    """SHA-1 of the file's bytes. Remix projects, the stem cache and the
+    Recents list are all keyed on it, so it must never change
+    (docs/API.md §2). Ported unchanged from shimmer/stems.py."""
+    h = hashlib.sha1()
+    with open(os.fspath(path), "rb") as f:
+        while True:
+            chunk = f.read(1 << 20)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
 
 
 # ── Sample rate ─────────────────────────────────────────────────────────

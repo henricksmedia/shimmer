@@ -140,6 +140,13 @@ is signed off. **Done 2026-09-12.**
     never clip when played.
 - [x] Tags moved into the engine (`shimmer/core/tags.py`). The old module
       now points to it, so there is one copy.
+- [x] Analysis, ported and nulled against 1.1.1 (identical or bit-exact):
+      the edge-glitch scan, in/out trim, fixed-tone scan, notch plan and
+      repair, bandwidth cutoff, spectrum and file fingerprint.
+- [x] Findings, for the cards that can measure today: Fixed tones and
+      Loudness. Every analysis and repair contract test passes, including
+      "a held note is not notched" and "a finished master gets no artifact
+      findings".
 - [ ] One job runner, with cancel.
 - [x] Measure each lossy format's overshoot and set its ceiling (item 12).
       Done for OGG (quality 0.8, -2.0) and MP3 (-2.0); M4A overshot by up to

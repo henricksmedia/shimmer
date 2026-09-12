@@ -17,6 +17,16 @@ listed here.
 |---|---|---|
 | Peak shaper and true-peak limiter | Bit-exact on both test mixes, at -1.0 and -1.5 dBTP | 2026-09-12 |
 | Silence trim | Bit-exact; same cut, 1.930 s before and 2.730 s after | 2026-09-12 |
+| Edge-glitch scan and in/out trim | Identical findings; trim bit-exact | 2026-09-12 |
+| Fixed-tone scan, notch plan and notch repair | Identical lines and plan; repair bit-exact | 2026-09-12 |
+| Bandwidth cutoff and 1/3-octave spectrum | Identical | 2026-09-12 |
+| File fingerprint (SHA-1) | Identical, so Remix projects and the stem cache still match | 2026-09-12 |
+
+## Report changes (numbers shown, not sound)
+
+| Change | Before (1.1.1) | After |
+|---|---|---|
+| Upload analysis true peak | Read from a mono mix at 4x: -5.92 dBTP on the test render | The louder channel at 8x: -5.47 dBTP. 1.1.1 read 0.45 dB low |
 
 ## Fixes
 
