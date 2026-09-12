@@ -17,7 +17,27 @@ import numpy as np
 from scipy.ndimage import maximum_filter1d
 from scipy.signal import resample_poly
 
-_OVERSAMPLE = 4
+# Peaks are found at 8x, the rate the meter reads (shimmer.core.audio.meters).
+# 1.1.1 found them at 4x, and its -1.0 dBTP read -0.78 at 16x.
+_OVERSAMPLE = 8
+_BLOCK = 1 << 16          # input samples per block, so memory stays small
+_PAD = 256                # context on each side of a block
+
+
+def _true_peak_envelope(ch: np.ndarray, factor: int) -> np.ndarray:
+    """For each input sample, the largest oversampled value in its span.
+    Computed block by block with context on each side, so the blocks join
+    seamlessly and a long song never needs the whole oversampled signal in
+    memory at once."""
+    n = len(ch)
+    env = np.empty(n, dtype=np.float64)
+    for s in range(0, n, _BLOCK):
+        e = min(n, s + _BLOCK)
+        a, b = max(0, s - _PAD), min(n, e + _PAD)
+        up = np.abs(resample_poly(ch[a:b], factor, 1))
+        lo = (s - a) * factor
+        env[s:e] = up[lo:lo + (e - s) * factor].reshape(e - s, factor).max(axis=1)
+    return env
 
 
 def _as_2d(x: np.ndarray) -> np.ndarray:
@@ -98,17 +118,9 @@ def true_peak_limiter(x: np.ndarray, sr: int,
         return x.astype(np.float32), {"max_gain_reduction_db": 0.0,
                                       "ceiling_dbtp": float(ceiling_dbtp)}
 
-    if _OVERSAMPLE > 1:
-        peak_env = np.zeros(n_samples, dtype=np.float64)
-        for ch in range(n_ch):
-            up = np.abs(resample_poly(x[:, ch], _OVERSAMPLE, 1))
-            need = n_samples * _OVERSAMPLE
-            if up.size < need:
-                up = np.pad(up, (0, need - up.size))
-            grp = up[:need].reshape(n_samples, _OVERSAMPLE).max(axis=1)
-            peak_env = np.maximum(peak_env, grp)
-    else:
-        peak_env = np.max(np.abs(x), axis=1)
+    peak_env = np.max(np.abs(x), axis=1)
+    for ch in range(n_ch):
+        peak_env = np.maximum(peak_env, _true_peak_envelope(x[:, ch], _OVERSAMPLE))
 
     lookahead_n = max(1, int(round(lookahead_ms * 0.001 * sr)))
     if lookahead_n > 1:
