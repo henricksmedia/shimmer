@@ -640,7 +640,7 @@ select#sets { max-width: 360px; }
         <p id="fairblind" hidden></p>
         <table id="fair" hidden><thead><tr><th>Arm</th><th>Own loudness</th>
           <th>Gain applied</th><th>Playing at</th></tr></thead><tbody></tbody></table>
-        <p>The versions are matched to the quietest of them, so none is
+        <p id="fairwhy">The versions are matched to the quietest of them, so none is
         turned up and none clips. The louder file usually wins an unmatched
         comparison — that is how this project got its first wrong answer.</p>
         <p id="liftnote" hidden></p>
@@ -789,9 +789,13 @@ async function loadSet(id) {
 
 
   picked = '';
+  // A set may ask its own question (a loudness check asks which is loudest,
+  // not which is better); every other set keeps the default wording.
+  $('q').textContent = cur.question || 'Which sounded better?';
+  const choice = cur.choice || '{L} was better';
   $('picks').innerHTML = cur.arms.map(a =>
-    `<button aria-pressed="false" data-p="${a.letter}">${a.letter} was better</button>`)
-    .join('') + '<button aria-pressed="false" data-p="tie">No preference</button>';
+    `<button aria-pressed="false" data-p="${a.letter}">${esc(choice.replace('{L}', a.letter))}</button>`)
+    .join('') + `<button aria-pressed="false" data-p="tie">${esc(cur.tie_label || 'No preference')}</button>`;
   $('picks').querySelectorAll('button').forEach(b => b.onclick = () => {
     picked = b.dataset.p;
     $('picks').querySelectorAll('button').forEach(x =>
@@ -826,6 +830,26 @@ function paintFair() {
                          max_attenuation_db: 0, turned_up: 0};
   const rows = revealedArms;
   const up = f.turned_up || 0;
+  if (cur.level_matched === false) {
+    // A loudness check: nothing was turned up or down, on purpose. Say so,
+    // rather than claim a match that was never made.
+    $('fairsum').innerHTML = 'Not level-matched — each version plays at its own loudness';
+    $('fairwhy').hidden = true;
+    $('fair').hidden = !rows;
+    $('fairblind').hidden = !!rows;
+    if (rows) {
+      $('fair').querySelector('tbody').innerHTML = rows.map(a =>
+        `<tr><td>${esc(a.letter)}</td><td>${(+a.lufs_before).toFixed(1)}</td>` +
+        `<td>0.0 dB</td><td>${(+a.lufs_before).toFixed(1)} LUFS</td></tr>`).join('');
+    } else {
+      $('fairblind').innerHTML =
+        'This set is a loudness check, so nothing has been turned up or down: ' +
+        'each version plays at the loudness its setting produced. Which is ' +
+        'which is not shown until you reveal.';
+    }
+    return;
+  }
+  $('fairwhy').hidden = false;
   $('fairsum').innerHTML = `Level match — all ${f.arms} at ` +
     `${(+f.matched_lufs).toFixed(1)} LUFS <span class="ok">✓</span>`;
   $('fair').hidden = !rows;
@@ -1383,6 +1407,12 @@ async function open_(id) {
 /* Label, then the sentence. The label is the term a mastering engineer
    would use; the sentence says what you are about to hear. */
 const GROUPS = [
+  {p:'level-',   name:'Loudness settings',
+   what:'The same master at Streaming, Loud and CD / Club, each at its real ' +
+        'loudness. Nothing is turned up or down. Pick the loudest.'},
+  {p:'loud-',    name:'Loudness side effects',
+   what:'The same master at three loudness settings, matched in level, so the ' +
+        'only thing left to hear is what the louder settings did to the sound.'},
   {p:'tone-',    name:'Tone target',
    what:'The same song mastered twice. One aims at the new tone target, ' +
         'one at the old.'},

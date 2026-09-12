@@ -1049,6 +1049,47 @@ count.
       of the CD / Club render, where the shaper works hardest, and all
       three arms are cut from that same window. The bench matches their
       level (-11.2 to -13.5 LUFS).
+      *First impression, 2026-09-12:* the author hears no difference between
+      the three at matched level. Verdicts are not saved yet, and the
+      listening check has not been run.
+      *Checked end to end* by `testing/scripts/validate_loud_sets.py`:
+      - every render is on its target
+      - the windows differed in level before matching (about 3 dB and 5 dB)
+      - each arm is its window times the stated gain, to 24-bit precision
+      - the bench serves exactly those bytes for each letter
+
+      The difference between arms sits 24-40 dB below the music for
+      CD / Club and 32-61 dB below for Loud, so the arms really do differ;
+      the question is only whether that can be heard.
+- [x] **19. Does each Loudness setting make the file louder?** *Done
+      when:* one song is exported through the running app at each setting
+      and the files are measured with an independent meter, and a blind,
+      un-matched listening set exists for each bench song.
+      **DONE 2026-09-12 (measurement); listening built, not yet judged.**
+      `testing/scripts/e2e_loudness.py` sent `suno-algorithms-lure.wav`
+      through `/api/process` on the running rebuild app, with the Master
+      tab's settings (Generic, mastering on, WAV). It then measured the
+      downloaded files with pyloudnorm:
+
+      | setting | asked | measured | true peak |
+      |---|---|---|---|
+      | Streaming | -14 | -14.00 | -1.00 dBTP |
+      | Loud | -11 | -11.01 | -1.00 dBTP |
+      | CD / Club | -9 | -9.07 | -1.00 dBTP |
+
+      Steps between settings: +2.99 dB and +1.94 dB. The baseline renders of
+      item 18 (`main` c1d18e0) agree on all 8 songs: -14.00, -11.00 to
+      -11.07, and -9.01 to -9.25. The script did not read the app's own
+      loudness figure (a wrong key in the script, not a result). The
+      measurement above does not depend on it.
+      For listening at real level, `abtest.build(match_levels=False, ...)`
+      writes each arm at its own loudness, and the page says "Not
+      level-matched" and asks its own question. `tests/test_abtest_unmatched.py`
+      pins both that behaviour and the default matching.
+      Sets: `listening-test/ab/level-*` (8), the same windows as item 18, built
+      by `testing/scripts/build_level_sets.py`. The question is "Which is
+      loudest?". Running the listening check on the two closest settings
+      shows whether the step of about 2 dB can be heard.
 
 ## DEFERRED — the 80% stake
 

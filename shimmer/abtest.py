@@ -395,7 +395,9 @@ def _prepare(arms: List[Any], sr: int) -> List[Tuple[str, np.ndarray]]:
 def build(set_id: str, title: str, arms: List[Any], sr: int,
           note: str = "", residual_of: Optional[Tuple[str, str]] = None,
           residual_kind: str = "removed",
-          seed: Optional[int] = None) -> Dict[str, Any]:
+          seed: Optional[int] = None,
+          match_levels: bool = True, question: str = "",
+          choice: str = "", tie_label: str = "") -> Dict[str, Any]:
     """Write a comparison set. `arms` is [(true_label, audio), ...], or
     [(true_label, audio, sample_rate), ...] when the arms came from separate
     files and their rates should be checked against the set's.
@@ -403,6 +405,13 @@ def build(set_id: str, title: str, arms: List[Any], sr: int,
     Everything is level-matched to the quietest arm before writing, so the
     files on disk are already comparable and nothing downstream has to
     remember to do it.
+
+    `match_levels=False` is for the one question matching would hide: does a
+    loudness setting really make the file louder? Every arm is written at its
+    own level, the manifest says `level_matched: false`, and the page says so
+    instead of claiming a match. `question`, `choice` (with `{L}` for the
+    letter) and `tie_label` replace the page's "Which sounded better?"
+    wording for such a set.
     """
     if len(arms) < 2:
         raise ValueError("a comparison needs at least two arms")
@@ -441,7 +450,10 @@ def build(set_id: str, title: str, arms: List[Any], sr: int,
               "a set of silence.")
 
     quietest = min(lufs)
-    gains = [quietest - l for l in lufs]              # all <= 0, so no clipping
+    if match_levels:
+        gains = [quietest - l for l in lufs]          # all <= 0, so no clipping
+    else:
+        gains = [0.0 for _ in lufs]                   # each arm at its own level
     matched = [(lab, a * (10.0 ** (g / 20.0)))
                for (lab, a), g in zip(prepared, gains)]
 
@@ -449,7 +461,7 @@ def build(set_id: str, title: str, arms: List[Any], sr: int,
     for i, ((lab, a), g, l) in enumerate(zip(matched, gains, lufs)):
         rows.append({"arm": f"arm{i}", "true_label": lab,
                      "lufs_before": round(l, 2), "gain_db": round(g, 2),
-                     "lufs_after": round(quietest, 2),
+                     "lufs_after": round(quietest if match_levels else l, 2),
                      "peak_dbfs": round(20.0 * np.log10(max(_peak(a), 1e-9)), 2),
                      "file": f"arm{i}.wav"})
         save_audio(os.path.join(out, f"arm{i}.wav"), a, sr)
@@ -524,7 +536,11 @@ def build(set_id: str, title: str, arms: List[Any], sr: int,
         "id": _safe(set_id), "title": title, "note": note,
         "sr": sr, "channels": int(prepared[0][1].shape[1]),
         "seconds": round(n / sr, 2),
-        "matched_lufs": round(quietest, 2),
+        "matched_lufs": round(quietest, 2) if match_levels else None,
+        "level_matched": bool(match_levels),
+        "question": question or None,
+        "choice": choice or None,
+        "tie_label": tie_label or None,
         # How far apart the arms were before matching. A big number is not an
         # error, but it is worth seeing: it is how much the match had to do.
         "level_spread_db": round(max(lufs) - min(lufs), 2),
