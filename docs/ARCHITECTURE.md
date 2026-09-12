@@ -937,7 +937,9 @@ end to end on the new core.
 
      Why: the goal is to master at the level most studios deliver. A
      314,876-track study puts the median at -9.5 LUFS (pop -9.5, electronic
-     -9.3). Every earlier export sat at -14 because "Streaming" read as the
+     -9.3). *Cited 2026-09-12 in [MASTERING-SOURCES.md](MASTERING-SOURCES.md)
+     §1: every number confirmed; chart hits measure -8.3 to -8.4; all
+     sources are vendors.* Every earlier export sat at -14 because "Streaming" read as the
      right choice for a streaming release.
    - the tone target as a replaceable input, with a deadband
    - reference-track matching

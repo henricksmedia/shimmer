@@ -42,14 +42,16 @@ def as_2d(x: np.ndarray) -> np.ndarray:
 
 
 # Where the services normalise to (integrated LUFS) and whether they turn
-# a quiet track up. Public figures; they move slowly.
+# a quiet track up. Checked 2026-09-12 (docs/MASTERING-SOURCES.md §2);
+# 1.1.1 had Amazon, Tidal and Deezer turning quiet tracks up, which the
+# sources contradict or do not support.
 PLATFORMS: Tuple[Tuple[str, float, str], ...] = (
-    ("Spotify", -14.0, "up"),        # up only as far as the true peak allows
-    ("Apple Music", -16.0, "up"),
+    ("Spotify", -14.0, "up"),        # up, leaving 1 dB headroom (Spotify's own page)
+    ("Apple Music", -16.0, "up"),    # -16 is industry-reported (AES TD1008), not Apple's
     ("YouTube", -14.0, "down"),      # never turns a quiet track up
-    ("Amazon Music", -14.0, "up"),
-    ("Tidal", -14.0, "up"),
-    ("Deezer", -15.0, "up"),
+    ("Amazon Music", -14.0, "down"),
+    ("Tidal", -14.0, "down"),        # album-based since 2017
+    ("Deezer", -15.0, "down"),
 )
 
 LOUDNESS_PASS_LU = 0.5

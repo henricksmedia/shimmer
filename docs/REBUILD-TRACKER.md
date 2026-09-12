@@ -195,9 +195,26 @@ is signed off. **Done 2026-09-12.**
 - a Commercial master in Windows Media Player holds up next to released
   music on Spotify, on the same computer
 
-- [ ] Fetch the sources first (`STYLE.md` rule). In progress 2026-09-12:
-      loudness norms, streaming targets, genre tone targets, reference
-      matching, low-end mono and width, tone tolerances.
+- [x] Fetch the sources first (`STYLE.md` rule):
+      [MASTERING-SOURCES.md](MASTERING-SOURCES.md), 2026-09-12. What they
+      settle, marked as our inference:
+  - Commercial at -9 LUFS is a sound default (large-catalogue median about
+    -8.5 to -9.5, chart hits -8.3). All loudness sources are vendors.
+  - The release check had three services wrong. Amazon, Tidal and Deezer
+    do not turn quiet tracks up; corrected in the new engine.
+  - Genre targets: no reusable published curves exist. Build one curve
+    from our own captures, adjusted for how percussive the track is.
+  - Reference matching:
+    - 50 % or less of the difference
+    - smoothed to about an octave
+    - level-matched first
+    - at most ±3 dB
+    - warn when the reference's tempo or percussion differs a lot
+  - Low-end mono is a check, not a process. Flag steady negative
+    correlation and side energy below about 100 Hz; mono bass only as a
+    vinyl option.
+  - The deadband (`REF_TOL_DB`) is in the published range, but its
+    midrange is tighter than any guide: test it by ear.
 - [x] Every loudness choice reaches its level cleanly: one static gain, then
       the fixed limiter.
   - On a dense mix, each choice lands within 0.3 LU, with peaks at or under
@@ -298,6 +315,12 @@ the music" (`GOALS.md`):*
   - It needs a mockup before it is built.
 
 ## Open questions (answered when their step comes)
+
+- **The release check names streaming services on screen.** It lists
+  Spotify, Apple Music, YouTube and others, while `STYLE.md` says never to
+  name a third-party service in anything the user reads. 1.1.1 already did
+  this. Keep the names, or describe the services generically ("services
+  that turn quiet tracks up")? Decide in Step 6 with the screen work.
 
 - **Users whose saved choice is Streaming.** Many saved Streaming only
   because it was the old default. Does updating keep Streaming, or move them
