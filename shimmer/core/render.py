@@ -10,32 +10,44 @@ The order, each stage at its place in the chain:
 
   1. Output rate. Resample for the chosen format first (the release copy is
      44.1 kHz), so the limiter's ceiling holds at the rate that is written.
-  2. Fixes. One tool per card that is on (Step 6 adds them).
+  2. Fixes. One tool per card that is on. Built so far: Fixed tones (the
+     notch). Step 6 adds the rest.
   3. The user EQ.
-  4. Mastering: a 25 Hz low-cut, one static loudness gain (always from the
-     whole song), the peak shaper and the true-peak limiter.
+  4. Level: with mastering on, a 25 Hz low-cut, one static loudness gain,
+     the peak shaper and the true-peak limiter; with it off and "preserve
+     volume" on, one gain back to the song's own level. Either gain is
+     always worked out from the whole song.
 
-A window renders only its span, plus a lead-in and a tail. The one-way
-filters, the zero-phase filters and the limiter then settle exactly as they
-do in a full render.
+A window renders only its span, plus a lead-in and a tail. The filters,
+the notches and the limiter then settle exactly as they do in a full
+render.
 """
 from __future__ import annotations
 
+import dataclasses
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
 from . import catalog
+from .analyze.tones import scan_fixed_lines
 from .audio import filters, io, meters
 from .master import limiter, loudness
+from .progress import Progress
+from .repair import notch
 from .settings import EqBand, Settings
 
 LEAD_IN_S = 1.0            # filters and the limiter's release settle in this
 TAIL_S = 0.5               # zero-phase filters and the limiter's lookahead
 LOW_CUT_HZ = 25.0
 _CACHE_LIMIT = 16
+
+# "Preserve volume" (mastering off), as 1.1.1 did it: match the song's own
+# RMS, never louder than a 0.999 peak allows, within 4x either way.
+_PRESERVE_PEAK = 0.999
+_PRESERVE_MAX_SCALE = 4.0
 
 _EQ_KIND = {"bell": "bell", "low_shelf": "low_shelf", "high_shelf": "high_shelf",
             "highpass": "high_pass", "lowpass": "low_pass", "notch": "notch"}
@@ -45,8 +57,8 @@ _GAIN_KINDS = {"bell", "low_shelf", "high_shelf"}
 @dataclass(eq=False)
 class Source:
     """A song, loaded once. It keeps what render() works out about the whole
-    song (the audio at other rates, the loudness before mastering), so a
-    preview window does not redo it."""
+    song (the audio at other rates, the tones found, the loudness before
+    mastering), so a preview window does not redo it."""
     audio: np.ndarray                      # float32, (samples, channels)
     sr: int
     path: Optional[str] = None
@@ -89,6 +101,12 @@ class Rendered:
     report: Dict[str, Any]
     settings: Settings
     source_path: Optional[str] = None      # export() refuses to write over it
+    removed: Optional[np.ndarray] = None   # what the fixes took out, when asked for
+
+
+def _stage(progress: Optional[Progress], key: str, label: str, detail: str = "") -> None:
+    if progress is not None:
+        progress.stage(key, label, detail)
 
 
 def _eq_designs(bands: Tuple[EqBand, ...], sr: int):
@@ -107,9 +125,31 @@ def _eq_designs(bands: Tuple[EqBand, ...], sr: int):
     return out
 
 
+def _tones_plan(source: Source, sr: int, s: Settings,
+                notches: Optional[Sequence[notch.Notch]]) -> List[notch.Notch]:
+    """The notches this render applies. The Fixed tones card's amount scales
+    each notch's depth; "auto" applies them at full depth when the card has
+    not been set. `notches` overrides the scan (the screen's own list)."""
+    amount = s.fixes.get("tones")
+    if amount is None and not s.auto:
+        return []
+    a = 1.0 if amount is None else float(amount)
+    if a <= 0.0:
+        return []
+    if notches is None:
+        notches = source._remember(
+            ("tones_plan", sr),
+            lambda: notch.plan_from_lines(scan_fixed_lines(source.at_rate(sr), sr), sr).notches)
+    return [dataclasses.replace(n, depth_db=n.depth_db * a) for n in notches]
+
+
+def _fix(x: np.ndarray, sr: int, plan: List[notch.Notch]) -> np.ndarray:
+    return notch.apply(x, sr, plan) if plan else x
+
+
 def _premaster(x: np.ndarray, sr: int, s: Settings) -> np.ndarray:
-    """Everything before the loudness gain. Returns x itself when nothing
-    applies, so a bypass render is bit-exact."""
+    """EQ and the mastering low-cut. Returns x itself when nothing applies,
+    so a bypass render is bit-exact."""
     stages = _eq_designs(s.eq_bands, sr) if s.eq_enabled else []
     if s.mastering:
         stages.append(filters.design("high_pass", LOW_CUT_HZ, sr))
@@ -121,29 +161,59 @@ def _premaster(x: np.ndarray, sr: int, s: Settings) -> np.ndarray:
     return y
 
 
-def _premaster_key(s: Settings, sr: int) -> Tuple:
-    return ("premaster_lufs", sr, s.eq_enabled, s.eq_bands, s.mastering,
-            tuple(sorted(s.fixes.items())), s.auto)
+def _whole_key(s: Settings, sr: int, plan: List[notch.Notch], what: str) -> Tuple:
+    return (what, sr, s.eq_enabled, s.eq_bands, s.mastering,
+            tuple((n.hz, n.depth_db, n.bw_hz) for n in plan))
 
 
-def _whole_song_gain(source: Source, sr: int, s: Settings) -> Tuple[float, float]:
+def _whole_premaster(source: Source, sr: int, s: Settings, plan: List[notch.Notch]) -> np.ndarray:
+    x = source.at_rate(sr)
+    return _premaster(_fix(x, sr, plan), sr, s)
+
+
+def _whole_song_gain(source: Source, sr: int, s: Settings,
+                     plan: List[notch.Notch]) -> Tuple[float, float]:
     """(loudness before mastering, gain to the target), for the whole song."""
-    lufs = source._remember(_premaster_key(s, sr),
-                            lambda: meters.loudness(_premaster(source.at_rate(sr), sr, s), sr))
+    lufs = source._remember(_whole_key(s, sr, plan, "premaster_lufs"),
+                            lambda: meters.loudness(_whole_premaster(source, sr, s, plan), sr))
     target = catalog.loudness_target(s.loudness_target).lufs
     return lufs, loudness.gain_to_target(lufs, target)
 
 
+def _preserve_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch]) -> float:
+    """The one gain that puts the processed song back at the source's level:
+    its RMS, never past a 0.999 peak, within 4x either way (1.1.1's rule,
+    worked out from the whole song rather than each preview window)."""
+    def make() -> float:
+        x = np.asarray(source.at_rate(sr), dtype=np.float64)
+        y = np.asarray(_whole_premaster(source, sr, s, plan), dtype=np.float64)
+        rin, rout = float(np.sqrt(np.mean(x ** 2))), float(np.sqrt(np.mean(y ** 2)))
+        peak = float(np.max(np.abs(y))) if y.size else 0.0
+        if rin < 1e-6 or rout < 1e-6 or peak < 1e-6:
+            return 1.0
+        scale = min(rin / rout, _PRESERVE_PEAK / peak)
+        return float(np.clip(scale, 1.0 / _PRESERVE_MAX_SCALE, _PRESERVE_MAX_SCALE))
+    return source._remember(_whole_key(s, sr, plan, "preserve_gain"), make)
+
+
 def render(source: Source, settings: Optional[Settings] = None,
-           window: Optional[Tuple[float, float]] = None) -> Rendered:
+           window: Optional[Tuple[float, float]] = None, *,
+           progress: Optional[Progress] = None, with_removed: bool = False,
+           notches: Optional[Sequence[notch.Notch]] = None) -> Rendered:
     """Render the song, or the span `window` = (start_s, end_s) of it.
 
     A window covers samples round(start_s * sr) up to round(end_s * sr) at
     the output rate, and matches the same span of a full render.
+
+    progress      reports each stage and stops the run if it is cancelled
+    with_removed  also return what the fixes took out (Rendered.removed)
+    notches       the Fixed tones notches to use instead of scanning
     """
     s = settings if settings is not None else Settings()
     fmt = catalog.output_format(s.format)
     sr = int(fmt.sr or source.sr)
+    if sr != source.sr:
+        _stage(progress, "rate", "Sample rate", f"{source.sr} Hz to {sr} Hz")
     x = source.at_rate(sr)
     n = x.shape[0]
     if window is None:
@@ -153,18 +223,43 @@ def render(source: Source, settings: Optional[Settings] = None,
         end = min(n, max(start, int(round(float(window[1]) * sr))))
     a = max(0, start - int(round(LEAD_IN_S * sr)))
     b = min(n, end + int(round(TAIL_S * sr)))
+    seg = x[a:b]
 
     report: Dict[str, Any] = {
         "sr": sr, "format": fmt.key,
         "window": None if window is None else [start / sr, end / sr],
-        # Step 6 adds the tools. Until one is built, a card that is on says so.
-        "fixes": {k: "not built yet" for k in s.fixes},
+        "fixes": {},
         "mastering": {"enabled": s.mastering},
     }
 
-    y = _premaster(x[a:b], sr, s)
+    # 2. Fixes.
+    plan = _tones_plan(source, sr, s, notches)
+    if plan:
+        _stage(progress, "fixes", "Fixed tones",
+               f"{len(plan)} notch{'es' if len(plan) != 1 else ''}")
+    fixed = _fix(seg, sr, plan)
+    if plan:
+        report["fixes"]["tones"] = {
+            "enabled": True, "notches": len(plan),
+            "lines": [{"hz": round(p.hz, 1), "depth_db": round(p.depth_db, 1), "kind": p.kind}
+                      for p in plan],
+            "deepest_db": round(max(p.depth_db for p in plan), 1),
+        }
+    for key in s.fixes:
+        if key != "tones":
+            report["fixes"][key] = "not built yet"
+
+    # 3. The user EQ, and the mastering low-cut.
+    if s.eq_enabled and _eq_designs(s.eq_bands, sr):
+        _stage(progress, "eq", "EQ")
+    y = _premaster(fixed, sr, s)
+
+    # 4. Level.
     if s.mastering:
-        before, gain_db = _whole_song_gain(source, sr, s)
+        _stage(progress, "master", "Loudness and peaks",
+               f"{catalog.loudness_target(s.loudness_target).lufs:g} LUFS, "
+               f"{fmt.ceiling_dbtp:g} dBTP ceiling")
+        before, gain_db = _whole_song_gain(source, sr, s, plan)
         y = np.asarray(y, dtype=np.float64) * 10.0 ** (gain_db / 20.0)
         y, shaper = limiter.soft_peak_shaper(y, fmt.ceiling_dbtp)
         y, lim = limiter.true_peak_limiter(y, sr, fmt.ceiling_dbtp)
@@ -176,6 +271,14 @@ def render(source: Source, settings: Optional[Settings] = None,
             "shaped_ratio": shaper["shaped_ratio"],
             "limiter_gain_reduction_db": lim["max_gain_reduction_db"],
         })
+    elif s.preserve_volume and y is not seg:
+        g = _preserve_gain(source, sr, s, plan)
+        y = np.asarray(y, dtype=np.float64) * g
+        report["mastering"]["preserve_volume_gain_db"] = float(20.0 * np.log10(g))
 
     out = np.asarray(y[start - a:end - a], dtype=np.float32)
-    return Rendered(out, sr, report, s, source.path)
+    removed = None
+    if with_removed:
+        removed = (np.asarray(seg[start - a:end - a], dtype=np.float64)
+                   - np.asarray(fixed[start - a:end - a], dtype=np.float64)).astype(np.float32)
+    return Rendered(out, sr, report, s, source.path, removed)

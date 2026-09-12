@@ -121,11 +121,15 @@ app.mount("/static", _NoCacheStaticFiles(directory=str(STATIC_DIR), html=True),
 
 # Routes of the new engine (shimmer.api), included as each area moves over
 # (docs/REBUILD-TRACKER.md Step 4).
+from . import __version__ as _shimmer_version  # noqa: E402
+from .api import render as _api_render  # noqa: E402
 from .api import rules as _api_rules  # noqa: E402
 from .api import sessions as _api_sessions  # noqa: E402
 
+_api_render.configure(_shimmer_version)
 app.include_router(_api_rules.router)
 app.include_router(_api_sessions.router)
+app.include_router(_api_render.router)
 
 
 # ───────────────────────────────────────────────────────────────────────────

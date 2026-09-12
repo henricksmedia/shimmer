@@ -21,9 +21,11 @@ from .analyze.edges import apply_trim, detect_edge_artifacts
 from .analyze.findings import Finding, findings
 from .analyze.report import plr_db, spectra_report, stereo_correlation
 from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
-from .analyze.track import analyze_track
+from .analyze.track import analyze_track, loudness_range
+from .audio import meters
 from .audio.io import AudioIOError, file_digest, wav_bytes
 from .audio.io import load as load_audio
+from .audio.trim import trim_silence
 from .export import export
 from .master.release import add_check, release_check, tags_check
 from .progress import Cancelled, Progress
@@ -37,4 +39,5 @@ __all__ = ["catalog", "tags", "export", "render", "Rendered", "Source",
            "scan_fixed_lines", "estimate_cutoff_hz", "plan_from_lines", "Notch", "NotchPlan",
            "spectra_report", "stereo_correlation", "plr_db",
            "release_check", "add_check", "tags_check",
+           "meters", "loudness_range", "trim_silence",
            "load_audio", "wav_bytes", "file_digest", "AudioIOError"]

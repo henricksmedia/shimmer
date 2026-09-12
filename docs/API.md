@@ -209,6 +209,15 @@ change.
 - **Known limit:** one listener per job. A second tab or a reconnect steals
   events. The new job runner fixes this.
 
+**`POST /api/cancel/{job_id}`** — **New** (built 2026-09-12).
+
+- **Returns:** `{cancelled: true}`, or `{cancelled: false, reason}` when the
+  job has already finished or is a 1.x job (Remix, stems) that cannot stop
+  early yet.
+- A cancelled job ends its progress stream with
+  `{error: "Cancelled", cancelled: true, done: true}`, and its metrics and
+  result answer 409 with `{status: "cancelled"}`.
+
 **`GET /api/metrics/{job_id}`** — Keep.
 
 - **Status codes:** 200 `{status:"done", metrics}`, 202 while running, 500

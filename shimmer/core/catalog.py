@@ -33,6 +33,10 @@ class Card:
     group: str                 # "artifacts" or "tone_level"
     tool: Optional[str]        # a key in TOOLS, or None: no fix yet
     band_hz: Optional[Tuple[float, Optional[float]]]   # (low, high); high None = "and up"
+    # Where the Amount slider starts when the card is turned on. Fixed tones
+    # starts at full depth: the notch is the one tool proven safe and
+    # effective (96 %), and 1.1.1 applied it at full depth.
+    default_amount: float = 0.5
 
 
 CARDS: Tuple[Card, ...] = (
@@ -41,7 +45,7 @@ CARDS: Tuple[Card, ...] = (
          "auto_awesome", "artifacts", None, (5000.0, 12000.0)),
     Card("tones", "Fixed tones", "A whistle or whine that never changes",
          "Steady tones the generator leaves at one pitch for the whole song.",
-         "sports", "artifacts", "notch", None),
+         "sports", "artifacts", "notch", None, default_amount=1.0),
     Card("sibilance", "Sibilance", "Harsh, spitty “s” and “sh”",
          "Sharp consonants on vocals that turn into hiss or distortion.",
          "record_voice_over", "artifacts", "deesser", (4000.0, 10000.0)),

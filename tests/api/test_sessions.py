@@ -21,7 +21,8 @@ SR = 48000
 
 @pytest.fixture(scope="module")
 def client():
-    return TestClient(app)
+    with TestClient(app) as c:
+        yield c
 
 
 def _wav(seconds=3.0, silent=False):

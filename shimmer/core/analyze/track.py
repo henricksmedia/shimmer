@@ -82,7 +82,7 @@ def analyze_spectrum(x: np.ndarray, sr: int, n_fft: int = 8192) -> Dict[str, Any
     }
 
 
-def _loudness_range(x: np.ndarray, sr: int) -> float:
+def loudness_range(x: np.ndarray, sr: int) -> float:
     """LRA, as 1.1.1 measured it: pyloudnorm's loudness_range when the
     installed version has one, else 0.0."""
     import pyloudnorm as pyln
@@ -96,7 +96,7 @@ def analyze_track(x: np.ndarray, sr: int) -> Dict[str, Any]:
     """Loudness, 1/3-octave spectrum, and the bandwidth cutoff (None = full)."""
     loud = {
         "lufs_i": meters.loudness(x, sr),
-        "lra": _loudness_range(x, sr),
+        "lra": loudness_range(x, sr),
         "true_peak_dbtp": meters.true_peak_db(x, sr),
     }
     spec = analyze_spectrum(x, sr)

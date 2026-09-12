@@ -94,7 +94,8 @@ def test_saved_copy_matches_the_download(client, tmp_path):
     m = re.search(r'filename="?([^";]+)"?', disp)
     assert m, disp
     assert m.group(1) == saved["name"] == os.path.basename(saved["path"])
-    assert saved["name"].startswith("song_generic_processed_")
+    # 2.0 names drop the preset (docs/API.md §4, signed off 2026-09-12).
+    assert saved["name"].startswith("song_processed_")
     assert saved["name"].endswith(".wav")
 
 
@@ -158,7 +159,7 @@ def test_metrics_name_the_download(client, tmp_path):
                              {"params": PARAMS, "output_format": "wav"})
     ex = metrics["export"]
     dl = client.get(f"/api/result/{jid}?kind=processed")
-    assert ex["name"].startswith("song_generic_processed_") and ex["name"].endswith(".wav")
+    assert ex["name"].startswith("song_processed_") and ex["name"].endswith(".wav")
     assert ex["size_bytes"] == len(dl.content)
 
 

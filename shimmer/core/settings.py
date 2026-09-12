@@ -61,6 +61,8 @@ class Settings:
     eq_enabled       the user EQ on
     eq_bands         the user EQ's bands, in order
     trim_silence     cut silence from the start and end
+    preserve_volume  with mastering off, put the result back at the song's
+                     own level
     """
     fixes: Dict[str, float] = field(default_factory=dict)
     auto: bool = True
@@ -70,6 +72,7 @@ class Settings:
     eq_enabled: bool = False
     eq_bands: Tuple[EqBand, ...] = ()
     trim_silence: bool = False
+    preserve_volume: bool = True
 
     def __post_init__(self) -> None:
         # Unknown cards are dropped and amounts kept to 0-1, so a bad value
@@ -86,6 +89,7 @@ class Settings:
         self.eq_bands = tuple(bands[:int(catalog.EQ_LIMITS["max_bands"])])
         self.auto, self.mastering = bool(self.auto), bool(self.mastering)
         self.eq_enabled, self.trim_silence = bool(self.eq_enabled), bool(self.trim_silence)
+        self.preserve_volume = bool(self.preserve_volume)
 
     @classmethod
     def bypass(cls) -> "Settings":
@@ -106,6 +110,7 @@ class Settings:
             "eq": {"enabled": self.eq_enabled,
                    "bands": [dataclasses.asdict(b) for b in self.eq_bands]},
             "trim_silence": self.trim_silence,
+            "preserve_volume": self.preserve_volume,
         }
 
     @classmethod
@@ -122,6 +127,7 @@ class Settings:
             eq_enabled=eq.get("enabled", False),
             eq_bands=tuple(eq.get("bands") or ()),
             trim_silence=d.get("trim_silence", False),
+            preserve_volume=d.get("preserve_volume", True),
         )
 
 
@@ -161,10 +167,11 @@ def migrate(old: Optional[Mapping[str, Any]]) -> Settings:
     """Settings from anything saved by 1.x (settings.json, a Remix project's
     cleanup block, a route's old fields), or by this version.
 
-    - The old preset turns on its card at the default amount. Old preset
-      strength does not carry over: those presets applied their filters at
-      twice their setting, so the old numbers mean nothing now.
-    - The loudness choice, format, EQ and silence trim carry over as saved.
+    - The old preset turns on its card at that card's default amount. Old
+      preset strength does not carry over: those presets applied their
+      filters at twice their setting, so the old numbers mean nothing now.
+    - The loudness choice, format, EQ, silence trim and preserve volume
+      carry over as saved.
     """
     old = old if isinstance(old, Mapping) else {}
     if "fixes" in old or "loudness_target" in old:
@@ -175,7 +182,7 @@ def migrate(old: Optional[Mapping[str, Any]]) -> Settings:
     master = old.get("mastering") if isinstance(old.get("mastering"), Mapping) else {}
     eq = old.get("eq") if isinstance(old.get("eq"), Mapping) else {}
     return Settings(
-        fixes={card: catalog.DEFAULT_AMOUNT} if card else {},
+        fixes={card: catalog.card(card).default_amount} if card else {},
         auto=True,
         mastering=master.get("enabled", True),
         loudness_target=master.get("target", catalog.DEFAULT_LOUDNESS),
@@ -183,4 +190,5 @@ def migrate(old: Optional[Mapping[str, Any]]) -> Settings:
         eq_enabled=eq.get("enabled", False),
         eq_bands=tuple(eq.get("bands") or ()),
         trim_silence=old.get("trim_silence", False),
+        preserve_volume=old.get("preserve_volume", True),
     )

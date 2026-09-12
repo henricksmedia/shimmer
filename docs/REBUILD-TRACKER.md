@@ -147,7 +147,11 @@ is signed off. **Done 2026-09-12.**
       Loudness. Every analysis and repair contract test passes, including
       "a held note is not notched" and "a finished master gets no artifact
       findings".
-- [ ] One job runner, with cancel.
+- [x] One job runner, with cancel (`shimmer/api/jobs.py`). The 1.x Remix and
+      stem jobs run on it unchanged; they finish rather than stop when
+      cancelled.
+- [x] The release check and the report (spectra, PLR, correlation), ported
+      and nulled.
 - [x] Measure each lossy format's overshoot and set its ceiling (item 12).
       Done for OGG (quality 0.8, -2.0) and MP3 (-2.0); M4A overshot by up to
       +2.9 dB and is being probed.
@@ -162,8 +166,15 @@ is signed off. **Done 2026-09-12.**
         dies with its session, and a silent upload no longer fails. The 1.x
         preview, stem and Remix routes use the same store, and their tests
         pass.
-  - [ ] Render and export: preview, process, progress, metrics, result, and
-        a new cancel.
+  - [x] Render and export: preview, process, progress, metrics, result, and
+        a new cancel, all on `render()` and `export()`:
+    - 15 route and session tests pass, including one that checks a preview
+      window against the exported file, level included.
+    - `/api/process` takes the session in place of the file.
+    - Every progress listener gets every event.
+    - A run can be cancelled between stages.
+    - Download names drop the preset.
+    - The 1.x fields still work.
   - [ ] Analyze (suggest, tone, chain) moves with Step 5 and Step 6, not
         before. Until the screen is re-wired, `/api/suggest` must keep
         returning the old preset ranking (API.md §0), and its tone plan is
