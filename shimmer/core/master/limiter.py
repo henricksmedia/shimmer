@@ -14,7 +14,7 @@ import math
 from typing import Dict, Tuple
 
 import numpy as np
-from scipy.ndimage import maximum_filter1d
+from scipy.ndimage import minimum_filter1d
 from scipy.signal import resample_poly
 
 # Peaks are found at 8x, the rate the meter reads (shimmer.core.audio.meters).
@@ -122,14 +122,25 @@ def true_peak_limiter(x: np.ndarray, sr: int,
     for ch in range(n_ch):
         peak_env = np.maximum(peak_env, _true_peak_envelope(x[:, ch], _OVERSAMPLE))
 
-    lookahead_n = max(1, int(round(lookahead_ms * 0.001 * sr)))
-    if lookahead_n > 1:
-        origin = -(lookahead_n // 2)
-        env = maximum_filter1d(peak_env, size=lookahead_n, mode="nearest", origin=origin)
-    else:
-        env = peak_env
+    # The gain each sample needs so its true peak lands on the ceiling.
+    need = np.minimum(1.0, ceiling / np.maximum(peak_env, 1e-12))
 
-    gain = np.minimum(1.0, ceiling / np.maximum(env, 1e-12))
+    # The gain ramps down across the lookahead instead of stepping. 1.1.1
+    # dropped it within one sample at each peak (up to 3.8 dB in a single
+    # sample on the sparse test mix), and a step like that is a click.
+    # Each sample takes the lowest gain needed in the next L samples, then an
+    # L-sample moving average smooths that. At any peak p, the average covers
+    # samples whose look-ahead windows all include p. Each of those values is
+    # at most p's need, so their average is too: the ceiling still holds.
+    L = max(1, int(round(lookahead_ms * 0.001 * sr)))
+    if L > 1:
+        ahead = minimum_filter1d(need, size=L, mode="nearest", origin=-(L // 2))  # [i, i+L-1]
+        csum = np.concatenate([[0.0], np.cumsum(ahead)])
+        idx = np.arange(n_samples)
+        lo = np.maximum(0, idx - L + 1)
+        gain = (csum[idx + 1] - csum[lo]) / (idx + 1 - lo)
+    else:
+        gain = need
 
     release_coeff = math.exp(-1.0 / (max(1e-4, release_ms * 0.001) * sr))
     g_smooth = 1.0 - _peak_hold_release(1.0 - gain, release_coeff)
