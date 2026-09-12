@@ -19,9 +19,10 @@ Which way a filter runs is set by measurement (ARCHITECTURE §19.1 item 16):
 knob moves; `phase="zero"` forces both ways where bands are split and summed
 back, which needs them to line up in time.
 
-Designs: the RBJ Audio EQ Cookbook biquads for bells and shelves; a notch is
-a deep, narrow bell, so its depth is its gain. Passes are 2nd-order
-Butterworth (12 dB per octave), -3.01 dB at the cutoff.
+Designs: the RBJ Audio EQ Cookbook biquads. A notch is a deep, narrow bell,
+so its depth is its gain; gain_db=-inf makes it a true notch (the user EQ's).
+Passes are 2nd order (12 dB per octave) with q as their resonance: at the
+default 0.707 they are Butterworth, -3.01 dB at the cutoff.
 """
 from __future__ import annotations
 
@@ -61,9 +62,18 @@ def _rbj(kind: str, hz: float, sr: int, gain_db: float, q: float) -> np.ndarray:
     w = 2.0 * np.pi * hz / sr
     cw, sw = np.cos(w), np.sin(w)
     alpha = sw / (2.0 * q)
-    if kind in ("bell", "notch"):
+    if kind == "notch" and gain_db == float("-inf"):        # a true notch
+        b = (1.0, -2 * cw, 1.0)
+        a = (1 + alpha, -2 * cw, 1 - alpha)
+    elif kind in ("bell", "notch"):
         b = (1 + alpha * A, -2 * cw, 1 - alpha * A)
         a = (1 + alpha / A, -2 * cw, 1 - alpha / A)
+    elif kind == "high_pass":
+        b = ((1 + cw) / 2, -(1 + cw), (1 + cw) / 2)
+        a = (1 + alpha, -2 * cw, 1 - alpha)
+    elif kind == "low_pass":
+        b = ((1 - cw) / 2, 1 - cw, (1 - cw) / 2)
+        a = (1 + alpha, -2 * cw, 1 - alpha)
     elif kind == "low_shelf":
         k = 2 * np.sqrt(A) * alpha
         b = (A * ((A + 1) - (A - 1) * cw + k), 2 * A * ((A - 1) - (A + 1) * cw),
@@ -109,7 +119,8 @@ def design(kind: str, hz: float, sr: int, gain_db: float = 0.0, q: float = 0.707
     gain_db  bells and shelves: the gain at the centre or on the shelf;
              notch: the depth (negative); passes: ignored
     q        bells and notches: width (higher is narrower); shelves: slope
-             (0.707 is the steepest with no bump); passes: ignored
+             (0.707 is the steepest with no bump); passes: resonance
+             (0.707 is none)
     phase    "auto" (the measured rule), "zero" or "minimum"
     """
     if kind not in KINDS:
@@ -123,17 +134,21 @@ def design(kind: str, hz: float, sr: int, gain_db: float = 0.0, q: float = 0.707
         raise ValueError("q must be positive")
 
     if kind in ("high_pass", "low_pass"):
-        sos = butter(2, hz, btype="highpass" if kind == "high_pass" else "lowpass",
-                     fs=sr, output="sos")
         if phase == "zero":
             raise ValueError("passes always run one way: zero-phase smears kick "
                              "drums with pre-echo (ARCHITECTURE §19.1 item 16)")
-        return Design(kind, hz, sr, 0.0, q, sos, two_way=False)
+        return Design(kind, hz, sr, 0.0, q, _rbj(kind, hz, sr, 0.0, q), two_way=False)
 
     if kind == "notch" and gain_db > 0.0:
         raise ValueError("a notch cuts: its gain_db (depth) must be negative")
     if gain_db == 0.0:
         return Design(kind, hz, sr, 0.0, q, np.zeros((0, 6)), two_way=True)
+    if kind == "notch" and gain_db == float("-inf"):
+        # A true notch has no finite depth to halve. Two ways keeps 1.1.1's
+        # user-EQ notch where that is safe.
+        sos = _rbj(kind, hz, sr, gain_db, q)
+        two = phase == "zero" or (phase == "auto" and _pre_echo_db(sos, sr, hz) <= PRE_ECHO_FLOOR_DB)
+        return Design(kind, hz, sr, gain_db, q, sos, two_way=two)
 
     half = _rbj(kind, hz, sr, gain_db / 2.0, q)
     if phase == "zero" or (phase == "auto" and _pre_echo_db(half, sr, hz) <= PRE_ECHO_FLOOR_DB):
