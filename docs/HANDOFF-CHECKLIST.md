@@ -1021,6 +1021,34 @@ count.
       *What follows:* the rebuild's de-clicker (§15 Step 6) must beat these
       numbers while taking under 0.10 sones from a clean host, before it
       ships.
+- [ ] **18. Are the louder Loudness target choices clean?** *Done when:*
+      the same baseline master at Streaming, Loud and CD / Club is judged
+      blind, at matched level, on every song, with the listening check
+      passed and the gear written down.
+      **Built 2026-09-12, not yet judged.** Baseline = `main` at c1d18e0 with
+      the Master tab's defaults (Generic preset, tone match Medium, tilt
+      Neutral, WAV 24-bit, ceiling -1.0 dBTP), rendered by
+      `testing/scripts/baseline_render.py`; files and numbers in
+      `testing/baseline/` (local). Measured on the 8 bench songs, true peak
+      read per channel:
+
+      | target | LUFS reached | limiter | samples above the soft-clip knee | peak-to-loudness |
+      |---|---|---|---|---|
+      | Streaming -14 | -14.00 | 0.0 dB on 8/8 | 0-0.04 % | 10.1-12.8 dB |
+      | Loud -11 | -11.00 to -11.07 | 0.0 dB on 6/8; -0.41 and -0.59 | 0.02-0.63 % | 9.3-10.1 dB |
+      | CD / Club -9 | -9.01 to -9.25 | 0.0 to -0.94 dB | 0.5-2.3 % | 7.9-8.3 dB |
+
+      The louder choices get there mostly through the soft peak shaper (a
+      gentle clipper), not the limiter. At CD / Club it touches up to 2.3 %
+      of samples; if the louder choices sound worse, that is the first
+      suspect. For scale, the service masters measure about -10 LUFS with a
+      peak-to-loudness ratio near 10 dB (recorded 2026-09-12, sample
+      peaks), close to where Loud lands.
+      Sets: `listening-test/ab/loud-*` (8), built by
+      `testing/scripts/build_loud_sets.py`. The window is the loudest 30 s
+      of the CD / Club render, where the shaper works hardest, and all
+      three arms are cut from that same window. The bench matches their
+      level (-11.2 to -13.5 LUFS).
 
 ## DEFERRED — the 80% stake
 
