@@ -31,16 +31,24 @@ from typing import Any, Dict, List, Optional
 FIELDS = ("title", "artist", "album_artist", "album", "genre", "year",
           "track", "comment", "copyright", "isrc", "software")
 
-# Shimmer's export suffix: {stem}_{preset}_{processed|trimmed}_{8 hex}
-_SHIMMER_SUFFIX = re.compile(r"_[a-z0-9_]+?_(?:processed|trimmed)_[0-9a-f]{8}$")
+# Shimmer's export suffixes:
+#   1.x   {stem}_{preset}_{processed|removed|trimmed}_{8 hex}
+#   2.0   {stem}_{processed|removed|trimmed}_{8 hex}
+_SHIMMER_SUFFIX = re.compile(r"_(?:processed|removed|trimmed)_[0-9a-f]{8}$")
 
-
-def _known_presets() -> List[str]:
-    try:
-        from .presets import list_presets
-        return sorted((str(k) for k in list_presets()), key=len, reverse=True)
-    except Exception:  # noqa: BLE001
-        return []
+# Every 1.x preset key and version-named alias, frozen here so a 1.x export
+# still loses its whole suffix after the presets are gone
+# (docs/ARCHITECTURE.md §19.1 item 11). Longest first, so `vocal_glaze_plus`
+# is tried before `vocal_glaze`.
+LEGACY_PRESET_KEYS = tuple(sorted((
+    "generic", "suno_hash", "cymbal_sheen", "laser_whistle", "air_brittle",
+    "sibilance_rattle", "cymbal_chatter", "broadband_fizz", "checkerboard_grid",
+    "reverb_flutter", "vocal_glaze", "vocal_glaze_plus", "echo_sheen",
+    "presence_haze", "phantom_cymbal", "harsh_veil", "deep_scrub", "muddy_boxy",
+    "dark_mix_rescue",
+    "suno_v3", "suno_v3.5", "suno_v4", "suno_v4.5", "suno_v5", "suno_v5_pro",
+    "suno_v5.5", "suno_cymbal",
+), key=len, reverse=True))
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -49,24 +57,19 @@ def _known_presets() -> List[str]:
 
 def strip_shimmer_suffix(stem: str) -> str:
     """Remove every trailing Shimmer export suffix from a filename stem, so
-    a second pass does not chain another one on: `song_glaze_processed_ab12cd34`
-    becomes `song`."""
+    a second pass does not chain another one on. Both
+    `song_vocal_glaze_processed_ab12cd34` (1.x) and
+    `song_processed_ab12cd34` (2.0) become `song`."""
     s = stem or ""
-    presets = _known_presets()
     while True:
         m = _SHIMMER_SUFFIX.search(s)
         if not m:
             return s
-        # The preset name is the shortest match; prefer the longest known
-        # preset key so `my_song_generic_processed_x` keeps `my_song`.
-        tail = s[m.start():]
         cut = m.start()
-        for key in presets:
-            marker = f"_{key}_"
-            i = s.rfind(marker)
-            if i >= 0 and i + len(marker) <= len(s) and re.match(
-                    r"(?:processed|trimmed)_[0-9a-f]{8}$", s[i + len(marker):]):
-                cut = i
+        head = s[:cut]
+        for key in LEGACY_PRESET_KEYS:
+            if head.endswith("_" + key):
+                cut -= len(key) + 1
                 break
         s = s[:cut]
 

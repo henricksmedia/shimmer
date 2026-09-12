@@ -110,15 +110,28 @@ exit /b 1
 :venv_ready
 
 REM ── Step 3: dependencies ──────────────────────────────────────────────
-REM Probe imports instead of trusting a sentinel file. A real import test
-REM is the only way to know the venv actually has what we need.
+REM Reinstall whenever requirements.txt changes, not only when an import
+REM fails: an update from GitHub can add a library that the import probe
+REM below does not name. The hash of the requirements.txt last installed is
+REM kept in .venv. Without certutil the hash stays empty and the import
+REM probe alone decides, as before.
+set "REQHASH="
+for /f "delims=" %%H in ('certutil -hashfile "requirements.txt" SHA256 2^>nul ^| findstr /v ":"') do if not defined REQHASH set "REQHASH=%%H"
+if not defined REQHASH goto :deps_probe
+set "REQHASH=%REQHASH: =%"
+set "OLDHASH="
+if exist ".venv\requirements.sha256" set /p OLDHASH=<".venv\requirements.sha256"
+if not "%REQHASH%"=="%OLDHASH%" goto :deps_install
+
+:deps_probe
 REM Probe imports instead of trusting a sentinel file. A real import test
 REM is the only way to know the venv actually has what we need.
 "%PY%" -c "import fastapi, uvicorn, numpy, scipy, soundfile, pyloudnorm" 1>nul 2>nul
 if not errorlevel 1 goto :deps_ready
 
+:deps_install
 echo  Installing audio libraries...
-echo  ^(first run only - about 200 MB, a few minutes^)
+echo  ^(first run or after an update - up to 200 MB, a few minutes^)
 echo.
 REM --python targets this project's venv explicitly. Without it uv infers
 REM the environment, which can pick the wrong one (or none) on a machine
@@ -148,6 +161,9 @@ pause
 exit /b 1
 
 :deps_installed
+REM Redirect first: "echo %REQHASH%>file" would read a trailing digit as a
+REM stream number and drop it.
+if defined REQHASH >".venv\requirements.sha256" echo %REQHASH%
 echo.
 echo  Setup complete. Future launches start in seconds.
 echo.

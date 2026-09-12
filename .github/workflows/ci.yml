@@ -2,13 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild]
   pull_request:
     branches: [main]
 
 jobs:
   syntax-and-import:
-    name: Syntax & import check (Python ${{ matrix.python-version }})
+    name: Tests on Linux (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -26,6 +26,9 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
 
+      - name: Install ffmpeg (MP3 and M4A exports)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Install runtime dependencies
         run: |
           python -m pip install --upgrade pip
@@ -34,9 +37,62 @@ jobs:
       - name: Byte-compile all Python sources
         run: python -m compileall -q .
 
+      # The entry points only: they import everything they need, and the
+      # list does not go stale when modules are replaced (ARCHITECTURE §19.1
+      # item 10).
       - name: Import smoke test (server + CLI)
-        run: |
-          python -c "import shimmer, shimmer.server, shimmer.cli, shimmer.engine, shimmer.presets, shimmer.audio_io, shimmer.probe, shimmer.dsp, shimmer.params, shimmer.jobs, shimmer.settings_store"
+        run: python -c "import shimmer, shimmer.server, shimmer.cli"
 
       - name: Run test suite
         run: python -m pytest tests/ -q
+
+  windows:
+    name: Tests on Windows, with ffmpeg
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install ffmpeg
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Install runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run test suite
+        run: python -m pytest tests/ -q
+
+  update-from-1-1-1:
+    name: Updating a 1.1.1 install works
+    runs-on: windows-latest
+    steps:
+      - name: Checkout (with tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install what 1.1.1 installed
+        shell: bash
+        run: |
+          git show v1.1.1:requirements.txt > old-requirements.txt
+          python -m pip install -r old-requirements.txt
+
+      - name: Update to this version's requirements
+        run: python -m pip install -r requirements.txt
+
+      - name: The app starts
+        run: python -c "import shimmer.server, shimmer.cli"

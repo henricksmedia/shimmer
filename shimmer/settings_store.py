@@ -4,6 +4,10 @@ settings_store.py — Persist last-used UI settings to a JSON file.
 Location:
     Windows:  %APPDATA%/Shimmer/settings.json
     Other:    ~/.config/shimmer/settings.json
+    Either, when SHIMMER_CONFIG_DIR is set: that folder instead. A second
+    copy of Shimmer (the rebuild, while it is being built) sets it so it
+    never reads or writes the everyday app's settings or projects
+    (docs/ARCHITECTURE.md §19.1 item 4).
 
 The frontend posts the full control state and we write it verbatim.
 Same-session consumers (e.g. Batch EQ reuse) always read it back.  The
@@ -20,6 +24,9 @@ from typing import Any, Dict
 
 
 def _settings_dir() -> str:
+    override = os.environ.get("SHIMMER_CONFIG_DIR", "").strip()
+    if override:
+        return override
     if sys.platform == "win32":
         base = os.environ.get("APPDATA") or os.path.expanduser("~")
         return os.path.join(base, "Shimmer")

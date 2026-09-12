@@ -81,6 +81,33 @@ different questions.
 Rule 4 outranks 1–3 when they conflict. Measurements are how we find things
 worth listening to; they are not the verdict.
 
+## Never damage the music
+
+*The author's rule, 2026-09-12:* Shimmer gives accurate tools, aimed at the
+right sound, and the user decides how much to use them. It must never damage
+the real music in the track. That is measured, not promised:
+
+1. **"The tool works" means two checks.**
+   - It does exactly what it is set to: a -3 dB cut is -3 dB.
+   - The problem really sits where the tool acts, apart from the music.
+
+   A tool aimed at the wrong place is inaccurate even when its filter is
+   perfect.
+2. **Clean music comes out unchanged.** Run on a track that does not have
+   its problem, a tool changes nothing that can be heard.
+3. **No new problems.** A tool may not add any of these:
+   - pre-echo more than 20 ms before a hit
+   - watery "musical noise"
+   - pumping
+   - lost stereo width
+   - softened attacks
+4. **The Amount slider stops where damage starts.** Its top is set from the
+   measured cost (decision rule 2), so no setting can wreck a track.
+5. **Everything on at once is checked too.** Small costs add up, so the whole
+   chain, with every card on at full, gets the same checks.
+6. **The ear check is fair.** Louder always sounds better, so every A/B
+   offers a level-matched comparison. Defaults stay gentle.
+
 ## How we know it is working
 
 - Artifact efficacy, per preset, against ground-truth material —

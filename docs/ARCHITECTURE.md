@@ -1347,11 +1347,43 @@ disagree.
     §18.3's "only two existing files are edited" is withdrawn.
 15. **The card table is written out below (§19.3)** before any test pins
     it.
+16. **Which way each filter runs is set by measurement (2026-09-12).**
+    Zero-phase filters run forward and then backward. That puts a faint copy
+    of the sound *before* each hit, called pre-echo. The ear misses pre-echo
+    that stays within about 20 ms of a loud hit.
+    - *Bells, shelves and notches stay zero-phase.* Their pre-echo came
+      within 5–16 ms of a hit, at -20 to -38 dB. Beyond 20 ms nothing was
+      louder than -71 dB.
+    - *Low-cuts (high-pass) run one way.* A zero-phase 30 Hz low-cut put
+      pre-echo 32–47 ms ahead of a kick drum, still -43 to -53 dB beyond
+      20 ms.
+    - *Long-ringing filters run one way,* such as a low, narrow bell. The
+      check uses a tone at the filter's own frequency, because a filter
+      rings there. A single click is not the worst case: a 50 Hz bell that
+      passed a click check put -47 dB of pre-echo ahead of a kick drum.
+    - *A contract test enforces it:* no filter may put sound above -60 dB
+      more than 20 ms before a hit.
+
+    `render()` gives one-way filters enough lead-in that the preview still
+    matches the export.
+17. **Never damage the music** (`GOALS.md`, the author's rule):
+    - Each tool's damage limit is measured, and it sets the top of that
+      card's Amount slider.
+    - A whole-chain check runs with every card on at full, on clean music.
+    - A level-matched A/B is always available.
+18. **The Shimmer card starts from [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md).**
+    The fizz is most likely detail the AI's decoder rebuilt coarsely, not
+    noise on top of clean music. So Step 6 for this card starts with three
+    things before any fix is built:
+    - a real-codec test case
+    - the listening questions in that file
+    - a check of the test models against both
 
 ### 19.2 Decisions for the author
 
-Answered by the author on 2026-09-12, except D2. Progress on each is
-tracked in [REBUILD-TRACKER.md](REBUILD-TRACKER.md).
+All answered by the author on 2026-09-12. D2: **no 1.2**; the full rebuild
+goes ahead. Progress on each is tracked in
+[REBUILD-TRACKER.md](REBUILD-TRACKER.md).
 
 - **D1. Default loudness: Commercial (-9 LUFS).** Decided. The new
   labels in §15 Step 5 are adopted; the three-card look still gets a mockup

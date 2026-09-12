@@ -3,7 +3,8 @@
 This page shows where the rebuild stands. It is updated in the same commit as
 each piece of work. The plan and the reasons behind it are in
 [ARCHITECTURE.md](ARCHITECTURE.md): §15 is the plan, §19 the review rules,
-§19.3 the cards.
+§19.3 the cards. The rule every piece must pass is "Never damage the music"
+in [GOALS.md](GOALS.md).
 
 **Why we are rebuilding.** Over two months the old engine grew layer by
 layer:
@@ -25,20 +26,20 @@ decision or on another step).
 
 ## Where we are
 
-- **Branch** `rebuild`, in the folder `.claude/worktrees/rebuild`, on port
-  7870. Not on GitHub yet: ask first.
-- **Now:** finishing Step 3. Step 4's setup work can start.
-- **Tests:** 412 pass. 109 contract tests wait for the new engine, and one
-  waits for Step 6.
+- **Branch** `rebuild`, in the folder `.claude/worktrees/rebuild`. Run it
+  with `testing\start-rebuild.bat` (local only), which uses port 7870 and its
+  own settings folder. Not on GitHub yet: ask first.
+- **Now:** Step 4, the new core. The setup is done and the filters are
+  built.
 
 | Step | What | Status |
 |---|---|---|
 | 1 | Decide | Done 2026-09-12 |
 | 2 | Settle the evidence | Done, with two optional listening rounds left |
-| 3 | Contracts and the route map | In progress: route sign-off waiting |
-| 4 | The new core | Next |
+| 3 | Contracts and the route map | Done 2026-09-12 |
+| 4 | The new core | In progress |
 | 5 | Mastering | Not started |
-| 6 | Cleaning, one module at a time | Not started (Shimmer research in progress) |
+| 6 | Cleaning, one module at a time | Not started (Shimmer research done) |
 | 7 | Finish, switch over, release 2.0.0 | Not started |
 
 ## Step 1 — Decide
@@ -71,17 +72,17 @@ decision or on another step).
 ## Step 3 — Contracts and the route map
 
 *Done when:* the tests run and fail for the right reason, and the route map
-is signed off.
+is signed off. **Done 2026-09-12.**
 
 - [x] Contract tests in `tests/core` and `tests/api`, gated per module.
 - [x] Route map: [API.md](API.md).
 - [x] Adversarial review, with the fixes applied (ARCHITECTURE §19, commit
       `611eb58`).
-- [x] Decisions D1, D3, D4 and D5 answered (§19.2).
-- [ ] **Waiting:** D2, whether to put out a small 1.2 of today's app
-      (recommended: no).
-- [ ] **Waiting:** sign-off on [API.md](API.md) §1, the changes a user will
-      see.
+- [x] Decisions D1-D5 answered (§19.2). D2: no 1.2; the full rebuild goes
+      ahead.
+- [x] [API.md](API.md) §1 signed off, all nine changes.
+- [x] "Never damage the music" written into `GOALS.md`, with a measured
+      filter-phase rule (§19.1 items 16-17).
 
 ## Step 4 — The new core
 
@@ -91,21 +92,34 @@ is signed off.
 - each ported piece nulls against the old one
 - the Master tab runs end to end on the new core
 
-**Setup, before engine code (§19.1):**
+**Setup (§19.1):**
 
-- [ ] The rebuild gets its own settings folder (`SHIMMER_CONFIG_DIR`), so
-      your everyday settings are never touched (item 4).
-- [ ] The launchers reinstall when `requirements.txt` changes, and a CI job
-      upgrades a 1.1.1 install (item 5).
-- [ ] CI runs on `rebuild`, with the new import list and a Windows job with
-      ffmpeg (item 10).
-- [ ] Decide the 2.0 download-name pattern, and freeze the 1.x preset keys
+- [x] The rebuild gets its own settings folder: `SHIMMER_CONFIG_DIR`, set
+      by `testing\start-rebuild.bat` (item 4).
+- [x] `start.bat` reinstalls when `requirements.txt` changes (a hash kept in
+      `.venv`). All four cases were checked. A CI job installs 1.1.1's
+      requirements, then updates (item 5).
+- [x] CI runs on `rebuild`, with an import check that cannot go stale, and
+      with ffmpeg on Linux and on a new Windows job (item 10).
+- [x] 2.0 download names are `{song}_{processed|removed|trimmed}_{id}`. The
+      1.x preset keys are frozen in `tags.py`, so old names still strip
       (item 11).
-- [ ] Push `rebuild` to GitHub as a backup: ask first.
+- [ ] Push `rebuild` to GitHub as a backup, so CI runs on it: ask first.
 
 **The engine:**
 
-- [ ] `shimmer/core/audio`: file reading and writing, filters, meters.
+- [x] `shimmer/core/audio/filters.py`: one design for every EQ-type filter.
+      It passes 42 contract tests, including "no pre-echo more than 20 ms
+      before a hit".
+- [x] `shimmer/core/audio/meters.py`: loudness (BS.1770) and true peak
+      (louder channel, 8x). Both pass their contract tests. A 3.5-minute song
+      takes 1.6 s for true peak and 0.4 s for loudness.
+- [x] `shimmer/core/audio/io.py`: reading and writing files. Ported, with
+      three fixes:
+  - MP3 and M4A are encoded from float, not from an undithered 16-bit
+    temp file.
+  - Mono stays mono.
+  - A sample rate that cannot be read is an error, not a guess.
 - [ ] `catalog` and `settings`, with `migrate()` for old saved settings.
       Commercial is the default.
 - [ ] `render()`, with the preview window and the output rate for each format.
@@ -143,11 +157,15 @@ is signed off.
 
 ## Step 6 — Cleaning, one module at a time
 
-*Each module ships only when:*
+*Each module ships only when it passes the decision rule and "Never damage
+the music" (`GOALS.md`):*
 
 1. it removes its fault on the ground-truth models
-2. its cost in sones is acceptable
-3. it wins or ties in a blind round
+2. its cost in sones is acceptable, and that cost sets the top of its Amount
+   slider
+3. it adds no new problems: pre-echo, musical noise, pumping, lost width or
+   softened attacks
+4. it wins or ties in a blind round
 
 | Card | Tool | Status |
 |---|---|---|
@@ -156,13 +174,27 @@ is signed off.
 | Sibilance | De-esser | Not started |
 | Low-mid build-up | Dynamic EQ, 200–500 Hz | Not started |
 | Harshness | Dynamic EQ, 2–4 kHz | Not started |
-| Shimmer (the fizz) | Research first, then a new fix | Research in progress (2026-09-12) |
+| Shimmer (the fizz) | See [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md) | Research done 2026-09-12; real-codec test case next |
 | Phasiness | A model first, then a tool | Not started |
 | Lack of air | Tone target (Step 5) | With Step 5 |
 | Loudness | Loudness target (Step 5) | With Step 5 |
 
+**Shimmer, in order:**
+
+- [x] Research: what it is, why past fixes fell short, candidate fixes.
+- [ ] Judge the never-judged `quiet-*` sets and rounds 3 and 7 (free).
+- [ ] A real-codec test case: clean masters through an open AI codec.
+- [ ] Listening questions 1-3 in the research: is the codec damage "shimmer"?
+      Birdies or hiss? Does it only go when the brightness goes?
+- [ ] Update the test models to match what the listening shows.
+- [ ] Try fixes in the ranked order, each against both test cases, then
+      blind.
+
+**All cards:**
+
 - [ ] The cards and their Amount sliders are wired into the existing panels,
       with sign-off.
+- [ ] Everything on at full, on clean music, passes the same checks.
 - [ ] The screens read `/api/rules`, and the Step 6 test mark comes off.
 
 ## Step 7 — Finish, switch over, release
@@ -205,6 +237,11 @@ is signed off.
 | 2026-09-12 | Loudness is the user's pick from the list, reached cleanly | GOALS.md |
 | 2026-09-12 | "What do you hear?" cards replace presets | §13.2a, §19.3 |
 | 2026-09-12 | Commercial (-9 LUFS) is the default | §19.2 D1 |
+| 2026-09-12 | No 1.2; the full rebuild goes ahead | §19.2 D2 |
 | 2026-09-12 | The Shimmer and Phasiness cards stay and get real fixes, researched first | §19.2 D3 |
 | 2026-09-12 | The whole rebuild, in steps, tracked here | §19.2 D4 |
 | 2026-09-12 | The bench, reference library and measurement files stay for all testing | §19.2 D5 |
+| 2026-09-12 | All nine user-visible route changes signed off | API.md §1 |
+| 2026-09-12 | Never damage the music: accurate tools, the user decides, damage measured and capped | GOALS.md |
+| 2026-09-12 | Filters: zero-phase only where pre-echo stays within 20 ms; low-cuts and long-ringing filters run one way | §19.1 item 16 |
+| 2026-09-12 | 2.0 download names drop the preset | API.md §4 |

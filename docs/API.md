@@ -49,7 +49,8 @@ Step 6. In between, the untouched screens must keep working:
 ## 1. Decisions for sign-off
 
 These change what a user can see or do. Everything else in this file keeps
-behaviour the same.
+behaviour the same. **All nine were signed off by the author on
+2026-09-12.**
 
 1. **The song is uploaded once.** Today the screens send the whole file again
    for Analyze, for every EQ re-plan, and for export (up to four uploads).
@@ -244,8 +245,10 @@ change.
   working.
 - **Retire:** `kind=original`, which has no caller.
 - **Download names** today are `{stem}_{preset}_{kind}_{id8}.ext`
-  (server.py:280-295), and Save to folder uses the same name. 2.0 needs a
-  pattern with no preset in it; it is decided before Step 4.
+  (server.py:280-295), and Save to folder uses the same name. **Decided
+  2026-09-12:** 2.0 names are `{stem}_{processed|removed|trimmed}_{id8}.ext`.
+  The preset part simply drops out, and stem bundles keep their
+  `{stem}_stems_{model}_{id8}.zip` name.
   `strip_shimmer_suffix` keeps a frozen list of the 1.x preset keys, so a
   re-processed 1.x export still loses its old suffix. Without that list,
   `my_song_generic_processed_ab12cd34` would be cut down to `my`.

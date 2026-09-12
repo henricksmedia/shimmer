@@ -9,6 +9,7 @@ cache, knobs come from here.
 Location:
     Windows:  %APPDATA%/Shimmer/projects/<sha1>.json
     Other:    ~/.config/shimmer/projects/<sha1>.json
+    Either follows SHIMMER_CONFIG_DIR when it is set (settings_store).
 
 Each file holds {"name": ..., "updated_at": ..., "remix": {...}} and is
 written atomically on every (debounced) change from the UI.
