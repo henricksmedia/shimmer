@@ -158,6 +158,12 @@ def output_format(key: str) -> Format:
     raise KeyError(key)
 
 
+# ── Mastering tone (1.1.1's controls, kept) ─────────────────────────────
+
+TONE_INTENSITIES = ("low", "med", "high")
+TONE_TILTS = ("warmer", "warm", "neutral", "bright", "brightest")
+
+
 # ── User EQ ─────────────────────────────────────────────────────────────
 
 EQ_LIMITS = {"max_bands": 12, "gain_limit_db": 18.0,

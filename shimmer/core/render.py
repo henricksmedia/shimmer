@@ -12,6 +12,8 @@ The order, each stage at its place in the chain:
      44.1 kHz), so the limiter's ceiling holds at the rate that is written.
   2. Fixes. One tool per card that is on. Built so far: Fixed tones (the
      notch). Step 6 adds the rest.
+  2b. With mastering on, the tone curve (1.1.1's, ported bit-exact): worked
+     out once from the whole raw song, applied after the notch as 1.1.1 did.
   3. The user EQ.
   4. Level: with mastering on, a 25 Hz low-cut, one static loudness gain,
      the peak shaper and the true-peak limiter; with it off and "preserve
@@ -32,9 +34,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 from . import catalog
-from .analyze.tones import scan_fixed_lines
+from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
 from .audio import filters, io, meters
-from .master import limiter, loudness
+from .master import limiter, loudness, tone
 from .progress import Progress
 from .repair import notch
 from .settings import EqBand, Settings
@@ -147,6 +149,25 @@ def _fix(x: np.ndarray, sr: int, plan: List[notch.Notch]) -> np.ndarray:
     return notch.apply(x, sr, plan) if plan else x
 
 
+def _tone_curve(source: Source, sr: int, s: Settings) -> List[float]:
+    """The mastering tone curve for this song, from the whole raw song, or
+    [] when mastering is off or the curve is flat."""
+    if not s.mastering:
+        return []
+
+    def make() -> List[float]:
+        x = source.at_rate(sr)
+        return tone.compute_tone_curve(
+            x, sr, strength=tone.intensity_to_strength(s.intensity), tilt=s.tilt,
+            cutoff_hz=estimate_cutoff_hz(x, sr).get("cutoff_hz"))
+    curve = source._remember(("tone_curve", sr, s.intensity, s.tilt), make)
+    return curve if max(abs(v) for v in curve) >= 1e-3 else []
+
+
+def _toned(x: np.ndarray, sr: int, curve: List[float]) -> np.ndarray:
+    return tone.apply_tone_curve(x, sr, curve) if curve else x
+
+
 def _premaster(x: np.ndarray, sr: int, s: Settings) -> np.ndarray:
     """EQ and the mastering low-cut. Returns x itself when nothing applies,
     so a bypass render is bit-exact."""
@@ -162,13 +183,13 @@ def _premaster(x: np.ndarray, sr: int, s: Settings) -> np.ndarray:
 
 
 def _whole_key(s: Settings, sr: int, plan: List[notch.Notch], what: str) -> Tuple:
-    return (what, sr, s.eq_enabled, s.eq_bands, s.mastering,
+    return (what, sr, s.eq_enabled, s.eq_bands, s.mastering, s.intensity, s.tilt,
             tuple((n.hz, n.depth_db, n.bw_hz) for n in plan))
 
 
 def _whole_premaster(source: Source, sr: int, s: Settings, plan: List[notch.Notch]) -> np.ndarray:
     x = source.at_rate(sr)
-    return _premaster(_fix(x, sr, plan), sr, s)
+    return _premaster(_toned(_fix(x, sr, plan), sr, _tone_curve(source, sr, s)), sr, s)
 
 
 def _whole_song_gain(source: Source, sr: int, s: Settings,
@@ -249,10 +270,17 @@ def render(source: Source, settings: Optional[Settings] = None,
         if key != "tones":
             report["fixes"][key] = "not built yet"
 
+    # 2b. The mastering tone curve.
+    curve = _tone_curve(source, sr, s)
+    if curve:
+        _stage(progress, "tone", "Tone", f"{s.intensity}, {s.tilt}")
+        report["mastering"]["tone_curve_db"] = [round(v, 2) for v in curve]
+    toned = _toned(fixed, sr, curve)
+
     # 3. The user EQ, and the mastering low-cut.
     if s.eq_enabled and _eq_designs(s.eq_bands, sr):
         _stage(progress, "eq", "EQ")
-    y = _premaster(fixed, sr, s)
+    y = _premaster(toned, sr, s)
 
     # 4. Level.
     if s.mastering:

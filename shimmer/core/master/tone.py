@@ -10,6 +10,16 @@ nulled first (ARCHITECTURE §19.1 item 1): the 1.1.1 tone target, the
 warm/bright tilt, compute_tone_curve and apply_tone_curve. The target
 (REF_SHAPE_DB) is the curve that won the 2026-09-09 blind round on 7 of 8
 songs; mastering.py's comment block tells its history.
+
+apply_tone_curve stays 1.1.1's overlap-add. Measured 2026-09-12
+(testing/scripts/tone_fir_probe.py, a strong bright curve):
+
+- A preview window matches the export 65 dB below the signal (the
+  contract is 60).
+- Pre-echo beyond 20 ms is -63 dB (the filter rule is -60).
+
+A linear-phase FIR would match windows exactly, but would change the sound
+by a difference 39.5 dB below the song, for no gain the rules need.
 """
 from __future__ import annotations
 

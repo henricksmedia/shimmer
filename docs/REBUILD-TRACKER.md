@@ -29,8 +29,8 @@ decision or on another step).
 - **Branch** `rebuild`, in the folder `.claude/worktrees/rebuild`. Run it
   with `testing\start-rebuild.bat` (local only), which uses port 7870 and its
   own settings folder. Not on GitHub yet: ask first.
-- **Now:** Step 4 is done, apart from pushing the branch to GitHub (ask
-  first). Step 5, mastering, is next.
+- **Now:** Step 5, mastering. Step 4 is done, apart from pushing the branch
+  to GitHub (ask first).
 
 | Step | What | Status |
 |---|---|---|
@@ -38,7 +38,7 @@ decision or on another step).
 | 2 | Settle the evidence | Done, with two optional listening rounds left |
 | 3 | Contracts and the route map | Done 2026-09-12 |
 | 4 | The new core | Done 2026-09-12 (push to GitHub waiting) |
-| 5 | Mastering | Next |
+| 5 | Mastering | In progress |
 | 6 | Cleaning, one module at a time | Not started (Shimmer research done) |
 | 7 | Finish, switch over, release 2.0.0 | Not started |
 
@@ -195,9 +195,17 @@ is signed off. **Done 2026-09-12.**
 - a Commercial master in Windows Media Player holds up next to released
   music on Spotify, on the same computer
 
-- [ ] Fetch the sources first (`STYLE.md` rule).
-- [ ] Every loudness choice reaches its level cleanly: gain into unused
-      headroom first, then gentle limiting.
+- [ ] Fetch the sources first (`STYLE.md` rule). In progress 2026-09-12:
+      loudness norms, streaming targets, genre tone targets, reference
+      matching, low-end mono and width, tone tolerances.
+- [x] Every loudness choice reaches its level cleanly: one static gain, then
+      the fixed limiter.
+  - On a dense mix, each choice lands within 0.3 LU, with peaks at or under
+    -1.0 dBTP read at 16x.
+  - A very dynamic track is never pushed past its target.
+  - These are contract tests.
+- [x] 1.1.1's tone curve, ported bit-exact and wired into `render()`: the
+      target, Intensity and Tilt, with mastering on.
 - [x] Commercial (-9 LUFS) is the default. Decided 2026-09-12.
 - [ ] New loudness names as three cards: mockup and sign-off first.
 - [ ] Tone target as a replaceable input, with a deadband.

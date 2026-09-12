@@ -63,6 +63,9 @@ class Settings:
     trim_silence     cut silence from the start and end
     preserve_volume  with mastering off, put the result back at the song's
                      own level
+    intensity        mastering tone: how much of the corrective move to make
+                     (catalog.TONE_INTENSITIES)
+    tilt             mastering tone: warm to bright (catalog.TONE_TILTS)
     """
     fixes: Dict[str, float] = field(default_factory=dict)
     auto: bool = True
@@ -73,6 +76,8 @@ class Settings:
     eq_bands: Tuple[EqBand, ...] = ()
     trim_silence: bool = False
     preserve_volume: bool = True
+    intensity: str = "med"
+    tilt: str = "neutral"
 
     def __post_init__(self) -> None:
         # Unknown cards are dropped and amounts kept to 0-1, so a bad value
@@ -90,6 +95,12 @@ class Settings:
         self.auto, self.mastering = bool(self.auto), bool(self.mastering)
         self.eq_enabled, self.trim_silence = bool(self.eq_enabled), bool(self.trim_silence)
         self.preserve_volume = bool(self.preserve_volume)
+        self.intensity = str(self.intensity or "").lower()
+        if self.intensity not in catalog.TONE_INTENSITIES:
+            self.intensity = "med"
+        self.tilt = str(self.tilt or "").lower()
+        if self.tilt not in catalog.TONE_TILTS:
+            self.tilt = "neutral"
 
     @classmethod
     def bypass(cls) -> "Settings":
@@ -111,6 +122,8 @@ class Settings:
                    "bands": [dataclasses.asdict(b) for b in self.eq_bands]},
             "trim_silence": self.trim_silence,
             "preserve_volume": self.preserve_volume,
+            "intensity": self.intensity,
+            "tilt": self.tilt,
         }
 
     @classmethod
@@ -128,6 +141,8 @@ class Settings:
             eq_bands=tuple(eq.get("bands") or ()),
             trim_silence=d.get("trim_silence", False),
             preserve_volume=d.get("preserve_volume", True),
+            intensity=d.get("intensity", "med"),
+            tilt=d.get("tilt", "neutral"),
         )
 
 
@@ -191,4 +206,6 @@ def migrate(old: Optional[Mapping[str, Any]]) -> Settings:
         eq_bands=tuple(eq.get("bands") or ()),
         trim_silence=old.get("trim_silence", False),
         preserve_volume=old.get("preserve_volume", True),
+        intensity=master.get("intensity", "med"),
+        tilt=master.get("tilt", "neutral"),
     )

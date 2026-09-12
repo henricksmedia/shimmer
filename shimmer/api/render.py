@@ -229,7 +229,7 @@ def _loudness_block(x: np.ndarray, sr: int) -> Dict[str, Optional[float]]:
 def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
                 notches: Optional[List[core.Notch]], trim_in_s: float,
                 trim_out_s: Optional[float], tags_req: Optional[Dict[str, Any]],
-                save_folder: str, intensity: str, tilt: str) -> None:
+                save_folder: str) -> None:
     """The worker: runs in a thread. Every stage checks for cancel."""
     prog = job.run
     prog.stage("load", "Reading the file")
@@ -303,7 +303,8 @@ def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
     if m.get("enabled"):
         mastering.update({
             "target_lufs": m["target_lufs"], "ceiling_dbtp": m["ceiling_dbtp"],
-            "gain_db": m["gain_db"], "intensity": intensity, "tilt": tilt,
+            "gain_db": m["gain_db"], "intensity": s.intensity, "tilt": s.tilt,
+            "eq_bands_db": m.get("tone_curve_db", []),
             "before": before, "after": after,
             "limiter": {"max_gain_reduction_db": m["limiter_gain_reduction_db"]},
             "limiter_gain_reduction": m["limiter_gain_reduction_db"],
@@ -350,7 +351,7 @@ def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
         "duration_s": float(y.shape[0] / out_sr),
         "input": _measure(x_at),
         "output": _measure(y),
-        "pipeline": {"tone_curve_db": [], "side_width_compensation": {}},
+        "pipeline": {"tone_curve_db": m.get("tone_curve_db", []), "side_width_compensation": {}},
         "mastering": mastering,
         "loudness": loudness,
         "trim": trim_report,
@@ -421,11 +422,10 @@ async def process(background: BackgroundTasks,
     # Exports never chain suffixes: a pass-2 file is named from the song.
     job.source_stem = core.tags.strip_shimmer_suffix(Path(name).stem) or "audio"
     job.original_path = source_path
-    mastering = p.get("mastering") or {}
     asyncio.create_task(_run_export_async(
         job, source_path, s, explicit_notches(p, 48000 if sess is None else sess.sr),
         trim_in_s, trim_out_s, p.get("tags") if isinstance(p.get("tags"), dict) else None,
-        folder, str(mastering.get("intensity") or "med"), str(mastering.get("tilt") or "neutral")))
+        folder))
     jobs_mod.JOB_STORE.sweep()
     return JSONResponse({"job_id": job.id})
 
