@@ -1052,6 +1052,9 @@ count.
       *First impression, 2026-09-12:* the author hears no difference between
       the three at matched level. Verdicts are not saved yet, and the
       listening check has not been run.
+      *Said again later that day:* "Loudest doesn't sound bad." Still not
+      saved on the bench, so it is recorded here as the author's report,
+      not as a blind verdict.
       *Checked end to end* by `testing/scripts/validate_loud_sets.py`:
       - every render is on its target
       - the windows differed in level before matching (about 3 dB and 5 dB)
