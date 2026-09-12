@@ -744,6 +744,9 @@ and what was learned. These are the gaps, most important first.
 
 ## 15. The rebuild plan
 
+**Where the work stands is tracked in [REBUILD-TRACKER.md](REBUILD-TRACKER.md).**
+This section is the plan. The tracker is updated as each piece lands.
+
 **In plain words.**
 
 - The screens you use today stay the same.
@@ -918,7 +921,8 @@ end to end on the new core.
 1. Fetch the sources first (the `STYLE.md` rule), then build:
    - every Loudness target choice reaching its level cleanly: gain into
      unused headroom first, then gentle limiting, as measured
-   - **Proposed 2026-09-12, needs a mockup and sign-off.** New names for
+   - **Decided 2026-09-12: Commercial is the default, with these names.**
+     The three-card look still needs a mockup and sign-off. New names for
      the Loudness target choices, each with a plain sub-label:
 
      | Label | Sub-label | Level |
@@ -959,7 +963,11 @@ In this order:
 3. De-esser (split-band, 4–10 kHz, lookahead, full signal, not gated by the
    transient guard)
 4. Dynamic EQ for mud
-5. The hash reduction slot
+5. Dynamic EQ for harshness, 2–4 kHz
+6. Shimmer, the fizz. The research comes first (started 2026-09-12). Then
+   the artifact model in `artifacts.py` is checked against it, and the fix is
+   built and put on the bench.
+7. Phasiness: a model first, then a tool
 
 Each module ships only when it passes the `GOALS.md` decision rule:
 
@@ -1106,7 +1114,7 @@ listening round.
 | 11 | Centre protection blocked faults in the centre | One rule applied to every stage | Each module's placement is chosen and measured on its own. Fixed tones and clicks get no centre protection. |
 | 12 | Claims in comments and docs that were not true | Numbers stated from memory; docs not updated | Sources fetched before design (`STYLE.md`). The chain view is built from the code. Docs are rewritten at the end, with each claim marked measured, cited or read. |
 | 13 | Bugs in export formats (OGG fails, MP3 not dithered, batch can overwrite sources) | No test per format | *Test:* write and re-read every format. Refuse an output folder equal to the input folder. |
-| 14 | Big changes judged by measurement alone | Measurement was wrong in both directions | Blind listening is final (`GOALS.md` rule 4), with headphones as well as speakers, and a second listener before any default changes. |
+| 14 | Big changes judged by measurement alone | Measurement was wrong in both directions | Blind listening is final (`GOALS.md` rule 4), with headphones as well as speakers, and a second listener before any default changes. *On 2026-09-12 the author set Commercial as the default without a second listener (§19.2 D1). The release check, 1.1.1 against 2.0 blind, still applies (§19.1 item 7).* |
 | 15 | Work planned but never finished, or dropped quietly | Checklist items removed when they slowed things down | The checklist stays append-only. Each step in §15 has a "done when" line, and the next step does not start until it is met. |
 
 ---
@@ -1342,26 +1350,32 @@ disagree.
 
 ### 19.2 Decisions for the author
 
-- **D1. Default loudness.**
-  - *Change it now:* make Commercial (-9) the default.
-  - *Wait:* first save the 8 "Does louder sound worse?" verdicts, and add a
-    second listener, as `GOALS.md` asks before any default changes.
-  - Either way, the three labelled cards can ship.
-- **D2. A small 1.2 for current users now.** Two of the headline problems
-  can be fixed in today's app: quiet masters (labels and the default) and
+Answered by the author on 2026-09-12, except D2. Progress on each is
+tracked in [REBUILD-TRACKER.md](REBUILD-TRACKER.md).
+
+- **D1. Default loudness: Commercial (-9 LUFS).** Decided. The new
+  labels in §15 Step 5 are adopted; the three-card look still gets a mockup
+  and sign-off before it is built.
+- **D2. A small 1.2 for current users now: open.** A 1.2 would be a small
+  update to today's app, fixing quiet masters (labels and the default) and
   preset filters at twice their setting. The alternative is to hold
-  everything for 2.0. A 1.2 changes users' sound, so it would get the same
-  blind check.
-- **D3. Cards that have no working tool.** Shimmer and Phasiness have no
-  tool that has passed. They could be hidden until one does, or shown with
-  "No fix yet", as in the mockup.
-- **D4. Step 5 scope.** Keep Step 5 to the gain policy and the tone-target
-  decision. Move reference-track matching, genre targets, width, low-end
-  mono and a compressor to after 2.0.
-- **D5. What ships from the evidence branch.** Options:
-  - Keep the bench and reference pages as dev tools.
-  - Move `soundcard` to a separate developer requirements file.
-  - Keep or relocate the 271,000 lines of measurement JSON under `docs/`.
+  everything for 2.0. Recommended: no 1.2, so all the work goes into the
+  rebuild. Users can already pick CD / Club today.
+- **D3. Cards with no working fix yet: they stay, and get real fixes.**
+  Shimmer is what the app was built for, so its fix is researched properly
+  (started 2026-09-12) before it is rebuilt: what the fizz is, what causes
+  it, and what could reduce it. Phasiness follows the same path. Until a
+  fix passes the decision rule, its card says so plainly.
+- **D4. Scope: the whole rebuild, in steps, tracked in one document.**
+  Nothing is cut or moved to after 2.0. Reference-track matching, genre
+  targets, width, low-end mono and a compressor (if the bench asks for one)
+  stay in Step 5.
+- **D5. The testing tools stay as they are.** These are kept for all future
+  testing:
+  - the listening bench and the reference library
+  - `soundcard`: the add-on the reference library uses to record what the
+    computer is playing
+  - the measurement JSON under `docs/`, which the tests and tools read
 
 ### 19.3 The cards
 

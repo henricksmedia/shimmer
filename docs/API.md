@@ -81,9 +81,9 @@ behaviour the same.
 8. **Download names change.** Today they are
    `{song}_{preset}_{processed|removed|trimmed}_{id}`. The 2.0 pattern is
    decided before Step 4 (§4).
-9. **If approved:** the Loudness choices show as three cards with new names
-   (ARCHITECTURE §15 Step 5), and the default may change (decision D1,
-   ARCHITECTURE §19.2).
+9. **Decided 2026-09-12:** Commercial (-9 LUFS) becomes the default, and the
+   Loudness choices get new names (ARCHITECTURE §15 Step 5, §19.2 D1). They
+   show as three cards once a mockup is signed off.
 
 Decision 3 matters less than it reads. The automatic second pass has been off
 since 2026-09-08 (HANDOFF-CHECKLIST item 8), so users lose the "Run both

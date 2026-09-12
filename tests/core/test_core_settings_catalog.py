@@ -85,6 +85,16 @@ def test_the_loudness_choices_stay_as_they_are():
 
 
 @catalog_
+def test_commercial_is_the_default():
+    # Decided by the author, 2026-09-12 (ARCHITECTURE §19.2 D1): master at
+    # the level most released songs sit at.
+    from shimmer.core import catalog
+    default = [t for t in catalog.LOUDNESS_TARGETS if t.default]
+    assert [t.key for t in default] == ["cd"]
+    assert "commercial" in default[0].label.lower()
+
+
+@catalog_
 def test_formats_carry_codec_aware_ceilings():
     from shimmer.core import catalog
     ceilings = {f.key: f.ceiling_dbtp for f in catalog.FORMATS}
