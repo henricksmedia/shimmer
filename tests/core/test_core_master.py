@@ -9,18 +9,17 @@ Interface: shimmer.core.master.tone
         the tone target is an input, never a constant (the old one changed
         four times on belief; ARCHITECTURE §3)
 """
-import importlib.util
-
 import numpy as np
-import pytest
 
-pytestmark = pytest.mark.xfail(importlib.util.find_spec("shimmer.core") is None,
-                               reason="shimmer.core is not built yet (rebuild Step 4)",
-                               strict=True)
+from _contract import needs
+
+album = needs("shimmer.core.master.loudness")
+tone = needs("shimmer.core.master.tone")
 
 FREQS = np.array([31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 12500, 16000, 20000], dtype=float)
 
 
+@album
 def test_album_mode_keeps_the_distances_between_songs():
     from shimmer.core.master.loudness import album_gains
     gains = album_gains([-12.0, -10.0, -15.0], -9.0)
@@ -28,6 +27,15 @@ def test_album_mode_keeps_the_distances_between_songs():
     assert abs((-10.0 + gains[1]) - (-9.0)) < 1e-6        # the loudest lands on target
 
 
+@album
+def test_a_silent_track_does_not_break_album_mode():
+    from shimmer.core.master.loudness import album_gains
+    gains = album_gains([-12.0, float("-inf"), -10.0], -9.0)
+    assert all(np.isfinite(g) for g in gains)
+    assert abs((-10.0 + gains[2]) - (-9.0)) < 1e-6
+
+
+@tone
 def test_the_tone_curve_stays_inside_its_limits():
     from shimmer.core.master.tone import tone_curve
     rng = np.random.default_rng(4)
@@ -38,6 +46,26 @@ def test_the_tone_curve_stays_inside_its_limits():
     assert np.min(curve) >= -3.0 - 1e-9
 
 
+@tone
+def test_the_tone_curve_moves_toward_the_target():
+    from shimmer.core.master.tone import tone_curve
+    measured = np.linspace(-2.0, 2.0, FREQS.size)      # a mix tilted bright
+    curve = tone_curve(measured, np.zeros(FREQS.size), FREQS)
+    assert curve[0] > 0 > curve[-1]
+    assert np.corrcoef(curve, -measured)[0, 1] > 0.9
+
+
+@tone
+def test_strength_scales_the_curve():
+    from shimmer.core.master.tone import tone_curve
+    measured = np.linspace(-1.0, 1.0, FREQS.size)      # small enough to stay inside the limits
+    full = tone_curve(measured, np.zeros(FREQS.size), FREQS, strength=1.0)
+    half = tone_curve(measured, np.zeros(FREQS.size), FREQS, strength=0.5)
+    assert np.max(np.abs(full)) > 0.3
+    assert np.allclose(half, 0.5 * full, atol=0.05)
+
+
+@tone
 def test_the_tone_target_is_an_input():
     from shimmer.core.master.tone import tone_curve
     measured = np.zeros(FREQS.size)
@@ -46,6 +74,7 @@ def test_the_tone_target_is_an_input():
     assert not np.allclose(a, b)
 
 
+@tone
 def test_nothing_is_boosted_above_the_cutoff():
     from shimmer.core.master.tone import tone_curve
     measured = np.full(FREQS.size, -10.0)     # everything wants a boost
@@ -53,6 +82,7 @@ def test_nothing_is_boosted_above_the_cutoff():
     assert np.all(curve[FREQS >= 0.9 * 12000.0] <= 1e-9)
 
 
+@tone
 def test_zero_strength_is_flat():
     from shimmer.core.master.tone import tone_curve
     curve = tone_curve(np.full(FREQS.size, 5.0), np.zeros(FREQS.size), FREQS, strength=0.0)

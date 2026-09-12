@@ -21,6 +21,31 @@ may be dropped.
 
 ---
 
+## 0. The transition rule (added after review, 2026-09-12)
+
+The routes move to the new engine in Step 4, but the screens are re-wired in
+Step 6. In between, the untouched screens must keep working:
+
+- **Old fields are still accepted.** Every route that moves still accepts
+  the old fields — `preset`, `preset_strength`, `overrides`, `auto_detect`,
+  `static_repair` and `cleaning.preset` — and maps them through
+  `shimmer.core.settings.migrate()`.
+- **Old fields are still returned.** Until the screen that reads them is
+  re-wired:
+  - `/api/suggest` keeps returning `preset`, `strength`, `ranked` and
+    `follow_up`, beside `findings[]`.
+  - `GET /api/settings` keeps returning `preset`, `preset_strength` and
+    `sliders`.
+- **Each old field is dropped in a named step:** the Master tab's in Step 6,
+  and Batch's and Remix's in Step 7.
+- **`file` stays as a fallback.** Routes that take `session_id` still take
+  `file`. The screens resend the file when a session answers 404 (it
+  expired, or the server restarted).
+- **Exports and Analyze decode the session's original file,** never the
+  preview copy, which stops at 30 minutes (`preview_store.py:32`).
+
+---
+
 ## 1. Decisions for sign-off
 
 These change what a user can see or do. Everything else in this file keeps
@@ -40,7 +65,30 @@ behaviour the same.
 4. **Three dead lines leave the results panel.** The 5-8 kHz, flicker-depth
    and narrow-peak lines under "Cleaning" read a `diagnostic` block the server
    has never sent, so they can never appear.
-5. **Four unused routes are removed** (§8).
+5. **Four unused routes are removed** (§8), plus `?kind=original` on
+   `/api/result`. FEATURES.md documents `/api/analyze` and
+   `/api/stems/status`, so the changelog says they are gone.
+6. **The Advanced artifact controls drawer and the Preset strength slider
+   retire.** Each card that is on gets one Amount slider instead
+   (ARCHITECTURE §19.3).
+7. **Every other place presets appear changes with them:**
+   - Batch's Fixed/Auto preset choice and its strength slider
+   - the Remix cleanup menu, with saved Remix projects migrated
+   - the Help "Pick a preset" tab and its quiz
+   - the command palette's preset entries
+   - the "19 presets" text on the page
+   - the CLI's `--preset`, `--list-presets` and `--suggest`
+8. **Download names change.** Today they are
+   `{song}_{preset}_{processed|removed|trimmed}_{id}`. The 2.0 pattern is
+   decided before Step 4 (§4).
+9. **If approved:** the Loudness choices show as three cards with new names
+   (ARCHITECTURE §15 Step 5), and the default may change (decision D1,
+   ARCHITECTURE §19.2).
+
+Decision 3 matters less than it reads. The automatic second pass has been off
+since 2026-09-08 (HANDOFF-CHECKLIST item 8), so users lose the "Run both
+passes" flow, not a suggestion they see today. Re-processing an export by hand
+still works, and its tags still say "pass 2".
 
 ---
 
@@ -55,6 +103,10 @@ behaviour the same.
 The whole `analysis` object goes back to the server as
 `params.mastering_analysis` on export. With the session reused (decision 1),
 that echo is no longer needed.
+
+`digest` is SHA-1 of the uploaded file's bytes (stems.py:434-441). Remix
+projects, the stem cache and the Recents list all key on it, so it must not
+change.
 
 ## 3. Analyze and tone
 
@@ -80,15 +132,15 @@ that echo is no longer needed.
   - `timeline.{intensity,step_s}`
   - `analysis`, `source_tags`
   - `tone_plan`, with `moves[]`, `regions[]`, `verify`, `verdict`, `why`,
-    `summary`, `family`, `family_label` and `analysis.{cleaning_applied,
-    preset_label,mastering_on}`
+    `summary`, `family`, `family_label`, `preset_label`, `mastering_on` and
+    `analysis.cleaning_applied`
 
 **`/api/suggest` after the rebuild.**
 
 - **Sends:** `session_id` (or `file`), `tone_family`, `mastering`.
 - **Returns:**
-  - `findings[]`: `{card, value, detail}`, one per card that fired
-    (ARCHITECTURE §13.2b)
+  - `findings[]`: `{card, value, unit, detail}`, one per card that fired
+    (ARCHITECTURE §19.3)
   - `timeline`, `notes`, `analysis`, `source_tags` and `tone_plan`, unchanged
 - **Retired with the presets:** `preset`, `strength`, `ranked`, `follow_up`,
   `scores`, `metrics`.
@@ -146,8 +198,13 @@ that echo is no longer needed.
 - **Keepalive:** one every 15 s.
 - **Stage keys:** these change with the new chain. The screens' phase lists
   are read from `/api/rules` instead of copied (single.js:2786-2797,
-  remix.js:16-48, chain.js:21-33). Separation keys (`setup`, `separate`,
-  `load`) stay.
+  remix.js:16-48, chain.js:21-33). These keys stay:
+  - separation: `setup`, `separate`, `load` and `null`
+  - Remix render: `mix`, `analyze`
+  - stem export: `mix`, `export`
+- **The server says which stages a run will use.** `progress-chain.js:213-215`
+  ignores keys it does not know, so a missing key shows up as a chain that
+  never lights, not as an error.
 - **Known limit:** one listener per job. A second tab or a reconnect steals
   events. The new job runner fixes this.
 
@@ -186,6 +243,12 @@ that echo is no longer needed.
   of 202. The UI's existing check (a JSON content type means an error) keeps
   working.
 - **Retire:** `kind=original`, which has no caller.
+- **Download names** today are `{stem}_{preset}_{kind}_{id8}.ext`
+  (server.py:280-295), and Save to folder uses the same name. 2.0 needs a
+  pattern with no preset in it; it is decided before Step 4.
+  `strip_shimmer_suffix` keeps a frozen list of the 1.x preset keys, so a
+  re-processed 1.x export still loses its old suffix. Without that list,
+  `my_song_generic_processed_ab12cd34` would be cut down to `my`.
 
 **`POST /api/remix/render`** — Keep. The render moves onto `render()`.
 
@@ -224,7 +287,7 @@ read with a fetch stream.
   | `phase` | `message`, `phase` |
   | `album` | `target_lufs`, `gain_db`, `loudest`, `loudest_lufs`, `album_lufs`, `spread_lu` |
   | `file_start` | `index`, `name` |
-  | `file_done` | `duration_s`, `peak_in_db`, `peak_out_db`, `lufs_out`, `true_peak_out`, `limiter_gr_db`, `lufs_clean`, `true_peak_clean`, `release.{status,flags}`, `trim.*`, `tone_moves`, `tags_written`, `effective_strength`, and `detected_*` (the last two become `findings`) |
+  | `file_done` | `phase` (album mode splits its clean and master lines on it, batch.js:219), `duration_s`, `peak_in_db`, `peak_out_db`, `lufs_out`, `true_peak_out`, `limiter_gr_db`, `lufs_clean`, `true_peak_clean`, `release.{status,flags}`, `trim.*`, `tone_moves`, `tags_written`, `effective_strength`, and `detected_*` (the last two become `findings`) |
   | `file_error` | `error` |
   | `end` | `message` |
 
@@ -313,3 +376,14 @@ visible change, and it goes to sign-off with the chain view.
    name (single.js:1279). This retires with the routine second pass.
 6. Comments at api.js:85, 130-131 and 164 list response fields nothing reads.
    They are rewritten with the file.
+
+## 11. Dev routes (keep)
+
+`/api/dev/ab/*` (the listening bench) and `/api/dev/references/*` (the
+reference library) are used by:
+
+- static/ab/ and static/references/
+- bench.bat and references.bat
+- tests/test_abtest_*.py
+
+The rebuild is judged on the bench, so these routes stay as they are.

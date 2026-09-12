@@ -8,14 +8,11 @@ Interface: shimmer.core.audio.meters
     loudness(x, sr) -> float          integrated LUFS, ITU-R BS.1770
     true_peak_db(x, sr) -> float      the louder channel, oversampled
 """
-import importlib.util
-
 import numpy as np
-import pytest
 
-pytestmark = pytest.mark.xfail(importlib.util.find_spec("shimmer.core") is None,
-                               reason="shimmer.core is not built yet (rebuild Step 4)",
-                               strict=True)
+from _contract import needs, true_peak_16x_db
+
+pytestmark = needs("shimmer.core.audio.meters")
 
 SR = 48000
 
@@ -51,3 +48,10 @@ def test_true_peak_never_reads_below_the_sample_peak():
     x = np.random.default_rng(2).standard_normal((SR, 2)) * 0.2
     sample_peak = 20 * np.log10(np.max(np.abs(x)))
     assert meters.true_peak_db(x, SR) >= sample_peak - 0.01
+
+
+def test_true_peak_agrees_with_16x_oversampling(dense_mix):
+    from shimmer.core.audio import meters
+    x, sr = dense_mix
+    loud = np.clip(x * 10 ** (8 / 20), -1.2, 1.2)      # clipped: many near-peaks
+    assert abs(meters.true_peak_db(loud, sr) - true_peak_16x_db(loud)) < 0.1

@@ -559,7 +559,8 @@ remembers your last settings.
 | Grainy reverb tails | Reverb Flutter | None yet | No tool; needs research |
 
 Old saved settings are carried over using this table: each old preset name
-maps to its new tool.
+maps to its new tool. *Corrected 2026-09-12 (§19.3): Generic maps to no fix,
+and Harsh Veil maps to Harshness.*
 
 ### 13.3 Audio language
 
@@ -809,6 +810,9 @@ author for sign-off before it is built.
   3. is null-tested against the baseline, so nothing changes by accident
 
   A ported piece that fails any of these is rewritten instead.
+  *Corrected by §19.1 item 1: a bug fix cannot null, so each piece is
+  first copied unchanged and nulled, and each fix then lands as its own
+  listed sound change.*
 - **Never copied:** nothing listed under "Retire" in §16 — the parts that
   measured badly or never got measured.
 - **Not part of the engine:** the measurement tools. They stay as the
@@ -1198,7 +1202,8 @@ tests/
   `api` calls only `core`'s public functions. `static` talks only to
   `/api`. A test enforces the first two (§17 row 7).
 - **Old modules stay untouched until Step 7.** Only two existing files are
-  edited along the way:
+  edited along the way *(withdrawn after review: more files change, §19.1
+  item 14)*:
   - `server.py`, to hand each route group to `api/`
   - `static/index.html`, to put the new cards where the old ones were
 - **Routes move in groups that share state,** so the app works after every
@@ -1224,4 +1229,169 @@ tests/
      same, and so does the entry point they call.
    - **The README says what to expect.** Today it only covers the first
      install. The first start after updating may take longer while the
-     Python environment updates.
+     Python environment updates. *(Not true as the launchers are written;
+     see §19.1 item 5.)*
+
+---
+
+## 19. Adversarial review, 2026-09-12
+
+Three independent reviewers tried to break the plan, the contract tests and
+the route map. Every finding used here was checked before it changed
+anything:
+
+- **Read in the code:**
+  - the shared settings folder (`settings_store.py:22-30`)
+  - the launchers' install check, which only fires when one of six imports
+    fails (`start.bat:117,130`)
+  - CI running on `main` only, with an import list naming modules Step 7
+    deletes (`ci.yml:3-6,39`)
+  - `soundcard`, a developer-only tool, in `requirements.txt`
+  - the 30-minute preview cap and 1-hour session expiry
+    (`preview_store.py:32,35`)
+- **Measured** on the old engine (local scripts `verify_test_review.py` and
+  `fixture_probe.py` in the gitignored `testing/scripts/`):
+  - The contract fixture called `headroom_mix` is -36.6 LUFS, with a
+    19.1 dB peak-to-loudness ratio. It is replaced by `dense_mix` (-19.5
+    LUFS, 13.6 dB), which the old engine masters to within 0.12 LU of each
+    target.
+  - Old-limiter output set to -1.0 dBTP reads -0.78 at 16x oversampling.
+  - An OGG Vorbis file written at -1.5 dBTP decodes at -0.48 dBTP.
+  - Textbook TPDF dither leaves 25 % of 16-bit samples non-zero on silence;
+    the old engine's dither leaves 56.5 %, which is twice the textbook
+    amount.
+
+The earlier text stays as it was. The rules below replace it where they
+disagree.
+
+### 19.1 Rules that change
+
+1. **Porting happens in two commits per piece.**
+   - First, copy the piece into `shimmer/core` unchanged, and null it
+     against the old function in the same tree. "Nulls" means the
+     difference sits at least 90 dB below the signal: rounding, nothing
+     more.
+   - Then land each bug fix as its own commit, listed as a sound change
+     with before and after numbers. This covers the 2x shelves, the 25 Hz
+     high-pass, the per-channel true peak and dither.
+   - Re-measure the notch's 96 % efficacy on the ported notch.
+2. **A transition rule keeps the screens working** while the routes move
+   ahead of them. Every route that moves still accepts the old fields and
+   maps them through `migrate()`. Routes keep returning the fields a screen
+   still reads until that screen is re-wired. Each old field has a named
+   step that drops it (`API.md` §0).
+3. **Tests are gated per module.**
+   - Each contract test is gated on the exact modules it imports, so a
+     piece of the engine can land on its own.
+   - A test that fails for any reason other than a missing module fails
+     for real (`raises=ImportError`).
+4. **The rebuild keeps its own settings.**
+   - Until release, the rebuild reads and writes its own settings folder
+     (`SHIMMER_CONFIG_DIR`, set by the rebuild's launch config), so the
+     author's everyday settings are never touched.
+   - On release, 2.0 adds its keys beside the old ones and deletes
+     nothing, so going back to 1.x keeps working.
+   - Rollback is checking out the 1.1.1 release.
+5. **The launchers reinstall whenever `requirements.txt` changes** (a hash
+   kept in `.venv`), not only when an import fails. A CI job upgrades a
+   1.1.1 environment to prove it.
+6. **"Upload once" is made safe.**
+   - Exports and Analyze decode the session's original file, never the
+     preview copy, which stops at 30 minutes.
+   - The screens resend the file when a session answers 404 (expired or
+     restarted).
+   - Uploaded originals live in the session folder, so they are deleted
+     with it.
+   - `render()` resamples for the chosen format before windowing, so the
+     preview also matches a 44.1 kHz release copy.
+7. **A release gate is added to Step 7.** Render the corpus with 1.1.1's
+   defaults and with 2.0's defaults; 2.0 must win or tie, blind. Every
+   sound change goes in the changelog with numbers.
+8. **Steps 6 and 7 get "done when" lines.**
+   - *Step 6:* each module that ships passes its contract tests and the
+     decision rule. A card whose tool has not passed follows decision D3.
+   - *Step 7:* the release gate passes; CI is green on Windows and Linux
+     with ffmpeg; the upgrade from 1.1.1 is tested; the changelog and
+     README are updated.
+9. **Remix is covered by Step 7.** Step 7 re-wires the Remix cleanup menu to
+   the cards and migrates saved projects (`projects/*.json`,
+   `remix.cleanup`). It also moves the Remix preview onto `render()`, with
+   its own test that the preview matches the export.
+10. **CI covers the rebuild.**
+    - It runs on `rebuild` as well.
+    - Its import check follows the new layout.
+    - A Windows job with ffmpeg runs the lossy exports.
+    - The branch is pushed so the backup §18.1 promises exists (ask first).
+11. **Names and keys are fixed before Step 4.**
+    - The 2.0 download-name pattern is decided first (`API.md` §4).
+    - The 1.x preset keys are frozen as a constant, so re-processed 1.x
+      exports still lose their old suffix cleanly.
+    - `digest` stays SHA-1 of the file's bytes, because projects, the stem
+      cache and Recents all key on it.
+12. **Lossy ceilings are set from measurement.** OGG at -1.5 dBTP decodes
+    at -0.48, so Step 4 measures each codec's overshoot. Each ceiling is set
+    so the decoded file stays at or under -1.0 dBTP.
+13. **Tests check true peak with an independent 16x meter,** because the
+    old limiter's -1.0 dBTP reads -0.78 at 16x.
+14. **More files change than §18.3 said.** Loudness, format, EQ-limit and
+    stage copies live in single.js, remix.js, visualizer.js, eq.js,
+    chain.js, batch.js, progress-chain.js and index.html (`API.md` §7).
+    §18.3's "only two existing files are edited" is withdrawn.
+15. **The card table is written out below (§19.3)** before any test pins
+    it.
+
+### 19.2 Decisions for the author
+
+- **D1. Default loudness.**
+  - *Change it now:* make Commercial (-9) the default.
+  - *Wait:* first save the 8 "Does louder sound worse?" verdicts, and add a
+    second listener, as `GOALS.md` asks before any default changes.
+  - Either way, the three labelled cards can ship.
+- **D2. A small 1.2 for current users now.** Two of the headline problems
+  can be fixed in today's app: quiet masters (labels and the default) and
+  preset filters at twice their setting. The alternative is to hold
+  everything for 2.0. A 1.2 changes users' sound, so it would get the same
+  blind check.
+- **D3. Cards that have no working tool.** Shimmer and Phasiness have no
+  tool that has passed. They could be hidden until one does, or shown with
+  "No fix yet", as in the mockup.
+- **D4. Step 5 scope.** Keep Step 5 to the gain policy and the tone-target
+  decision. Move reference-track matching, genre targets, width, low-end
+  mono and a compressor to after 2.0.
+- **D5. What ships from the evidence branch.** Options:
+  - Keep the bench and reference pages as dev tools.
+  - Move `soundcard` to a separate developer requirements file.
+  - Keep or relocate the 271,000 lines of measurement JSON under `docs/`.
+
+### 19.3 The cards
+
+This is the source the tests pin. It corrects §13.2a, where Generic mapped
+to the notch filter (it was the inert default) and Harsh Veil sat under the
+de-esser.
+
+| Key | Label | Group | Tool | Status |
+|---|---|---|---|---|
+| `shimmer` | Shimmer | artifacts | hash reduction (slot) | no tool has passed yet |
+| `tones` | Fixed tones | artifacts | notch filter (also combs) | proven: 96 % of a fixed tone |
+| `sibilance` | Sibilance | artifacts | de-esser | to rebuild |
+| `clicks` | Clicks and crackle | artifacts | de-click | to rebuild (checklist 17) |
+| `harshness` | Harshness | artifacts | dynamic EQ, 2-4 kHz | to measure (checklist 16: not fixed tones) |
+| `phasiness` | Phasiness | artifacts | none | no model, no tool |
+| `mud` | Low-mid build-up | tone_level | dynamic EQ, 200-500 Hz | to rebuild |
+| `air` | Lack of air | tone_level | tone target (mastering) | mastering |
+| `loudness` | Loudness | tone_level | loudness target (mastering) | works (checklist 19) |
+
+**How old presets map to cards:**
+
+| Old presets | Card |
+|---|---|
+| `generic` | no fix |
+| `cymbal_sheen`, `laser_whistle`, `air_brittle`, `checkerboard_grid` | `tones` |
+| `suno_hash`, `broadband_fizz`, `presence_haze`, `echo_sheen`, `cymbal_chatter`, `phantom_cymbal`, `vocal_glaze_plus`, `deep_scrub` | `shimmer` |
+| `sibilance_rattle`, `vocal_glaze` | `sibilance` |
+| `harsh_veil` | `harshness` |
+| `muddy_boxy` | `mud` |
+| `dark_mix_rescue` | `air` |
+| `reverb_flutter` | `phasiness` |
+
+The 1.x version-named aliases map through the preset they point to.

@@ -10,15 +10,16 @@ Interface: shimmer.core.audio.filters
         kind in KINDS = ("bell", "low_shelf", "high_shelf",
                          "high_pass", "low_pass", "notch")
     apply(x, sr, sos) -> y        zero-phase
+        A pass filter's cutoff is the -3 dB point of the response as
+        applied (both directions together), with a slope of at least
+        12 dB per octave.
 """
-import importlib.util
-
 import numpy as np
 import pytest
 
-pytestmark = pytest.mark.xfail(importlib.util.find_spec("shimmer.core") is None,
-                               reason="shimmer.core is not built yet (rebuild Step 4)",
-                               strict=True)
+from _contract import needs
+
+pytestmark = needs("shimmer.core.audio.filters")
 
 SR = 48000
 N = 1 << 16
@@ -60,6 +61,15 @@ def test_passes_are_3_db_down_at_their_cutoff(kind):
     from shimmer.core.audio import filters
     sos = filters.design(kind, 1000.0, SR)
     assert abs(_gain_db_at(sos, 1000.0) + 3.01) < 0.1
+
+
+@pytest.mark.parametrize("kind, stop, keep", [("high_pass", 500.0, 4000.0),
+                                              ("low_pass", 2000.0, 250.0)])
+def test_passes_cut_an_octave_out_and_leave_the_band_alone(kind, stop, keep):
+    from shimmer.core.audio import filters
+    sos = filters.design(kind, 1000.0, SR)
+    assert _gain_db_at(sos, stop) <= -9.0        # at least 12 dB/octave, applied
+    assert abs(_gain_db_at(sos, keep)) < 0.1     # two octaves inside: untouched
 
 
 def test_a_notch_reaches_its_depth_and_leaves_an_octave_away_alone():
