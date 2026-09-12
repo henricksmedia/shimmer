@@ -122,8 +122,12 @@ def true_peak_limiter(x: np.ndarray, sr: int,
     for ch in range(n_ch):
         peak_env = np.maximum(peak_env, _true_peak_envelope(x[:, ch], _OVERSAMPLE))
 
-    # The gain each sample needs so its true peak lands on the ceiling.
-    need = np.minimum(1.0, ceiling / np.maximum(peak_env, 1e-12))
+    # The gain each sample needs so its true peak lands on the ceiling. The
+    # aim sits just under it: between two 8x readings a peak can hide by at
+    # most cos(pi/16), 0.17 dB, and 1.1.1 aimed at the ceiling itself, so
+    # its output read above it at 16x.
+    aim = ceiling * math.cos(math.pi / (2 * _OVERSAMPLE))
+    need = np.minimum(1.0, aim / np.maximum(peak_env, 1e-12))
 
     # The gain ramps down across the lookahead instead of stepping. 1.1.1
     # dropped it within one sample at each peak (up to 3.8 dB in a single
