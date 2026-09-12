@@ -327,6 +327,8 @@ button kbd { opacity: .55; font-size: 11px; }
 
 /* Group tabs: the group you are in is the first thing on the page, and
    switching group is one click. Same colours as the pips below them. */
+.gtabs-lead { margin: 0 0 var(--gap-2); font-size: 13px; color: var(--fg-2); }
+.gtabs-lead b { color: var(--fg-0); font-weight: 600; }
 .gtabs { display: flex; flex-wrap: wrap; gap: var(--gap-2); margin: 0 0 var(--gap-3); }
 .gtab { display: inline-flex; align-items: baseline; gap: 8px; padding: 8px 14px;
         border-radius: var(--radius-s); background: var(--bg-2);
@@ -496,7 +498,9 @@ select#sets { max-width: 360px; }
     </div>
   </header>
 <div class="round" id="round" hidden>
-    <nav class="gtabs" id="gtabs" aria-label="Comparison groups"></nav>
+    <p class="gtabs-lead"><b>Listening tests</b> · Nothing on this page changes
+      Shimmer. Answer one question per song.</p>
+    <nav class="gtabs" id="gtabs" aria-label="Listening tests"></nav>
     <div class="setbar">
       <div class="seg">
         <button id="prev" class="quiet" title="Previous comparison (left arrow)"
@@ -1427,12 +1431,15 @@ async function open_(id) {
 /* Label, then the sentence. The label is the term a mastering engineer
    would use; the sentence says what you are about to hear. */
 const GROUPS = [
-  {p:'level-',   name:'Loudness settings',
+  // Named by the question you answer, not the topic: a topic name like
+  // "Loudness settings" read as a control you could change.
+  {p:'level-',   name:'Which is loudest?',
    what:'The same master at Streaming, Loud and CD / Club, each at its real ' +
         'loudness. Nothing is turned up or down. Pick the loudest.'},
-  {p:'loud-',    name:'Loudness side effects',
-   what:'The same master at three loudness settings, matched in level, so the ' +
-        'only thing left to hear is what the louder settings did to the sound.'},
+  {p:'loud-',    name:'Does louder sound worse?',
+   what:'The same master at three loudness settings, turned to the same level, ' +
+        'so the only thing left to hear is what the louder settings did to the ' +
+        'sound. Pick the cleanest.'},
   {p:'tone-',    name:'Tone target',
    what:'The same song mastered twice. One aims at the new tone target, ' +
         'one at the old.'},
@@ -1521,7 +1528,7 @@ function renderGroupTabs(active) {
     const done = rs.filter(r => r.judged).length;
     return `<button class="gtab${done === rs.length ? ' done' : ''}" data-p="${esc(g.p)}"` +
       ` aria-current="${g.p === active.p}" title="${esc(g.what)}">${esc(g.name)}` +
-      `<span class="n">${done} of ${rs.length}</span></button>`;
+      `<span class="n">${done} of ${rs.length} answered</span></button>`;
   }).join('');
   $('gtabs').querySelectorAll('.gtab').forEach(b => b.onclick = () => {
     const g = groups.find(x => x.p === b.dataset.p);
