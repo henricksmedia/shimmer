@@ -118,19 +118,29 @@ class Format:
     lossy: bool
     ceiling_dbtp: float
     bitrate: Optional[str]
+    quality: Optional[float] = None   # OGG Vorbis quality, 0-1; None = libsndfile's default
 
 
-# Lossy ceilings leave room for the decoder's overshoot. -1.5 is the
-# starting point; each codec's overshoot is measured and its ceiling set
-# from that, so the decoded file stays at or under -1.0 dBTP (ARCHITECTURE
-# §19.1 item 12: OGG written at -1.5 decoded at -0.48).
+# Lossy ceilings leave room for the codec's overshoot, set from measurement
+# (ARCHITECTURE §19.1 item 12; testing/scripts/lossy_ceilings.py,
+# 2026-09-12, both test mixes at -9 LUFS). export() also checks every lossy
+# file after encoding and corrects it, so these only need to be close.
+#   OGG at libsndfile's default quality overshot by up to +2.2 dB (decoded
+#   +0.26 dBTP); at quality 0.8 by +0.17 to +0.98, so -2.0 decodes at
+#   -1.29 to -1.91.
+#   MP3 320k overshot by +0.58 to +1.24, mid-song (VBR V0 was no better on
+#   both mixes).
+#   M4A, ffmpeg's built-in AAC encoder, overshot by up to +2.9 dB, mid-song on
+#   sharp hits; 320k and VBR were worse (testing/scripts/codec_probe.py). On
+#   drum-heavy songs export() turns an M4A down by up to ~2.5 dB to keep it
+#   from clipping, and says so in its report.
 FORMATS: Tuple[Format, ...] = (
     Format("wav", ".wav", "WAV 24-bit", "PCM_24", None, 24, False, -1.0, None),
     Format("wav16", ".wav", "WAV 16-bit 44.1 kHz", "PCM_16", 44100, 16, False, -1.0, None),
     Format("flac", ".flac", "FLAC", "PCM_24", None, 24, False, -1.0, None),
-    Format("mp3", ".mp3", "MP3 320 kbps", None, None, None, True, -1.5, "320k"),
-    Format("ogg", ".ogg", "OGG Vorbis", None, None, None, True, -1.5, None),
-    Format("m4a", ".m4a", "M4A (AAC)", None, None, None, True, -1.5, "256k"),
+    Format("mp3", ".mp3", "MP3 320 kbps", None, None, None, True, -2.0, "320k"),
+    Format("ogg", ".ogg", "OGG Vorbis", None, None, None, True, -2.0, None, quality=0.8),
+    Format("m4a", ".m4a", "M4A (AAC)", None, None, None, True, -2.0, "256k"),
 )
 
 DEFAULT_FORMAT = "wav"

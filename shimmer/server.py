@@ -119,6 +119,12 @@ app = FastAPI(title="Shimmer by The Treq")
 app.mount("/static", _NoCacheStaticFiles(directory=str(STATIC_DIR), html=True),
           name="static")
 
+# Routes of the new engine (shimmer.api), included as each area moves over
+# (docs/REBUILD-TRACKER.md Step 4).
+from .api import rules as _api_rules  # noqa: E402
+
+app.include_router(_api_rules.router)
+
 
 # ───────────────────────────────────────────────────────────────────────────
 # Helpers

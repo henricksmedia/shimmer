@@ -131,10 +131,20 @@ is signed off. **Done 2026-09-12.**
 - [x] `render()`: one sound path, with the preview window and the output
       rate for each format. All 13 render contract tests pass, including
       "the preview is the export on a window".
-- [ ] `export()`, with dither, tags and the overwrite guard.
+- [x] `export()`, with dither, tags and the overwrite guard. Every render
+      and export contract test passes.
+  - It found and fixed two OGG faults in 1.1.1: its OGG export always
+    stopped with an error, and writing OGG correctly in one call crashed the
+    process.
+  - Lossy files are decoded after encoding and corrected, so they can
+    never clip when played.
+- [x] Tags moved into the engine (`shimmer/core/tags.py`). The old module
+      now points to it, so there is one copy.
 - [ ] One job runner, with cancel.
-- [ ] Measure each lossy format's overshoot and set its ceiling (item 12).
-- [ ] `shimmer/api`, and the `GET /api/rules` route.
+- [x] Measure each lossy format's overshoot and set its ceiling (item 12).
+      Done for OGG (quality 0.8, -2.0) and MP3 (-2.0); M4A overshot by up to
+      +2.9 dB and is being probed.
+- [x] `shimmer/api`, and the `GET /api/rules` route. Its contract tests pass.
 - [ ] Ports: each copied unchanged and nulled first. Each bug fix then lands
       on its own as a listed sound change (item 1).
 - [ ] The transition rule: routes still accept the old fields
