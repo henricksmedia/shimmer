@@ -22,6 +22,9 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 BANNED_LIBS = {"scipy", "soundfile", "pyloudnorm"}
 WEB_LIBS = {"fastapi", "starlette", "uvicorn"}
+# 1.x modules the plan keeps as they are (ARCHITECTURE §16: Keep). The web
+# layer may call them until they move; the old engine stays off limits.
+KEPT = {"stems", "projects_store", "settings_store"}
 
 
 def _missing(name):
@@ -81,9 +84,10 @@ def test_the_web_layer_imports_only_the_engines_public_face():
             top = module.split(".")[0]
             assert top not in BANNED_LIBS, f"{f.name} imports {module}"
             if module == "shimmer":
-                assert names == ["core"], f"{f.name} imports {names} from shimmer"
+                assert set(names) <= {"core"} | KEPT, f"{f.name} imports {names} from shimmer"
             elif module.startswith("shimmer"):
-                assert module == "shimmer.core" or module.startswith("shimmer.api"), \
+                assert (module == "shimmer.core" or module.startswith("shimmer.api")
+                        or module in {f"shimmer.{k}" for k in KEPT}), \
                     f"{f.name} imports {module}; the web layer may only use shimmer.core"
             assert module != "<outside the package>", f"{f.name} reaches outside shimmer.api"
 

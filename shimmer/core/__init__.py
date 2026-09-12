@@ -17,9 +17,19 @@ below. Nothing here imports the web layer or the old engine
 (docs/ARCHITECTURE.md §18.3, tests/api/test_api_contract.py).
 """
 from . import catalog, tags
+from .analyze.edges import apply_trim, detect_edge_artifacts
+from .analyze.findings import Finding, findings
+from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
+from .analyze.track import analyze_track
+from .audio.io import AudioIOError, file_digest, wav_bytes
+from .audio.io import load as load_audio
 from .export import export
 from .render import Rendered, Source, render
+from .repair.notch import Notch, NotchPlan, plan_from_lines
 from .settings import EqBand, Settings, migrate
 
 __all__ = ["catalog", "tags", "export", "render", "Rendered", "Source",
-           "Settings", "EqBand", "migrate"]
+           "Settings", "EqBand", "migrate",
+           "analyze_track", "detect_edge_artifacts", "apply_trim", "findings", "Finding",
+           "scan_fixed_lines", "estimate_cutoff_hz", "plan_from_lines", "Notch", "NotchPlan",
+           "load_audio", "wav_bytes", "file_digest", "AudioIOError"]

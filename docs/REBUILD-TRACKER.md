@@ -156,8 +156,18 @@ is signed off. **Done 2026-09-12.**
       on its own as a listed sound change (item 1).
 - [ ] The transition rule: routes still accept the old fields
       ([API.md](API.md) §0).
-- [ ] Move the Master tab's routes one at a time, and check the screen after
-      each.
+- [ ] Move the Master tab's routes one group at a time (ARCHITECTURE
+      §18.3), and check the screen after each:
+  - [x] Sessions: upload, envelope and drop. The original now lives and
+        dies with its session, and a silent upload no longer fails. The 1.x
+        preview, stem and Remix routes use the same store, and their tests
+        pass.
+  - [ ] Render and export: preview, process, progress, metrics, result, and
+        a new cancel.
+  - [ ] Analyze (suggest, tone, chain) moves with Step 5 and Step 6, not
+        before. Until the screen is re-wired, `/api/suggest` must keep
+        returning the old preset ranking (API.md §0), and its tone plan is
+        the Step 5 rewrite. It keeps running on the 1.x code until then.
 
 ## Step 5 — Mastering (the main complaint)
 
