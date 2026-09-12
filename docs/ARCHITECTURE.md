@@ -867,6 +867,9 @@ Contract tests are written in `tests/core/` and `tests/api/`. They are marked
 "expected to fail" until `shimmer.core` and `shimmer.api` exist, so the rest of
 the suite stays green. The route map is written: `docs/API.md`. Its §1 lists
 the five changes a user would see, which wait for sign-off.
+Item 3 below, the rules route, is specified (`docs/API.md` §7) and tested
+(`tests/api/test_api_contract.py`) here. It is built in Step 4, because it
+serves `shimmer.core.catalog`, which Step 4 builds.
 
 1. Write the contract tests (§12) against the new interface, before the
    engine exists.
