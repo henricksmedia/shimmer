@@ -220,7 +220,7 @@ label.chk { display: inline-flex; align-items: center; gap: 6px;
 /* ── verdict, inline so you never scroll away mid-listen ────────── */
 .verdict { margin-top: var(--gap-4); padding-top: var(--gap-4);
            border-top: 1px solid var(--line); }
-.q { font-size: 13px; color: var(--fg-2); margin: 0 0 var(--gap-3); }
+.q { font-size: 17px; font-weight: 650; color: var(--fg-0); margin: 0 0 var(--gap-3); }
 .picks { display: grid; gap: var(--gap-2);
          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 .picks button { padding: 13px 8px; font-size: 13.5px; }
@@ -324,6 +324,25 @@ button kbd { opacity: .55; font-size: 11px; }
 
 /* ── recovered from builder 1 ─────────────────────────────── */
 .round { margin: 0 0 var(--gap-4); }
+
+/* Group tabs: the group you are in is the first thing on the page, and
+   switching group is one click. Same colours as the pips below them. */
+.gtabs { display: flex; flex-wrap: wrap; gap: var(--gap-2); margin: 0 0 var(--gap-3); }
+.gtab { display: inline-flex; align-items: baseline; gap: 8px; padding: 8px 14px;
+        border-radius: var(--radius-s); background: var(--bg-2);
+        border: 1px solid var(--line); color: var(--fg-1);
+        font-size: 13.5px; font-weight: 600; }
+.gtab:hover:not(:disabled) { background: var(--bg-3); border-color: var(--line-2); }
+.gtab .n { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500;
+           color: var(--fg-3); }
+.gtab.done .n { color: var(--success); }
+.gtab[aria-current="true"] { border-color: var(--amber); color: var(--fg-0);
+                             background: rgba(245,165,36,.12);
+                             box-shadow: 0 0 0 1px rgba(245,165,36,.35); }
+.gtab[aria-current="true"] .n { color: var(--amber); }
+/* The group again, above the song title, so the question is never a guess. */
+.eyebrow { margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: .1em;
+           text-transform: uppercase; color: var(--amber); }
 
 .round-top { display: flex; align-items: center; gap: var(--gap-3);
              flex-wrap: wrap; }
@@ -477,6 +496,7 @@ select#sets { max-width: 360px; }
     </div>
   </header>
 <div class="round" id="round" hidden>
+    <nav class="gtabs" id="gtabs" aria-label="Comparison groups"></nav>
     <div class="setbar">
       <div class="seg">
         <button id="prev" class="quiet" title="Previous comparison (left arrow)"
@@ -533,9 +553,9 @@ select#sets { max-width: 360px; }
   <main id="main" hidden>
    <div class="cols">
     <section class="colA">
+    <p class="eyebrow" id="eyebrow" hidden><span id="roundgroup"></span></p>
     <h1 id="title" style="font-size:19px;color:var(--fg-0);margin:0 0 4px">…</h1>
-    <p class="groupline" id="groupline" hidden><b id="roundgroup"></b><span
-       id="roundwhat"></span></p>
+    <p class="groupline" id="groupline" hidden><span id="roundwhat"></span></p>
     <p id="note" style="color:var(--fg-2);font-size:13px;margin:0 0 var(--gap-2);max-width:70ch"></p>
     <p id="roster" class="roster" hidden></p>
 
@@ -1491,13 +1511,36 @@ function renderPicker() {
   if (cur) $('sets').value = cur.id;
 }
 
+/* One tab per group, so the group you are in is the first thing you read and
+   switching group is one click. Each tab carries its own count; clicking one
+   opens that group's next unjudged set, or its first if all are judged. */
+function renderGroupTabs(active) {
+  const groups = GROUPS.concat([OTHER]).filter(g => inGroup(g).length);
+  $('gtabs').innerHTML = groups.map(g => {
+    const rs = inGroup(g);
+    const done = rs.filter(r => r.judged).length;
+    return `<button class="gtab${done === rs.length ? ' done' : ''}" data-p="${esc(g.p)}"` +
+      ` aria-current="${g.p === active.p}" title="${esc(g.what)}">${esc(g.name)}` +
+      `<span class="n">${done} of ${rs.length}</span></button>`;
+  }).join('');
+  $('gtabs').querySelectorAll('.gtab').forEach(b => b.onclick = () => {
+    const g = groups.find(x => x.p === b.dataset.p);
+    const t = g && (firstUnjudged(g) || inGroup(g)[0]);
+    if (t) open_(t.id);
+  });
+}
+
 /* The strip above the candidates: group, count, one pip per set. */
 function renderRound(id) {
   const row = byId_.get(id);
   // The group name lives in the header now, so it has to be hidden and shown
   // with the strip rather than by it.
-  if (!row) { $('round').hidden = true; $('groupline').hidden = true; return; }
-  $('round').hidden = false; $('groupline').hidden = false;
+  if (!row) {
+    $('round').hidden = true; $('groupline').hidden = true; $('eyebrow').hidden = true;
+    return;
+  }
+  $('round').hidden = false; $('groupline').hidden = false; $('eyebrow').hidden = false;
+  renderGroupTabs(row.group);
   const rs = inGroup(row.group);
   const done = rs.filter(r => r.judged).length;
   $('roundgroup').textContent = row.group.name;
