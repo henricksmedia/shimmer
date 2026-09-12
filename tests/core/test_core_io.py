@@ -55,6 +55,16 @@ def test_ogg_is_vorbis_and_reads_back(tmp_path):
     assert sr == SR and abs(len(y) - 2 * SR) < SR // 10
 
 
+def test_a_long_ogg_writes_without_crashing(tmp_path):
+    # libsndfile's Vorbis encoder overflowed the stack on one big write: a
+    # 20 s stereo OGG killed Python outright. A whole song must write.
+    from shimmer.core.audio import io
+    p = tmp_path / "long.ogg"
+    io.save(p, _tone(seconds=60.0, dbfs=-20.0), SR, quality=0.8)
+    y, sr = io.load(p)
+    assert sr == SR and abs(len(y) - 60 * SR) < SR // 10
+
+
 @NEEDS_FFMPEG
 @pytest.mark.parametrize("ext, channels", [(".mp3", 2), (".m4a", 2), (".mp3", 1)])
 def test_lossy_files_keep_rate_channels_and_level(tmp_path, ext, channels):

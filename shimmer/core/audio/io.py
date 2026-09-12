@@ -1,6 +1,10 @@
 """Reading and writing audio files. Nothing else in the engine touches files.
 
-Ported from shimmer/audio_io.py (load/save only), with three fixes:
+Ported from shimmer/audio_io.py (load/save only), with four fixes:
+
+- **OGG export no longer crashes.** libsndfile's Vorbis encoder overflows
+  the stack when given a long song in one write call, which killed the
+  whole process. Files are now written a block at a time.
 
 - **MP3 and M4A are encoded from 32-bit float.** The old path wrote a 16-bit
   temp file with no dither before handing it to ffmpeg, which truncated
@@ -31,6 +35,7 @@ SOUNDFILE_EXTS = {".wav", ".flac", ".ogg", ".aiff", ".aif"}
 FFMPEG_EXTS = {".mp3", ".m4a", ".aac", ".mp4"}
 _FFMPEG_CODEC = {".mp3": ("libmp3lame", "mp3"), ".m4a": ("aac", "mp4"),
                  ".aac": ("aac", "adts"), ".mp4": ("aac", "mp4")}
+_WRITE_BLOCK = 1 << 14    # frames per libsndfile write call
 
 
 class AudioIOError(RuntimeError):
@@ -103,23 +108,37 @@ def load(path) -> Tuple[np.ndarray, int]:
 
 # ── Writing ─────────────────────────────────────────────────────────────
 
+def _write_blocks(path: str, a: np.ndarray, sr: int, **fmt) -> None:
+    """Write through libsndfile a block at a time. Its Vorbis encoder
+    overflows the stack when handed a large buffer in one call: a 20 s
+    stereo OGG crashed Python outright, with no error to catch."""
+    with sf.SoundFile(path, "w", samplerate=int(sr), channels=a.shape[1], **fmt) as f:
+        for s in range(0, a.shape[0], _WRITE_BLOCK):
+            f.write(a[s:s + _WRITE_BLOCK])
+
+
 def save(path, y: np.ndarray, sr: int, subtype: str = "PCM_24",
-         bitrate: Optional[str] = None) -> None:
+         bitrate: Optional[str] = None, quality: Optional[float] = None) -> None:
     """Write audio, choosing the writer by extension.
 
     subtype  for WAV, FLAC and AIFF ("PCM_24", "PCM_16", "FLOAT"). OGG is
              always Vorbis. Dither is the caller's job: this writes the
              samples it is given.
     bitrate  for MP3 and M4A, e.g. "320k". None uses the codec's default.
+    quality  for OGG Vorbis, 0 (smallest) to 1 (best). None uses
+             libsndfile's default.
     """
     path = os.fspath(path)
     ext = os.path.splitext(path)[1].lower()
     a = _as_2d(np.asarray(y, dtype=np.float32))
     if ext == ".ogg":
-        sf.write(path, a, int(sr), format="OGG", subtype="VORBIS")
+        fmt = {"format": "OGG", "subtype": "VORBIS"}
+        if quality is not None:
+            fmt["compression_level"] = 1.0 - min(1.0, max(0.0, float(quality)))
+        _write_blocks(path, a, sr, **fmt)
         return
     if ext in SOUNDFILE_EXTS:
-        sf.write(path, a, int(sr), subtype=subtype)
+        _write_blocks(path, a, sr, subtype=subtype)
         return
     if ext not in _FFMPEG_CODEC:
         raise AudioIOError(f"Cannot write '{ext}' files.")
