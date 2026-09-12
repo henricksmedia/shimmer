@@ -29,16 +29,16 @@ decision or on another step).
 - **Branch** `rebuild`, in the folder `.claude/worktrees/rebuild`. Run it
   with `testing\start-rebuild.bat` (local only), which uses port 7870 and its
   own settings folder. Not on GitHub yet: ask first.
-- **Now:** Step 4, the new core. The setup is done and the filters are
-  built.
+- **Now:** Step 4 is done, apart from pushing the branch to GitHub (ask
+  first). Step 5, mastering, is next.
 
 | Step | What | Status |
 |---|---|---|
 | 1 | Decide | Done 2026-09-12 |
 | 2 | Settle the evidence | Done, with two optional listening rounds left |
 | 3 | Contracts and the route map | Done 2026-09-12 |
-| 4 | The new core | In progress |
-| 5 | Mastering | Not started |
+| 4 | The new core | Done 2026-09-12 (push to GitHub waiting) |
+| 5 | Mastering | Next |
 | 6 | Cleaning, one module at a time | Not started (Shimmer research done) |
 | 7 | Finish, switch over, release 2.0.0 | Not started |
 
@@ -158,8 +158,14 @@ is signed off. **Done 2026-09-12.**
 - [x] `shimmer/api`, and the `GET /api/rules` route. Its contract tests pass.
 - [ ] Ports: each copied unchanged and nulled first. Each bug fix then lands
       on its own as a listed sound change (item 1).
-- [ ] The transition rule: routes still accept the old fields
-      ([API.md](API.md) §0).
+- [x] The transition rule: routes still accept the old fields
+      ([API.md](API.md) §0), tested with a 1.x preset request.
+- [x] Checked in the browser on port 7870: a real song through the
+      untouched Master tab.
+  - Every call returned 200: process, upload, envelope, result and
+    metrics.
+  - The download had its 2.0 name.
+  - There were no console errors.
 - [ ] Move the Master tab's routes one group at a time (ARCHITECTURE
       §18.3), and check the screen after each:
   - [x] Sessions: upload, envelope and drop. The original now lives and
@@ -242,6 +248,9 @@ the music" (`GOALS.md`):*
       with sign-off.
 - [ ] Everything on at full, on clean music, passes the same checks.
 - [ ] The screens read `/api/rules`, and the Step 6 test mark comes off.
+- [ ] The progress chain reads its stages from the server. It still shows
+      1.x's stage names (Repair, Pre, Split and so on), while the new
+      engine reports its own: rate, fixes, eq, master, export and report.
 
 ## Step 7 — Finish, switch over, release
 
@@ -266,6 +275,19 @@ the music" (`GOALS.md`):*
 - [ ] Release check: 1.1.1 against 2.0, blind; 2.0 must win or tie.
 - [ ] Changelog: every sound change, with numbers.
 - [ ] Pull request from `rebuild` into `main`, then release 2.0.0: ask first.
+
+## Proposals waiting for sign-off
+
+- **A file size limit (asked 2026-09-12: a service takes 50 MB at most).**
+  - An optional "Size limit (MB)" setting.
+  - The Download step shows the exact size before export.
+  - When the song will not fit, it suggests the format that does: WAV
+    16-bit 44.1 kHz (10.6 MB a minute, 4:43 under 50 MB), then FLAC
+    (lossless, about half the size).
+  - It never picks a lossy format without asking, and never cuts the song.
+  - Today's default, WAV 24-bit 48 kHz, is 17.3 MB a minute (2:53 under
+    50 MB).
+  - It needs a mockup before it is built.
 
 ## Open questions (answered when their step comes)
 
