@@ -1090,6 +1090,25 @@ count.
       by `testing/scripts/build_level_sets.py`. The question is "Which is
       loudest?". Running the listening check on the two closest settings
       shows whether the step of about 2 dB can be heard.
+      **Judged 2026-09-12** (`docs/listening/2026-09-12-loudness-round.json`,
+      written by `scripts/listening_report.py`, which now writes one file per
+      session instead of overwriting the 2026-09-09 record):
+      - The author picked CD / Club (-9) as loudest on all 8 songs: 9 of 9
+        blind rounds, with one song answered twice.
+      - Picking the loudest of three by chance on all 8 happens about 1 time
+        in 6,561.
+      - No listening check (ABX) was run. Each round has a right answer, so
+        the pick itself is the test.
+      - Median listen was 6.1 s.
+      - Playback not recorded yet.
+
+      *What follows:* the Loudness setting works, on the meter and to the
+      ear. Shimmer exports sounded quiet for two reasons:
+      - every earlier export used Streaming (-14). All 6 in
+        `sources/shimmer-*.wav` measure -14.00 LUFS, and their tags say
+        "mastered -14 LUFS".
+      - the app's A/B is loudness-matched by default, so the louder version
+        was always turned down while comparing.
 
 ## DEFERRED — the 80% stake
 

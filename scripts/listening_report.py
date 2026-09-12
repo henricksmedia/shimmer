@@ -43,6 +43,8 @@ QUESTIONS = {
     "learned": "Which still has the shimmer? (untouched vs the learned hash remover, most exposed passage)",
     "tone": "Which sounds most open and finished? (two tone targets, everything else identical)",
     "era": "Which of these is right? (three tone targets, everything else identical)",
+    "level": "Which is loudest? (the same master at the three Loudness targets, each at its real level, not level-matched)",
+    "loud": "Which sounds cleanest? (the same master at the three Loudness targets, level-matched)",
 }
 
 EXCLUDE_MARK = "ignore this verdict"
@@ -97,6 +99,9 @@ def collect():
                 "arms": len(key.get("arms", [])) or None,
                 "seconds_of_audio": (man or {}).get("seconds"),
                 "matched_lufs": (man or {}).get("matched_lufs"),
+                # Loudness checks are built unmatched on purpose; older sets
+                # predate the flag and were all matched.
+                "level_matched": (man or {}).get("level_matched", True),
             })
     rows.sort(key=lambda r: (r["group"], r["song"], r["at"] or ""))
     return rows
@@ -121,13 +126,41 @@ def summarise(rows):
     return out
 
 
+def _opt(flag, default):
+    """A `--flag value` from the command line, or the default."""
+    return sys.argv[sys.argv.index(flag) + 1] if flag in sys.argv[:-1] else default
+
+
 def main():
     rows = collect()
     if not rows:
         print("no verdicts found in listening-test/ab — nothing to record")
         return 1
+    # Each session gets its own record. The defaults reproduce the 2026-09-09
+    # record exactly; a later session passes its own name, file and playback,
+    # so running this never overwrites an earlier session's findings.
+    session = _opt("--session", "2026-09-09 bench round")
+    out_name = os.path.basename(_opt("--out", "2026-09-09-bench-round.json"))
+    playback = _opt("--playback", (
+        "The computer speakers the listener uses for everyday music "
+        "listening. Model and level not recorded."))
+    excerpts = _opt("--excerpts", (
+        "20-30 s. Most groups use the loudest passage; the quiet and "
+        "learned groups use the passage where the removed material is "
+        "least masked, chosen by the repair's own residual."))
+    matched = [r for r in rows if r["level_matched"] is not False]
+    unmatched = [r for r in rows if r["level_matched"] is False]
+    if not unmatched:
+        level_text = "All arms matched to the quietest arm's LUFS by shimmer/abtest.py."
+    elif not matched:
+        level_text = ("No arms matched: each plays at its own level, on purpose, "
+                      "because the question asked is which is loudest.")
+    else:
+        level_text = (f"{len(matched)} rounds level-matched by shimmer/abtest.py; "
+                      f"{len(unmatched)} rounds not matched, on purpose, because "
+                      f"their question is which is loudest.")
     record = {
-        "session": "2026-09-09 bench round",
+        "session": session,
         "written_by": "scripts/listening_report.py",
         "listener": {
             "n": 1,
@@ -136,18 +169,13 @@ def main():
                 "The listener built the thing being judged and knows what each "
                 "outcome would imply for the project. Blind to which arm was "
                 "which; not blind to the hypothesis."),
-            "playback": (
-                "The computer speakers the listener uses for everyday music "
-                "listening. Model and level not recorded."),
-            "playback_is_a_consumer_system": True,
+            "playback": playback,
+            "playback_is_a_consumer_system": True if "--playback" not in sys.argv else None,
         },
         "method": {
             "blinding": "Arm labels hidden; letters randomised per set.",
-            "level_matching": "All arms matched to the quietest arm's LUFS by shimmer/abtest.py.",
-            "excerpts": (
-                "20-30 s. Most groups use the loudest passage; the quiet and "
-                "learned groups use the passage where the removed material is "
-                "least masked, chosen by the repair's own residual."),
+            "level_matching": level_text,
+            "excerpts": excerpts,
             "response_recorded": "One preferred arm per round. No ranking.",
             "audibility_gate": "None. No group required an ABX pass before a preference counted.",
         },
@@ -164,7 +192,7 @@ def main():
         "rounds": rows,
     }
     os.makedirs(OUT_DIR, exist_ok=True)
-    path = os.path.join(OUT_DIR, "2026-09-09-bench-round.json")
+    path = os.path.join(OUT_DIR, out_name)
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(record, fh, indent=1)
         fh.write("\n")
