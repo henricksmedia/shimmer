@@ -120,9 +120,17 @@ is signed off. **Done 2026-09-12.**
     temp file.
   - Mono stays mono.
   - A sample rate that cannot be read is an error, not a guess.
-- [ ] `catalog` and `settings`, with `migrate()` for old saved settings.
-      Commercial is the default.
-- [ ] `render()`, with the preview window and the output rate for each format.
+- [x] `catalog` and `settings`, with `migrate()` for old saved settings.
+      Commercial is the default. 38 contract tests pass.
+- [x] Mastering, ported: the peak shaper and limiter were copied
+      bit-exact, then fixed in three listed steps (8x peaks, no clicks, aim
+      under the ceiling). At 16x, peaks now read -1.09 to -1.15 dBTP, where
+      1.1.1 read -0.77 to -0.96 (`SOUND-CHANGES.md`). Album gains and the
+      tone curve pass their contract tests.
+- [x] Silence trim, ported bit-exact.
+- [x] `render()`: one sound path, with the preview window and the output
+      rate for each format. All 13 render contract tests pass, including
+      "the preview is the export on a window".
 - [ ] `export()`, with dither, tags and the overwrite guard.
 - [ ] One job runner, with cancel.
 - [ ] Measure each lossy format's overshoot and set its ceiling (item 12).
