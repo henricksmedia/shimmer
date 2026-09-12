@@ -971,6 +971,57 @@ count.
       -24.1 dB for a 0.01-0.07 dB drop. Strength is not the limiting factor
       and there is large headroom before the cost could be audible.
 
+- [x] **16. Where fixed tones sit in the corpus.** *Done when:* every
+      corpus file is scanned with the app's own tone scan and notch plan,
+      and the counts are recorded by band.
+      **DONE 2026-09-12.** `testing/scripts/tone_census.py` (local working
+      script, gitignored, next to its data), run on `main` at c1d18e0 over
+      all 24 files in `sources/` and `assets/reference/`. The scan flags 134
+      candidate lines: 49 at 2-3 kHz in 22 files, 12 at 3-4 kHz in 11 files,
+      18 at 4-8 kHz, 19 at 8-16 kHz, 36 at 16-24 kHz. The notch plan cuts
+      13: 7 at 16-24 kHz, 4 at 8-16 kHz and 2 at 3-4 kHz — and those two are
+      one tone, 3.51 kHz in *Alive Again*, present in the Suno render and in
+      the service master made from it. Nothing is cut at 2-3 kHz. Both
+      finished reference masters also produce 2-3 kHz candidates (3 of the
+      49), so many candidates there are music, and the below-3 kHz rule
+      (>= 10 dB, >= 90 % of the time) is doing its job.
+      *What follows:* in this corpus, "piercing 2-4 kHz resonances" are not
+      fixed tones. If they exist they move with the music, and the tool for
+      them is dynamic EQ (ARCHITECTURE.md §15 Step 6), not a notch.
+- [x] **17. Does the de-clicker remove clicks?** *Done when:* a click
+      model and a crackle model exist that are not shaped to the
+      de-clicker's own definition, and the de-clicker is measured alone
+      against them on hash-free hosts.
+      **DONE 2026-09-12 (measurement).** `shimmer/artifacts.py` gains
+      `clicks` (isolated pops, 0.1-3 ms, broadband above 200 Hz, about 1.5 a
+      second; some longer than the de-clicker's 2 ms limit and all with
+      energy below its 2 kHz band, on purpose) and `crackle` (micro-clicks
+      that follow the host's 4-10 kHz envelope, up to 80 a second).
+      `tests/test_click_models.py` pins their shape.
+      `scripts/efficacy_harness.py --declick 0.5,1.0` measures the
+      de-clicker alone, as the pipeline calls it; results in
+      `docs/efficacy-declick.json`, 5 hash-free hosts, 8 s clips.
+
+      | de-clicker | pops 0.5 sones | pops 2.0 | crackle 0.5 | crackle 2.0 |
+      |---|---|---|---|---|
+      | amount 0.5 | 15 % | -15 % | 48 % | 37 % |
+      | amount 1.0 | 7 % | -1 % | 43 % | 36 % |
+
+      On a clean host alone it takes 0.104-0.107 sones of music, at the
+      budget's 0.10 ceiling. Its own report on the first host counts 450-870
+      "clicks" per 8 s clip (55-110 a second) where about 12 pops were
+      injected: it treats ordinary transients as clicks and misses the real
+      pops. The plain energy reading agrees on direction (pops at 2.0 sones:
+      1.0-1.2 of the injected energy left, so nothing removed; crackle:
+      0.64-0.82). At 0.5 sones it reads above 1, because the de-clicker's
+      own changes to the music differ between the render and the clean host
+      by more than the faint artifact.
+      *Limits:* both are models, not captures; no real AI click is in the
+      corpus yet. One listener has not yet heard any of this.
+      *What follows:* the rebuild's de-clicker (§15 Step 6) must beat these
+      numbers while taking under 0.10 sones from a clean host, before it
+      ships.
+
 ## DEFERRED — the 80% stake
 
 Decided against for this pass, with the reason. These stay on the list so they

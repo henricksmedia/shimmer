@@ -75,11 +75,11 @@ from shimmer import artifacts as A                              # noqa: E402
 from shimmer import detect as D                                 # noqa: E402
 from shimmer.audio_io import load_audio                          # noqa: E402
 from shimmer.budget import EXCESS_FLOOR_DB                       # noqa: E402
-from shimmer.params import apply_preset_strength                 # noqa: E402
+from shimmer.params import Params, apply_preset_strength         # noqa: E402
 from shimmer.perceptual import measure_damage                    # noqa: E402
 from shimmer.pipeline import clean_and_master                    # noqa: E402
 from shimmer.presets import get_preset                           # noqa: E402
-from shimmer.repair import apply_static_repair, plan_from_lines  # noqa: E402
+from shimmer.repair import apply_static_repair, declick, plan_from_lines  # noqa: E402
 from make_listening_test import loudest_excerpt                  # noqa: E402
 
 CLIP_S = 8.0
@@ -156,6 +156,25 @@ def run_static_repair(x, sr):
     return np.ascontiguousarray(np.asarray(y, dtype=np.float32)[:x.shape[0]]), len(plan.notches)
 
 
+def run_declick(x, sr, amount):
+    """The de-clicker on its own, as the pipeline calls it (repair.declick
+    with Params' dc_* defaults), before anything else in the chain."""
+    p = Params()
+    y, rep = declick(x, sr, float(amount), min_hz=float(p.dc_min_hz),
+                     order=int(p.dc_order), max_ms=float(p.dc_max_ms), pad=int(p.dc_pad))
+    info = {k: v for k, v in (rep or {}).items() if isinstance(v, (int, float, bool))}
+    return np.ascontiguousarray(np.asarray(y, dtype=np.float32)[:x.shape[0]]), info
+
+
+def energy_left(K, C, art):
+    """A second, non-perceptual reading: energy of what the cleaned render
+    has beyond the cleaned host, as a share of the injected artifact's
+    energy. The hearing model's FFT frames smear a 1 ms click, so for
+    clicks this plain energy ratio is reported alongside it."""
+    d = (np.asarray(C, dtype=np.float64) - np.asarray(K, dtype=np.float64))
+    return round(float(np.sum(d ** 2) / max(float(np.sum(np.asarray(art, dtype=np.float64) ** 2)), 1e-20)), 4)
+
+
 def evidence(x, sr):
     ev = D.evidence_scan(x, sr).evidence
     out = {k: round(float(getattr(ev, k)), 3) for k in EVIDENCE}
@@ -192,6 +211,8 @@ def main(argv):
     strengths = [float(s) for s in (opt("--strengths") or "1.0").split(",")]
     levels = [float(s) for s in opt("--levels").split(",")] if opt("--levels") else list(LEVELS)
     out_path = opt("--out", os.path.join(ROOT, "docs", "efficacy-harness.json"))
+    # --declick 0.5,1.0 adds rows for the de-clicker on its own at each amount.
+    dc_amounts = [float(s) for s in opt("--declick").split(",")] if opt("--declick") else []
 
     hs = hosts(host_names)
     print(f"{len(hs)} hosts x {len(art_names)} artifacts x {len(levels)} levels x "
@@ -221,6 +242,14 @@ def main(argv):
                 control[pn, s] = {"missing": round(d.missing, 4),
                                   "lin_dist": round(d.lin_dist, 3),
                                   "added": round(d.added, 4)}
+        K_dc = {}
+        control_dc = {}
+        for a in dc_amounts:
+            K_dc[a], _ = run_declick(H, sr, a)
+            d = measure_damage(H, K_dc[a], sr)
+            control_dc[a] = {"missing": round(d.missing, 4),
+                             "lin_dist": round(d.lin_dist, 3),
+                             "added": round(d.added, 4)}
         ev_host = evidence(H, sr)
         for an in art_names:
             raw = A.make(an, H.shape[0], sr, host=H)
@@ -238,6 +267,12 @@ def main(argv):
                                  notches=n_notch, control={"missing": 0.0, "lin_dist": 0.0,
                                                            "added": 0.0},
                                  targeted=an in ("line", "whistle", "comb")))
+                for a in dc_amounts:
+                    Cd, info = run_declick(R, sr, a)
+                    rows.append(_row(base, "declick", a, K_dc[a], Cd, H, sr, d_in,
+                                     control=control_dc[a], declick_report=info,
+                                     energy_left=energy_left(K_dc[a], Cd, art),
+                                     targeted=an in ("clicks", "crackle")))
                 for pn in preset_names:
                     for s in strengths:
                         C = run_preset(R, sr, pn, s)

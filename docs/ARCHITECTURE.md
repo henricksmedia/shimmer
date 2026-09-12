@@ -846,9 +846,13 @@ one before it is done.
 1. Render the corpus through the baseline.
 2. On headphones, judge the sets never judged: `quiet-*`, `learned-*`,
    `tonecheck-*` and round 7.
-3. Separate level from tone. Raise baseline masters to the service masters'
-   LUFS (gain up to −1 dBTP, then limiting), and compare them level-matched
-   and blind. If Shimmer still loses, the cause is tone.
+3. Check that the louder Loudness target choices are clean. Play the same
+   baseline master at Streaming, Loud and CD / Club, all at one level, and
+   blind: which sounds cleanest?
+
+   This replaces a planned round on level versus tone. The service masters
+   already won 16 of 16 at matched level, so tone is known to matter. What
+   isn't known is whether the louder choices damage the sound.
 4. Count how often fixed tones at 2–4 kHz appear across the corpus. The
    app's scan already searches from 2 kHz; the test clip had one at
    3.51 kHz (§13.5).

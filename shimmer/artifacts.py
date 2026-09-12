@@ -167,7 +167,86 @@ def hash_wide(n: int, sr: int, seed: int = 12, lo: float = 1500.0,
     return (nz * env[:, None] ** 2).astype(np.float32)
 
 
-# Name -> generator. `shadow` needs the host; the harness passes it.
+def clicks(n: int, sr: int, seed: int = 7, rate_hz: float = 1.5,
+           min_ms: float = 0.1, max_ms: float = 3.0,
+           hp_hz: float = 200.0) -> np.ndarray:
+    """Pops: isolated clicks at random times, about 1.5 a second. Each is a
+    decaying noise burst 0.1-3 ms long, random polarity, levels spread over
+    12 dB, broadband above 200 Hz (the high-pass only removes a DC thump).
+    The same click lands in both channels, the second at 0.8, because a
+    codec click sits in the mix rather than on one side.
+
+    Deliberately NOT shaped to the de-clicker's own idea of a click
+    (runs <= 2 ms, inspected only above 2 kHz): an efficacy test built from
+    the definition under test would pass by construction (PITFALLS,
+    "Judging efficacy by the detector's own prior is circular"). Some
+    clicks here are longer than 2 ms and all carry energy below 2 kHz.
+
+    Not modelled: no real AI click has been captured in the corpus yet, so
+    this follows the complaint ("short pops, ticks") and not a measurement.
+    Clicks that ride the music's transients are `crackle`."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros((n, 2))
+    tail = int(0.005 * sr)
+    t = 0.05 * sr
+    while True:
+        t += rng.exponential(sr / rate_hz)
+        i = int(t)
+        if i >= n - tail:
+            break
+        L = max(2, int(rng.uniform(min_ms, max_ms) * 1e-3 * sr))
+        burst = rng.standard_normal(L) * np.exp(-np.linspace(0.0, 4.0, L))
+        burst *= rng.choice((-1.0, 1.0)) * 10.0 ** (rng.uniform(-12.0, 0.0) / 20.0)
+        out[i:i + L, 0] += burst
+        out[i:i + L, 1] += 0.8 * burst
+    out = ss.sosfilt(ss.butter(2, hp_hz, btype="highpass", fs=sr, output="sos"), out, axis=0)
+    return (out / max(float(np.max(np.abs(out))), 1e-9)).astype(np.float32)
+
+
+def crackle(n: int, sr: int, host: np.ndarray, seed: int = 8,
+            rate_hz: float = 80.0, min_ms: float = 0.05, max_ms: float = 0.4,
+            key_lo: float = 4000.0, key_hi: float = 10000.0) -> np.ndarray:
+    """Crackle: dense micro-clicks that follow the music's top end, the
+    "crackle on consonants and cymbals" users report. Candidate clicks at up
+    to 80 a second, each kept with a probability equal to the host's
+    4-10 kHz envelope at that moment, so the crackle lives where the
+    cymbals and consonants are and is silent in the gaps. 0.05-0.4 ms
+    bursts, levels spread over 18 dB, each click in one channel or both at
+    random.
+
+    This is the hard case for a de-clicker: clicks this dense are rarely
+    "isolated", and they sit under the transients a de-clicker must leave
+    alone. Not modelled: any link to the codec frame rate."""
+    rng = np.random.default_rng(seed)
+    mono = host.mean(axis=1) if host.ndim > 1 else host
+    key = ss.sosfilt(ss.butter(4, [key_lo, min(key_hi, 0.49 * sr)], btype="bandpass",
+                               fs=sr, output="sos"), mono.astype(np.float64))
+    env = np.abs(ss.hilbert(key))
+    k = max(1, int(0.02 * sr))
+    env = np.convolve(env, np.ones(k) / k, mode="same")
+    env = env / max(float(env.max()), 1e-9)
+    out = np.zeros((n, 2))
+    tail = int(0.002 * sr)
+    t = 0.0
+    while True:
+        t += rng.exponential(sr / rate_hz)
+        i = int(t)
+        if i >= n - tail:
+            break
+        if rng.uniform() > env[min(i, len(env) - 1)]:
+            continue
+        L = max(2, int(rng.uniform(min_ms, max_ms) * 1e-3 * sr))
+        burst = rng.standard_normal(L) * np.exp(-np.linspace(0.0, 4.0, L))
+        burst *= 10.0 ** (rng.uniform(-18.0, 0.0) / 20.0)
+        side = rng.integers(0, 3)          # 0 = left, 1 = right, 2 = both
+        if side in (0, 2):
+            out[i:i + L, 0] += burst
+        if side in (1, 2):
+            out[i:i + L, 1] += burst
+    return (out / max(float(np.max(np.abs(out))), 1e-9)).astype(np.float32)
+
+
+# Name -> generator. `shadow` and `crackle` need the host; the harness passes it.
 GENERATORS: Dict[str, Callable[..., np.ndarray]] = {
     "hash": hash_flicker,
     "hash_wide": hash_wide,
@@ -177,7 +256,12 @@ GENERATORS: Dict[str, Callable[..., np.ndarray]] = {
     "fizz": fizz,
     "shadow": shadow,
     "sibilance": sibilance,
+    "clicks": clicks,
+    "crackle": crackle,
 }
+
+# Models that are built from the host's own envelope.
+NEEDS_HOST: tuple = ("shadow", "crackle")
 
 # Which presets are aimed at which model. A preset absent from every list is
 # "not covered": its target has no honest model here, and its efficacy is
@@ -192,6 +276,10 @@ TARGETS: Dict[str, tuple] = {
     "shadow": ("echo_sheen", "presence_haze", "harsh_veil", "vocal_glaze",
                "phantom_cymbal", "deep_scrub"),
     "sibilance": ("sibilance_rattle",),
+    # The only preset with the de-clicker on. The harness also measures the
+    # de-clicker on its own (`--declick`).
+    "clicks": ("sibilance_rattle",),
+    "crackle": ("sibilance_rattle",),
 }
 NOT_COVERED: tuple = ("reverb_flutter", "cymbal_chatter")
 
@@ -200,7 +288,7 @@ def make(name: str, n: int, sr: int, host: Optional[np.ndarray] = None,
          seed: Optional[int] = None) -> np.ndarray:
     gen = GENERATORS[name]
     kw = {} if seed is None else {"seed": seed}
-    if name == "shadow":
-        assert host is not None, "shadow needs the host"
+    if name in NEEDS_HOST:
+        assert host is not None, f"{name} needs the host"
         return gen(n, sr, host, **kw)
     return gen(n, sr, **kw)
