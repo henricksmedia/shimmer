@@ -19,17 +19,22 @@ below. Nothing here imports the web layer or the old engine
 from . import catalog, tags
 from .analyze.edges import apply_trim, detect_edge_artifacts
 from .analyze.findings import Finding, findings
+from .analyze.report import plr_db, spectra_report, stereo_correlation
 from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
 from .analyze.track import analyze_track
 from .audio.io import AudioIOError, file_digest, wav_bytes
 from .audio.io import load as load_audio
 from .export import export
+from .master.release import add_check, release_check, tags_check
+from .progress import Cancelled, Progress
 from .render import Rendered, Source, render
 from .repair.notch import Notch, NotchPlan, plan_from_lines
 from .settings import EqBand, Settings, migrate
 
 __all__ = ["catalog", "tags", "export", "render", "Rendered", "Source",
-           "Settings", "EqBand", "migrate",
+           "Settings", "EqBand", "migrate", "Progress", "Cancelled",
            "analyze_track", "detect_edge_artifacts", "apply_trim", "findings", "Finding",
            "scan_fixed_lines", "estimate_cutoff_hz", "plan_from_lines", "Notch", "NotchPlan",
+           "spectra_report", "stereo_correlation", "plr_db",
+           "release_check", "add_check", "tags_check",
            "load_audio", "wav_bytes", "file_digest", "AudioIOError"]

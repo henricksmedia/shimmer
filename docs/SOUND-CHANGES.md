@@ -21,12 +21,15 @@ listed here.
 | Fixed-tone scan, notch plan and notch repair | Identical lines and plan; repair bit-exact | 2026-09-12 |
 | Bandwidth cutoff and 1/3-octave spectrum | Identical | 2026-09-12 |
 | File fingerprint (SHA-1) | Identical, so Remix projects and the stem cache still match | 2026-09-12 |
+| Report spectra and stereo correlation | Identical | 2026-09-12 |
+| Release check | Identical verdicts and checks | 2026-09-12 |
 
 ## Report changes (numbers shown, not sound)
 
 | Change | Before (1.1.1) | After |
 |---|---|---|
 | Upload analysis true peak | Read from a mono mix at 4x: -5.92 dBTP on the test render | The louder channel at 8x: -5.47 dBTP. 1.1.1 read 0.45 dB low |
+| Peak-to-loudness ratio in the report | 11.98 dB on the test render, from the mono-mix true peak | 12.43 dB, from the per-channel true peak |
 
 ## Fixes
 
