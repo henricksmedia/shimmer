@@ -36,19 +36,13 @@ FIELDS = ("title", "artist", "album_artist", "album", "genre", "year",
 #   2.0   {stem}_{processed|removed|trimmed}_{8 hex}
 _SHIMMER_SUFFIX = re.compile(r"_(?:processed|removed|trimmed)_[0-9a-f]{8}$")
 
-# Every 1.x preset key and version-named alias, frozen here so a 1.x export
-# still loses its whole suffix after the presets are gone
-# (docs/ARCHITECTURE.md §19.1 item 11). Longest first, so `vocal_glaze_plus`
-# is tried before `vocal_glaze`.
-LEGACY_PRESET_KEYS = tuple(sorted((
-    "generic", "suno_hash", "cymbal_sheen", "laser_whistle", "air_brittle",
-    "sibilance_rattle", "cymbal_chatter", "broadband_fizz", "checkerboard_grid",
-    "reverb_flutter", "vocal_glaze", "vocal_glaze_plus", "echo_sheen",
-    "presence_haze", "phantom_cymbal", "harsh_veil", "deep_scrub", "muddy_boxy",
-    "dark_mix_rescue",
-    "suno_v3", "suno_v3.5", "suno_v4", "suno_v4.5", "suno_v5", "suno_v5_pro",
-    "suno_v5.5", "suno_cymbal",
-), key=len, reverse=True))
+# Every 1.x preset key and version-named alias, from the frozen table in
+# shimmer.core.settings, so a 1.x export still loses its whole suffix after
+# the presets are gone (docs/ARCHITECTURE.md §19.1 item 11). Longest first,
+# so `vocal_glaze_plus` is tried before `vocal_glaze`.
+from .core.settings import LEGACY_ALIASES, LEGACY_PRESETS  # noqa: E402
+
+LEGACY_PRESET_KEYS = tuple(sorted((*LEGACY_PRESETS, *LEGACY_ALIASES), key=len, reverse=True))
 
 
 # ═══════════════════════════════════════════════════════════════════════
