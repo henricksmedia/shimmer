@@ -42,9 +42,18 @@ records what happened when one was used as one.
 
 - **Not a DAW, mixer, or creative effects box.** Shimmer finishes a render.
   It does not replace the tools used to make one.
+
+  *Corrected by the author, 2026-09-12:* Remix stays, and it works as it
+  does now. Making a render recognisably yours is part of the goal.
 - **Not loudness-first.** Streaming normalises, so winning on loudness wins
   nothing and costs dynamics. AES TD1008 is explicit that a high
   peak-to-loudness ratio sounds clearer than heavy limiting.
+
+  *Corrected by the author, 2026-09-12:* the user picks the loudness from
+  the Loudness target list, as today. Every choice on that list must reach
+  its level cleanly. A master must also hold up next to released music
+  played in an ordinary player, like Windows Media Player next to Spotify
+  on the same computer. That is where masters were heard as too quiet.
 - **Not a clone of any service's house sound.** Sounding like a particular
   vendor is not the target, even a good one.
 - **Not aggressive by default.** A track with no artifact should come out

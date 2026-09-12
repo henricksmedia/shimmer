@@ -535,7 +535,7 @@ module is added only when it passes the `GOALS.md` decision rule.
 - **They didn't work when measured.** Most removed little of their own fault,
   two did harm, and their names promised fixes the engine didn't have (§8).
 
-**What stays is the one-click idea.** It works in three ways:
+**What stays is the one-click idea.** It works in two ways:
 
 1. **Automatic (the default).** Analyze turns on only the tools this song
    needs and shows why, with the number. For example: "Fixed tone at
@@ -543,12 +543,9 @@ module is added only when it passes the `GOALS.md` decision rule.
 2. **By ear.** The same preset browser, with the same "what do you hear"
    groups. Picking a group turns on the tool that fixes it, with one amount
    slider.
-3. **Your own presets** (suggested; needs the author's yes). Save tool
-   amounts and mastering choices under a name you pick, then reuse them on
-   the Master tab or in Batch. These are made from tools that passed the
-   tests, not pre-made recipes that promise fixes.
-
-Mastering choices (loudness target, tone tilt) stay as they are.
+Mastering choices (loudness target, tone tilt) stay as they are. A "save my
+settings" preset was considered and dropped (2026-09-12): the app already
+remembers your last settings.
 
 | What you hear (browser group) | Old presets | New tool | Where it stands |
 |---|---|---|---|
@@ -601,7 +598,7 @@ Sources are the ones recorded in `BRIGHTNESS-ASSESSMENT.md` §6 and
 | Fix problems before mastering; master last | `PRESET_REVIEW.md` §1 practitioner list; iZotope repair order | ✓ |
 | Compare at matched loudness | TD1008 context; `PITFALLS.md` | ✓ in the app's A/B |
 | True peak ≤ −1 dBTP at the codec input | AES TD1008 | ✓ (−1.0 / −1.5). Reported peak is from a mono mix. |
-| Loudness: −14 LUFS playback on most services; high peak-to-loudness ratio sounds clearer than heavy limiting | AES TD1008; iZotope platform table | ✓ as the default. **But** released references of the same songs are −9.1 to −11.2 LUFS (recorded), so outside a normalising player Shimmer plays 3–5 dB lower. No policy says which one Shimmer is for. |
+| Loudness: −14 LUFS playback on most services; high peak-to-loudness ratio sounds clearer than heavy limiting | AES TD1008; iZotope platform table | ✓ as the default. **But** released references of the same songs are −9.1 to −11.2 LUFS (recorded), so outside a normalising player Shimmer plays 3–5 dB lower. Settled 2026-09-12: the user picks the level from the Loudness target list, and every choice must reach its level cleanly. |
 | Tonal balance against genre-matched targets with tolerance ranges | iZotope Tonal Balance docs | One curve for every genre; the tolerance is defined but unused |
 | 1–3 genre- and era-matched reference tracks | iZotope reference guide | **Missing** (deferred on the checklist) |
 | A compression stage for glue and density before the limiter | *believed* — standard in mastering chains; fetch a source before designing | **Missing, and not proven needed.** The service masters' peak-to-loudness ratio matches Shimmer's (§3), so their extra loudness is mostly gain. |
@@ -612,7 +609,9 @@ Sources are the ones recorded in `BRIGHTNESS-ASSESSMENT.md` §6 and
 
 **Mastering gaps, in order of what the author hears:**
 
-1. A loudness policy (about 4 dB, mostly unused headroom).
+1. Clean loudness at every Loudness target choice. At −14 LUFS Shimmer
+   leaves about 4 dB of headroom unused next to released music, and the
+   louder choices lean on the limiter alone.
 2. Tone — the service master still wins when levels are matched.
 3. Reference-track matching.
 4. Genre targets with a deadband.
@@ -651,25 +650,16 @@ and what was learned. These are the gaps, most important first.
    decision rule. If the winner is the learned remover, the promise of "no
    machine learning in the cleanup path" has to change, and the test that
    enforces it has to go.
-2. **No loudness policy.** The main complaint is "too quiet next to Spotify".
-   The research concluded −14 LUFS is correct under normalisation. Both can be
-   true. The rebuild needs a written decision:
-   - what the default target is
-   - whether a louder release option exists
-   - what processing earns that loudness. The measurements point to gain
-     into unused headroom plus about 1.5 dB of limiting; add a compressor
-     only if the bench asks for one.
-   - how "too quiet" is judged: level-matched, or as a listener hears it
-
-   **One unknown decides this: how the comparison was made.**
-   - *In the Spotify app with normalisation on:* both tracks already play at
-     about −14 LUFS (platform targets, `BRIGHTNESS-ASSESSMENT.md` §6). A
-     louder target changes nothing there, and the cause is tone and density.
-   - *In a local player, a DAW, or with normalisation off:* the LUFS target
-     matters too.
-
-   One bench round separates the two: raise a Shimmer master to the
-   reference's LUFS, then compare them level-matched.
+2. **Loudness — settled 2026-09-12.**
+   - **The complaint:** masters sounded quiet in Windows Media Player next to
+     Spotify, on the same computer.
+   - **The list stays.** The user already picks the level from the Loudness
+     target list (Streaming −14, Loud −11, CD / Club −9).
+   - **The job is to make every choice reach its level cleanly:** gain into
+     the headroom Shimmer leaves unused first, then gentle limiting (§3). A
+     compressor is added only if the bench asks for one.
+   - **Tone is the other half,** because the service master still wins when
+     levels are matched.
 3. **"Done" is not defined by listening.** Write the acceptance tests before
    the code:
    - Blind bench rounds against the untouched render and against released
@@ -714,11 +704,15 @@ and what was learned. These are the gaps, most important first.
    batch, album, remix and CLI should call one function with one settings
    object, and preview should be that function on a window. That removes most
    of §5 and every preview-vs-export difference by construction.
-10. **Scope.**
-    - Is Remix in the first version? It is a second product, its effects need
-      rework, and its original purpose (cleaning per stem) was measured and
-      rejected.
-    - Are batch, album and the CLI in the first version?
+10. **Scope — settled 2026-09-12.** Everything ships in the first release
+    and works as it does today:
+    - Master
+    - Remix
+    - Batch, with album mode
+    - the chain view
+    - Settings
+    - Help
+    - the CLI
 11. **The tone target is still one listener's choice** — one speaker setup,
     8-second clips, and a vendor-derived curve that conflicts with
     `GOALS.md`. Do not build it in as a constant; keep it a measured,
@@ -740,6 +734,7 @@ and what was learned. These are the gaps, most important first.
     `GOALS.md` lists "not a creative effects box" as an *inferred* anti-goal.
     Only the author can settle which holds, and the answer decides whether
     Remix belongs in the product at all.
+    *Settled 2026-09-12:* Remix stays. `GOALS.md` is corrected.
 15. **No parity check for ported code.** When a module is ported, run the old
     and new code on the corpus with the same settings and null them. Anything
     that does not null is a change and needs its own reason and measurement.
@@ -753,8 +748,8 @@ and what was learned. These are the gaps, most important first.
 - The screens you use today stay the same.
 - Everything that processes the sound behind them is built new.
 - **Nothing that failed comes along.** These are all left behind:
-  - the 19 pre-made presets (replaced by tools you can pick by what you hear,
-    and your own saved presets; see §13.2a)
+  - the 19 pre-made presets (replaced by the "What do you hear?" cards; see
+    §13.2a)
   - the nine-stage cleaner
   - the old Analyze scoring
   - the old tone targets
@@ -832,20 +827,19 @@ Nothing reaches existing users before that. The baseline is today's `main`
 Each step ends in something that can be checked. A step starts only when the
 one before it is done.
 
-### Step 1 — Decide (no code)
+### Step 1 — Decide (no code) — done 2026-09-12
 
-1. Correct `GOALS.md`: the loudness anti-goal, and whether changing a
-   track's character (Remix) is a goal.
-2. Write the loudness policy (§3, §14 item 2): default target, a louder
-   release option, and how "too quiet" is judged.
-3. Set the first version's scope. Suggested:
-   - Master (single file) and Batch with album mode, on the new engine.
-   - The Remix tab stays visible, with its render moved onto the new engine
-     and its effects left alone until the Remix decision.
-   - The CLI later.
-4. Create the rebuild branch and its folder (§18.1).
+1. **Goals.** `GOALS.md` is corrected in the author's words:
+   - Remix stays.
+   - Loudness is the user's choice from the Loudness target list, reached
+     cleanly.
+2. **Loudness.** The existing list stays. Every choice must reach its level
+   cleanly and hold up next to released music in an ordinary player (§14
+   item 2).
+3. **Scope.** Everything ships, working as it does today (§14 item 10).
+4. **Branch.** The `rebuild` branch and its folder exist (§18.1).
 
-*Done when:* `GOALS.md` states these in the author's words.
+*Done when:* `GOALS.md` states these in the author's words. ✓
 
 ### Step 2 — Settle the evidence (listening and measurement)
 
@@ -906,8 +900,8 @@ end to end on the new core.
 ### Step 5 — Mastering (the main complaint)
 
 1. Fetch the sources first (the `STYLE.md` rule), then build:
-   - the loudness policy: gain into headroom plus gentle limiting, as
-     measured
+   - every Loudness target choice reaching its level cleanly: gain into
+     unused headroom first, then gentle limiting, as measured
    - the tone target as a replaceable input, with a deadband
    - reference-track matching
    - genre targets
@@ -916,8 +910,12 @@ end to end on the new core.
 2. Judge it on the bench against the service masters, released references
    and the baseline, on headphones and speakers.
 
-*Done when:* it beats the baseline blind, and does not lose to released
-references at matched loudness.
+*Done when:*
+
+- it beats the baseline blind
+- it does not lose to released references at matched loudness
+- a Loud master played in Windows Media Player holds up next to released
+  music on Spotify, on the same computer
 
 ### Step 6 — Cleaning modules, one at a time
 
@@ -941,7 +939,9 @@ re-wired in the existing panels (§16.2), with sign-off.
 
 ### Step 7 — Finish and switch over
 
-1. Move Batch and album mode, then the Remix render, onto `render`.
+1. Move Batch and album mode, then the Remix render, onto `render`. Remix
+   keeps working as it does today. Its known bugs (the doubler drift and the
+   silent formant tail) are fixed.
 2. Rewrite the CLI as a thin layer over `render`.
 3. Migrate old saved settings: old preset names map to new module settings.
 4. Delete the retired modules and their tests (§16).
@@ -962,7 +962,8 @@ Fates, used in every table below:
 - **Rewrite** — new code for the same job.
 - **Retire** — the job goes away, and the file is deleted after the switch.
 - **Instrument** — kept as a measuring tool, outside the engine.
-- **Defer** — untouched until the Remix decision.
+- **Keep (Remix)** — Remix code that stays and works the same. Only its
+  render moves to the new engine, and its known bugs are fixed.
 
 ### 16.1 Engine (Python, `shimmer/`)
 
@@ -993,13 +994,13 @@ Fates, used in every table below:
 | `finepass.py` | 241 | Retire | The de-esser is rebuilt; the flicker compressor returns only if it earns the hash slot |
 | `presets.py` | 1,456 | Retire | Leaves behind a small table that maps old names for migration |
 | `probe.py` | 274 | Retire | Dead |
-| `stems.py`, `stems_runner.py` | 1,241 | Defer | Separation service; not part of the sound path |
-| `stem_effects.py`, `projects_store.py` | 420 | Defer | The doubler bug waits for the Remix decision |
+| `stems.py`, `stems_runner.py` | 1,241 | Keep (Remix) | Separation stays as it is |
+| `stem_effects.py`, `projects_store.py` | 420 | Keep (Remix) | Works the same; the doubler drift and the silent formant tail are fixed |
 | `perceptual.py`, `artifacts.py` (evidence branch) | — | Instrument | The hearing model and artifact models |
 | `budget.py`, `references.py`, `abtest.py` (evidence branch) | — | Instrument | Budget stays unwired; dev pages stay |
 
 About 5,300 lines are retired, 6,800 rewritten, 3,700 ported, and 1,700
-deferred (read, from the line counts in §1).
+kept for Remix (read, from the line counts in §1).
 
 ### 16.2 Frontend (`static/`)
 
@@ -1009,13 +1010,13 @@ deferred (read, from the line counts in §1).
 | `visualizer.js`, `trim.js`, `progress-chain.js`, `recents.js`, `palette.js`, `main.js`, `master-view.js`, `settings.js`, `report.js` | Keep | |
 | `eq.js` | Keep | Limits come from the server instead of copies |
 | `api.js` | Keep | Endpoints updated to the route map |
-| `preset.js`, `preset-browser.js` | Re-wire | Same browser, same "what do you hear" groups; each item turns on the tool that fixes it (§13.2a). Adds your own saved presets, if approved. |
+| `preset.js`, `preset-browser.js` | Re-wire | Same browser, same "what do you hear" groups; each item turns on the tool that fixes it (§13.2a). |
 | `controls.js` | Re-wire | The 15 stage sliders become one amount per module |
 | `chain.js` | Re-wire | Reads the new chain description |
 | `batch.js` | Re-wire | Preset choice becomes module choice |
 | `help.js` | Re-wire | The preset quiz and control reference are rewritten |
 | `single.js` | Re-wire, in part | Four sections change: the Advanced drawer (lines ~300–429), the two-pass flow (~1186–1521, retired if the routine second pass goes), Tone and Suggested EQ (~1523–1979), and Analyze results (~2065–2334). Its copies of engine rules move to the server. The rest stays. |
-| `remix.js` | Defer | |
+| `remix.js` | Keep (Remix) | Works the same; its render and export use the new engine |
 
 ### 16.3 Routes the UI calls (the seam)
 
@@ -1028,7 +1029,7 @@ deferred (read, from the line counts in §1).
 | `/api/batch` | Keep path; move to the job runner |
 | `/api/suggest`, `/api/tone`, `/api/chain` | Keep paths; new fields (modules, not presets) |
 | `/api/presets` | Replaced by a module list plus the engine rules |
-| `/api/stems/*`, `/api/remix/*`, `/api/project/{digest}` (POST) | Defer; the remix render moves to `render` |
+| `/api/stems/*`, `/api/remix/*`, `/api/project/{digest}` (POST) | Keep; the remix render moves to `render` |
 | `/api/analyze`, `/api/projects`, `GET /api/project/{digest}`, `/api/stems/status/{sid}` | Retire (no caller) |
 
 ### 16.4 Tests
@@ -1059,7 +1060,7 @@ listening round.
 
 | # | What went wrong | Why | What blocks it in the rebuild |
 |---|---|---|---|
-| 1 | Masters sounded too quiet next to released music | −14 LUFS, with about 4 dB of headroom left unused; no written loudness policy | Loudness policy written first (Step 1). *Bench* against the service masters at their real loudness and level-matched. |
+| 1 | Masters sounded too quiet next to released music | −14 LUFS left about 4 dB of headroom unused; the louder choices lean on the limiter alone | The Loudness target list stays, and every choice must reach its level cleanly. *Bench:* level-matched rounds against the service masters, and a Loud master in Windows Media Player next to released music on Spotify. |
 | 2 | Masters sounded dull | Cleaning took presence; preset filters cut twice as hard as written; wrong tone targets | One filter design for every EQ-type filter. *Test:* for every filter, the dB you set is the dB you get. *Test:* a finished master comes out essentially unchanged. |
 | 3 | Presets that did nothing, or took music | 19 presets named by ear, never measured against the fault | No module without three proofs: removes its fault on known material, cost in sones under the limit, wins or ties on the *bench* (the `GOALS.md` rule). |
 | 4 | Analyze wanted to clean finished commercial masters | Its score (`purity`) could not fail, so it always looked right | *Test:* a finished master gets no recommendation. Every new measure is tried first on material where the right answer is known. |
@@ -1143,7 +1144,7 @@ shimmer/
       dynamic_eq.py
       hash.py            the open slot
     master/
-      loudness.py        loudness policy and gain
+      loudness.py        gain to the chosen Loudness target
       tone.py            tone target
       limiter.py         peak shaper and true-peak limiter
   api/                   the web layer. Calls core only.
