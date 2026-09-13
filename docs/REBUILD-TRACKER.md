@@ -104,7 +104,7 @@ is signed off. **Done 2026-09-12.**
 - [x] 2.0 download names are `{song}_{processed|removed|trimmed}_{id}`. The
       1.x preset keys are frozen in `tags.py`, so old names still strip
       (item 11).
-- [ ] Push `rebuild` to GitHub as a backup, so CI runs on it: ask first.
+- [x] `rebuild` is on GitHub as a backup, pushed with each commit.
 
 **The engine:**
 
@@ -347,7 +347,8 @@ de-click stays off until it finds pops in dense music.
 
 - [x] Research: what it is, why past fixes fell short, candidate fixes.
 - [ ] Judge the never-judged `quiet-*` sets and rounds 3 and 7 (free).
-- [ ] A real-codec test case: clean masters through an open AI codec.
+- [x] A real-codec test case: clean masters through an open AI codec
+      (EnCodec, 2026-09-13; the `codec-*` sets, [STEP6-FIXES.md](STEP6-FIXES.md)).
 - [ ] Listening questions 1-3 in the research: is the codec damage "shimmer"?
       Birdies or hiss? Does it only go when the brightness goes?
 - [ ] Update the test models to match what the listening shows.
