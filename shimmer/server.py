@@ -282,33 +282,6 @@ async def api_presets() -> JSONResponse:
     return JSONResponse({"presets": items, "default": "generic"})
 
 
-@app.post("/api/chain")
-async def api_chain(payload: Dict[str, Any]) -> JSONResponse:
-    """Describe the processing chain for the given settings (Signal Chain
-    tab). Uses the same resolvers as /api/process — preset, strength,
-    overrides, mastering, EQ, export format — so the view shows exactly
-    what a run would do. Reads settings only; touches no audio."""
-    from .chain import build_chain
-    data = payload or {}
-    p = _params_from_json(data)
-    mp = _master_params_from_request(data)
-    output_format = str(data.get("output_format") or "wav")
-    if (data.get("mastering") or {}).get("ceiling_dbtp") is None:
-        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_format)
-    eqp = _eq_params_from_request(data)
-    eq_bands = len(eqp.active_bands(44100)) if eqp.is_active(44100) else 0
-    return JSONResponse(build_chain(
-        p, mp,
-        eq_bands=eq_bands,
-        preserve_volume=bool(data.get("preserve_volume", True)),
-        trim_silence=bool(data.get("trim_silence", False)),
-        output_format=output_format,
-        trim_armed=bool(data.get("trim_armed", False)),
-        repair=data.get("repair"),
-        save_folder=str(data.get("save_folder") or ""),
-    ))
-
-
 # ── Reference library (developer tooling) ───────────────────────────────
 #
 # Builds the tone target from music playing on this machine. Reachable at

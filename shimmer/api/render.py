@@ -676,3 +676,50 @@ async def reference_view(payload: Dict[str, Any]) -> JSONResponse:
     loop = asyncio.get_running_loop()
     view = await loop.run_in_executor(None, core.reference_view, sess.source, sess.reference, s)
     return JSONResponse(_json_safe({**view, "reference": sess.reference_info}))
+
+
+# ── The Signal chain view ───────────────────────────────────────────────
+
+def _song_facts(sess: Any) -> Dict[str, Any]:
+    """The loaded song's name, rate, bit depth, channels and length."""
+    bits, is_float = core.bit_depth(sess.original_path)
+    return {"name": sess.original_name, "sample_rate": sess.sr, "channels": sess.channels,
+            "duration_s": sess.duration_s, "bits": bits, "float": is_float}
+
+
+@router.post("/api/chain")
+async def chain(payload: Dict[str, Any]) -> JSONResponse:
+    """What each stage does for these settings, for the Signal chain view
+    (core.describe_chain). The body is the Master tab's settings fields,
+    plus session_id, cards {on, noted}, trim {in_s, out_s}, tags_enabled
+    and save_folder; every one may be left out. Reads settings and the
+    session's facts; touches no audio."""
+    data = payload or {}
+    s = settings_from_request(data, output_format=data.get("output_format") or "wav",
+                              preserve_volume=bool(data.get("preserve_volume", True)),
+                              trim_silence=bool(data.get("trim_silence", False)))
+    sess = sessions.SESSIONS.get(data.get("session_id") or "")
+    notches = explicit_notches(data, sess.sr if sess is not None else 48000)
+    if notches is None and sess is not None:
+        notches = core.plan_from_lines(sess.repair_lines, sess.sr).notches
+    ref = reference_for(data, sess)
+
+    t = data.get("trim") if isinstance(data.get("trim"), dict) else {}
+    try:
+        t_in = float(t.get("in_s") or 0.0)
+        t_out = float(t["out_s"]) if t.get("out_s") is not None else None
+    except (TypeError, ValueError):
+        t_in, t_out = 0.0, None
+    trim = (t_in, t_out) if (t_in > 0 or t_out is not None or data.get("trim_armed")) else None
+
+    cards = data.get("cards") if isinstance(data.get("cards"), dict) else {}
+    on = cards.get("on") if isinstance(cards.get("on"), list) else None
+    noted = cards.get("noted") if isinstance(cards.get("noted"), list) else []
+    view = core.describe_chain(
+        s, song=_song_facts(sess) if sess is not None else None, notches=notches, trim=trim,
+        reference=sess.reference_info if ref is not None else None,
+        cards_on=[str(k) for k in on] if on is not None else None,
+        noted=[str(k) for k in noted],
+        tags=bool(data.get("tags_enabled", True)),
+        save_folder=str(data.get("save_folder") or ""))
+    return JSONResponse(_json_safe(view))

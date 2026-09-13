@@ -2529,22 +2529,23 @@ export async function initSingleTab() {
     // ── Persistence wiring ────────────────────────────────────────────
     // Always write the current UI (Batch reuses EQ in-session). Restore
     // on next visit only when remember_settings is true.
-    // Signal Chain bridge: the chain view asks for the exact state a
-    // Clean & Master click would send, so the server renders the chain
-    // from real Params instead of a hand-written list.
+    // Signal chain bridge: the chain view asks for the settings a run
+    // would send, plus the cards picked, the trim and the tags switch, so
+    // the server describes the chain the run would take.
     window.shimmerChainState = () => {
         const t = trimPanel ? trimPanel.getTrim() : null;
         return {
-            preset: presetSelect.value,
-            preset_strength: currentStrength(),
-            overrides: controls.getValues(),
+            session_id: previewState.sessionId || '',
+            ...picker.payload(),
+            cards: picker.state(),
             mastering: masteringPayload(),
             eq: eqPanel.getPayload(),
             preserve_volume: preserveVol.checked && !masterEnabled.checked,
             trim_silence: trimSilence.checked,
             output_format: outputFormat.value,
             save_folder: activeSaveFolder(),
-            trim_armed: !!(t && (t.inS > 0 || t.outS != null)),
+            trim: t && (t.inS > 0 || t.outS != null) ? { in_s: t.inS || 0, out_s: t.outS ?? null } : null,
+            tags_enabled: !tagsEnabled || tagsEnabled.checked,
             repair: repairPayload(),
         };
     };

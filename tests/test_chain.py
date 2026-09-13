@@ -124,19 +124,3 @@ class TestOptions:
         assert _mod(chain2, "trim")["active"] is False
         assert _mod(chain2, "eq")["active"] is False
 
-
-class TestEndpoint:
-    def test_api_chain_matches_builder(self):
-        from fastapi.testclient import TestClient
-        from shimmer.server import app
-        with TestClient(app) as client:
-            r = client.post("/api/chain", json={
-                "preset": "vocal_glaze", "preset_strength": 1.0,
-                "mastering": {"enabled": False},
-                "preserve_volume": True, "output_format": "wav",
-            })
-        assert r.status_code == 200
-        data = r.json()
-        assert "300 Hz" in _mod(data, "xover")["badges"]
-        assert _mod(data, "preserve")["active"] is True
-        assert data["summary"]["mastering"] is False

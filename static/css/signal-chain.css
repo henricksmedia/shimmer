@@ -1,0 +1,47 @@
+/* The Signal chain view (static/js/chain.js). The stage cards, the wire
+   and the detail panel use chrome.css (.chain-*, .mod, .m-*, .cd-*); these
+   are the additions from the approved mockup. */
+
+/* Summary: the verdict first, then the facts that frame the chain. */
+.sc-verdict { font-size: 13px; font-weight: 600; color: var(--fg-0); }
+.sc-verdict b { color: var(--amber); font-weight: 650; }
+
+/* A skipped stage says so in words, not only with a dashed border. */
+.mod .sc-skip { margin-left: auto; padding: 0 5px; border: 1px dashed var(--line-2); border-radius: 4px;
+  font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); }
+/* Master with mastering off: the slot is skipped, Preserve volume acts in it. */
+.mod.sc-standin { border-style: dashed; border-top-style: solid; background: var(--bg-2); }
+.mod.sc-standin .sc-skip { color: var(--fg-2); }
+.mod .m-badges .b.sc-nb, .cd-badges .b.sc-nb { border-style: dashed; background: transparent; color: var(--fg-3); }
+
+/* Detail panel additions. */
+.chain-detail .sc-cd-verdict { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: var(--fg-0); }
+.sc-cd-label { margin: 12px 0 2px; font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--fg-3); }
+.sc-steps { margin: 0 0 10px; padding: 0; list-style: none; counter-reset: sc-step; }
+.sc-steps li { counter-increment: sc-step; display: grid; grid-template-columns: 20px minmax(0,1fr);
+  gap: 2px 6px; padding: 6px 0; border-top: 1px solid var(--line); }
+.sc-steps li::before { content: counter(sc-step); grid-row: span 2; font-family: var(--font-mono);
+  font-size: 10px; color: var(--phase); padding-top: 2px; }
+.sc-steps b { font-size: 12px; font-weight: 600; color: var(--fg-0); }
+.sc-steps span { font-size: 11.5px; line-height: 1.45; color: var(--fg-2); }
+
+.sc-ms { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1;
+  letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr;
+  font-feature-settings: 'liga'; -webkit-font-feature-settings: 'liga';
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; font-size: 18px; }
+.sc-fx { margin-bottom: 10px; }
+.sc-fx-row { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; align-items: start;
+  gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); }
+.sc-fx-row .sc-ms { color: var(--amber); padding-top: 1px; }
+.sc-fx-row.muted .sc-ms { color: var(--fg-3); }
+.sc-fx-what b { font-size: 12.5px; font-weight: 600; color: var(--fg-0); }
+.sc-fx-what em { font-style: normal; font-size: 11.5px; color: var(--fg-2); }
+.sc-fx-what span { display: block; margin-top: 1px; font-size: 11.5px; line-height: 1.45; color: var(--fg-2); }
+.sc-fx-row.muted .sc-fx-what b { color: var(--fg-2); }
+.sc-tag { padding: 1px 6px; border-radius: 4px; white-space: nowrap; font-size: 9.5px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; }
+.sc-tag.on { color: var(--amber); border: 1px solid rgba(245,165,36,.5); background: var(--amber-soft); }
+.sc-tag.nb { color: var(--fg-3); border: 1px dashed var(--line-2); }
+.sc-tag.stage { color: var(--tag); border: 1px solid color-mix(in srgb, var(--tag) 45%, transparent);
+  background: color-mix(in srgb, var(--tag) 10%, transparent); }

@@ -142,15 +142,13 @@ def test_unusable_folder_is_refused_before_the_run(client, tmp_path):
 
 def test_chain_view_shows_the_folder(client):
     r = client.post("/api/chain", json={
-        "preset": "generic", "output_format": "wav",
+        "output_format": "wav",
         "save_folder": os.path.join("D:" + os.sep, "Music", "Masters")})
     assert r.status_code == 200
-    export = [m for m in r.json()["modules"]
-              if m.get("id") == "export" or m.get("mid") == "export"][0]
+    export = [s for s in r.json()["stages"] if s["key"] == "export"][0]
     assert "saved to Masters" in export["badges"], export["badges"]
-    plain = client.post("/api/chain", json={"preset": "generic"})
-    export2 = [m for m in plain.json()["modules"]
-               if m.get("id") == "export" or m.get("mid") == "export"][0]
+    plain = client.post("/api/chain", json={})
+    export2 = [s for s in plain.json()["stages"] if s["key"] == "export"][0]
     assert not any(b.startswith("saved to") for b in export2["badges"])
 
 

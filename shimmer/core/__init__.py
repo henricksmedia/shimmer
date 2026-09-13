@@ -24,13 +24,14 @@ from .analyze.tone_plan import family_list, moves_to_eq_payload, normalize_famil
 from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
 from .analyze.track import activity_timeline, analyze_track, loudness_range
 from .audio import meters
-from .audio.io import AudioIOError, file_digest, wav_bytes
+from .audio.io import AudioIOError, bit_depth, file_digest, wav_bytes
 from .audio.io import load as load_audio
 from .audio.trim import trim_silence
 from .export import estimate_size, estimate_sizes, estimate_sizes_for, export
 from .master.release import add_check, release_check, tags_check
 from .progress import Cancelled, Progress
 from .analyze.percussion import percussive_share
+from .chain import describe_chain
 from .render import Rendered, Source, premaster_levels, reference_view, render, tone_plan
 from .repair.notch import Notch, NotchPlan, plan_from_lines
 from .settings import EqBand, Settings, migrate
@@ -38,11 +39,11 @@ from .settings import EqBand, Settings, migrate
 __all__ = ["catalog", "tags", "export", "estimate_size", "estimate_sizes",
            "estimate_sizes_for", "render", "premaster_levels", "Rendered", "Source",
            "tone_plan", "family_list", "normalize_family", "moves_to_eq_payload",
-           "reference_view", "percussive_share",
+           "reference_view", "percussive_share", "describe_chain",
            "Settings", "EqBand", "migrate", "Progress", "Cancelled",
            "analyze_track", "detect_edge_artifacts", "apply_trim", "findings", "Finding",
            "scan_fixed_lines", "estimate_cutoff_hz", "plan_from_lines", "Notch", "NotchPlan",
            "spectra_report", "stereo_correlation", "plr_db",
            "release_check", "add_check", "tags_check",
            "meters", "loudness_range", "trim_silence", "activity_timeline",
-           "load_audio", "wav_bytes", "file_digest", "AudioIOError"]
+           "load_audio", "wav_bytes", "file_digest", "bit_depth", "AudioIOError"]

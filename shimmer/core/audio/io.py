@@ -107,6 +107,20 @@ def load(path) -> Tuple[np.ndarray, int]:
     return _ffmpeg_decode(path)
 
 
+_BITS = {"PCM_S8": 8, "PCM_U8": 8, "PCM_16": 16, "PCM_24": 24, "PCM_32": 32,
+         "FLOAT": 32, "DOUBLE": 64}
+
+
+def bit_depth(path) -> Tuple[Optional[int], bool]:
+    """(bits, is_float) of a PCM file, or (None, False) for a lossy file or
+    one libsndfile cannot read. Reads the header only."""
+    try:
+        subtype = sf.info(os.fspath(path)).subtype or ""
+    except Exception:                                      # noqa: BLE001
+        return None, False
+    return _BITS.get(subtype), subtype in ("FLOAT", "DOUBLE")
+
+
 # ── Writing ─────────────────────────────────────────────────────────────
 
 def _write_blocks(path: str, a: np.ndarray, sr: int, **fmt) -> None:

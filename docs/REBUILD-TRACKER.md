@@ -199,10 +199,21 @@ is signed off. **Done 2026-09-12.**
       after the fixes and, with mastering on, after the tone curve.
     - Analyze, `/api/tone` and Batch use it; `shimmer/autoeq.py` points to
       it.
-  - [ ] The chain view (`/api/chain`) still runs on 1.x. It draws 1.x's
-        stages, so moving it means redrawing the Signal Chain view. Mockup
-        (2026-09-13, local): `static/tmp/shimmer-signal-chain-mockup.html`,
-        waiting for sign-off.
+  - [x] The Signal chain view (2026-09-13), from the signed-off mockup
+        `static/tmp/shimmer-signal-chain-mockup.html`:
+    - `core.describe_chain()` says what each of the nine stages does for
+      the settings, following `render()`'s rules. Tests hold it to
+      `render()`'s notch plan, the EQ, every format's ceiling and the
+      release check's rows.
+    - `POST /api/chain` moved to `shimmer/api`; the 1.x handler is gone.
+      It adds the song's facts, notches and reference from the session.
+    - `chain.js` redrawn: nine stage cards, skipped stages dashed with
+      their reason, Preserve volume in Master's place with mastering off,
+      card rows in the Fixes detail, and buttons to the matching part of
+      the Master tab.
+    - One change from the mockup: cards with no tool built can only be
+      "noted" on the Master tab, so the view lists them under Noted, not
+      under "Cards that are on".
 
 ## Step 5 — Mastering (the main complaint)
 
@@ -451,9 +462,9 @@ the music" (`GOALS.md`):*
       `/api/stems/status`, `/api/projects`, `GET /api/project/{digest}`)
     - 1.x's job pipeline, and every helper only they used
   - [ ] The 1.x engine modules, once nothing live imports them. Still
-        using them: the chain view (`/api/chain`), the Remix loop's quick
-        preview (1.x `master()`), the preset list (`/api/presets`) and the
-        settings screens.
+        using them: the Remix loop's quick preview (1.x `master()`), the
+        preset list (`/api/presets`) and the settings screens.
+        `shimmer/chain.py` is now used only by its own tests.
 - [ ] README, `docs/README.md`, `FEATURES.md` and the help text rewritten; a
       new architecture doc.
 - [ ] Release check: 1.1.1 against 2.0, blind; 2.0 must win or tie.

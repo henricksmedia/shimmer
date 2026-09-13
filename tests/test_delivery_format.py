@@ -150,15 +150,12 @@ def test_api_process_rejects_an_unknown_format(client):
 
 
 def test_chain_view_names_the_release_copy(client):
-    r = client.post("/api/chain", json={"preset": "generic", "output_format": "wav16"})
+    r = client.post("/api/chain", json={"output_format": "wav16"})
     assert r.status_code == 200
-    export = [m for m in r.json()["modules"]
-              if m.get("id") == "export" or m.get("mid") == "export"][0]
-    assert "WAV" in export["badges"]
-    assert any("16-bit" in b and "44.1 kHz" in b for b in export["badges"])
-    limiter = [m for m in r.json()["modules"]
-               if m.get("id") == "m-limit" or m.get("mid") == "m-limit"][0]
-    assert "-1.0 dBTP" in limiter["badges"]
+    stages = {s["key"]: s for s in r.json()["stages"]}
+    assert stages["export"]["name"] == "WAV 16-bit 44.1 kHz"
+    assert {"44.1 kHz", "dithered"} <= set(stages["export"]["badges"])
+    assert "−1.0 dBTP" in stages["master"]["badges"]
 
 
 def test_batch_release_copy(client, tmp_path):

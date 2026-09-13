@@ -161,6 +161,14 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         return { fixes, auto: true };
     }
 
+    /** The cards picked, for the Signal chain view: {on, noted}. */
+    function state() {
+        return {
+            on: cards.filter((c) => c.on).map((c) => c.key),
+            noted: cards.filter((c) => c.noted).map((c) => c.key),
+        };
+    }
+
     /** Start over for a new song. */
     function reset() {
         cards.forEach((c) => { c.on = false; c.by = null; c.found = null; c.noted = false; c.userOff = false; });
@@ -177,5 +185,5 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
     }
 
     render();
-    return { setFindings, payload, reset, setMasterCard };
+    return { setFindings, payload, state, reset, setMasterCard };
 }

@@ -409,19 +409,28 @@ All kept, unchanged, because Remix works as it does today.
 
 ## 9. Chain view fields
 
-- **`POST /api/chain` body today:** `preset, preset_strength, overrides,
-  mastering, eq, preserve_volume, trim_silence, output_format, save_folder,
-  trim_armed, repair`.
-- **Response fields the chain view reads (kept):**
-  - `modules[].{id,phase,cat,name,gloss,active,off_reason,badges,band,
-    detail}` (and `adv.length`)
-  - `gates.{flatness,hold_ms,release_ms,low_band_bypass_hz}`
-  - `summary.{crossover_hz,active_modules,n_fft,hop,iterations,fine_pass,
-    fine_n_fft,fine_hop}`
+`POST /api/chain` (`shimmer/api/render.py`) answers
+`core.describe_chain()`: what each of the nine stages does for the Master
+tab's settings. Settings only; it touches no audio. Signed off with the
+mockup `static/tmp/shimmer-signal-chain-mockup.html` (2026-09-13).
 
-The gate and summary fields describe the old nine-stage engine. When the
-chain view is re-wired, they give way to the new module list. That is a
-visible change, and it goes to sign-off with the chain view.
+- **Body:** the preview's settings fields (`fixes, auto, mastering, eq,
+  preserve_volume, trim_silence, output_format, repair`; a 1.x `preset`
+  still maps through `migrate()`), plus `session_id` (the song's facts, its
+  notches and a loaded reference), `cards {on, noted}` (the "What do you
+  hear?" picks), `trim {in_s, out_s}`, `tags_enabled` and `save_folder`.
+  Every field may be left out.
+- **Response:**
+  - `stages[]`, in `catalog.STAGES` order: `key, stage, name, gloss, on,
+    off` (why it is skipped), `standin, tag` (with mastering off, Master's
+    place shows Preserve volume), `off_line, verdict, badges, nb_badges`
+    (drawn dashed), `band {notches | whole, from, tick | empty},
+    band_text, paras, steps, fixes[], noted[]` (card rows: `key, icon,
+    label, tool, text, tag {kind, text, stage}, muted`), `checks`, and an
+    `action {label, target}` or a `note`.
+  - `summary.{on, total, text, facts}`.
+
+The 1.x `modules`, `gates` and `summary` fields went with the old handler.
 
 ## 10. Known mismatches today (fixed by the rebuild)
 
