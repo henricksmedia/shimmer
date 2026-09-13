@@ -2084,10 +2084,60 @@ export async function initSingleTab() {
         el.addEventListener('change', () => pushSettings());
     });
 
+    // The Analysis card on the new engine (approved mockup): the verdict
+    // first, then one row per finding with what is being done about it, the
+    // Suggested EQ, and the timeline.
+    function renderFindings(r) {
+        const el = (tag, cls, html) => {
+            const e = document.createElement(tag);
+            if (cls) e.className = cls;
+            if (html != null) e.innerHTML = html;
+            return e;
+        };
+        const found = r.findings || [];
+        const tones = found.filter((f) => f.card === 'tones');
+        const loud = found.find((f) => f.card === 'loudness');
+        const rows = [];
+        if (tones.length) {
+            const hz = tones.map((f) => `${(f.value / 1000).toFixed(2)} kHz`).join(', ');
+            rows.push(['sports', tones.length > 1 ? 'Fixed tones' : 'Fixed tone',
+                `${hz}, all through the song`, 'on', 'Notch filter on']);
+        }
+        if (loud) rows.push(['volume_down', 'Loudness', loud.detail, 'ask', 'Your call']);
+        const verdict = found.length
+            ? `${found.length} found · ${tones.length ? 1 : 0} fixed automatically`
+            : 'Nothing found that Shimmer can fix yet';
+        const card = el('div', 'an-findings');
+        card.appendChild(el('div', 'an-verdict', verdict));
+        rows.forEach(([icon, title, detail, act, actText]) => {
+            card.appendChild(el('div', 'an-row',
+                `<span class="ms" aria-hidden="true">${icon}</span>`
+                + `<div class="an-what"><b>${title}</b><span>${detail}</span></div>`
+                + `<span class="an-act ${act}">${actText}</span>`));
+        });
+        card.appendChild(el('div', 'an-foot',
+            'Hear something Analyze missed? Pick it under <b>What do you hear?</b> on the left.'));
+        autoDetectResults.appendChild(card);
+        if (r.tone_plan && !r.tone_plan.error) {
+            const main = el('div', 'ad-main');
+            main.appendChild(renderTonePlan(r.tone_plan, { followUp: null }));
+            autoDetectResults.appendChild(main);
+            maybeAutoApplyTone(r.tone_plan, null);
+        } else if (r.tone_plan && r.tone_plan.error) {
+            autoDetectResults.appendChild(el('div', 'ad-reason', `Tone plan skipped: ${r.tone_plan.error}`));
+        }
+    }
+
     function renderAutoDetect(r) {
         autoDetectResults.hidden = false;
         autoDetectResults.innerHTML = '';
         syncNextStep = null;
+
+        if (Array.isArray(r.findings)) {
+            renderFindings(r);
+            appendTimeline(r);
+            return;
+        }
 
         const ranked = Array.isArray(r.ranked) ? r.ranked : [];
         if (ranked.length === 0) {
@@ -2236,7 +2286,11 @@ export async function initSingleTab() {
 
         autoDetectResults.append(tiles, main);
         if (side.childElementCount > 0) autoDetectResults.appendChild(side);
+        appendTimeline(r);
+    }
 
+    // "Top end over time": where the preview loop starts; click to jump.
+    function appendTimeline(r) {
         const tl = r.timeline && Array.isArray(r.timeline.intensity)
             ? r.timeline.intensity : [];
         if (tl.length > 0) {
@@ -2251,13 +2305,13 @@ export async function initSingleTab() {
             head.className = 'ad-timeline-head';
             const title = document.createElement('span');
             title.className = 'ad-timeline-title';
-            title.textContent = 'Noise over time';
+            title.textContent = 'Top end over time';
             const key = document.createElement('span');
             key.className = 'ad-timeline-key';
             const hotSw = document.createElement('i'); hotSw.className = 'sw hot';
             const coolSw = document.createElement('i'); coolSw.className = 'sw cool';
-            key.append(hotSw, ' worst stretches ', coolSw,
-                ' quieter · Live loop starts at the worst stretch · click to jump');
+            key.append(hotSw, ' busiest stretches ', coolSw,
+                ' quieter · Live loop starts at the busiest stretch · click to jump');
             head.append(title, key);
 
             const strip = document.createElement('div');
@@ -2268,7 +2322,7 @@ export async function initSingleTab() {
                 bar.className = 'ad-timeline-bar';
                 if (v >= 0.4) bar.classList.add('hot');
                 bar.style.height = `${Math.max(4, Math.round(v * 100))}%`;
-                bar.title = `${fmtTime(i * stepS)} · noise ${(v * 100).toFixed(0)}%`;
+                bar.title = `${fmtTime(i * stepS)} · top end ${(v * 100).toFixed(0)}%`;
                 strip.appendChild(bar);
             }
             // One listener for the whole strip: the click position maps
@@ -2325,10 +2379,12 @@ export async function initSingleTab() {
             lastFollowUp = (r.follow_up && r.follow_up.name) ? r.follow_up : null;
             if (r.repair_plan) setRepairPlan(r.repair_plan);
             if (r.findings) picker.setFindings(r.findings);
-            applyDetectedPreset(r.preset, r.strength);
+            else applyDetectedPreset(r.preset, r.strength);
             renderAutoDetect(r);
             const pct = Math.round((Number(r.strength) || 1) * 100);
-            setAnalyzeDock('done', `${labelOf(r.preset)} ${pct}%`);
+            setAnalyzeDock('done', r.findings
+                ? `${r.findings.length} found`
+                : `${labelOf(r.preset)} ${pct}%`);
             done = true;
             if (r.timeline && Array.isArray(r.timeline.intensity) &&
                 r.timeline.intensity.length > 0) {

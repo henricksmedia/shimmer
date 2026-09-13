@@ -181,10 +181,18 @@ is signed off. **Done 2026-09-12.**
     - A run can be cancelled between stages.
     - Download names drop the preset.
     - The 1.x fields still work.
-  - [ ] Analyze (suggest, tone, chain) moves with Step 5 and Step 6, not
-        before. Until the screen is re-wired, `/api/suggest` must keep
-        returning the old preset ranking (API.md §0), and its tone plan is
-        the Step 5 rewrite. It keeps running on the 1.x code until then.
+  - [x] Analyze (`/api/suggest`) runs on the new engine (2026-09-12, once
+        the "What do you hear?" card replaced the preset list).
+    - It measures loudness, tone and fixed tones, gives the card's
+      findings, and a top-end timeline that parks the preview loop.
+    - The 19-preset trial is gone: 8.7 s on a 3:43 song, where it was
+      about 30 s.
+    - The preset fields come back empty, as the transition rule allows.
+    - The Analysis card shows the approved verdict-first rows.
+    - The Suggested EQ still comes from 1.x's planner, until the Step 5
+      rewrite.
+  - [ ] Tone (`/api/tone`) and the chain view (`/api/chain`) still run on
+        1.x, until Step 5's tone planner and Step 6's stage list.
 
 ## Step 5 — Mastering (the main complaint)
 

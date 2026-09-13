@@ -1074,12 +1074,18 @@ async def api_suggest(file: UploadFile = File(...),
                       mastering: str = Form(""),
                       tone: bool = Form(True),
                       overrides: str = Form("")) -> JSONResponse:
-    """Artifact preset suggestion + loudness/spectrum analysis, the
-    source file's tags, and the Tone plan (suggested EQ) judged for the
-    picked preset and the current mastering settings."""
-    from .probe import suggest_preset
+    """Analyze, on the new engine: loudness and spectrum, the findings for
+    the "What do you hear?" card, fixed tones (the notch plan), where the
+    top end is busiest, the source file's tags, and the Tone plan
+    (suggested EQ) for the current mastering settings.
 
+    The 1.x preset trial (19 presets on the busiest part) is gone: the cards
+    replace presets. The preset fields stay in the answer, empty, until the
+    screen stops reading them (docs/API.md §0)."""
+    import dataclasses as _dc
     import tempfile
+
+    from . import core as _core
     with tempfile.NamedTemporaryFile(
             suffix=Path(file.filename or "x.wav").suffix,
             delete=False) as tmp:
@@ -1091,18 +1097,24 @@ async def api_suggest(file: UploadFile = File(...),
         tmp_path = tmp.name
     try:
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(None, suggest_preset, tmp_path)
-        x, sr = await loop.run_in_executor(None, load_audio, tmp_path)
-        analysis = await loop.run_in_executor(None, analyze_track, x, sr)
+        t0 = time.time()
+        x, sr = await loop.run_in_executor(None, _core.load_audio, tmp_path)
+        analysis = await loop.run_in_executor(None, _core.analyze_track, x, sr)
+        lines = await loop.run_in_executor(None, _core.scan_fixed_lines, x, sr)
+        found = await loop.run_in_executor(None, _core.findings, _core.Source.from_array(x, sr))
+        timeline = await loop.run_in_executor(None, _core.activity_timeline, x, sr)
+        result = {
+            "findings": [_dc.asdict(f) for f in found],
+            "repair_plan": _core.plan_from_lines(lines, sr).as_dict(),
+            "timeline": timeline,
+            "evidence": {"cutoff_hz": analysis.get("cutoff_hz")},
+            "notes": [],
+            # 1.x preset fields, empty (see the docstring).
+            "preset": "generic", "strength": 1.0, "ranked": [], "follow_up": None,
+        }
         result["analysis"] = analysis
         result["source_tags"] = await loop.run_in_executor(None, read_tags, tmp_path)
-        # The new engine's findings, for the "What do you hear?" card; the
-        # preset fields above stay until that screen replaces them
-        # (docs/API.md §0).
-        import dataclasses as _dc
-        from . import core as _core
-        found = await loop.run_in_executor(None, _core.findings, _core.Source.from_array(x, sr))
-        result["findings"] = [_dc.asdict(f) for f in found]
+        result["metrics"] = {"sample_rate": sr, "elapsed_ms": int((time.time() - t0) * 1000)}
         if tone:
             mp = _parse_master_form(mastering)
             ov = _parse_json_form(overrides)

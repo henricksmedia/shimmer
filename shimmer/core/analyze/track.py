@@ -92,6 +92,32 @@ def loudness_range(x: np.ndarray, sr: int) -> float:
         return 0.0
 
 
+def activity_timeline(x: np.ndarray, sr: int, step_s: float = 1.0,
+                      lo_hz: float = 4500.0, hi_hz: float = 12000.0) -> Dict[str, Any]:
+    """How busy the top end is, second by second, from 0 to 1.
+
+    The screen parks the preview loop on the busiest stretch, where top-end
+    problems (fizz, sibilance, harshness) are most likely to be heard.
+    Levels are scaled between the song's own 20th and 95th percentiles, so
+    every song uses the full range. Measures only.
+    """
+    from scipy.signal import butter, sosfilt
+    mono = _mono_mix(x)
+    hop = max(1, int(round(step_s * sr)))
+    hi = min(hi_hz, 0.45 * sr)
+    if mono.size < hop or hi <= lo_hz:
+        return {"step_s": step_s, "intensity": []}
+    y = sosfilt(butter(4, [lo_hz, hi], btype="bandpass", fs=sr, output="sos"), mono)
+    n = int(np.ceil(y.size / hop))
+    level = np.array([10.0 * np.log10(np.mean(y[i * hop:(i + 1) * hop] ** 2) + 1e-12)
+                      for i in range(n)])
+    lo_db, hi_db = np.percentile(level, 20), np.percentile(level, 95)
+    if hi_db - lo_db < 1.0:
+        hi_db = lo_db + 1.0
+    intensity = np.clip((level - lo_db) / (hi_db - lo_db), 0.0, 1.0)
+    return {"step_s": step_s, "intensity": [round(float(v), 3) for v in intensity]}
+
+
 def analyze_track(x: np.ndarray, sr: int) -> Dict[str, Any]:
     """Loudness, 1/3-octave spectrum, and the bandwidth cutoff (None = full)."""
     loud = {

@@ -259,7 +259,7 @@
                             <span class="spacer"></span>
                             <button type="button" class="btn btn-ghost btn-sm" id="analysis-expand-btn" hidden
                                     title="Open the analysis in a bigger workspace over the page">Expand</button>
-                            <button type="button" class="btn btn-primary btn-sm step-btn" data-step="2" id="analyze-btn" title="Listens to your track, picks the best cleanup preset, and finds where the noise is worst">Analyze</button>
+                            <button type="button" class="btn btn-primary btn-sm step-btn" data-step="2" id="analyze-btn" title="Measures your track, finds what it can fix, and finds where the top end is busiest">Analyze</button>
                         </div>
                         <div class="card-body">
                             <div id="analysis-home" hidden></div>
@@ -271,13 +271,13 @@
                                 <div class="ah-grid">
                                     <div class="ah-item">
                                         <span class="ah-num">1</span>
-                                        <div><b>Picks the preset</b><span>Tries all 19 cleanup presets on the busiest
-                                            part and keeps the best match, with a plain reason.</span></div>
+                                        <div><b>Finds what's there</b><span>Measures fixed tones and loudness, and
+                                            lights up the matching cards under What do you hear?</span></div>
                                     </div>
                                     <div class="ah-item">
                                         <span class="ah-num">2</span>
-                                        <div><b>Finds the worst spot</b><span>Parks the preview loop where the noise
-                                            is loudest, so you hear the problem first.</span></div>
+                                        <div><b>Finds the busiest spot</b><span>Parks the preview loop where the top
+                                            end is busiest, so you hear problems there first.</span></div>
                                     </div>
                                     <div class="ah-item">
                                         <span class="ah-num">3</span>
@@ -285,12 +285,12 @@
                                             few gentle balance moves, checked on the loudest part.</span></div>
                                     </div>
                                 </div>
-                                <div class="ah-foot">Takes 20 to 40 seconds. Does not change your audio.</div>
+                                <div class="ah-foot">Takes about 10 seconds for a four-minute song. Does not change your audio.</div>
                             </div>
                             <div class="analysis-busy" id="analysis-busy" hidden>
                                 <div class="ab-bar"><i></i></div>
-                                <div class="ab-text"><b>Analyzing…</b> listening to the busiest part, trying 19 presets,
-                                    planning the EQ. About half a minute.</div>
+                                <div class="ab-text"><b>Analyzing…</b> measuring loudness and tone, looking for fixed
+                                    tones, planning the EQ. About 10 seconds.</div>
                             </div>
                         </div>
                     </div>

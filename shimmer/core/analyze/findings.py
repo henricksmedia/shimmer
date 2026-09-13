@@ -49,7 +49,8 @@ def findings(source, loudness_target: str = catalog.DEFAULT_LOUDNESS) -> List[Fi
     lufs = meters.loudness(source.audio, source.sr)
     if math.isfinite(lufs) and target.lufs - lufs >= LOUDNESS_REPORT_DB:
         under = target.lufs - lufs
+        level = f"{target.lufs:g}".replace("-", "−")   # a real minus sign, as on screen
         out.append(Finding(
             "loudness", round(under, 1), "dB",
-            f"{under:.1f} dB quieter than {target.label} ({target.lufs:g} LUFS)"))
+            f"{under:.1f} dB quieter than {target.label} ({level} LUFS)"))
     return out
