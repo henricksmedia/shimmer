@@ -29,11 +29,11 @@ from .audio.trim import trim_silence
 from .export import export
 from .master.release import add_check, release_check, tags_check
 from .progress import Cancelled, Progress
-from .render import Rendered, Source, render
+from .render import Rendered, Source, premaster_levels, render
 from .repair.notch import Notch, NotchPlan, plan_from_lines
 from .settings import EqBand, Settings, migrate
 
-__all__ = ["catalog", "tags", "export", "render", "Rendered", "Source",
+__all__ = ["catalog", "tags", "export", "render", "premaster_levels", "Rendered", "Source",
            "Settings", "EqBand", "migrate", "Progress", "Cancelled",
            "analyze_track", "detect_edge_artifacts", "apply_trim", "findings", "Finding",
            "scan_fixed_lines", "estimate_cutoff_hz", "plan_from_lines", "Notch", "NotchPlan",

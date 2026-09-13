@@ -186,6 +186,13 @@ export async function initBatchTab() {
 
         const f1 = (v) => (v == null || !Number.isFinite(v)) ? 'n/a' : v.toFixed(1);
         const signed = (v) => (v > 0 ? '+' : '') + v.toFixed(1);
+        // What Analyze finds in each source file (the "What do you hear?" cards).
+        const found = (msg) => {
+            const list = Array.isArray(msg.findings) ? msg.findings : [];
+            const words = list.map((f) => f.card === 'tones' ? `tone at ${(f.value / 1000).toFixed(2)} kHz`
+                : f.card === 'loudness' ? `${f.value.toFixed(1)} dB under the target` : f.detail);
+            return words.length ? `   found: ${words.join(', ')}` : '';
+        };
         postBatchStream(payload, {
             onMessage: (msg) => {
                 if (msg.type === 'start') {
@@ -219,15 +226,7 @@ export async function initBatchTab() {
                 } else if (msg.type === 'file_done' && msg.phase === 'clean') {
                     let line = `   cleaned  ${msg.duration_s.toFixed(1)}s   ` +
                         `${f1(msg.lufs_clean)} LUFS · TP ${f1(msg.true_peak_clean)} dBTP`;
-                    if (msg.detected_preset) {
-                        const pct = msg.detected_confidence != null
-                            ? ` (${Math.round(msg.detected_confidence * 100)}%)`
-                            : '';
-                        line += `   preset: ${msg.detected_label || msg.detected_preset}${pct}`;
-                        if (Number.isFinite(msg.effective_strength)) {
-                            line += ` @ ${Math.round(msg.effective_strength * 100)}%`;
-                        }
-                    }
+                    line += found(msg);
                     if (msg.tone_moves != null) {
                         line += `   EQ: ${msg.tone_moves} move${msg.tone_moves === 1 ? '' : 's'}`;
                     }
@@ -248,15 +247,7 @@ export async function initBatchTab() {
                             : `   release ${r.status === 'fail' ? '✕' : '⚠'} ${(r.flags || []).join(', ')}`;
                     }
 
-                    if (msg.detected_preset) {
-                        const pct = msg.detected_confidence != null
-                            ? ` (${Math.round(msg.detected_confidence * 100)}%)`
-                            : '';
-                        line += `   preset: ${msg.detected_label || msg.detected_preset}${pct}`;
-                        if (Number.isFinite(msg.effective_strength)) {
-                            line += ` @ ${Math.round(msg.effective_strength * 100)}%`;
-                        }
-                    }
+                    line += found(msg);
 
                     if (msg.trim && msg.trim.enabled) {
                         const cut = (msg.trim.cut_head_s || 0) + (msg.trim.cut_tail_s || 0);

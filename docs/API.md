@@ -291,7 +291,15 @@ read with a fetch stream.
 - **After the rebuild:** `fixes` and `auto` replace `preset`,
   `preset_strength`, `auto_detect` and `static_repair`. Everything else
   stays.
-- **Events the UI reads (all unchanged):**
+- **Now (2026-09-12):** every file runs on `render()` and `export()`.
+  - `fixes` and `auto` are accepted.
+  - The 1.x fields map through the transition rule (§0).
+  - `preset_strength` no longer means anything, since the presets it scaled
+    are gone.
+  - `file_done` sends `findings` in place of `detected_*` and
+    `effective_strength`.
+  - Album mode's pass 1 measures; it no longer writes parked files.
+- **Events the UI reads:**
 
   | Event | Fields read |
   |---|---|

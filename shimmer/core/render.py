@@ -251,11 +251,28 @@ def _preserve_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch]
     return source._remember(_whole_key(s, sr, plan, "preserve_gain"), make)
 
 
+def premaster_levels(source: Source, settings: Optional[Settings] = None, *,
+                     reference: Optional[Source] = None) -> Dict[str, float]:
+    """The song's loudness and true peak just before mastering's gain: after
+    the fixes, the tone curve, the EQ and the low-cut, at the output rate.
+    This is what render() works its gain out from. Album mode picks one gain
+    for a whole record from every song's level (master.loudness.album_gains).
+    """
+    s = settings if settings is not None else Settings()
+    sr = int(catalog.output_format(s.format).sr or source.sr)
+    plan = _tones_plan(source, sr, s, None)
+    y = _whole_premaster(source, sr, s, plan, reference)
+    lufs = meters.loudness(y, sr)
+    source._remember(_whole_key(s, sr, plan, "premaster_lufs", reference), lambda: lufs)
+    return {"lufs_i": lufs, "true_peak_dbtp": meters.true_peak_db(y, sr)}
+
+
 def render(source: Source, settings: Optional[Settings] = None,
            window: Optional[Tuple[float, float]] = None, *,
            progress: Optional[Progress] = None, with_removed: bool = False,
            notches: Optional[Sequence[notch.Notch]] = None,
-           reference: Optional[Source] = None) -> Rendered:
+           reference: Optional[Source] = None,
+           gain_db: Optional[float] = None) -> Rendered:
     """Render the song, or the span `window` = (start_s, end_s) of it.
 
     A window covers samples round(start_s * sr) up to round(end_s * sr) at
@@ -267,6 +284,10 @@ def render(source: Source, settings: Optional[Settings] = None,
     reference     a reference track: with mastering on, the tone curve moves
                   toward it by Settings.match_amount instead of toward
                   1.1.1's target
+    gain_db       album mode: one gain for the whole record (see
+                  premaster_levels), in place of this song's own gain to
+                  its loudness target. The shaper and limiter still act per
+                  song, at the format's ceiling.
     """
     s = settings if settings is not None else Settings()
     fmt = catalog.output_format(s.format)
@@ -329,17 +350,22 @@ def render(source: Source, settings: Optional[Settings] = None,
 
     # 4. Level.
     if s.mastering:
+        if gain_db is None:
+            before, gain = _whole_song_gain(source, sr, s, plan, reference)
+            aim = f"{catalog.loudness_target(s.loudness_target).lufs:g} LUFS"
+        else:
+            before, gain = None, float(gain_db)
+            aim = f"the album's gain, {gain:+.1f} dB"
         _stage(progress, "master", "Loudness and peaks",
-               f"{catalog.loudness_target(s.loudness_target).lufs:g} LUFS, "
-               f"{fmt.ceiling_dbtp:g} dBTP ceiling")
-        before, gain_db = _whole_song_gain(source, sr, s, plan, reference)
-        y = np.asarray(y, dtype=np.float64) * 10.0 ** (gain_db / 20.0)
+               f"{aim}, {fmt.ceiling_dbtp:g} dBTP ceiling")
+        y = np.asarray(y, dtype=np.float64) * 10.0 ** (gain / 20.0)
         y, shaper = limiter.soft_peak_shaper(y, fmt.ceiling_dbtp)
         y, lim = limiter.true_peak_limiter(y, sr, fmt.ceiling_dbtp)
         report["mastering"].update({
             "target_lufs": catalog.loudness_target(s.loudness_target).lufs,
             "loudness_before_lufs": before,
-            "gain_db": gain_db,
+            "gain_db": gain,
+            "album_gain": gain_db is not None,
             "ceiling_dbtp": fmt.ceiling_dbtp,
             "shaped_ratio": shaper["shaped_ratio"],
             "limiter_gain_reduction_db": lim["max_gain_reduction_db"],

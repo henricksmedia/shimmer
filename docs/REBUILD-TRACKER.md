@@ -356,7 +356,21 @@ the music" (`GOALS.md`):*
 - updating from 1.1.1 is tested
 - the changelog and README are updated
 
-- [ ] Batch and album mode on `render()`.
+- [x] Batch and album mode on `render()` (2026-09-12).
+  - Every file goes through the Master tab's own path:
+    - `render()` and `export()`
+    - tags, silence trim and the release check (`api.render.export_file`)
+  - A test holds a batch file equal to the engine's own render, within one
+    24-bit step.
+  - Album mode measures each track just before mastering's gain
+    (`core.premaster_levels`), picks one gain, then renders each track again
+    with it (`render(..., gain_db=)`). Nothing is parked on disk, and a
+    long album is never all in memory.
+  - The preset trial is gone; each file's findings are logged instead.
+  - "Suggested EQ" still asks 1.x's tone planner, judged as Generic would
+    clean, until Step 5 moves the planner into the engine.
+  - Not yet: a cancel button (batch is not on the job runner), and the
+    Batch screen's preset menu becoming the cards.
 - [ ] Remix:
   - [ ] its render and preview on `render()`
   - [ ] its cleanup menu becomes the cards

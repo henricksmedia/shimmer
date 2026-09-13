@@ -1215,42 +1215,49 @@ async def api_tone(file: UploadFile = File(...),
 # Batch
 # ───────────────────────────────────────────────────────────────────────────
 
+from functools import partial as _partial  # noqa: E402
+
+from . import core as _core  # noqa: E402
+
+
 @app.post("/api/batch")
 async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
+    """A folder through the new engine (docs/API.md §5). Every file is
+    rendered with shimmer.core.render() and written with core.export(), with
+    the Master tab's tags, silence trim and release check
+    (shimmer.api.render.export_file). The 1.x fields still arrive and map
+    through the transition rule (API.md §0). `auto_detect` no longer tries
+    presets: each file's findings are reported instead."""
     input_folder = (payload.get("input_folder") or "").strip()
     output_folder = (payload.get("output_folder") or "").strip()
-    preset = payload.get("preset") or "generic"
-    preserve_vol = bool(payload.get("preserve_volume", True))
-    output_format = (payload.get("output_format") or "wav").lstrip(".").lower()
+    raw_format = payload.get("output_format") or "wav"
     try:
-        out_spec = resolve_output_format(output_format)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
+        fmt = _core.catalog.output_format(raw_format)
+    except KeyError:
+        raise HTTPException(400, f"Unsupported output format: {raw_format}")
+    preset = payload.get("preset") or "generic"
     auto_detect = bool(payload.get("auto_detect", False))
-    trim_silence = bool(payload.get("trim_silence", False))
-    static_repair = bool(payload.get("static_repair", True))
-    mp = master_params_from_json(payload.get("mastering") or {})
-    eqp = eq_params_from_json(payload.get("eq") or {})
+    params: Dict[str, Any] = {
+        "preset": preset,
+        "mastering": payload.get("mastering") or {},
+        "eq": payload.get("eq") or {},
+        "repair": {"enabled": bool(payload.get("static_repair", True))},
+    }
+    for key in ("fixes", "auto"):
+        if key in payload:
+            params[key] = payload[key]
+    s = _api_render.settings_from_request(
+        params, output_format=fmt.key,
+        preserve_volume=bool(payload.get("preserve_volume", True)),
+        trim_silence=bool(payload.get("trim_silence", False)))
     auto_eq = bool(payload.get("auto_eq", False))
     tone_family = normalize_family(payload.get("tone_family"))
+    mp = master_params_from_json(payload.get("mastering") or {})
     tags_req = payload.get("tags") if isinstance(payload.get("tags"), dict) else None
-    # Codec-aware ceiling unless the user explicitly chose one.
-    if (payload.get("mastering") or {}).get("ceiling_dbtp") is None:
-        mp.ceiling_dbtp = get_export_ceiling_dbtp(out_spec["ext"])
-    # Album mode: one gain for the whole folder (see _album_gain). Only
-    # meaningful with mastering on.
-    album_mode = bool(payload.get("album_mode", False)) and bool(mp.enabled)
-
-    # Preset strength: parse and clamp to [0, 2].
-    raw_strength = payload.get("preset_strength")
-    if raw_strength is not None:
-        try:
-            preset_strength = float(raw_strength)
-        except (TypeError, ValueError):
-            preset_strength = 1.0
-        preset_strength = max(0.0, min(2.0, preset_strength))
-    else:
-        preset_strength = 1.0
+    # Album mode: one gain for the whole folder. Only meaningful with
+    # mastering on.
+    album_mode = bool(payload.get("album_mode", False)) and s.mastering
+    target_lufs = _core.catalog.loudness_target(s.loudness_target).lufs
 
     if not input_folder or not os.path.isdir(input_folder):
         raise HTTPException(400, f"Input folder not found: {input_folder}")
@@ -1258,19 +1265,15 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
         output_folder = input_folder.rstrip("/\\") + "_deshimmered"
     os.makedirs(output_folder, exist_ok=True)
 
-    # Validate the explicit preset when not auto-detecting.
-    if not auto_detect:
-        try:
-            get_preset(preset)
-        except KeyError as e:
-            raise HTTPException(400, f"Unknown preset: {e}")
-
     patterns = ["*.wav", "*.WAV", "*.mp3", "*.MP3",
                 "*.flac", "*.FLAC", "*.ogg", "*.m4a"]
     files = []
     for pat in patterns:
         files.extend(glob.glob(os.path.join(input_folder, pat)))
     files = sorted(set(files))
+
+    def dst_for(name: str) -> str:
+        return os.path.join(output_folder, os.path.splitext(name)[0] + fmt.ext)
 
     async def stream():
         yield _sse_event({
@@ -1287,124 +1290,109 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
         loop = asyncio.get_running_loop()
 
         if album_mode:
-            # Two passes. Pass 1 cleans every track with mastering held
-            # back and parks the pre-master signal on disk; the album's
-            # gain is then decided from the loudest track; pass 2
-            # masters each track with that one gain. The parked files
-            # go when the run ends, however it ends.
-            tmp_dir = tempfile.mkdtemp(prefix="shimmer_album_")
-            try:
-                infos: List[Dict[str, Any]] = []
-                yield _sse_event({
-                    "type": "phase", "phase": "clean", "total": len(files),
-                    "message": "Pass 1 of 2: cleaning every track; mastering waits until the album's level is known",
-                })
-                for i, src in enumerate(files):
-                    name = os.path.basename(src)
-                    yield _sse_event({"type": "file_start", "phase": "clean",
-                                      "index": i, "name": name})
-                    tmp = os.path.join(tmp_dir, f"{i:03d}.wav")
-                    try:
-                        info = await loop.run_in_executor(
-                            None, _album_clean_one, src, tmp, preset,
-                            auto_detect, preset_strength, mp, eqp,
-                            static_repair, auto_eq, tone_family, out_spec["sr"])
-                        info.update({"index": i, "name": name, "src": src})
-                        infos.append(info)
-                        yield _sse_event({
-                            "type": "file_done", "phase": "clean",
-                            "index": i, "name": name,
-                            "duration_s": info["duration_s"],
-                            "lufs_clean": info["lufs_clean"],
-                            "true_peak_clean": info["true_peak_clean"],
-                            "peak_in_db": info["input"]["peak_dbfs"],
-                            "tone_moves": info.get("tone_moves"),
-                            "tone_summary": info.get("tone_summary"),
-                            "detected_preset": info.get("detected_preset"),
-                            "detected_label": info.get("detected_label"),
-                            "detected_confidence": info.get("detected_confidence"),
-                            "detected_strength": info.get("detected_strength"),
-                            "effective_strength": info.get("effective_strength"),
-                        })
-                    except Exception as e:  # noqa: BLE001
-                        yield _sse_event({"type": "file_error", "phase": "clean",
-                                          "index": i, "name": name, "error": str(e)})
-                album = _album_gain(infos, float(mp.target_lufs))
-                yield _sse_event({"type": "album", "target_lufs": float(mp.target_lufs),
-                                  "tracks": len(infos), **album})
-                if not infos:
-                    yield _sse_event({"type": "end", "total": len(files),
-                                      "message": "No track could be cleaned"})
-                    return
-                yield _sse_event({
-                    "type": "phase", "phase": "master", "total": len(infos),
-                    "message": "Pass 2 of 2: mastering every track with the album's gain",
-                })
-                for info in infos:
-                    i, name, src = info["index"], info["name"], info["src"]
-                    dst = os.path.join(
-                        output_folder, os.path.splitext(name)[0] + out_spec["ext"])
-                    yield _sse_event({"type": "file_start", "phase": "master",
-                                      "index": i, "name": name})
-                    try:
-                        r = await loop.run_in_executor(
-                            None, _album_master_one, info, src, dst, mp,
-                            float(album["gain_db"]), trim_silence, tags_req,
-                            out_spec["subtype"])
-                        after = (r.get("mastering") or {}).get("after") or {}
-                        yield _sse_event({
-                            "type": "file_done", "phase": "master",
-                            "index": i, "name": name,
-                            "duration_s": r["duration_s"],
-                            "tags_written": r.get("tags_written"),
-                            "trim": r.get("trim"),
-                            "peak_in_db": (r.get("input") or {}).get("peak_dbfs"),
-                            "peak_out_db": r["output"]["peak_dbfs"],
-                            "lufs_out": _finite_or_none(after.get("lufs_i")),
-                            "true_peak_out": _finite_or_none(after.get("true_peak_dbtp")),
-                            "limiter_gr_db": (r.get("mastering") or {}).get("limiter_gain_reduction"),
-                            "gain_db": float(album["gain_db"]),
-                            "release": release_summary(r.get("release")),
-                        })
-                    except Exception as e:  # noqa: BLE001
-                        yield _sse_event({"type": "file_error", "phase": "master",
-                                          "index": i, "name": name, "error": str(e)})
-                yield _sse_event({"type": "end", "total": len(files)})
-            finally:
-                shutil.rmtree(tmp_dir, ignore_errors=True)
+            # Two passes. Pass 1 measures every track just before mastering's
+            # gain; the album's gain is then decided from the loudest; pass 2
+            # renders each track with that one gain. Nothing is parked on
+            # disk: pass 2 renders from the original file again.
+            infos: List[Dict[str, Any]] = []
+            yield _sse_event({
+                "type": "phase", "phase": "clean", "total": len(files),
+                "message": "Pass 1 of 2: measuring every track; mastering waits until the album's level is known",
+            })
+            for i, src in enumerate(files):
+                name = os.path.basename(src)
+                yield _sse_event({"type": "file_start", "phase": "clean",
+                                  "index": i, "name": name})
+                try:
+                    s_file, eq_info = await loop.run_in_executor(
+                        None, _batch_settings_for, src, s, auto_eq, tone_family, mp)
+                    info = await loop.run_in_executor(None, _api_render.measure_file, src, s_file)
+                    info.update(eq_info)
+                    info.update({"index": i, "name": name, "src": src, "settings": s_file})
+                    infos.append(info)
+                    yield _sse_event({
+                        "type": "file_done", "phase": "clean",
+                        "index": i, "name": name,
+                        "duration_s": info["duration_s"],
+                        "lufs_clean": info["lufs_clean"],
+                        "true_peak_clean": info["true_peak_clean"],
+                        "peak_in_db": info["input"]["peak_dbfs"],
+                        "tone_moves": info.get("tone_moves"),
+                        "tone_summary": info.get("tone_summary"),
+                        "findings": info.get("findings"),
+                    })
+                except Exception as e:  # noqa: BLE001
+                    yield _sse_event({"type": "file_error", "phase": "clean",
+                                      "index": i, "name": name, "error": str(e)})
+            album = _album_gain(infos, float(target_lufs))
+            yield _sse_event({"type": "album", "target_lufs": float(target_lufs),
+                              "tracks": len(infos), **album})
+            if not infos:
+                yield _sse_event({"type": "end", "total": len(files),
+                                  "message": "No track could be measured"})
+                return
+            gain = float(album["gain_db"])
+            yield _sse_event({
+                "type": "phase", "phase": "master", "total": len(infos),
+                "message": "Pass 2 of 2: mastering every track with the album's gain",
+            })
+            for info in infos:
+                i, name, src = info["index"], info["name"], info["src"]
+                yield _sse_event({"type": "file_start", "phase": "master",
+                                  "index": i, "name": name})
+                clean = info.get("lufs_clean")
+                # This track's level under album mode: its level before
+                # mastering plus the album's one gain. The release check
+                # grades against that, since sitting under the target is
+                # the point.
+                expected = float(clean) + gain if clean is not None else None
+                try:
+                    r = await loop.run_in_executor(None, _partial(
+                        _api_render.export_file, src, info["settings"], dst_for(name),
+                        tags_req=tags_req, gain_db=gain, expected_lufs=expected,
+                        with_findings=False))
+                    yield _sse_event({
+                        "type": "file_done", "phase": "master",
+                        "index": i, "name": name,
+                        "duration_s": r["duration_s"],
+                        "tags_written": r.get("tags_written"),
+                        "trim": r.get("trim"),
+                        "peak_in_db": r["input"]["peak_dbfs"],
+                        "peak_out_db": r["output"]["peak_dbfs"],
+                        "lufs_out": r.get("lufs_out"),
+                        "true_peak_out": r.get("true_peak_out"),
+                        "limiter_gr_db": r.get("limiter_gr_db"),
+                        "gain_db": gain,
+                        "release": release_summary(r.get("release")),
+                    })
+                except Exception as e:  # noqa: BLE001
+                    yield _sse_event({"type": "file_error", "phase": "master",
+                                      "index": i, "name": name, "error": str(e)})
+            yield _sse_event({"type": "end", "total": len(files)})
             return
 
         for i, src in enumerate(files):
             name = os.path.basename(src)
-            dst = os.path.join(
-                output_folder, os.path.splitext(name)[0] + out_spec["ext"])
             yield _sse_event({"type": "file_start", "index": i, "name": name})
             try:
-                r = await loop.run_in_executor(
-                    None, _batch_one, src, dst, preset, preserve_vol,
-                    auto_detect, preset_strength, mp, trim_silence, eqp,
-                    static_repair, auto_eq, tone_family, tags_req,
-                    out_spec["subtype"], out_spec["sr"])
+                s_file, eq_info = await loop.run_in_executor(
+                    None, _batch_settings_for, src, s, auto_eq, tone_family, mp)
+                r = await loop.run_in_executor(None, _partial(
+                    _api_render.export_file, src, s_file, dst_for(name), tags_req=tags_req))
                 yield _sse_event({
                     "type": "file_done", "index": i, "name": name,
                     "duration_s": r["duration_s"],
-                    "tone_moves": r.get("tone_moves"),
-                    "tone_summary": r.get("tone_summary"),
+                    "tone_moves": eq_info.get("tone_moves"),
+                    "tone_summary": eq_info.get("tone_summary"),
                     "tags_written": r.get("tags_written"),
                     "trim": r.get("trim"),
                     "peak_in_db": r["input"]["peak_dbfs"],
                     "peak_out_db": r["output"]["peak_dbfs"],
-                    "detected_preset": r.get("detected_preset"),
-                    "detected_label": r.get("detected_label"),
-                    "detected_confidence": r.get("detected_confidence"),
-                    "detected_strength": r.get("detected_strength"),
-                    "effective_strength": r.get("effective_strength"),
+                    "findings": r.get("findings"),
                     # Per-file verification when mastering ran.
-                    "lufs_out": _finite_or_none(
-                        ((r.get("mastering") or {}).get("after") or {}).get("lufs_i")),
-                    "true_peak_out": _finite_or_none(
-                        ((r.get("mastering") or {}).get("after") or {}).get("true_peak_dbtp")),
-                    "limiter_gr_db": (r.get("mastering") or {}).get("limiter_gain_reduction"),
+                    "lufs_out": r.get("lufs_out"),
+                    "true_peak_out": r.get("true_peak_out"),
+                    "limiter_gr_db": r.get("limiter_gr_db"),
                     "release": release_summary(r.get("release")),
                 })
             except Exception as e:  # noqa: BLE001
@@ -1417,177 +1405,40 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 
-def _batch_prepare(src: str, preset_name: str, auto_detect: bool,
-                   preset_strength: float,
-                   master_params: Optional[MasterParams],
-                   eq_params: Optional[EqParams],
-                   auto_eq: bool, tone_family: str
-                   ) -> Tuple[Params, Optional[EqParams], Dict[str, Any], float]:
-    """The per-file choices every batch pass makes before touching the
-    audio: the preset (fixed, or auto-detected with its own strength),
-    the strength scaling, and the suggested EQ judged after that file's
-    cleaning. Returns (params, eq_params, detected_info, strength)."""
-    detected_info: Dict[str, Any] = {}
-
-    if auto_detect:
-        from .probe import suggest_preset as _suggest
-        from .presets import label_for
-        suggestion = _suggest(src)
-        chosen = suggestion.get("preset") or "generic"
-        ranked = suggestion.get("ranked") or []
-        confidence = ranked[0]["confidence"] if ranked else 0.0
-        # The analysis recommends a strength for its pick.  In auto mode
-        # the batch strength slider multiplies it (100% = trust the
-        # analysis), and the product goes through the same
-        # apply_preset_strength hook as a manual strength choice.
-        detected_strength = float(suggestion.get("strength") or 1.0)
-        effective_strength = max(0.0, min(2.0, detected_strength * preset_strength))
-        detected_info = {
-            "detected_preset": chosen,
-            "detected_label": label_for(chosen),
-            "detected_confidence": round(float(confidence), 2),
-            "detected_strength": round(detected_strength, 2),
-            "effective_strength": round(effective_strength, 2),
-        }
-        params = get_preset(chosen)
-        preset_strength = effective_strength
-    else:
-        params = get_preset(preset_name)
-
-    # Apply preset strength scaling.
-    if abs(preset_strength - 1.0) > 1e-6:
-        apply_preset_strength(params, preset_strength)
-
-    # Suggested EQ per file: the Tone plan for this track, judged after
-    # its own cleaning, added to any EQ the user set on the Master tab.
-    if auto_eq:
-        x, sr = load_audio(src)
-        analysis = analyze_track(x, sr)
-        chosen_name = detected_info.get("detected_preset") or preset_name
-        plan = _tone_plan_for(x, sr, analysis, chosen_name, preset_strength,
-                              tone_family, master_params)
-        moves = plan.get("moves") or []
-        detected_info["tone_moves"] = len(moves)
-        detected_info["tone_summary"] = plan.get("summary", "")
-        if moves:
-            base = eq_params.bands if (eq_params is not None and eq_params.enabled) else []
-            merged = eq_params_from_json(moves_to_eq_payload(moves))
-            eq_params = EqParams(enabled=True, bands=list(base) + list(merged.bands))
-    return params, eq_params, detected_info, preset_strength
-
-
-def _batch_one(src: str, dst: str, preset_name: str, preserve_vol: bool,
-               auto_detect: bool = False, preset_strength: float = 1.0,
-               master_params: Optional[MasterParams] = None,
-               trim_silence: bool = False,
-               eq_params: Optional[EqParams] = None,
-               static_repair: bool = True,
-               auto_eq: bool = False,
-               tone_family: str = "neutral",
-               tags_req: Optional[Dict[str, Any]] = None,
-               subtype: str = "PCM_24",
-               target_sr: Optional[int] = None):
-    params, eq_params, detected_info, preset_strength = _batch_prepare(
-        src, preset_name, auto_detect, preset_strength, master_params,
-        eq_params, auto_eq, tone_family)
-
-    result = process_file(
-        input_path=src, output_path=dst,
-        params=params, do_preserve_volume=preserve_vol,
-        master_params=master_params,
-        trim_silence=trim_silence,
-        eq_params=eq_params,
-        static_repair=static_repair,
-        subtype=subtype,
-        target_sr=target_sr,
-    )
-    result.update(detected_info)
-
-    mastered = master_params is not None and master_params.enabled
-    eq_bands = len(eq_params.active_bands(44100)) if eq_params is not None and eq_params.is_active(44100) else 0
-    chosen = detected_info.get("detected_preset") or preset_name
-    eff_strength = float(detected_info.get("effective_strength", preset_strength))
-    note = shimmer_note(
-        f"Shimmer {SHIMMER_VERSION}", _pass_label(src),
-        label_for(chosen) if chosen in PRESET_NAMES else chosen,
-        eff_strength, mastered,
-        float(master_params.target_lufs) if mastered else None,
-        float(master_params.ceiling_dbtp) if mastered else None,
-        eq_bands=eq_bands,
-        # Diff against the EXACT strength the scaling used, not the rounded
-        # copy in detected_info. `_batch_prepare` scales with the unrounded
-        # value and rounds only for display, so rebuilding the baseline from
-        # the rounded number makes every scaled field differ by a hair and the
-        # note then lists the whole preset recipe as if the user typed it.
-        overrides=preset_overrides(params, chosen, preset_strength),
-        eq_moves=_eq_moves(eq_params, 44100),
-        tone=_tone_label(master_params if mastered else None))
-    tag_rep = _tag_export(dst, src, tags_req, note)
-    result["tags_written"] = bool(tag_rep.get("written"))
-    if result.get("release"):
-        result["release"] = add_check(
-            result["release"], tags_check(tag_rep.get("tags"), bool(tag_rep.get("written"))))
-    return result
+def _batch_settings_for(src: str, s: Any, auto_eq: bool, tone_family: str,
+                        mp: MasterParams) -> Tuple[Any, Dict[str, Any]]:
+    """One file's settings. With Suggested EQ on, 1.x's tone planner adds
+    its moves after the user's EQ bands, judged on this file. The planner
+    moves into the engine with Step 5's tone work; until then it judges the
+    file as the Generic preset would clean it."""
+    if not auto_eq:
+        return s, {}
+    x, sr = load_audio(src)
+    analysis = analyze_track(x, sr)
+    plan = _tone_plan_for(x, sr, analysis, "generic", 1.0, tone_family, mp)
+    moves = plan.get("moves") or []
+    info = {"tone_moves": len(moves), "tone_summary": plan.get("summary", "")}
+    if moves:
+        base = list(s.eq_bands) if s.eq_enabled else []
+        extra = moves_to_eq_payload(moves)["bands"]
+        s = s.replace(eq_enabled=True, eq_bands=tuple(base) + tuple(extra))
+    return s, info
 
 
 # ── Album mode ───────────────────────────────────────────────────────────
 # A folder mastered as one record. Normalising each track on its own
 # flattens the album: the quiet song ends up as loud as the single.
-# Album mode cleans every track first (pass 1), parks the pre-master
-# signal, decides one gain from the loudest track, and masters each
-# track with that gain (pass 2), so the tracks keep their distance and
-# no track is limited harder than it would be on its own.
-
-def _album_clean_one(src: str, tmp_dst: str, preset_name: str,
-                     auto_detect: bool, preset_strength: float,
-                     master_params: MasterParams,
-                     eq_params: Optional[EqParams], static_repair: bool,
-                     auto_eq: bool, tone_family: str,
-                     target_sr: Optional[int] = None) -> Dict[str, Any]:
-    """Pass 1 for one file: clean with mastering deferred, park the
-    pre-master signal as a float WAV, and measure its loudness."""
-    params, eqp, detected_info, strength = _batch_prepare(
-        src, preset_name, auto_detect, preset_strength, master_params,
-        eq_params, auto_eq, tone_family)
-    x, sr = load_audio(src)
-    x, sr = resample_to(x, sr, target_sr)
-    plan = plan_from_lines(scan_fixed_lines(x, sr), sr) if static_repair else None
-    params.cutoff_hz = float(estimate_cutoff_hz(x, sr).get("cutoff_hz") or 0.0)
-    y, _removed, rep = clean_and_master(
-        x, sr, params, master_params=master_params, eq_params=eqp,
-        repair=plan, defer_master=True)
-    save_audio(tmp_dst, y, sr, subtype="FLOAT")
-    loud = (rep.get("mastering") or {}).get("before") or measure_loudness(y, sr)
-    info: Dict[str, Any] = {
-        "tmp": tmp_dst, "sr": sr,
-        "duration_s": float(x.shape[0] / sr),
-        "input": measure(x),
-        "lufs_clean": _finite_or_none(loud.get("lufs_i")),
-        "true_peak_clean": _finite_or_none(loud.get("true_peak_dbtp")),
-        "clipped_samples": count_clipped(x),
-        "strength": float(strength),
-        "eq_bands": len(eqp.active_bands(sr)) if eqp is not None and eqp.is_active(sr) else 0,
-        "preset": detected_info.get("detected_preset") or preset_name,
-        # Carried to pass 2, which writes the tags but no longer holds the
-        # params: without these the album note names a preset the run may
-        # not have used unmodified.
-        # The exact strength, not detected_info's rounded copy — see the note
-        # in _batch_one for why the rounded one fabricates tweaks.
-        "overrides": preset_overrides(
-            params, detected_info.get("detected_preset") or preset_name,
-            strength),
-        "eq_moves": _eq_moves(eqp, sr),
-    }
-    info.update(detected_info)
-    return info
-
+# Album mode measures every track first (pass 1), decides one gain from the
+# loudest track, and masters each track with that gain (pass 2), so the
+# tracks keep their distance and no track is limited harder than it would
+# be on its own.
 
 def _album_gain(infos: List[Dict[str, Any]], target_lufs: float) -> Dict[str, Any]:
-    """One gain for the whole album: the loudest cleaned track lands on
-    the target and every other track keeps its distance below it. Also
-    reports the album's overall loudness (the duration-weighted energy
-    mean of the tracks' integrated loudness, close to a gated
-    measurement of the record played end to end) and the spread."""
+    """One gain for the whole album: the loudest track lands on the target
+    and every other track keeps its distance below it. Also reports the
+    album's overall loudness (the duration-weighted energy mean of the
+    tracks' integrated loudness, close to a gated measurement of the record
+    played end to end) and the spread."""
     rows = [(i, float(i["lufs_clean"]), float(i.get("duration_s") or 0.0))
             for i in infos if i.get("lufs_clean") is not None]
     if not rows:
@@ -1602,60 +1453,6 @@ def _album_gain(infos: List[Dict[str, Any]], target_lufs: float) -> Dict[str, An
         "loudest_lufs": loudest[1],
         "album_lufs": float(10.0 * math.log10(max(energy, 1e-20))),
         "spread_lu": float(loudest[1] - min(l for _, l, _ in rows)),
-    }
-
-
-def _album_master_one(info: Dict[str, Any], src: str, dst: str,
-                      master_params: MasterParams, gain_db: float,
-                      trim_silence: bool,
-                      tags_req: Optional[Dict[str, Any]],
-                      subtype: str = "PCM_24") -> Dict[str, Any]:
-    """Pass 2 for one file: master the parked track with the album's
-    gain (shaper and limiter still per track), trim, write, tag."""
-    y, sr = load_audio(info["tmp"])
-    y2, m_report = master(y, sr, master_params, fixed_gain_db=gain_db)
-    trim_report: Dict[str, Any] = {"enabled": False}
-    if trim_silence:
-        y2, cut_head, cut_tail = dsp_trim_silence(y2, sr)
-        trim_report = {"enabled": True, "cut_head_s": round(cut_head, 3),
-                       "cut_tail_s": round(cut_tail, 3)}
-    save_audio(dst, y2, sr, subtype=subtype,
-               dither=str(subtype).upper() in ("PCM_16", "PCM16"))
-    chosen = str(info.get("preset") or "generic")
-    note = shimmer_note(
-        f"Shimmer {SHIMMER_VERSION}", _pass_label(src),
-        label_for(chosen) if chosen in PRESET_NAMES else chosen,
-        float(info.get("effective_strength", info.get("strength", 1.0))), True,
-        float(master_params.target_lufs), float(master_params.ceiling_dbtp),
-        eq_bands=int(info.get("eq_bands", 0)),
-        overrides=list(info.get("overrides") or []),
-        eq_moves=list(info.get("eq_moves") or []),
-        tone=_tone_label(master_params))
-    tag_rep = _tag_export(dst, src, tags_req, note)
-    ext = os.path.splitext(dst)[1].lstrip(".").lower()
-    # This track's level under album mode: its cleaned loudness plus the
-    # album's one gain. The loudest track lands on the target; the rest
-    # sit below it by design, so the release check grades against that.
-    clean_lufs = _finite_or_none(info.get("lufs_clean"))
-    expected = (float(clean_lufs) + float(gain_db)) if clean_lufs is not None else None
-    release = release_check(
-        y2, sr, mastering=m_report,
-        export={"format": ext,
-                "bit_depth": ((16 if str(subtype).upper() in ("PCM_16", "PCM16") else 24)
-                              if ext in ("wav", "flac") else None)},
-        clipped_samples=info.get("clipped_samples"),
-        correlation=stereo_correlation(y2),
-        duration_s=float(y2.shape[0] / sr),
-        tags=tag_rep.get("tags"), tags_written=bool(tag_rep.get("written")),
-        expected_lufs=expected)
-    return {
-        "duration_s": float(y2.shape[0] / sr),
-        "input": info.get("input") or {},
-        "output": measure(y2),
-        "mastering": m_report,
-        "trim": trim_report,
-        "tags_written": bool(tag_rep.get("written")),
-        "release": release,
     }
 
 

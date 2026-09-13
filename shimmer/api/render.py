@@ -26,6 +26,7 @@ Fixes against 1.1.1:
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import json
 import math
 import os
@@ -224,6 +225,20 @@ def _loudness_block(x: np.ndarray, sr: int) -> Dict[str, Optional[float]]:
             "lra": _finite(core.loudness_range(x, sr))}
 
 
+def _build_tags(source_path: str, tags_req: Optional[Dict[str, Any]],
+                note: str) -> Optional[Dict[str, str]]:
+    """The tags to write, or None when the request turned tags off. The
+    title falls back to the file name, an upload's "input_" prefix dropped."""
+    if isinstance(tags_req, dict) and tags_req.get("enabled") is False:
+        return None
+    stem = Path(source_path).stem
+    stem = stem[len("input_"):] if stem.startswith("input_") else stem
+    req = dict(tags_req or {})
+    return core.tags.build_tags(core.tags.read_tags(source_path), req, title_hint=stem,
+                                note=note if req.get("notes", True) else "",
+                                software=f"Shimmer {VERSION}")
+
+
 # ── The export job ──────────────────────────────────────────────────────
 
 def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
@@ -247,15 +262,8 @@ def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
     fmt = core.catalog.output_format(s.format)
 
     note = _note(_pass_label(source_path), rendered, _eq_moves(s, out_sr))
-    tags_on = not (isinstance(tags_req, dict) and tags_req.get("enabled") is False)
-    tags = None
-    if tags_on:
-        stem = Path(source_path).stem
-        stem = stem[len("input_"):] if stem.startswith("input_") else stem
-        req = dict(tags_req or {})
-        tags = core.tags.build_tags(core.tags.read_tags(source_path), req, title_hint=stem,
-                                    note=note if req.get("notes", True) else "",
-                                    software=f"Shimmer {VERSION}")
+    tags = _build_tags(source_path, tags_req, note)
+    tags_on = tags is not None
 
     prog.stage("export", "Writing the file",
                f"{fmt.label}" + (" · tags" if tags_on else "")
@@ -374,6 +382,80 @@ async def _run_export_async(job: jobs_mod.Job, *args) -> None:
         await jobs_mod.finish(job, e)
         return
     await jobs_mod.finish(job)
+
+
+# ── Batch: one file at a time, the Master tab's way ─────────────────────
+
+def _findings_json(src: core.Source, s: core.Settings) -> List[Dict[str, Any]]:
+    return [dataclasses.asdict(f) for f in core.findings(src, s.loudness_target)]
+
+
+def measure_file(source_path: str, s: core.Settings) -> Dict[str, Any]:
+    """Album mode's first pass for one file: its level just before
+    mastering's gain, and its findings. Nothing is written."""
+    x, sr = core.load_audio(source_path)
+    src = core.Source.from_array(x, sr, path=source_path)
+    levels = core.premaster_levels(src, s)
+    return _json_safe({
+        "duration_s": float(x.shape[0] / sr),
+        "input": _measure(x),
+        "lufs_clean": _finite(levels["lufs_i"]),
+        "true_peak_clean": _finite(levels["true_peak_dbtp"]),
+        "findings": _findings_json(src, s),
+    })
+
+
+def export_file(source_path: str, s: core.Settings, dst: str, *,
+                tags_req: Optional[Dict[str, Any]] = None,
+                gain_db: Optional[float] = None,
+                expected_lufs: Optional[float] = None,
+                with_findings: bool = True) -> Dict[str, Any]:
+    """One song rendered and written to `dst`, for Batch: the same render,
+    tags, silence trim and release check as the Master tab's export.
+    `gain_db` and `expected_lufs` are album mode's one gain and this song's
+    level under it. Returns what the batch log shows."""
+    x, sr = core.load_audio(source_path)
+    src = core.Source.from_array(x, sr, path=source_path)
+    rendered = core.render(src, s, gain_db=gain_db)
+    y, out_sr = rendered.audio, rendered.sr
+    x_at = src.at_rate(out_sr)
+    fmt = core.catalog.output_format(s.format)
+    tags = _build_tags(source_path, tags_req,
+                       _note(_pass_label(source_path), rendered, _eq_moves(s, out_sr)))
+    trim_report: Dict[str, Any] = {"enabled": False}
+    if s.trim_silence:
+        y, head, tail = core.trim_silence(y, out_sr)
+        trim_report = {"enabled": True, "cut_head_s": round(head, 3), "cut_tail_s": round(tail, 3)}
+    exp = core.export(core.Rendered(y, out_sr, rendered.report, s, source_path), dst,
+                      source_path=source_path, tags=tags)
+    written = bool((exp.get("tags") or {}).get("written"))
+    m = rendered.report.get("mastering", {})
+    lufs_out, tp_out = _finite(exp["lufs"]), _finite(exp["true_peak_dbtp"])
+    release = None
+    if m.get("enabled"):
+        release = core.release_check(
+            y, out_sr, x_in=x_at,
+            mastering={"enabled": True, "target_lufs": m["target_lufs"],
+                       "ceiling_dbtp": m["ceiling_dbtp"],
+                       "after": {"lufs_i": lufs_out, "true_peak_dbtp": tp_out}},
+            export={"format": fmt.ext.lstrip("."), "bit_depth": fmt.bits},
+            correlation=core.stereo_correlation(y), duration_s=float(y.shape[0] / out_sr),
+            tags={k: v for k, v in tags.items() if k != "software"} if tags else None,
+            tags_written=written, expected_lufs=expected_lufs)
+    return _json_safe({
+        "duration_s": float(y.shape[0] / out_sr),
+        "input": _measure(x_at),
+        "output": _measure(y),
+        "lufs_out": lufs_out,
+        "true_peak_out": tp_out,
+        "limiter_gr_db": m.get("limiter_gain_reduction_db"),
+        "gain_db": m.get("gain_db"),
+        "trim": trim_report,
+        "tags_written": written,
+        "release": release,
+        "fixes": rendered.report.get("fixes", {}),
+        "findings": _findings_json(src, s) if with_findings else None,
+    })
 
 
 # ── Routes ──────────────────────────────────────────────────────────────
