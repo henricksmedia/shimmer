@@ -388,12 +388,20 @@ the music" (`GOALS.md`):*
       which cards are not built yet.
     - It writes tags (from the original upload's, with the provenance
       note) and runs the release check, like every other tab.
-  - [ ] Its preview on `render()`: Option A, chosen by the author
-        2026-09-12. The loop plays at once from its own mix; the full mix is
-        worked out in the background after each edit, and until it lands
-        the status line says the level is approximate. Then the preview is
-        the export on a window. The note lives in the existing status line,
-        so no new screen element is needed.
+  - [x] Its preview on `render()`: Option A, chosen by the author
+        2026-09-12 and built the same day.
+    - The loop plays at once from its own mix, and the status line says
+      "level approximate".
+    - After each edit the whole mix is built in the background. Each lane's
+      full-length effects are kept, so a gain, pan or mute change only
+      sums again.
+    - Once the mix lands, the preview is `render()` on a window of it and
+      says "matches the export". A test holds it to the export within
+      60 dB.
+    - The export reuses that mix instead of mixing again (about 9 s saved
+      on a 4-minute song with vocal effects).
+    - Not checked in the browser: separating stems needs the Demucs model,
+      and downloading it needs the author's permission.
   - [ ] its cleanup menu becomes the cards
   - [ ] saved projects migrated
   - [ ] the doubler drift and the silent formant tail fixed
@@ -433,6 +441,7 @@ the music" (`GOALS.md`):*
   - It needs a mockup before it is built.
 
 - **The Remix preview matching the export (measured 2026-09-12).**
+  Decided: Option A, built the same day (see Step 7, Remix).
   - The export runs on the new engine now; the preview does not yet.
   - To match the export exactly, the preview must work from the whole
     remix. The tone curve, the fixed-tone scan and the loudness gain all
@@ -448,7 +457,8 @@ the music" (`GOALS.md`):*
     preview matches the export exactly.
   - Option B: every edit waits for the full mix, 3 to 11 s.
   - Option C: keep today's preview, which is never exact.
-  - It needs a mockup of the "approximate" state before it is built.
+  - The "approximate" note went into the existing status line, so no
+    mockup was needed.
 
 ## Open questions (answered when their step comes)
 

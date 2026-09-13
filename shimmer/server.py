@@ -1966,6 +1966,7 @@ async def api_stems_separate(payload: Dict[str, Any]) -> JSONResponse:
         sess.stems_info = info
         # A new stem set invalidates every cached per-stem fx render.
         sess._remix_fx_cache = {}
+        sess._remix_full = None
         job.metrics = {k: v for k, v in info.items()
                        if k not in ("stems", "mix_peaks")}
 
@@ -2066,6 +2067,134 @@ async def api_stems_export(payload: Dict[str, Any]) -> JSONResponse:
     return JSONResponse({"job_id": job.id})
 
 
+# ── The whole remix, worked out in the background (Option A) ────────────
+# The preview can only match the export if it is rendered from the whole
+# remix: the tone curve, the fixed-tone scan and the loudness gain all come
+# from the whole song. Mixing a 4-minute song with vocal effects takes about
+# 9 s, so the loop keeps playing from its own mix (marked approximate) while
+# the whole mix is built here; once it lands, the preview is render() on a
+# window of it, which is the export by construction (REBUILD-TRACKER).
+
+import threading as _threading  # noqa: E402
+
+
+def _remix_settings(payload: Dict[str, Any], fmt_key: str, mastering_off_when_missing: bool) -> Any:
+    """The Remix settings, the same for its preview and its export. The
+    cleanup menu maps through the transition rule: "off" turns every fix
+    off, "auto" applies what the remix shows, a preset turns on its card."""
+    choice = str((payload.get("cleaning") or {}).get("preset") or "off").lower()
+    do_clean = choice not in ("off", "none", "")
+    master = payload.get("mastering") or ({"enabled": False} if mastering_off_when_missing else {})
+    return _api_render.settings_from_request(
+        {"preset": choice if do_clean and choice != "auto" else None,
+         "mastering": master, "repair": {"enabled": do_clean}},
+        output_format=fmt_key, preserve_volume=True, trim_silence=False)
+
+
+def _mix_key(sess, order: List[str], stem_settings: Dict[str, Any]) -> Tuple:
+    """Everything the summed remix depends on: each lane's effects, gain,
+    pan and mute."""
+    return tuple((n, fx_signature(stem_settings[n]), round(float(stem_settings[n].gain_db), 3),
+                  round(float(stem_settings[n].pan), 3), bool(stem_settings[n].mute))
+                 for n in order if n in (sess.stems or {}))
+
+
+class _FullMix:
+    """One session's whole remix for the latest lane settings, built on a
+    background thread. Each lane's full-length effects are kept, so a gain,
+    pan or mute change only sums again."""
+
+    def __init__(self) -> None:
+        self._lock = _threading.Lock()
+        self._key: Optional[Tuple] = None
+        self._source = None
+        self._want = None
+        self._busy = False
+        self._failed: Optional[Tuple] = None
+        self._fx: Dict[str, Tuple[str, np.ndarray]] = {}
+
+    def get(self, key: Tuple):
+        with self._lock:
+            return self._source if self._key == key else None
+
+    def building(self, key: Tuple) -> bool:
+        """True when asking again gives (or will soon give) the exact
+        preview: the whole mix is on its way, or has just landed. False
+        only when the build failed for these lanes."""
+        with self._lock:
+            return self._failed != key and (
+                self._key == key or self._busy or self._want is not None)
+
+    def request(self, key: Tuple, stems: Dict[str, np.ndarray], stem_settings: Dict[str, Any],
+                sr: int, s: Any) -> None:
+        with self._lock:
+            if self._key == key or self._failed == key:
+                return
+            self._want = (key, stems, stem_settings, sr, s)
+            if self._busy:
+                return
+            self._busy = True
+        _threading.Thread(target=self._run, daemon=True).start()
+
+    def _run(self) -> None:
+        while True:
+            with self._lock:
+                job, self._want = self._want, None
+                if job is None:
+                    self._busy = False
+                    return
+            key, stems, stem_settings, sr, s = job
+            try:
+                src = _core.Source.from_array(self._mix(stems, stem_settings, sr), sr)
+                # The whole-song work (fixed-tone scan, tone curve, gain), so
+                # the first exact preview is quick.
+                _core.render(src, s, (0.0, 0.1))
+                failed = None
+            except Exception as e:  # noqa: BLE001
+                # The preview stays approximate for these lanes; say why.
+                import logging
+                logging.getLogger("shimmer.remix").exception("whole remix failed")
+                self.error = f"{type(e).__name__}: {e}"
+                src, failed = None, key
+            with self._lock:
+                if src is not None:
+                    self._key, self._source = key, src
+                self._failed = failed
+
+    def _mix(self, stems: Dict[str, np.ndarray], stem_settings: Dict[str, Any],
+             sr: int) -> np.ndarray:
+        """stem_effects.render_remix, sample for sample, with each lane's
+        full-length effects kept between calls."""
+        from .stem_effects import StemSettings, _mix_order
+        n = min(v.shape[0] for v in stems.values())
+        out = None
+        for name in _mix_order(stems):
+            st = stem_settings.get(name, StemSettings())
+            x = as_2d(np.asarray(stems[name][:n], dtype=np.float32))
+            if st.mute:
+                y = np.zeros_like(x)
+            else:
+                sig = fx_signature(st)
+                hit = self._fx.get(name)
+                if hit is None or hit[0] != sig:
+                    hit = (sig, apply_fx_only(x, sr, st))
+                    self._fx[name] = hit
+                y = apply_gain_mute(hit[1], st)
+            out = y if out is None else out + y
+        peak = float(np.max(np.abs(out)))
+        if peak > 0.999:
+            out = out / peak * 0.999
+        return out.astype(np.float32)
+
+
+def _full_mix(sess) -> _FullMix:
+    fm = getattr(sess, "_remix_full", None)
+    if fm is None:
+        fm = _FullMix()
+        sess._remix_full = fm
+    return fm
+
+
 @app.post("/api/remix/preview")
 async def api_remix_preview(payload: Dict[str, Any]) -> Response:
     """Render a remix slice: per-stem effects + sum over the loop window,
@@ -2096,9 +2225,32 @@ async def api_remix_preview(payload: Dict[str, Any]) -> Response:
     # No mastering block in the payload = old client = no mastering
     # (master_params_from_json defaults `enabled` to True).
     use_master = bool(master_json) and mp.enabled
+    try:
+        fmt_key = _core.catalog.output_format(payload.get("output_format") or "wav").key
+    except KeyError:
+        fmt_key = "wav"
+    s_exact = _remix_settings(payload, fmt_key, mastering_off_when_missing=True)
+    full = _full_mix(sess)
+    mix_key = _mix_key(sess, order, settings)
 
     def _render() -> Dict[str, Any]:
         sr = sess.sr
+        live = [n for n in order if n in sess.stems and not settings[n].mute]
+        ready = full.get(mix_key) if live else None
+        if live and ready is None:
+            full.request(mix_key, {n: sess.stems[n] for n in order}, settings, sr, s_exact)
+        if ready is not None:
+            # The export on a window: exact, level included.
+            r = _core.render(ready, s_exact, (start_s, end_s))
+            orig_block, o_pad, o_len = extract_preview_block(
+                sess.samples, sr, start_s, end_s, extra_margin_s=0.0)
+            return {
+                "wav": encode_wav_bytes(r.audio, r.sr),
+                "lufs_original": _slice_loudness_db(orig_block[o_pad:o_pad + o_len, :], sr),
+                "lufs_remix": _slice_loudness_db(r.audio, r.sr),
+                "mastered": bool(s_exact.mastering),
+                "exact": True, "building": False, "sample_rate": r.sr,
+            }
         # Per-stem fx cache: the expensive rack render is keyed by
         # (window, stem, fx settings) and reused across requests, so
         # mute/solo/gain toggles and single-stem edits re-render only
@@ -2144,6 +2296,7 @@ async def api_remix_preview(payload: Dict[str, Any]) -> Response:
                 "lufs_original": lufs_original,
                 "lufs_remix": -120.0,
                 "mastered": False,
+                "exact": False, "building": False,
             }
 
         if use_master:
@@ -2163,6 +2316,9 @@ async def api_remix_preview(payload: Dict[str, Any]) -> Response:
             "lufs_original": lufs_original,
             "lufs_remix": _slice_loudness_db(y, sr),
             "mastered": use_master,
+            # Approximate: the loop's own mix, its level guessed from the
+            # original, until the whole mix lands.
+            "exact": False, "building": full.building(mix_key),
         }
 
     loop = asyncio.get_running_loop()
@@ -2174,13 +2330,15 @@ async def api_remix_preview(payload: Dict[str, Any]) -> Response:
     wav = result["wav"]
 
     meta = json.dumps({
-        "sample_rate": sess.sr,
+        "sample_rate": result.get("sample_rate", sess.sr),
         "render_ms": int((time.time() - t0) * 1000),
         "start_s": start_s,
         "end_s": end_s,
         "lufs_original": result["lufs_original"],
         "lufs_remix": result["lufs_remix"],
         "mastered": result["mastered"],
+        "exact": result["exact"],
+        "building": result["building"],
     }).encode("utf-8")
     return Response(
         content=b"".join([struct.pack("<I", len(meta)), meta, wav]),
@@ -2221,11 +2379,7 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
     do_clean = clean_choice not in ("off", "none", "")
     if do_clean and clean_choice != "auto" and not _known_preset(clean_choice):
         raise HTTPException(400, f"Unknown cleaning preset: {clean_choice}")
-    s = _api_render.settings_from_request(
-        {"preset": clean_choice if do_clean and clean_choice != "auto" else None,
-         "mastering": payload.get("mastering") or {},
-         "repair": {"enabled": do_clean}},
-        output_format=fmt.key, preserve_volume=True, trim_silence=False)
+    s = _remix_settings(payload, fmt.key, mastering_off_when_missing=False)
 
     job = JOB_STORE.create(output_ext=fmt.ext)
     job.source_stem = (Path(sess.original_name).stem or "audio") + "_remix"
@@ -2234,9 +2388,12 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
     # The upload the remix came from: its tags seed the export's, and the
     # export must never be written over it.
     original_path = sess.original_path if os.path.isfile(sess.original_path or "") else None
+    # The whole mix the preview already built for these lanes, if any.
+    ready = _full_mix(sess).get(_mix_key(sess, order, stem_settings))
     asyncio.create_task(_run_remix_async(job, stems, sess.sr, stem_settings, s,
                                          clean_choice if do_clean else "off", sess.samples,
-                                         original_path))
+                                         original_path,
+                                         ready.audio if ready is not None else None))
     return JSONResponse({"job_id": job.id})
 
 
@@ -2261,12 +2418,19 @@ def _remix_clean_label(fixes: Dict[str, Any]) -> str:
 
 def _run_remix(job: Job, stems: Dict[str, np.ndarray], sr: int, stem_settings: Any,
                s: Any, clean_choice: str, original: np.ndarray,
-               original_path: Optional[str] = None) -> None:
+               original_path: Optional[str] = None,
+               ready: Optional[np.ndarray] = None) -> None:
     """The worker: runs in a thread. Every stage checks for cancel. Tags and
-    the release check as every other tab's export (docs/API.md §4)."""
+    the release check as every other tab's export (docs/API.md §4).
+    `ready` is the whole mix the preview already built for these lanes."""
     prog = job.run
-    prog.stage("mix", "Mixing the stems", "each stem's effects, then the sum")
-    mix = render_remix(stems, sr, stem_settings)
+    if ready is not None:
+        prog.stage("mix", "Mixing the stems", "ready from the preview")
+        mix = ready
+    else:
+        prog.stage("mix", "Mixing the stems", "each stem's effects, then the sum")
+        mix = render_remix(stems, sr, stem_settings)
+    # A Source of its own: the whole-song work is not shared across threads.
     src = _core.Source.from_array(mix, sr)
     rendered = _core.render(src, s, progress=prog)
     out_sr = rendered.sr

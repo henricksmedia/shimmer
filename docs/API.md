@@ -276,8 +276,10 @@ change.
   - Tags come from the original upload's tags, with the provenance note.
   - The release check is in the metrics as `release`.
   - `cleaning.label` says what the engine did. `detected_*` are gone.
-  - `/api/remix/preview` is still 1.x's until its proposal is signed off
-    (REBUILD-TRACKER, Proposals).
+  - It reuses the whole mix `/api/remix/preview` built for the same lanes.
+  - `/api/remix/preview` plays the loop's own mix at once (`exact: false`),
+    then `render()` on a window of the whole mix once it is built
+    (`exact: true`): Option A, decided 2026-09-12.
 
 **`POST /api/stems/export`** — Keep.
 
@@ -363,7 +365,7 @@ All kept, unchanged, because Remix works as it does today.
 | `GET /api/stems/library` | — | `items[].{digest,tiers}` |
 | `POST /api/stems/separate` | `{session_id, tier}` | `job_id` |
 | `GET /api/stems/info/{session_id}` | — | `stems[].{key,label,share,rms_db,peak_db,peaks}`, `mix_peaks`, `tier`, `label`, `cached`, `elapsed_s`, `device`, `model`, `format`, `null_db`, `suggested_loop_s` |
-| `POST /api/remix/preview` | `{session_id, start_s, end_s, stems{<lane>:{gain_db,pan,mute,effects{formant,saturation,doubler,reverb}}}, mastering}` | binary: u32 meta length, meta (`lufs_original, lufs_remix, render_ms, mastered`), one WAV |
+| `POST /api/remix/preview` | `{session_id, start_s, end_s, stems{<lane>:{gain_db,pan,mute,effects{formant,saturation,doubler,reverb}}}, mastering, output_format, cleaning{preset}}` | binary: u32 meta length, meta (`lufs_original, lufs_remix, render_ms, mastered, exact, building`), one WAV. `exact` is false while the whole mix is built in the background (the loop's own mix, level approximate); `building` true means asking again gives the exact preview |
 | `POST /api/project/{digest}` | `{name, remix{strips,master,cleanup,tier,format}}` | nothing |
 
 **Retire (no caller):**

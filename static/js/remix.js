@@ -1341,6 +1341,9 @@ export async function initRemixTab() {
                 end_s: state.loopEnd,
                 stems: stemsPayload(),
                 mastering: masteringPayload(),
+                // The export's format and cleanup, so the exact preview is the export.
+                output_format: formatSel.value,
+                cleaning: { preset: cleanupSel.value },
             });
             state.lufsOriginal = Number.isFinite(r.meta.lufs_original)
                 ? r.meta.lufs_original : null;
@@ -1368,7 +1371,17 @@ export async function initRemixTab() {
             tabRemix.title = 'Hear the remix: every lane with its effects, summed (key: 2)';
             syncListening();   // the corner's Remix pill follows the monitor tab
             const masteredTag = r.meta.mastered ? ' · mastered' : '';
-            setStatus(`Live · loop ${fmtTime(state.loopStart)}–${fmtTime(state.loopEnd)} · ${r.meta.render_ms} ms${masteredTag}`, 'live');
+            // Until the whole mix is ready the loop is its own mix, so its
+            // level is approximate; ask again shortly and it matches the export.
+            const levelTag = r.meta.exact ? ' · matches the export' : ' · level approximate';
+            setStatus(`Live · loop ${fmtTime(state.loopStart)}–${fmtTime(state.loopEnd)} · ${r.meta.render_ms} ms${masteredTag}${levelTag}`, 'live');
+            if (state.exactTimer) { clearTimeout(state.exactTimer); state.exactTimer = null; }
+            if (!r.meta.exact && r.meta.building) {
+                state.exactTimer = setTimeout(() => {
+                    state.exactTimer = null;
+                    if (!state.debounce) doRender();
+                }, 1500);
+            }
         } catch (e) {
             setStatus(`Preview failed: ${e.message}`, 'error');
         } finally {
@@ -1379,6 +1392,7 @@ export async function initRemixTab() {
 
     function scheduleRender(delay = RENDER_DEBOUNCE_MS) {
         if (!state.stemsReady) return;
+        if (state.exactTimer) { clearTimeout(state.exactTimer); state.exactTimer = null; }
         if (state.debounce) clearTimeout(state.debounce);
         state.debounce = setTimeout(() => {
             state.debounce = null;
@@ -1607,8 +1621,9 @@ export async function initRemixTab() {
         sel.addEventListener('change', () => { onEdit(); syncInspectorStates(); });
     }
     // Cleanup and format only matter at export — persist, no re-render.
-    cleanupSel.addEventListener('change', () => { saveProject(); syncInspectorStates(); });
-    formatSel.addEventListener('change', () => { saveProject(); syncInspectorStates(); });
+    // Both change what the export plays, so the preview renders again.
+    cleanupSel.addEventListener('change', () => { saveProject(); syncInspectorStates(); scheduleRender(0); });
+    formatSel.addEventListener('change', () => { saveProject(); syncInspectorStates(); scheduleRender(0); });
 
     // ── Full render + download ───────────────────────────────────────
     function chip(text, cls = '') {
