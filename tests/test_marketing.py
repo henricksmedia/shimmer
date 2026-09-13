@@ -1,6 +1,6 @@
 """The marketing kit must not drift away from the app.
 
-static/marketing/ holds the message reference, the plan and the ten
+static/marketing/ holds the message reference, the plan and the
 posts. Every number on those pages is quoted from the app, which is the
 whole reason they are trustworthy. These tests fail when the app changes
 and the pages do not, so a stale claim cannot reach anyone.
@@ -34,16 +34,17 @@ class TestMarketingKit:
         assert os.path.exists(os.path.join(MARKETING, "marketing.css"))
         assert os.path.exists(os.path.join(MARKETING, "marketing.js"))
 
-    def test_preset_count_matches_the_app(self):
-        from shimmer.presets import VISIBLE_PRESETS
+    def test_card_count_matches_the_app(self):
+        from shimmer.core import catalog
 
         html = read(MARKETING, "index.html")
         posts = read(MARKETING, "posts.html")
-        n = len(VISIBLE_PRESETS)
-        # The message reference quotes the count in its numbers table, and
-        # post 6 repeats it. Both have to move when a preset is added.
-        assert f"<td>{n}</td>" in html, f"message page does not say {n} presets"
-        assert f"all {n} cleanup presets" in posts, f"post 6 does not say {n} presets"
+        n = len(catalog.CARDS)
+        words = {7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven", 12: "twelve"}
+        # The message reference quotes the count in its numbers table, and a
+        # post says it in words. Both have to move when a card is added.
+        assert f"<td>{n}</td>" in html, f"message page does not say {n} cards"
+        assert f"{words[n]} cards" in posts, f"no post says {words[n]} cards"
 
     def test_loudness_targets_match_the_app(self):
         # The screens fill their menus from /api/rules, so the engine's
@@ -55,23 +56,27 @@ class TestMarketingKit:
         for target in ("−14", "−11", "−9"):
             assert target in offered, f"the app no longer offers {target} LUFS"
             assert target in page, f"the message page is missing {target}"
-        # Post 7 quotes all three.
+        # The loudness post quotes all three.
         assert "−14 LUFS" in posts and "−11" in posts and "−9" in posts
 
-    def test_true_peak_ceilings_match_the_readme(self):
+    def test_true_peak_ceilings_match_the_app(self):
+        from shimmer.core import catalog
         readme = read(ROOT, "README.md")
         page = read(MARKETING, "index.html")
-        for ceiling in ("−1.0", "−1.5"):
-            assert ceiling in readme, f"the README no longer states {ceiling} dBTP"
-            assert ceiling in page, f"the message page is missing {ceiling} dBTP"
+        for ceiling in sorted({f.ceiling_dbtp for f in catalog.FORMATS}):
+            value = f"{abs(ceiling):.1f}"
+            assert f"−{value}" in page, f"the message page is missing −{value} dBTP"
+            assert f"−{value}" in readme or f"-{value}" in readme, \
+                f"the README no longer states {value} dBTP"
 
-    def test_ten_posts_and_every_one_is_copyable(self):
+    def test_every_post_is_numbered_and_copyable(self):
         html = read(MARKETING, "posts.html")
-        assert len(re.findall(r'<article class="mk-post"', html)) == 10
-        assert len(re.findall(r"data-copy-post", html)) == 10
+        n = len(re.findall(r'<article class="mk-post"', html))
+        assert n >= 10
+        assert len(re.findall(r"data-copy-post", html)) == n
         # Each post is anchored so a single one can be linked.
-        for n in range(1, 11):
-            assert f'id="post-{n}"' in html
+        for i in range(1, n + 1):
+            assert f'id="post-{i}"' in html
         # Bulk sharing.
         assert 'id="copy-all"' in html and 'id="save-all"' in html
 

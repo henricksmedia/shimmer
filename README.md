@@ -110,6 +110,8 @@ scrubber is the Live loop window.
 
 ## Quick start
 
+New to Shimmer, or to mastering? Follow the step-by-step [Getting started guide](docs/GETTING-STARTED.md).
+
 ### Windows
 
 1. **[Download the latest release](https://github.com/henricksmedia/shimmer/releases/latest)**

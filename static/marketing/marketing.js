@@ -96,7 +96,8 @@ function init() {
     if (all) {
         all.addEventListener('click', async () => {
             const ok = await copyText(allPostsText());
-            flash(all, ok ? 'All 10 copied' : 'Copy failed', ok);
+            const n = document.querySelectorAll('.mk-post').length;
+            flash(all, ok ? `All ${n} copied` : 'Copy failed', ok);
         });
     }
 

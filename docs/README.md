@@ -16,6 +16,7 @@ For the user-facing introduction, see the [root README](../README.md).
 | [STEP6-FIXES.md](STEP6-FIXES.md) | How each card's fix was measured, and the numbers behind each Amount slider |
 | [API.md](API.md) | Every HTTP route the screens call, what it sends and what it reads back |
 | [FEATURES.md](FEATURES.md) | The full feature reference for 2.0: every tab, card, format and setting |
+| [GETTING-STARTED.md](GETTING-STARTED.md) | A step-by-step guide for new users: install, a first master, Batch, Remix, settings, and fixes for common problems |
 
 Background and rules:
 
