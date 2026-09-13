@@ -150,6 +150,9 @@ FORMATS: Tuple[Format, ...] = (
     Format("wav", ".wav", "WAV 24-bit", "PCM_24", None, 24, False, -1.0, None),
     Format("wav16", ".wav", "WAV 16-bit 44.1 kHz", "PCM_16", 44100, 16, False, -1.0, None),
     Format("flac", ".flac", "FLAC", "PCM_24", None, 24, False, -1.0, None),
+    # The release copy as FLAC: the same audio as WAV 16-bit, about half the
+    # size. For upload sites with a file size limit.
+    Format("flac16", ".flac", "FLAC 16-bit 44.1 kHz", "PCM_16", 44100, 16, False, -1.0, None),
     Format("mp3", ".mp3", "MP3 320 kbps", None, None, None, True, -2.0, "320k"),
     Format("ogg", ".ogg", "OGG Vorbis", None, None, None, True, -2.0, None, quality=0.8),
     Format("m4a", ".m4a", "M4A (AAC)", None, None, None, True, -2.0, "256k"),

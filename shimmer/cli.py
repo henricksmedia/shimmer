@@ -120,7 +120,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
     out = ap.add_argument_group("output")
     out.add_argument("--release", action="store_true",
-                     help="Release copy: WAV 16-bit at 44.1 kHz with dither")
+                     help="Release copy: 16-bit at 44.1 kHz with dither, as WAV "
+                          "(or FLAC, for a .flac output)")
     out.add_argument("--trim-silence", action="store_true",
                      help="Cut silence from the start and end")
     out.add_argument("--no-preserve-volume", action="store_true",
@@ -146,11 +147,13 @@ def output_format(path: str, release: bool) -> core.catalog.Format:
     """The format an output file's extension names."""
     ext = Path(path).suffix.lower()
     if release:
-        if ext != ".wav":
-            raise ValueError("--release writes WAV 16-bit 44.1 kHz: name the output .wav")
-        return core.catalog.output_format("wav16")
+        key = {".wav": "wav16", ".flac": "flac16"}.get(ext)
+        if key is None:
+            raise ValueError("--release writes 16-bit 44.1 kHz WAV or FLAC: "
+                             "name the output .wav or .flac")
+        return core.catalog.output_format(key)
     for f in core.catalog.FORMATS:
-        if f.ext == ext and f.key != "wav16":
+        if f.ext == ext and f.key not in ("wav16", "flac16"):
             return f
     raise ValueError(f"unsupported output extension {ext or '(none)'}: "
                      "use .wav, .flac, .mp3, .ogg or .m4a")

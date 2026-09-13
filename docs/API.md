@@ -262,6 +262,18 @@ change.
   re-processed 1.x export still loses its old suffix. Without that list,
   `my_song_generic_processed_ab12cd34` would be cut down to `my`.
 
+**`POST /api/size`** — New (2026-09-13), for the file size limit.
+
+- **Sends:** the preview's body: `session_id` and the settings fields.
+- **Returns:** `{duration_s, sizes: {<format key>: {format, bytes, low, high,
+  exact}}}` for every format. Three 10-second windows are rendered as the
+  export will be and the whole song is scaled from them. WAV is exact, FLAC
+  within 5 % (measured within 2 % on two songs), lossy from the bitrate.
+- `/api/metrics/{id}` also carries `export.sizes` (worked out from the
+  master) and `export.size_bytes` (the written file).
+- A new format key, `flac16`: FLAC 16-bit 44.1 kHz with dither, the release
+  copy as FLAC.
+
 **`POST /api/remix/render`** — Keep. The render moves onto `render()`.
 
 - **Sends:** `{session_id, stems, output_format, mastering,

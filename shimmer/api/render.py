@@ -338,6 +338,8 @@ def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
         "tags": tag_report, "saved": saved,
         "name": download_name(job, "trimmed" if s.trim_silence else "processed"),
         "size_bytes": os.path.getsize(job.trimmed_path if s.trim_silence else processed_path),
+        # Every format's size for this master, for the size limit.
+        "sizes": core.estimate_sizes(y_export, out_sr),
     }
     release = None
     if m.get("enabled"):
@@ -617,3 +619,22 @@ async def preview(payload: Dict[str, Any]) -> Response:
     body = b"".join([struct.pack("<I", len(meta)), meta,
                      struct.pack("<I", len(processed)), processed, removed])
     return Response(content=body, media_type="application/octet-stream")
+
+
+@router.post("/api/size")
+async def size(payload: Dict[str, Any]) -> JSONResponse:
+    """Every format's file size for the loaded song with these settings,
+    before the run, for the size limit. The body is the preview's: the
+    session and the same settings fields. Three windows are rendered as the
+    export will be and the whole song scaled from them."""
+    sess = sessions.SESSIONS.get(payload.get("session_id") or "")
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+    s = settings_from_request(payload, output_format=payload.get("output_format") or "wav",
+                              preserve_volume=bool(payload.get("preserve_volume", True)))
+    loop = asyncio.get_running_loop()
+    try:
+        sizes = await loop.run_in_executor(None, core.estimate_sizes_for, sess.source, s)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, f"Size estimate failed: {e}")
+    return JSONResponse({"duration_s": sess.duration_s, "sizes": sizes})

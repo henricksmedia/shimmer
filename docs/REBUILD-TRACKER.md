@@ -458,8 +458,19 @@ the music" (`GOALS.md`):*
   - It never picks a lossy format without asking, and never cuts the song.
   - Today's default, WAV 24-bit 48 kHz, is 17.3 MB a minute (2:53 under
     50 MB).
-  - Mockup (2026-09-13, local): `static/tmp/shimmer-size-limit-mockup.html`,
-    waiting for sign-off.
+  - Mockup (2026-09-13, local): `static/tmp/shimmer-size-limit-mockup.html`.
+    Signed off and built 2026-09-13:
+    - Settings · Downloads: "Warn when a file is over [50] MB".
+    - The size under Format comes from `POST /api/size`: three windows
+      rendered as the export will be. It landed within 2 % of the written
+      file on two songs, where the raw upload read 24-bit FLAC at half its
+      real size.
+    - Over the limit, the Output summary says so, and the Download step
+      offers the lossless formats that fit. A choice switches the format and
+      runs again. "Download automatically" waits for the choice.
+    - A new format, FLAC 16-bit 44.1 kHz (the release copy as FLAC), which
+      the author's upload site takes: 33 MB for "Crosscut" (4:31).
+    - Not yet: Batch.
   - Found while drawing it: Shimmer writes FLAC at 24-bit, so "about half
     the size" holds only for 16-bit FLAC. A 24-bit FLAC of a 4:31 song is
     likely near 50 MB.

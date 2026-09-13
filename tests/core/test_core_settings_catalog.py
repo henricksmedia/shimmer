@@ -98,9 +98,9 @@ def test_commercial_is_the_default():
 def test_formats_carry_codec_aware_ceilings():
     from shimmer.core import catalog
     ceilings = {f.key: f.ceiling_dbtp for f in catalog.FORMATS}
-    assert set(ceilings) == {"wav", "wav16", "flac", "mp3", "ogg", "m4a"}
+    assert set(ceilings) == {"wav", "wav16", "flac", "flac16", "mp3", "ogg", "m4a"}
     assert {f.key for f in catalog.FORMATS if f.lossy} == {"mp3", "ogg", "m4a"}
-    for key in ("wav", "wav16", "flac"):
+    for key in ("wav", "wav16", "flac", "flac16"):
         assert ceilings[key] == -1.0
     # Lossy ceilings are set from each codec's measured overshoot
     # (ARCHITECTURE §19.1 item 12); the export tests hold the decoded file

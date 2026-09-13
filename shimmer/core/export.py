@@ -29,7 +29,8 @@ import numpy as np
 from . import catalog
 from . import tags as tagging
 from .audio import io, meters
-from .render import Rendered
+from .render import Rendered, Source, render
+from .settings import Settings
 
 _DITHER_SEED = 0          # the same dither every time, so an export repeats exactly
 
@@ -47,6 +48,108 @@ def tpdf_dither(y: np.ndarray, bits: int = 16, seed: int = _DITHER_SEED) -> np.n
     rng = np.random.default_rng(seed)
     a = np.asarray(y, dtype=np.float64)
     return a + (rng.random(a.shape) - rng.random(a.shape)) * lsb
+
+
+# ── How big a file will be (the size limit) ─────────────────────────────
+# WAV is worked out from the length. FLAC depends on the music, so a few
+# slices are encoded (dithered, as export() writes them) and the whole song
+# scaled from them. Lossy formats follow their bitrate; OGG Vorbis at
+# quality 0.8 ran about 270 kbps on a dense mix (SOUND-CHANGES.md).
+_EST_SLICE_S = 10.0
+_EST_SLICES = 3
+# FLAC slices vs the whole song, either way. Measured 2026-09-13 on two
+# songs, three loudness choices, 16- and 24-bit: every estimate from
+# rendered windows landed within 2 % of the written file.
+_EST_FLAC_SPREAD = 0.05
+_OGG_BYTES_PER_S = (28_000, 38_000)
+
+
+def _wav_header_bytes(channels: int, bits: int) -> int:
+    """44 bytes; libsndfile writes the longer WAVE_FORMAT_EXTENSIBLE header
+    (80 bytes with its fact chunk) for more than 16 bits or 2 channels."""
+    return 44 if bits <= 16 and channels <= 2 else 80
+
+
+def _flac_ratio(x: np.ndarray, sr: int, fmt: catalog.Format, sample: bool = False) -> float:
+    """Encoded FLAC bytes per PCM byte, from up to three slices of `x`, or
+    from all of `x` when it is already a sample of the song."""
+    import io as _bytes_io
+
+    import soundfile as sf
+
+    n = x.shape[0]
+    width = int(_EST_SLICE_S * sr)
+    if sample or n <= width * _EST_SLICES:
+        starts = [0]
+        width = n
+    else:
+        starts = [int(n * f) - width // 2 for f in (0.2, 0.5, 0.8)]
+    enc = pcm = 0
+    for a in starts:
+        seg = x[max(0, a):max(0, a) + width]
+        out_sr = fmt.sr or sr
+        if out_sr != sr:
+            seg = io.resample(seg, sr, out_sr)[0]
+        y = np.asarray(seg, dtype=np.float64)
+        if fmt.bits == 16:
+            y = tpdf_dither(y, 16)
+        buf = _bytes_io.BytesIO()
+        sf.write(buf, np.clip(y, -1.0, 1.0), out_sr, format="FLAC", subtype=fmt.subtype)
+        enc += len(buf.getvalue())
+        pcm += y.shape[0] * y.shape[1] * (fmt.bits // 8)
+    return enc / max(pcm, 1)
+
+
+def estimate_size(audio: np.ndarray, sr: int, key: str,
+                  seconds: Optional[float] = None) -> Dict[str, Any]:
+    """How big `audio` will be written as format `key`: {format, bytes, low,
+    high, exact}. WAV is exact (tags add a little); FLAC and lossy are a
+    range. `audio` is what will be written, the master: the raw upload
+    reads 24-bit FLAC at half its real size, because a 16-bit song keeps its
+    low bits empty until mastering fills them (measured on two songs).
+    `seconds`: the whole file's length, when `audio` is only a sample of it."""
+    fmt = catalog.output_format(key)
+    x = np.asarray(audio, dtype=np.float32)
+    x = x[:, None] if x.ndim == 1 else x
+    sample = seconds is not None
+    seconds = float(seconds) if sample else x.shape[0] / float(sr)
+    frames = int(round(seconds * (fmt.sr or sr))) if sample else \
+        int(round(x.shape[0] * (fmt.sr or sr) / float(sr)))
+    ch = x.shape[1]
+    if not fmt.lossy and fmt.ext == ".wav":
+        b = _wav_header_bytes(ch, fmt.bits) + frames * ch * (fmt.bits // 8)
+        low = high = b
+    elif not fmt.lossy:
+        mid = _flac_ratio(x, sr, fmt, sample) * frames * ch * (fmt.bits // 8)
+        low, high = mid * (1.0 - _EST_FLAC_SPREAD), mid * (1.0 + _EST_FLAC_SPREAD)
+    elif fmt.bitrate:
+        low = high = seconds * int(fmt.bitrate.rstrip("k")) * 1000 / 8
+    else:
+        low, high = seconds * _OGG_BYTES_PER_S[0], seconds * _OGG_BYTES_PER_S[1]
+    return {"format": fmt.key, "bytes": int(round((low + high) / 2)),
+            "low": int(round(low)), "high": int(round(high)),
+            "exact": low == high and not fmt.lossy}
+
+
+def estimate_sizes(audio: np.ndarray, sr: int) -> Dict[str, Dict[str, Any]]:
+    """estimate_size() for every format, keyed by format."""
+    return {f.key: estimate_size(audio, sr, f.key) for f in catalog.FORMATS}
+
+
+def estimate_sizes_for(source: Source, settings: Settings) -> Dict[str, Dict[str, Any]]:
+    """Every format's size for this song with these settings, before the
+    run: three 10-second windows are rendered exactly as the export will be
+    (render() on a window), and the whole song is scaled from them."""
+    dur = source.duration_s
+    half = _EST_SLICE_S / 2.0
+    if dur <= _EST_SLICE_S * _EST_SLICES:
+        windows = [(0.0, dur)]
+    else:
+        windows = [(dur * f - half, dur * f + half) for f in (0.2, 0.5, 0.8)]
+    parts = [render(source, settings, w) for w in windows]
+    sample = np.concatenate([p.audio for p in parts])
+    return {f.key: estimate_size(sample, parts[0].sr, f.key, seconds=dur)
+            for f in catalog.FORMATS}
 
 
 def _same_file(a: str, b: str) -> bool:
@@ -106,6 +209,7 @@ def export(rendered: Rendered, path, source_path=None,
 
     z, zsr = io.load(path)
     return {
+        "size_bytes": os.path.getsize(path),
         "path": path,
         "format": fmt.key,
         "sr": zsr,

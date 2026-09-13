@@ -27,14 +27,15 @@ from .audio import meters
 from .audio.io import AudioIOError, file_digest, wav_bytes
 from .audio.io import load as load_audio
 from .audio.trim import trim_silence
-from .export import export
+from .export import estimate_size, estimate_sizes, estimate_sizes_for, export
 from .master.release import add_check, release_check, tags_check
 from .progress import Cancelled, Progress
 from .render import Rendered, Source, premaster_levels, render, tone_plan
 from .repair.notch import Notch, NotchPlan, plan_from_lines
 from .settings import EqBand, Settings, migrate
 
-__all__ = ["catalog", "tags", "export", "render", "premaster_levels", "Rendered", "Source",
+__all__ = ["catalog", "tags", "export", "estimate_size", "estimate_sizes",
+           "estimate_sizes_for", "render", "premaster_levels", "Rendered", "Source",
            "tone_plan", "family_list", "normalize_family", "moves_to_eq_payload",
            "Settings", "EqBand", "migrate", "Progress", "Cancelled",
            "analyze_track", "detect_edge_artifacts", "apply_trim", "findings", "Finding",

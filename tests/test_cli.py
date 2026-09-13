@@ -64,6 +64,7 @@ def test_the_format_and_its_ceiling_follow_the_extension():
         assert s.format == key
     assert core.catalog.output_format("mp3").ceiling_dbtp == -2.0
     assert cli.settings_from_args(_args("a.wav", "b.wav", "--release")).format == "wav16"
+    assert cli.settings_from_args(_args("a.wav", "b.flac", "--release")).format == "flac16"
     with pytest.raises(SystemExit):
         cli.main(["a.wav", "b.mp3", "--release"])
 

@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/static/css/chrome.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,400,0,0&display=block">
 <link rel="stylesheet" href="/static/css/fault-picker.css">
+<link rel="stylesheet" href="/static/css/size-limit.css">
 </head>
 <body>
 <div class="app">
@@ -406,12 +407,15 @@
                                             title="Each format has its own true-peak ceiling, shown beside it. Lossy formats sit lower so the encoder can't push peaks past it on decode.">
                                         <option value="wav" selected>WAV (24-bit PCM)</option>
                                         <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered)</option>
-                                        <option value="flac">FLAC</option>
+                                        <option value="flac">FLAC (24-bit)</option>
+                                        <option value="flac16" title="The release copy as FLAC: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither. The same audio as the WAV release copy, about half the size.">FLAC release copy (16-bit · 44.1 kHz · dithered)</option>
                                         <option value="mp3">MP3 (320 kbps)</option>
                                         <option value="ogg">OGG Vorbis</option>
                                         <option value="m4a">M4A (AAC)</option>
                                     </select>
                                 </div>
+                                <!-- The size limit: how big the file will be (size-limit.js). -->
+                                <div class="sl-size" id="size-line" role="status" hidden></div>
                                 <label class="checkbox-row loudness-line" id="preserve-vol-card"
                                        title="Keeps the cleaned file at the same level as the original, so a cleaning-only pass is not quieter and A/B is fair. Only applies when mastering is off; with mastering on, the loudness target sets the level.">
                                     <input type="checkbox" id="preserve-vol" checked>
@@ -422,7 +426,7 @@
                                     <input type="checkbox" id="trim-silence">
                                     <span>Trim leading/trailing silence on export</span>
                                 </label>
-                                <div class="settings-pointer">Where the finished file goes, and whether it downloads by itself, is in
+                                <div class="settings-pointer">Where the finished file goes, whether it downloads by itself, and the size limit are in
                                     <button type="button" class="linklike" data-open-tab="settings">Settings</button>.</div>
                                 <label class="checkbox-row"
                                        title="When on, preset, strength, mastering, EQ, and other Master choices come back on the next visit. When off, each page load starts from defaults.">
@@ -679,7 +683,8 @@
                                             title="Each format has its own true-peak ceiling, shown beside it. Lossy formats sit lower so the encoder can't push peaks past it on decode.">
                                         <option value="wav" selected>WAV (24-bit PCM)</option>
                                         <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered)</option>
-                                        <option value="flac">FLAC</option>
+                                        <option value="flac">FLAC (24-bit)</option>
+                                        <option value="flac16" title="The release copy as FLAC: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither. The same audio as the WAV release copy, about half the size.">FLAC release copy (16-bit · 44.1 kHz · dithered)</option>
                                         <option value="mp3">MP3 (320 kbps)</option>
                                         <option value="ogg">OGG Vorbis</option>
                                         <option value="m4a">M4A (AAC)</option>
@@ -784,7 +789,8 @@
                         <select id="batch-format" class="select">
                             <option value="wav" selected>WAV (24-bit PCM)</option>
                             <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then each file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered)</option>
-                            <option value="flac">FLAC</option>
+                            <option value="flac">FLAC (24-bit)</option>
+                            <option value="flac16" title="The release copy as FLAC: the whole chain runs at 44.1 kHz, then each file is written as 16-bit with TPDF dither. The same audio as the WAV release copy, about half the size.">FLAC release copy (16-bit · 44.1 kHz · dithered)</option>
                             <option value="mp3">MP3 (320 kbps)</option>
                             <option value="ogg">OGG Vorbis</option>
                             <option value="m4a">M4A (AAC)</option>
@@ -903,6 +909,17 @@
                             Browse…
                         </button>
                     </div>
+                    <div class="settings-sub">Size limit</div>
+                    <div class="sl-limit-row">
+                        <label class="checkbox-row"
+                               title="For upload sites that only take files up to a set size. Shimmer shows the size before you download and offers a lossless format that fits. It never changes the format or cuts the song on its own.">
+                            <input type="checkbox" id="size-limit-on">
+                            <span>Warn when a file is over</span>
+                        </label>
+                        <input type="number" class="input sl-mb" id="size-limit-mb" value="50" min="1" step="1" aria-label="Size limit in MB">
+                        <span class="sl-unit">MB</span>
+                    </div>
+                    <div class="sl-limit-note">Set it to the largest file your upload site takes. Over it, Shimmer offers a lossless format that fits.</div>
                     <div class="settings-state" id="dl-state" aria-live="polite"></div>
                 </div>
             </div>
@@ -1150,6 +1167,8 @@
         <div class="pm-download" id="process-modal-download" hidden>
             <div class="pm-dl-title" id="process-modal-dl-title">Your file is ready</div>
             <div class="pm-dl-sub" id="process-modal-dl-sub" aria-live="polite"></div>
+            <!-- Over the size limit: the formats that fit (size-limit.js). -->
+            <div class="sl-dl-block" id="process-modal-dl-extra" hidden></div>
             <div class="pm-dl-actions">
                 <button type="button" class="btn btn-primary pm-dl-primary" id="process-modal-dl-primary">Download</button>
                 <button type="button" class="btn btn-ghost pm-dl-secondary" id="process-modal-dl-secondary" hidden>Download a copy</button>

@@ -16,6 +16,8 @@ import { initTrim } from './trim.js';
 import { initReport } from './report.js';
 import { initFaultPicker } from './fault-picker.js';
 import { loadRules, loudnessLufs, stagePhases } from './rules.js';
+import { NAMES as SIZE_NAMES, downloadBlock, fitsSub, judge, mb as fmtMB, mmss,
+         renderSizeLine, verdictTitle } from './size-limit.js';
 
 // The progress window's colours for the engine's stages (the stage list
 // itself comes from /api/rules). Signal order runs around the colour wheel.
@@ -57,6 +59,80 @@ export async function initSingleTab() {
     const dlLocBrowser  = $('dl-location-browser');
     const dlLocFolder   = $('dl-location-folder');
     const dlState       = $('dl-state');
+    const sizeLimitOn   = $('size-limit-on');
+    const sizeLimitMb   = $('size-limit-mb');
+    const sizeLine      = $('size-line');
+
+    // ── The size limit (Settings · Downloads) ────────────────────────
+    // How big the file will be, under Format in Output: the engine renders
+    // three windows as the export will be (POST /api/size) and this tab
+    // compares the result with the limit. Asked again when settings change;
+    // a format change only re-judges, since every format comes back at once.
+    const sizeState = { timer: null, key: '', sizes: null, durationS: 0, judged: null };
+    function sizeLimit() {
+        const n = Math.round(Number(sizeLimitMb && sizeLimitMb.value));
+        return { enabled: !!(sizeLimitOn && sizeLimitOn.checked), mb: n >= 1 ? n : 50 };
+    }
+    function scheduleSizeCheck(delay = 700) {
+        clearTimeout(sizeState.timer);
+        // Early in loading, parts of this tab may not exist yet: skip, and
+        // the next settings change asks again.
+        sizeState.timer = setTimeout(() => { checkSize().catch(() => {}); }, delay);
+    }
+    async function checkSize() {
+        const lim = sizeLimit();
+        const sid = previewState.sessionId;
+        if (!lim.enabled || !sid) { renderSize(); return; }
+        const payload = {
+            session_id: sid,
+            preset: presetSelect.value,
+            preset_strength: currentStrength(),
+            overrides: controls.getValues(),
+            preserve_volume: preserveVol.checked && !masterEnabled.checked,
+            mastering: masteringPayload(),
+            eq: eqPanel.getPayload(),
+            repair: repairPayload(),
+            ...picker.payload(),
+        };
+        const key = JSON.stringify(payload);
+        if (key !== sizeState.key || !sizeState.sizes) {
+            sizeState.key = key;
+            if (sizeLine && !sizeState.sizes) {
+                sizeLine.hidden = false;
+                sizeLine.textContent = 'Working out the size…';
+            }
+            try {
+                const r = await fetch('/api/size', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: key,
+                });
+                if (!r.ok) throw new Error(`size ${r.status}`);
+                const d = await r.json();
+                if (key !== sizeState.key) return;          // the settings moved on
+                sizeState.sizes = d.sizes;
+                sizeState.durationS = d.duration_s;
+            } catch (_) {
+                sizeState.sizes = null;
+            }
+        }
+        renderSize();
+    }
+    function renderSize() {
+        const lim = sizeLimit();
+        sizeState.judged = (lim.enabled && sizeState.sizes)
+            ? judge(sizeState.sizes, outputFormat.value, lim.mb) : null;
+        renderSizeLine(sizeLine, sizeState.judged, sizeState.durationS, pickFormat);
+        syncInspectorStates();
+    }
+    function forgetSizes() {
+        sizeState.key = '';
+        sizeState.sizes = null;
+        renderSize();
+    }
+    // A suggestion only changes the format; the user runs it.
+    function pickFormat(key) {
+        outputFormat.value = key;
+        outputFormat.dispatchEvent(new Event('change'));
+    }
     const saveFolder    = $('save-folder');
     const saveFolderRow = $('save-folder-row');
     const browseSaveBtn = $('browse-save-btn');
@@ -790,6 +866,11 @@ export async function initSingleTab() {
     if (saved && saved.downloads && typeof saved.downloads === 'object') {
         const d = saved.downloads;
         if (dlAuto) dlAuto.checked = !!d.auto;
+        if (d.size_limit && typeof d.size_limit === 'object') {
+            if (sizeLimitOn) sizeLimitOn.checked = !!d.size_limit.enabled;
+            const n = Math.round(Number(d.size_limit.mb));
+            if (sizeLimitMb && n >= 1) sizeLimitMb.value = String(n);
+        }
         if (saveFolder && typeof d.folder === 'string') saveFolder.value = d.folder;
         const useFolder = d.location === 'folder' && !!(saveFolder && saveFolder.value.trim());
         if (dlLocFolder) dlLocFolder.checked = useFolder;
@@ -1947,10 +2028,16 @@ export async function initSingleTab() {
         }
         if (stateEls.output) {
             const fv = outputFormat.value;
-            const f = fv === 'wav16' ? 'WAV 16-bit · 44.1 kHz' : fv.toUpperCase();
+            const f = fv === 'wav16' ? 'WAV 16-bit · 44.1 kHz'
+                : fv === 'flac16' ? 'FLAC 16-bit · 44.1 kHz' : fv.toUpperCase();
             const bits = fv === 'wav' || fv === 'flac' ? ' 24-bit' : '';
             const saving = activeSaveFolder() ? ' · saves to folder' : '';
-            stateEls.output.textContent = `${f}${bits}${trimSilence.checked ? ' · trim' : ''}${saving}`;
+            // Over the size limit, the summary says so even with Output closed.
+            const j = sizeState.judged;
+            const over = !!(j && !j.fits);
+            stateEls.output.classList.toggle('sl-over', over);
+            stateEls.output.textContent = over ? `over ${j.limitMb} MB`
+                : `${f}${bits}${trimSilence.checked ? ' · trim' : ''}${saving}`;
         }
         if (stateEls.tags) {
             const t = tagsDefaults();
@@ -2446,6 +2533,7 @@ export async function initSingleTab() {
         document.dispatchEvent(new CustomEvent('shimmer:settings-changed'));
         syncDockStatus();
         syncInspectorStates();
+        scheduleSizeCheck();
         saveSettings({
             remember_settings: !!(rememberSettings && rememberSettings.checked),
             preset: presetSelect.value,
@@ -2495,6 +2583,7 @@ export async function initSingleTab() {
             auto: !!(dlAuto && dlAuto.checked),
             location: (dlLocFolder && dlLocFolder.checked) ? 'folder' : 'browser',
             folder: saveFolder ? saveFolder.value.trim() : '',
+            size_limit: sizeLimit(),
         };
     }
     // The folder a run saves into, or '' when the location is the
@@ -2523,6 +2612,9 @@ export async function initSingleTab() {
             dlState.textContent = d.auto
                 ? 'Finished files download by themselves to your browser’s Downloads folder.'
                 : 'The processing window ends on a Download step; click it to save the file with your browser.';
+        }
+        if (d.size_limit.enabled) {
+            dlState.textContent += ` Files over ${d.size_limit.mb} MB get a warning there first.`;
         }
     }
     async function pickSaveFolder() {
@@ -2559,6 +2651,10 @@ export async function initSingleTab() {
     });
     if (dlLocBrowser) dlLocBrowser.addEventListener('change', afterDownloadPrefsChange);
     if (dlAuto) dlAuto.addEventListener('change', afterDownloadPrefsChange);
+    [sizeLimitOn, sizeLimitMb].forEach((c) => c && c.addEventListener('change', () => {
+        afterDownloadPrefsChange();
+        scheduleSizeCheck(0);
+    }));
     if (browseSaveBtn) browseSaveBtn.addEventListener('click', async () => {
         if (await pickSaveFolder()) afterDownloadPrefsChange();
     });
@@ -2592,6 +2688,7 @@ export async function initSingleTab() {
         if (previewState.sessionId) {
             const sid = previewState.sessionId;
             previewState.sessionId = null;
+            forgetSizes();
             dropSession(sid);  // fire-and-forget
         }
         previewState.durationS = 0;
@@ -2641,6 +2738,8 @@ export async function initSingleTab() {
         try {
             const r = await uploadFile(currentFile);
             previewState.sessionId = r.session_id;
+            forgetSizes();
+            scheduleSizeCheck(0);
             previewState.durationS = r.duration_s;
             // The recents list keys its "stems ready" badge on the digest.
             document.dispatchEvent(new CustomEvent('shimmer:uploaded', { detail: {
@@ -2875,7 +2974,7 @@ export async function initSingleTab() {
         const masterOn = masterEnabled.checked;
         const set = new Set(['load', 'export', 'report']);
         if (st && st.trim_armed) set.add('edit');
-        if (outputFormat.value === 'wav16') set.add('rate');
+        if (outputFormat.value === 'wav16' || outputFormat.value === 'flac16') set.add('rate');
         const p = picker.payload();
         if (Object.values(p.fixes).some((v) => v > 0)
             || (lastRepair && lastRepair.notches.some((n) => n.on !== false))) set.add('fixes');
@@ -2917,6 +3016,36 @@ export async function initSingleTab() {
         const name = ex.name || `${stem}.${String(ex.format || outputFormat.value || 'wav')}`;
         const size = Number.isFinite(ex.size_bytes) ? ` · ${fmtBytes(ex.size_bytes)}` : '';
         const prefs = downloadPrefs();
+        // The size limit, judged on the file that was written.
+        const fmtKey = ex.format_key || outputFormat.value || 'wav';
+        const lim = prefs.size_limit;
+        const j = (lim && lim.enabled && ex.sizes && Number.isFinite(ex.size_bytes))
+            ? judge(ex.sizes, fmtKey, lim.mb, ex.size_bytes) : null;
+        if (j && !j.fits) {
+            // Over: the verdict first, then the formats that fit. A choice
+            // switches the format and runs again; nothing downloads by itself.
+            const pick = (key) => {
+                processModal.close();
+                pickFormat(key);
+                setTimeout(() => { document.getElementById('process-btn')?.click(); }, 0);
+            };
+            const dur = Number.isFinite(mm && mm.duration_s) ? mm.duration_s : sizeState.durationS;
+            const detail = j.fixes.length ? `${fmtMB(j.bytes)}, ${fmtMB(j.over)} over`
+                : `${fmtMB(j.bytes)} · ${mmss(dur)} long`;
+            processModal.offerDownload({
+                title: verdictTitle(j),
+                warn: true,
+                sub: savedOk
+                    ? `Saved to ${folderLabel(savedInfo.folder)} · ${SIZE_NAMES[fmtKey] || fmt} · ${detail}`
+                    : `${name} is ready · ${SIZE_NAMES[fmtKey] || fmt} · ${detail}`,
+                extra: downloadBlock(j, pick, fmt),
+                primary: savedOk ? { label: 'Show in folder', onClick: () => revealSaved(savedInfo.path) } : null,
+                secondary: savedOk
+                    ? { label: 'Download a copy', onClick: () => downloadLink.click() }
+                    : { label: `Download ${fmt} anyway`, onClick: () => downloadLink.click() },
+            });
+            return;
+        }
         if (savedOk) {
             processModal.offerDownload({
                 title: `Saved to ${folderLabel(savedInfo.folder)}`,
@@ -2941,13 +3070,16 @@ export async function initSingleTab() {
         processModal.offerDownload({
             title: 'Your file is ready',
             sub: `${name}${size}${failed ? '.' + failed : ''}`,
+            // Under the size limit: the size in green, as the mockup shows.
+            subNode: (j && !failed) ? fitsSub(name, j) : null,
             primary: { label: `Download ${fmt}`, onClick: () => downloadLink.click() },
             secondary: null,
         });
     }
     // The short name of an output-format key for chips and buttons.
     function formatLabel(v) {
-        return v === 'wav16' ? 'WAV 16-bit' : String(v || 'wav').toUpperCase();
+        return v === 'wav16' ? 'WAV 16-bit' : v === 'flac16' ? 'FLAC 16-bit'
+            : String(v || 'wav').toUpperCase();
     }
     function fmtBytes(n) {
         if (n >= 1e9) return `${(n / 1e9).toFixed(2)} GB`;

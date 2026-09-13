@@ -71,6 +71,7 @@ function createProcessModal() {
         download: $('process-modal-download'), dlTitle: $('process-modal-dl-title'),
         dlSub: $('process-modal-dl-sub'), dlPrimary: $('process-modal-dl-primary'),
         dlSecondary: $('process-modal-dl-secondary'), dlClose: $('process-modal-dl-close'),
+        dlExtra: $('process-modal-dl-extra'),   // the size limit's suggestions
     };
     const st = {
         phases: [], nodes: new Map(), current: null, packet: null, wire: null, finished: false,
@@ -182,6 +183,8 @@ function createProcessModal() {
     function hideDownload() {
         if (st.dlCleanup) { st.dlCleanup(); st.dlCleanup = null; }
         if (els.download) els.download.hidden = true;
+        if (els.dlTitle) els.dlTitle.classList.remove('sl-over');
+        if (els.dlExtra) { els.dlExtra.hidden = true; els.dlExtra.textContent = ''; }
     }
     // Undo what hold() did to the stage line and the bar.
     function clearHold() {
@@ -268,7 +271,10 @@ function createProcessModal() {
     // lines give way to the file's name, where it went, and the buttons.
     // Download / Show in folder / Download a copy each run their action
     // and take the window down; Close and Escape just close it.
-    function offerDownload({ title, sub, primary, secondary } = {}) {
+    // `warn` shows the title as an amber warning; `subNode` replaces the
+    // plain `sub` line; `extra` (a node) goes between the line and the
+    // buttons: the size limit's suggestions.
+    function offerDownload({ title, sub, primary, secondary, warn = false, subNode = null, extra = null } = {}) {
         if (!els.modal || !els.download) return;
         cancelClose();
         abortCountdown();
@@ -279,8 +285,26 @@ function createProcessModal() {
         els.modal.hidden = false;
         if (!st.finished && st.nodes.size) finish();
         showLines(false);
-        if (els.dlTitle) els.dlTitle.textContent = title || 'Your file is ready';
-        if (els.dlSub) els.dlSub.textContent = sub || '';
+        if (els.dlTitle) {
+            els.dlTitle.textContent = title || 'Your file is ready';
+            els.dlTitle.classList.toggle('sl-over', !!warn);
+            if (warn) {
+                const i = document.createElement('span');
+                i.className = 'ms';
+                i.setAttribute('aria-hidden', 'true');
+                i.textContent = 'warning';
+                els.dlTitle.prepend(i);
+            }
+        }
+        if (els.dlSub) {
+            els.dlSub.textContent = subNode ? '' : (sub || '');
+            if (subNode) els.dlSub.append(subNode);
+        }
+        if (els.dlExtra) {
+            els.dlExtra.textContent = '';
+            if (extra) els.dlExtra.append(extra);
+            els.dlExtra.hidden = !extra;
+        }
         const wire = (btn, spec) => {
             if (!btn) return null;
             if (!spec) { btn.hidden = true; return null; }

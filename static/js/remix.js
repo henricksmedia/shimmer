@@ -1717,7 +1717,7 @@ export async function initRemixTab() {
         const planned = new Set(['mix', 'export', 'report']);
         if (cleaning !== 'off') planned.add('fixes');
         if (mp.enabled) { planned.add('tone'); planned.add('master'); }
-        if (format === 'wav16') planned.add('rate');
+        if (format === 'wav16' || format === 'flac16') planned.add('rate');
         processModal.open({
             title: mp.enabled ? 'Rendering & mastering the remix' : 'Rendering the remix',
             phases: renderPhases(await loadRules()),

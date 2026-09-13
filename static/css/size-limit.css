@@ -1,0 +1,55 @@
+/* size-limit.css — the file size limit (Settings · Downloads), the size
+   line under Format in Output, and the Download step's suggestions. From
+   the approved mockup, static/tmp/shimmer-size-limit-mockup.html. */
+
+/* Settings: the size limit row */
+.sl-limit-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sl-limit-row .input.sl-mb{width:74px;font-family:var(--font-mono)}
+.sl-unit{font-size:12.5px;color:var(--fg-1)}
+.sl-limit-note{margin:0 0 4px 22px;font-size:11px;line-height:1.45;color:var(--fg-3)}
+
+/* Output: the size line under Format. Verdict first, then the figure. */
+.acc-sec .a-state.sl-over{color:var(--amber)}
+.sl-size{margin-top:8px}
+.sl-verdict{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
+.sl-verdict .ms{font-size:17px}
+.sl-verdict.over{color:var(--amber)}
+.sl-verdict.ok{color:var(--success)}
+.sl-fig{margin:2px 0 0 23px;font-size:11px;color:var(--fg-2)}
+.sl-label{margin:10px 0 5px;font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--fg-3)}
+/* Suggestion cards: the same tile language as the approved loudness cards */
+.sl-fixes{display:flex;flex-direction:column;gap:6px}
+.sl-fix{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:2px 8px;width:100%;
+  padding:8px 10px;text-align:left;font:inherit;color:var(--fg-1);cursor:pointer;
+  background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-s);
+  transition:background 100ms ease,border-color 100ms ease}
+.sl-fix:hover{background:var(--bg-3);border-color:var(--line-2)}
+.sl-fix:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+.sl-fix .t{font-size:12.5px;font-weight:600;color:var(--fg-0);line-height:1.25}
+.sl-fix .v{font-family:var(--font-mono);font-size:11px;color:var(--fg-1);white-space:nowrap}
+.sl-fix .d{grid-column:1 / -1;font-size:10.5px;color:var(--fg-2);line-height:1.35}
+.sl-fix.lossy{border-style:dashed;border-color:var(--line-2)}
+.sl-tag{margin-left:6px;padding:1px 5px;border-radius:4px;font-size:8.5px;font-weight:700;
+  letter-spacing:.08em;vertical-align:1px}
+.sl-tag.fits{color:var(--success);border:1px solid rgba(74,222,128,.4)}
+.sl-tag.lossy{color:var(--amber);border:1px solid rgba(245,165,36,.5)}
+/* What was checked and does not fit */
+.sl-checked{border-top:1px solid var(--line)}
+.sl-chk{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:baseline;gap:8px;
+  padding:5px 0;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--fg-1)}
+.sl-chk .v{font-family:var(--font-mono);font-size:11px}
+.sl-chk .x{padding:1px 5px;border:1px dashed var(--line-2);border-radius:4px;font-size:8.5px;
+  font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-3)}
+.sl-never{margin-top:8px;font-size:11px;color:var(--fg-3)}
+
+/* Download step additions */
+.pm-dl-title.sl-over{display:inline-flex;align-items:center;gap:6px;color:var(--amber)}
+.pm-dl-title.sl-over::before{content:none}
+.pm-dl-title.sl-over .ms{font-size:22px}
+.pm-dl-sub b.sl-ok{color:var(--success);font-weight:600}
+.sl-dl-block{width:100%;max-width:620px;text-align:left}
+.sl-dl-block .sl-label{text-align:center}
+.sl-dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sl-dl-block .sl-never{text-align:center}
+@media (max-width:720px){.sl-dl-grid{grid-template-columns:1fr}}
