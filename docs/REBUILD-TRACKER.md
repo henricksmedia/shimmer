@@ -400,8 +400,12 @@ the music" (`GOALS.md`):*
       60 dB.
     - The export reuses that mix instead of mixing again (about 9 s saved
       on a 4-minute song with vocal effects).
-    - Not checked in the browser: separating stems needs the Demucs model,
-      and downloading it needs the author's permission.
+    - Checked in the browser 2026-09-13: "Crosscut", Fast tier. The first
+      loop played at once, and within seconds the status read "Live · loop
+      1:40-1:50 · mastered · matches the export". The rebuild uses the
+      everyday app's stems setup and models through two launcher settings
+      (`SHIMMER_STEMS_PYTHON`, `TORCH_HOME`), so nothing is installed or
+      downloaded twice. Studio's vocal model is not found that way yet.
   - [ ] its cleanup menu becomes the cards
   - [ ] saved projects migrated
   - [ ] the doubler drift and the silent formant tail fixed
@@ -477,9 +481,9 @@ the music" (`GOALS.md`):*
   this. Keep the names, or describe the services generically ("services
   that turn quiet tracks up")? Decide in Step 6 with the screen work.
 
-- **Users whose saved choice is Streaming.** Many saved Streaming only
-  because it was the old default. Does updating keep Streaming, or move them
-  to Commercial? Decide in Step 7, with the settings migration.
+- **Users whose saved choice is Streaming.** Decided 2026-09-12: no special
+  handling (the author: two users at most). Saved choices carry over as they
+  are; new users start on Commercial.
 
 ## Decisions log
 
