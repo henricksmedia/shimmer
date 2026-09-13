@@ -334,13 +334,14 @@ the music" (`GOALS.md`):*
 | Harshness | Dynamic EQ, 2–5 kHz | Built and measured 2026-09-13; blind round built, waiting for the author |
 | Shimmer (the fizz) | See [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md) | Research done 2026-09-12; real-codec test case built 2026-09-13 (EnCodec) |
 | Phasiness | A model first, then a tool | Model built; the codec test case is its honest check |
-
-Measurements, designs compared and blind sets: [STEP6-FIXES.md](STEP6-FIXES.md).
-A card turns on in the Master tab (`catalog.TOOLS_READY`) only after its
-blind round passes; until then the engine has the tool but the screens do
-not offer it.
 | Lack of air | Tone target (Step 5) | With Step 5 |
 | Loudness | Loudness target (Step 5) | With Step 5 |
+
+Measurements, designs compared and blind sets: [STEP6-FIXES.md](STEP6-FIXES.md).
+A card turns on in the Master tab through `catalog.TOOLS_READY`. Sibilance,
+Harshness and Low-mid build-up are on in the rebuild (2026-09-13) so the
+author can try them on real songs before their blind round; the de-click
+stays off until it finds pops in dense music.
 
 **Shimmer, in order:**
 

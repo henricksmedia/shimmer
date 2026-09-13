@@ -166,14 +166,14 @@ def test_a_reference_track_changes_the_tone_stage():
 
 def test_card_rows_say_where_each_card_acts():
     view = describe_chain(Settings(fixes={"tones": 1.0}), notches=THREE,
-                          cards_on=["tones", "air", "loudness"], noted=["shimmer", "sibilance"])
+                          cards_on=["tones", "air", "loudness"], noted=["shimmer", "clicks"])
     fx = _stages(view)["fixes"]
     assert [r["key"] for r in fx["fixes"]] == ["tones", "air", "loudness"]
     assert fx["fixes"][1]["tag"] == {"kind": "stage", "text": "In Tone", "stage": "tone"}
     assert fx["fixes"][2]["text"].endswith("at −9 LUFS.")
     assert [(r["key"], r["tag"]["text"], r["muted"]) for r in fx["noted"]] == [
-        ("shimmer", "No fix yet", True), ("sibilance", "Not built yet", False)]
-    assert fx["noted"][1]["text"].startswith("The de-esser is not built yet.")
+        ("shimmer", "No fix yet", True), ("clicks", "Not built yet", False)]
+    assert fx["noted"][1]["text"].startswith("The de-click is not built yet.")
     assert fx["verdict"] == "1 fix runs · 2 go to mastering · 2 not built yet"
     assert fx["nb_badges"] == ["2 not built yet"]
     assert view["summary"]["facts"][-1] == "3 cards on · 2 noted"
@@ -185,9 +185,9 @@ def test_card_rows_say_where_each_card_acts():
 
 
 def test_a_card_on_with_no_tool_built_is_said_plainly():
-    view = describe_chain(Settings(fixes={"sibilance": 0.5}))
+    view = describe_chain(Settings(fixes={"clicks": 0.5}))
     rows = {r["key"]: r for r in _stages(view)["fixes"]["fixes"]}
-    assert rows["sibilance"]["tag"]["text"] == "Not built yet"
+    assert rows["clicks"]["tag"]["text"] == "Not built yet"
     assert view["summary"]["text"] == "1 card is on, and 1 of them has no tool built yet."
 
 
@@ -211,11 +211,10 @@ def test_the_report_lists_every_release_check_row():
     assert labels == set(CHECKS)
 
 
-def test_a_ready_tool_gets_its_own_row(monkeypatch):
-    """Once a card's tool passes and joins TOOLS_READY, the Fixes stage shows
-    it running, with its depth at the Amount set, and says what is built."""
+def test_a_ready_tool_gets_its_own_row():
+    """A card whose tool is in TOOLS_READY: the Fixes stage shows it
+    running, with its depth at the Amount set, and says what is built."""
     from shimmer.core.repair import deesser
-    monkeypatch.setattr(catalog, "TOOLS_READY", catalog.TOOLS_READY + ("deesser",))
     view = describe_chain(Settings(fixes={"sibilance": 0.5}, auto=False),
                           cards_on=["sibilance"])
     fx = _stages(view)["fixes"]
@@ -225,7 +224,7 @@ def test_a_ready_tool_gets_its_own_row(monkeypatch):
     assert f"By up to {deesser.MAX_CUT_DB * 0.5:g} dB at Amount 50%." in row["text"]
     assert fx["verdict"] == "1 fix runs"
     assert fx["badges"] == ["De-esser 50%"]
-    assert "Built so far: the notch filter and de-esser." in fx["paras"][0]
+    assert "Built so far: the notch filter, de-esser and dynamic EQ." in fx["paras"][0]
     assert view["summary"]["text"] == "The sound changes in Fixes, Tone and Master."
     # With the notch too, both run and both are named.
     both = _stages(describe_chain(Settings(fixes={"tones": 1.0, "sibilance": 0.5}),

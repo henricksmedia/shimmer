@@ -28,7 +28,11 @@ TOOLS = ("notch", "declick", "deesser", "dynamic_eq", "tone_target", "loudness_t
 TOOL_LABELS = {"notch": "Notch filter", "declick": "De-click", "deesser": "De-esser",
                "dynamic_eq": "Dynamic EQ", "tone_target": "Tone target",
                "loudness_target": "Loudness target"}
-TOOLS_READY = ("notch", "tone_target", "loudness_target")
+# The de-esser and the dynamic EQ are on for the author to try in the
+# rebuild (2026-09-13), measured but before their blind round
+# (docs/STEP6-FIXES.md); the de-click stays off until it finds pops in
+# dense music.
+TOOLS_READY = ("notch", "tone_target", "loudness_target", "deesser", "dynamic_eq")
 
 
 @dataclass(frozen=True)
