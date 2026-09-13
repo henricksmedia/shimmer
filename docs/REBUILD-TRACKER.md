@@ -508,7 +508,9 @@ de-click stays off until it finds pops in dense music.
       new architecture doc.
 - [ ] Release check: 1.1.1 against 2.0, blind; 2.0 must win or tie.
 - [ ] Changelog: every sound change, with numbers.
-- [ ] Pull request from `rebuild` into `main`, then release 2.0.0: ask first.
+- [x] `rebuild` into `main`, then release 2.0.0 (2026-09-13, at the author's
+      go-ahead). `main` was fast-forwarded to `rebuild`, CI green, and the
+      Release is https://github.com/henricksmedia/shimmer/releases/tag/v2.0.0.
 
 ## Proposals waiting for sign-off
 
