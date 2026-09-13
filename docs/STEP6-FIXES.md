@@ -591,9 +591,9 @@ installed. It runs in render's Fixes stage as the Shimmer card's
   other fixes. The gains are kept (7 MB per 30 s of stereo), so a new
   Amount or a preview window takes about 0.3 s. Kept gains match gains
   worked out per window to -84 dB.
-- **Weights:** `testing/masknet3.npz` (0.5 MB), kept out of git until the
-  author decides whether the model ships in the public repo. Without the
-  file the tool does nothing and says so, and its tests are skipped.
+- **Weights:** `shimmer/core/repair/hash_remover.npz` (0.5 MB). They are
+  in git so the fix ships with Shimmer (the author's call, 2026-09-13).
+  Without the file the tool does nothing and says so.
 - **Caveat:** it was trained on the flicker models (`hash`, `hash_wide`).
   The codec test above found that a real codec smooths the top rather than
   adding flicker. Removing the models' fizz may not mean removing what

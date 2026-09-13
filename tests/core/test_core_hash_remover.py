@@ -10,9 +10,10 @@ Whether it passes the Step 6 rule (removal on the models, cost on real
 songs, side effects, a blind round) is measured by scripts/efficacy_harness.py
 and written up in docs/STEP6-FIXES.md, not here.
 
-Most of these need the network's weights (testing/masknet3.npz, kept out of
-git for now); without them they are skipped, and the tool's own "does
-nothing without its weights" is tested instead.
+The network's weights ship with the tool (hash_remover.npz). The check
+against torch needs a spectrogram saved from torch
+(testing/masknet3_parity.npz). It is made from a real song, so it stays out
+of git, and without it that one test is skipped.
 """
 import os
 
@@ -25,7 +26,8 @@ from shimmer.core import Settings, Source, render
 from shimmer.core.repair import hash_remover
 
 SR = 48000
-PARITY = os.path.join(os.path.dirname(hash_remover.WEIGHTS), "masknet3_parity.npz")
+PARITY = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                      "testing", "masknet3_parity.npz")
 
 needs_weights = pytest.mark.skipif(not hash_remover.available(),
                                    reason="the network's weights are not here")

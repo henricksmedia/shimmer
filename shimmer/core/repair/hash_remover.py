@@ -54,10 +54,11 @@ N_FFT = 1024
 HOP = 256
 CHUNK = 1024            # frames per pass through the network
 HALO = 40               # frames either side a pass needs (the layers reach 34)
+# The trained network (scripts/hash_learn, model 3, 2026-09-09), shipped next
+# to this file. SHIMMER_HASH_WEIGHTS points at another to try it instead.
 WEIGHTS = os.environ.get(
     "SHIMMER_HASH_WEIGHTS",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.abspath(__file__))))), "testing", "masknet3.npz"))
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "hash_remover.npz"))
 
 WORKERS = max(1, min(8, os.cpu_count() or 1))   # threads; more gained nothing
 ROWS = 2                # frequency rows per thread job: small enough to stay in cache
