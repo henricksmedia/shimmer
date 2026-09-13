@@ -26,7 +26,6 @@ from scipy import signal as ss
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shimmer import detect, repair  # noqa: E402
-from shimmer.chain import build_chain  # noqa: E402
 from shimmer.mastering import compute_tone_curve, master_params_from_json  # noqa: E402
 from shimmer.params import Params  # noqa: E402
 from shimmer.pipeline import clean_and_master  # noqa: E402
@@ -203,22 +202,3 @@ class TestCutoff:
         p.cutoff_hz = 13000.0
         y_cap = apply_post_filters(x, SR, p)
         assert _bin_level_db(y_cap, SR, 18000.0) < _bin_level_db(y_free, SR, 18000.0) - 3.0
-
-
-class TestChainPlacement:
-    def test_repairs_sit_between_trim_and_tone_curve(self):
-        mp = master_params_from_json({"enabled": True})
-        chain = build_chain(get_preset("sibilance_rattle"), mp,
-                            repair={"enabled": True, "notches": [
-                                {"hz": 17700.0, "depth_db": 12.0},
-                                {"hz": 19945.0, "depth_db": 9.0}]})
-        ids = [m["id"] for m in chain["modules"]]
-        assert ids[:4] == ["trim", "declick", "repair", "tone"]
-        mods = {m["id"]: m for m in chain["modules"]}
-        assert mods["declick"]["active"] is True
-        assert "2 tones" in mods["repair"]["badges"]
-        assert mods["repair"]["active"] is True
-        chain2 = build_chain(get_preset("generic"), mp, repair={"enabled": False})
-        m2 = {m["id"]: m for m in chain2["modules"]}
-        assert m2["declick"]["active"] is False
-        assert m2["repair"]["active"] is False

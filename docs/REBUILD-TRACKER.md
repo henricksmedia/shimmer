@@ -498,7 +498,10 @@ de-click stays off until it finds pops in dense music.
   - [ ] The 1.x engine modules, once nothing live imports them. Still
         using them: the Remix loop's quick preview (1.x `master()`), the
         preset list (`/api/presets`) and the settings screens.
-        `shimmer/chain.py` is now used only by its own tests.
+    - [x] `shimmer/chain.py` (the old chain view, 560 lines) and
+          `shimmer/probe.py` (dead, 274 lines), with the tests of the old
+          chain view (2026-09-13). The engine's own chain view is
+          `shimmer/core/chain.py`.
 - [ ] README, `docs/README.md`, `FEATURES.md` and the help text rewritten; a
       new architecture doc.
 - [ ] Release check: 1.1.1 against 2.0, blind; 2.0 must win or tie.

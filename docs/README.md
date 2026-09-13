@@ -185,10 +185,8 @@ shimmer/            The Python package (all application code)
   params.py         Params / MasterParams dataclasses (source of truth)
   presets.py        Artifact-shape preset factories
   detect.py         Auto-detect: evidence scan + pipeline verification
-  chain.py          Signal Chain description generated from Params
   repair.py         Deterministic repairs: de-click, static notches, cutoff
   finepass.py       Fine-grid pass (1024/256): flicker tamer, spectral de-esser
-  probe.py          Region diagnostics, suggest_preset wrapper
   eq.py             Parametric EQ (RBJ biquads, zero-phase)
   bands.py          Linear-phase crossover
   dsp.py            Primitive DSP helpers

@@ -90,10 +90,12 @@ class TestMarketingKit:
     def test_cleanup_path_really_has_no_machine_learning(self):
         # The kit's strongest accuracy claim: the cleaning engine is plain
         # signal processing. If that ever stops being true, the pages lie.
+        from importlib import import_module
         import shimmer.engine as engine
-        import shimmer.chain as chain
+        # The module, not the render() function shimmer.core exports.
+        render = import_module("shimmer.core.render")
 
-        for module in (engine, chain):
+        for module in (engine, render):
             source = read(module.__file__)
             for banned in ("import torch", "from torch", "onnxruntime",
                            "tensorflow", "sklearn"):

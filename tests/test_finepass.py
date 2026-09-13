@@ -26,7 +26,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from shimmer import detect, finepass  # noqa: E402
-from shimmer.chain import build_chain  # noqa: E402
 from shimmer.engine import process  # noqa: E402
 from shimmer.mastering import master_params_from_json  # noqa: E402
 from shimmer.params import Params  # noqa: E402
@@ -213,19 +212,3 @@ class TestPerBinDeHarsh:
         # Per-bin: peaks drop more than the band median; flat: about the same.
         assert (px - pb) - (fx - fb) > (px - pf) - (fx - ff) + 1.0
         assert (fx - fb) < (fx - ff)      # less broadband loss per-bin
-
-
-class TestChain:
-    def test_fine_pass_shown_before_engine_and_flicker_moved(self):
-        mp = master_params_from_json({"enabled": True})
-        chain = build_chain(get_preset("suno_hash"), mp)
-        ids = [m["id"] for m in chain["modules"]]
-        assert ids.index("fine-flicker") < ids.index("fine-deess") < ids.index("premask")
-        mods = {m["id"]: m for m in chain["modules"]}
-        assert mods["fine-flicker"]["active"] is True
-        assert mods["flicker"]["active"] is False
-        assert "fine pass" in mods["flicker"]["off_reason"]
-        assert chain["summary"]["fine_pass"] is True
-        chain2 = build_chain(get_preset("sibilance_rattle"), mp)
-        m2 = {m["id"]: m for m in chain2["modules"]}
-        assert m2["fine-deess"]["active"] is True
