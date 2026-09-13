@@ -38,12 +38,8 @@ def _settings_path() -> str:
 
 
 def load_settings() -> Dict[str, Any]:
-    """Return the last-saved settings, or {} if none exist.
-
-    Silently migrates legacy version-named preset keys (e.g. "suno_v5_pro")
-    to the new artifact-shape keys (e.g. "air_brittle") so users with
-    older settings.json files do not see a stale value selected.
-    """
+    """Return the last-saved settings, or {} if none exist, carried over
+    from 1.x as they load (see migrate_saved)."""
     path = _settings_path()
     if not os.path.isfile(path):
         return {}
@@ -54,17 +50,32 @@ def load_settings() -> Dict[str, Any]:
             return {}
     except (OSError, json.JSONDecodeError):
         return {}
+    return migrate_saved(data)
 
-    # Local import: avoid a hard dependency at module load time and prevent
-    # any circular-import surprises during server startup.
-    try:
-        from .presets import PRESET_ALIASES
-    except ImportError:
-        return data
-    preset = data.get("preset")
-    if isinstance(preset, str) and preset in PRESET_ALIASES:
-        data["preset"] = PRESET_ALIASES[preset]
-    return data
+
+def migrate_saved(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Settings saved by 1.x, carried over (docs/ARCHITECTURE.md §19.3):
+
+    - A version-named preset key ("suno_v5_pro") gets its current name
+      ("air_brittle"), for the old preset menu while it remains.
+    - A file with no card picks yet ("fixes") gets the card its preset maps
+      to, at that card's default Amount. Once 2.0 has saved the picks, they
+      are kept as saved, so a card turned off stays off.
+
+    Nothing is written back until the screen next saves. The tables are the
+    engine's (core.settings), so the 1.x presets module can go.
+    """
+    # Local import, as before: nothing heavy at server start.
+    from .core import catalog
+    from .core.settings import LEGACY_ALIASES, card_for_preset
+    out = dict(data)
+    preset = out.get("preset")
+    if isinstance(preset, str) and preset.strip().lower() in LEGACY_ALIASES:
+        out["preset"] = LEGACY_ALIASES[preset.strip().lower()]
+    if not isinstance(out.get("fixes"), dict):
+        card = card_for_preset(out.get("preset"))
+        out["fixes"] = {card: catalog.card(card).default_amount} if card else {}
+    return out
 
 
 def save_settings(data: Dict[str, Any]) -> None:

@@ -169,9 +169,39 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         };
     }
 
-    /** Start over for a new song. */
-    function reset() {
-        cards.forEach((c) => { c.on = false; c.by = null; c.found = null; c.noted = false; c.userOff = false; });
+    /** Your own picks, card to Amount 0-1, for saved settings. */
+    function picks() {
+        const out = {};
+        cards.forEach((c) => { if (c.on && c.by === 'you' && c.ready && !c.master) out[c.key] = c.amount / 100; });
+        return out;
+    }
+
+    /** Turn on the picks from saved settings (card to Amount 0-1). A card
+     *  whose fix is not ready yet is noted instead. */
+    function restore(fixes) {
+        Object.entries(fixes || {}).forEach(([key, amount]) => {
+            const c = byKey.get(key);
+            if (!c || c.master || !(Number(amount) > 0)) return;
+            if (c.ready) {
+                c.on = true;
+                c.by = 'you';
+                c.userOff = false;
+                c.amount = Math.max(1, Math.min(100, Math.round(Number(amount) * 100)));
+            } else {
+                c.noted = true;
+            }
+        });
+        render();
+    }
+
+    /** Start over for a new song. With keepPicks ("Remember settings" on),
+     *  your own picks stay; what Analyze found goes. */
+    function reset({ keepPicks = false } = {}) {
+        cards.forEach((c) => {
+            const keep = keepPicks && c.on && c.by === 'you';
+            if (!keep) { c.on = false; c.by = null; }
+            c.found = null; c.noted = false; c.userOff = false;
+        });
         render();
     }
 
@@ -185,5 +215,5 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
     }
 
     render();
-    return { setFindings, payload, state, reset, setMasterCard };
+    return { setFindings, payload, state, reset, setMasterCard, picks, restore };
 }

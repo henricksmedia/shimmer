@@ -844,6 +844,10 @@ export async function initSingleTab() {
     const shouldRestore = !!(saved && saved.remember_settings);
     if (rememberSettings) rememberSettings.checked = shouldRestore;
     if (shouldRestore) {
+        // Your card picks first: restoring the preset menu below saves the
+        // settings, and that save must already hold them. A file saved by
+        // 1.x arrives with its preset's card here (settings_store.migrate_saved).
+        if (saved.fixes) picker.restore(saved.fixes);
         if (typeof saved.preset_strength === 'number') {
             strengthEl.value = String(saved.preset_strength);
             renderStrengthBadge();
@@ -1058,7 +1062,7 @@ export async function initSingleTab() {
         setAnalyzeDock('idle');
         syncDockStatus();
         setWizardStep(0);
-        picker.reset();
+        picker.reset({keepPicks: !!(rememberSettings && rememberSettings.checked)});
         lastAnalysis = null;
         lastTimeline = null;
         fullMatchDb = null;
@@ -2561,6 +2565,7 @@ export async function initSingleTab() {
             remember_settings: !!(rememberSettings && rememberSettings.checked),
             preset: presetSelect.value,
             preset_strength: currentStrength(),
+            fixes: picker.picks(),
             sliders: controls.getValues(),
             preserve_volume: preserveVol.checked,
             trim_silence: trimSilence.checked,

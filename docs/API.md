@@ -378,8 +378,8 @@ read with a fetch stream.
 
 | Route | Fate | Notes |
 |---|---|---|
-| `GET /api/settings` | Keep | Returns the stored settings. **New:** old presets are migrated to cards on read (`shimmer.core.settings.migrate`). Master reads `remember_settings, preset_strength, preset, sliders, preserve_volume, trim_silence, output_format, ab_loudness_match, eq, mastering.*, tags.*, downloads.*, tone.*`; Batch reads `tone.family, eq.*, tags.*`. |
-| `POST /api/settings` | Keep, new fields | The body is the whole schema: `fixes` and `auto` replace `preset`, `preset_strength` and `sliders`. |
+| `GET /api/settings` | Keep | Returns the stored settings. **New (2026-09-13):** a 1.x file is carried over on read (`settings_store.migrate_saved`): with no `fixes` yet, its preset's card is turned on at that card's default Amount, and version-named presets get their current names. Master reads `remember_settings, fixes, preset_strength, preset, sliders, preserve_volume, trim_silence, output_format, ab_loudness_match, eq, mastering.*, tags.*, downloads.*, tone.*`; Batch reads `tone.family, eq.*, tags.*`. |
+| `POST /api/settings` | Keep, new fields | The body is the whole schema. **New:** `fixes`, your own card picks (card to Amount 0-1). `preset`, `preset_strength` and `sliders` are still saved until the old preset menu is deleted. |
 | `POST /api/browse-folder` | Keep | Sends `{initial_dir, title}`; reads `path`. |
 | `POST /api/reveal` | Keep | Sends `{path}`. **Fix:** today it fails with a 500, because `sys` is not imported. |
 

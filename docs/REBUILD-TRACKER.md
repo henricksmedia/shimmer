@@ -473,7 +473,15 @@ de-click stays off until it finds pops in dense music.
   - `--list` says which cards are ready, which fixes are built but have
     not passed yet, and which have no fix (2026-09-13). A built fix runs
     when named, as the de-click does, though the screens do not offer it.
-- [ ] Old saved settings migrate.
+- [x] Old saved settings migrate (2026-09-13).
+  - A 1.x `settings.json` loads with its preset's card turned on, at that
+    card's default Amount (`settings_store.migrate_saved`, using the
+    engine's preset table, so the 1.x presets module is no longer needed
+    for it). Version-named presets get their current names.
+  - The Master tab saves your card picks and restores them with "Remember
+    settings" on. With it on, your own picks also stay when a new song
+    loads; what Analyze found does not.
+  - Remix projects are a separate item (below).
 - [ ] Delete the retired modules and their tests.
   - [x] `server.py`'s dead 1.x code (2026-09-12), 878 lines:
     - the 8 handlers the engine's routers answer first
