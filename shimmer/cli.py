@@ -311,6 +311,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     tones = fixes.get("tones")
     if isinstance(tones, dict):
         print(f"  Fixed tones: {tones['notches']} notched, deepest {tones['deepest_db']:.0f} dB")
+    ran = [core.catalog.card(k).label for k, v in fixes.items()
+           if k != "tones" and isinstance(v, dict) and v.get("enabled")]
+    if ran:
+        print(f"  Also fixed: {', '.join(ran)}")
     waiting = [k for k, v in fixes.items() if v == "not built yet"]
     if waiting:
         print(f"  Not built yet, so not applied: {', '.join(waiting)}")

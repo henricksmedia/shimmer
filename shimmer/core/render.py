@@ -10,8 +10,8 @@ The order, each stage at its place in the chain:
 
   1. Output rate. Resample for the chosen format first (the release copy is
      44.1 kHz), so the limiter's ceiling holds at the rate that is written.
-  2. Fixes. One tool per card that is on. Built so far: Fixed tones (the
-     notch). Step 6 adds the rest.
+  2. Fixes. One tool per card that is on: the Fixed tones notch first, then
+     each tool in _FIX_TOOLS (the de-esser so far; Step 6 adds the rest).
   2b. With mastering on, the tone curve (1.1.1's, ported bit-exact): worked
      out once from the whole raw song, applied after the notch as 1.1.1 did.
      With a reference track, the curve moves the song toward the reference
@@ -44,7 +44,7 @@ from .audio import eq as user_eq
 from .audio import filters, io, meters
 from .master import limiter, loudness, tone
 from .progress import Progress
-from .repair import notch
+from .repair import deesser, notch
 from .settings import EqBand, Settings
 
 LEAD_IN_S = 1.0            # filters and the limiter's release settle in this
@@ -59,6 +59,13 @@ _PRESERVE_MAX_SCALE = 4.0
 
 # Cards whose fix is part of mastering, not a cleaning tool.
 _MASTERING_TOOLS = ("tone_target", "loudness_target")
+
+# The fixes after the notch, in the order they run: (card, tool module).
+# Each module has plan(audio, sr), worked out once from the whole song and
+# kept with it; apply(x, sr, plan, amount, offset), which returns x itself
+# when it changes nothing; and summary(plan, amount) for the report.
+_FIX_TOOLS: Tuple[Tuple[str, Any], ...] = (("sibilance", deesser),)
+BUILT_CARDS = tuple(card for card, _ in _FIX_TOOLS)
 
 
 @dataclass(eq=False)
@@ -139,8 +146,32 @@ def _tones_amount(s: Settings) -> float:
     return max(0.0, float(amount))
 
 
-def _fix(x: np.ndarray, sr: int, plan: List[notch.Notch]) -> np.ndarray:
-    return notch.apply(x, sr, plan) if plan else x
+def _tools(source: Source, sr: int, s: Settings) -> List[Tuple[str, Any, Any, float]]:
+    """The fixes after the notch this render applies, in chain order:
+    (card, module, its whole-song plan, amount)."""
+    out = []
+    for card, mod in _FIX_TOOLS:
+        amount = float(s.fixes.get(card, 0.0))
+        if amount > 0.0:
+            p = source._remember((card, "plan", sr),
+                                 lambda mod=mod: mod.plan(source.at_rate(sr), sr))
+            out.append((card, mod, p, amount))
+    return out
+
+
+def _tools_key(s: Settings) -> Tuple:
+    return tuple((card, float(s.fixes[card])) for card in BUILT_CARDS
+                 if s.fixes.get(card, 0.0) > 0.0)
+
+
+def _fix(x: np.ndarray, sr: int, plan: List[notch.Notch],
+         tools: Sequence[Tuple[str, Any, Any, float]] = (), offset: int = 0) -> np.ndarray:
+    """The fixes: the notch, then each tool. Returns x itself when nothing
+    applies, so a bypass render is bit-exact."""
+    y = notch.apply(x, sr, plan) if plan else x
+    for _, mod, p, amount in tools:
+        y = mod.apply(y, sr, p, amount, offset)
+    return y
 
 
 def _reference(reference: Optional[Source]) -> Optional[Tuple[Tuple[float, ...], Optional[float]]]:
@@ -207,13 +238,14 @@ def _premaster(x: np.ndarray, sr: int, s: Settings) -> np.ndarray:
 def _whole_key(s: Settings, sr: int, plan: List[notch.Notch], what: str,
                reference: Optional[Source] = None) -> Tuple:
     return (what, sr, s.eq_enabled, s.eq_bands, s.mastering) + _tone_key(s, reference) + (
-        tuple((n.hz, n.depth_db, n.bw_hz) for n in plan),)
+        tuple((n.hz, n.depth_db, n.bw_hz) for n in plan), _tools_key(s))
 
 
 def _whole_premaster(source: Source, sr: int, s: Settings, plan: List[notch.Notch],
                      reference: Optional[Source] = None) -> np.ndarray:
     x = source.at_rate(sr)
-    return _premaster(_toned(_fix(x, sr, plan), sr, _tone_curve(source, sr, s, reference)), sr, s)
+    fixed = _fix(x, sr, plan, _tools(source, sr, s))
+    return _premaster(_toned(fixed, sr, _tone_curve(source, sr, s, reference)), sr, s)
 
 
 def _whole_song_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch],
@@ -299,6 +331,7 @@ def tone_plan(source: Source, settings: Optional[Settings] = None, *,
     sr = int(catalog.output_format(s.format).sr or source.sr)
     x = source.at_rate(sr)
     plan = _tones_plan(source, sr, s, notches)
+    tools = _tools(source, sr, s)
     curve = None
     if s.mastering:
         curve = _tone_curve(source, sr, s, reference) or [0.0] * len(tone.REF_DB)
@@ -307,7 +340,7 @@ def tone_plan(source: Source, settings: Optional[Settings] = None, *,
         cutoff_hz=estimate_cutoff_hz(x, sr).get("cutoff_hz"),
         tone_curve_db=curve,
         notches=[{"hz": n.hz} for n in plan],
-        cleaner=(lambda ex: _fix(ex, sr, plan)) if plan else None)
+        cleaner=(lambda ex: _fix(ex, sr, plan, tools)) if (plan or tools) else None)
     out["mastering_on"] = s.mastering
     return out
 
@@ -405,10 +438,12 @@ def render(source: Source, settings: Optional[Settings] = None,
 
     # 2. Fixes.
     plan = _tones_plan(source, sr, s, notches)
-    if plan:
-        _stage(progress, "fixes", "Fixed tones",
-               f"{len(plan)} notch{'es' if len(plan) != 1 else ''}")
-    fixed = _fix(seg, sr, plan)
+    tools = _tools(source, sr, s)
+    if plan or tools:
+        names = (["Fixed tones"] if plan else []) + [catalog.card(c).label for c, _, _, _ in tools]
+        _stage(progress, "fixes", ", ".join(names),
+               f"{len(plan)} notch{'es' if len(plan) != 1 else ''}" if plan else "")
+    fixed = _fix(seg, sr, plan, tools, offset=a)
     if plan:
         report["fixes"]["tones"] = {
             "enabled": True, "notches": len(plan),
@@ -416,8 +451,10 @@ def render(source: Source, settings: Optional[Settings] = None,
                       for p in plan],
             "deepest_db": round(max(p.depth_db for p in plan), 1),
         }
+    for card, mod, p, amount in tools:
+        report["fixes"][card] = {"enabled": True, "amount": amount, **mod.summary(p, amount)}
     for key in s.fixes:
-        if key == "tones":
+        if key == "tones" or key in BUILT_CARDS:
             continue
         if catalog.card(key).tool in _MASTERING_TOOLS:
             # Lack of air and Loudness are the tone and loudness targets.

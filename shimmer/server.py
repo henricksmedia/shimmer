@@ -1509,6 +1509,8 @@ def _remix_clean_label(fixes: Dict[str, Any]) -> str:
     if isinstance(tones, dict):
         n = int(tones.get("notches") or 0)
         parts.append(f"Fixed tones, {n} notch{'es' if n != 1 else ''}")
+    parts += [_core.catalog.card(k).label for k, v in fixes.items()
+              if k != "tones" and isinstance(v, dict) and v.get("enabled")]
     waiting = [_core.catalog.card(k).label for k, v in fixes.items() if v == "not built yet"]
     if waiting:
         parts.append(", ".join(waiting) + ": not built yet")

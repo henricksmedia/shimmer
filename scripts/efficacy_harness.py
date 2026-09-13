@@ -80,6 +80,7 @@ from shimmer.perceptual import measure_damage                    # noqa: E402
 from shimmer.pipeline import clean_and_master                    # noqa: E402
 from shimmer.presets import get_preset                           # noqa: E402
 from shimmer.repair import apply_static_repair, declick, plan_from_lines  # noqa: E402
+from shimmer import side_effects as SE                          # noqa: E402
 from make_listening_test import loudest_excerpt                  # noqa: E402
 
 CLIP_S = 8.0
@@ -166,6 +167,22 @@ def run_declick(x, sr, amount):
     return np.ascontiguousarray(np.asarray(y, dtype=np.float32)[:x.shape[0]]), info
 
 
+def run_card(x, sr, card, amount):
+    """One card's fix in the new engine, on its own: render() with only that
+    card on at `amount` (no auto, no mastering, no EQ, no level matching),
+    the same call the Master tab's export makes."""
+    from shimmer import core
+    s = core.Settings(fixes={card: float(amount)}, auto=False, mastering=False,
+                      preserve_volume=False)
+    r = core.render(core.Source.from_array(x, sr), s)
+    return np.ascontiguousarray(np.asarray(r.audio, dtype=np.float32)[:x.shape[0]])
+
+
+def card_band(card):
+    from shimmer.core import catalog
+    return catalog.card(card).band_hz
+
+
 def energy_left(K, C, art):
     """A second, non-perceptual reading: energy of what the cleaned render
     has beyond the cleaned host, as a share of the injected artifact's
@@ -213,6 +230,16 @@ def main(argv):
     out_path = opt("--out", os.path.join(ROOT, "docs", "efficacy-harness.json"))
     # --declick 0.5,1.0 adds rows for the de-clicker on its own at each amount.
     dc_amounts = [float(s) for s in opt("--declick").split(",")] if opt("--declick") else []
+    # --cards sibilance,harshness adds rows for each card's fix in the new
+    # engine, on its own, at each of --amounts (default 0.5,1.0). With
+    # --cards, the 1.x presets run only when named, and the result goes to
+    # docs/efficacy-core.json unless --out says otherwise.
+    cards = opt("--cards").split(",") if opt("--cards") else []
+    card_amounts = [float(s) for s in (opt("--amounts") or "0.5,1.0").split(",")]
+    if (cards and not opt("--presets")) or opt("--presets") == "none":
+        preset_names = []
+    if cards and not opt("--out"):
+        out_path = os.path.join(ROOT, "docs", "efficacy-core.json")
 
     hs = hosts(host_names)
     print(f"{len(hs)} hosts x {len(art_names)} artifacts x {len(levels)} levels x "
@@ -225,8 +252,10 @@ def main(argv):
         old = json.load(open(out_path, encoding="utf-8"))["rows"]
         keys = {(r["host"], r["artifact"], r["level"], r["preset"], r["strength"])
                 for r in old}
+        runs = [(p, s) for p in preset_names for s in strengths] + \
+               [(f"card:{c}", a) for c in cards for a in card_amounts]
         new_keys = {(h, a, L, p, s) for h, _, _, _ in hs for a in art_names
-                    for L in levels for p in preset_names for s in strengths}
+                    for L in levels for p, s in runs}
         rows = [r for r in old if (r["host"], r["artifact"], r["level"], r["preset"],
                                    r["strength"]) not in new_keys]
         print(f"appending to {len(rows)} existing rows")
@@ -250,6 +279,18 @@ def main(argv):
             control_dc[a] = {"missing": round(d.missing, 4),
                              "lin_dist": round(d.lin_dist, 3),
                              "added": round(d.added, 4)}
+        # Each card's fix on the clean host: what it does to music with
+        # nothing to fix, including the side effects GOALS.md item 3 names.
+        K_card = {}
+        control_card = {}
+        for c in cards:
+            for a in card_amounts:
+                K_card[c, a] = run_card(H, sr, c, a)
+                d = measure_damage(H, K_card[c, a], sr)
+                control_card[c, a] = {"missing": round(d.missing, 4),
+                                      "lin_dist": round(d.lin_dist, 3),
+                                      "added": round(d.added, 4),
+                                      **SE.measure(H, K_card[c, a], sr, card_band(c))}
         ev_host = evidence(H, sr)
         for an in art_names:
             raw = A.make(an, H.shape[0], sr, host=H)
@@ -273,6 +314,13 @@ def main(argv):
                                      control=control_dc[a], declick_report=info,
                                      energy_left=energy_left(K_dc[a], Cd, art),
                                      targeted=an in ("clicks", "crackle")))
+                for c in cards:
+                    for a in card_amounts:
+                        Cc = run_card(R, sr, c, a)
+                        rows.append(_row(base, f"card:{c}", a, K_card[c, a], Cc, H, sr, d_in,
+                                         control=control_card[c, a],
+                                         energy_left=energy_left(K_card[c, a], Cc, art),
+                                         targeted=A.CARD_TARGETS.get(an) == c))
                 for pn in preset_names:
                     for s in strengths:
                         C = run_preset(R, sr, pn, s)

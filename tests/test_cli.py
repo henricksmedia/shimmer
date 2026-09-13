@@ -96,9 +96,10 @@ def test_cards_that_mastering_fixes_turn_mastering_on():
 
 def test_the_report_does_not_call_mastering_cards_unbuilt():
     x = core.Source.from_array(_mix(seconds=2.0), SR)
-    on = core.render(x, core.Settings(fixes={"air": 0.5, "sibilance": 0.5}))
+    on = core.render(x, core.Settings(fixes={"air": 0.5, "sibilance": 0.5, "phasiness": 0.5}))
     assert on.report["fixes"]["air"] == "with mastering"
-    assert on.report["fixes"]["sibilance"] == "not built yet"
+    assert on.report["fixes"]["sibilance"]["tool"] == "deesser"     # built (Step 6)
+    assert on.report["fixes"]["phasiness"] == "not built yet"
     off = core.render(x, core.Settings(fixes={"loudness": 0.5}, mastering=False))
     assert off.report["fixes"]["loudness"] == "needs mastering"
 

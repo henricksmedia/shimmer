@@ -246,7 +246,146 @@ def crackle(n: int, sr: int, host: np.ndarray, seed: int = 8,
     return (out / max(float(np.max(np.abs(out))), 1e-9)).astype(np.float32)
 
 
-# Name -> generator. `shadow` and `crackle` need the host; the harness passes it.
+def _host_2d(host: np.ndarray, n: int) -> np.ndarray:
+    h = np.asarray(host, dtype=np.float64)[:n]
+    return np.stack([h, h], axis=1) if h.ndim == 1 else h
+
+
+def _envelope(h: np.ndarray, sr: int, lo: float, hi: float, smooth_s: float) -> np.ndarray:
+    """The host's level in one band, smoothed, peak 1."""
+    mono = h.mean(axis=1)
+    key = ss.sosfilt(ss.butter(4, [lo, min(hi, 0.49 * sr)], btype="bandpass", fs=sr,
+                               output="sos"), mono)
+    env = np.abs(ss.hilbert(key))
+    k = max(1, int(smooth_s * sr))
+    env = np.convolve(env, np.ones(k) / k, mode="same")
+    return env / max(float(env.max()), 1e-9)
+
+
+def _resonance(h: np.ndarray, sr: int, f0: float, q: float) -> np.ndarray:
+    """What a resonance at f0 adds to h: h through a band-pass peaking at 0 dB
+    at f0, per channel, its skirts held to a half octave either side so the
+    much louder bass and chords below do not leak in (a ringing mode adds
+    nothing an octave away). Added to h, it lifts f0 by up to 6 dB."""
+    b, a = ss.iirpeak(f0, q, fs=sr)
+    y = ss.lfilter(b, a, h, axis=0)
+    edge = np.sqrt(2.0)
+    sos = ss.butter(4, [f0 / edge, min(f0 * edge, 0.49 * sr)], btype="bandpass", fs=sr,
+                    output="sos")
+    return ss.sosfilt(sos, y, axis=0)
+
+
+def harshness(n: int, sr: int, host: np.ndarray, seed: int = 9, lo: float = 2000.0,
+              hi: float = 5000.0, q: float = 4.0, count: int = 2) -> np.ndarray:
+    """Harshness: resonances in 2-5 kHz that ring out while the music is loud
+    there and fall away when it is quiet, the "piercing, painful upper mids"
+    that come and go with the music. `count` centres picked at random in the
+    band (log-uniform); each is the host's own content through a narrow
+    resonance (Q 4). All of it is gated by the host's 1-6 kHz envelope
+    squared, so it lives on the loud notes. In both channels, as the host is.
+
+    Built from the complaint, not from any tool's detector: the centres are
+    random and the gate is the music's own level, not a threshold. Not
+    modelled: resonances that glide in pitch."""
+    rng = np.random.default_rng(seed)
+    h = _host_2d(host, n)
+    gate = _envelope(h, sr, 1000.0, 6000.0, 0.02) ** 2
+    out = np.zeros_like(h)
+    for f0 in np.exp(rng.uniform(np.log(lo), np.log(hi), int(count))):
+        out += _resonance(h, sr, float(f0), q)
+    out *= gate[:, None]
+    return (out / max(float(np.max(np.abs(out))), 1e-9)).astype(np.float32)
+
+
+def mud(n: int, sr: int, host: np.ndarray, seed: int = 10, lo: float = 200.0,
+        hi: float = 500.0, q: float = 1.4) -> np.ndarray:
+    """Low-mid build-up: a broad resonance (Q 1.4) somewhere in 200-500 Hz
+    that swells when the low mids are busy (chords, bass and toms stacking
+    up) and eases when they thin out, the thick, cloudy mix. The host's own
+    content through the resonance, gated by 0.2 + 0.8 x its 150-600 Hz
+    envelope squared: a little of it is always there, most of it rides the
+    dense passages.
+
+    Not modelled: a mix that is muddy at a steady level all through. That
+    is a tone balance, and the mastering tone match works on it."""
+    rng = np.random.default_rng(seed)
+    h = _host_2d(host, n)
+    f0 = float(np.exp(rng.uniform(np.log(lo), np.log(hi))))
+    gate = 0.2 + 0.8 * _envelope(h, sr, 150.0, 600.0, 0.05) ** 2
+    out = _resonance(h, sr, f0, q) * gate[:, None]
+    return (out / max(float(np.max(np.abs(out))), 1e-9)).astype(np.float32)
+
+
+def consonants(n: int, sr: int, seed: int = 13, lo: float = 4500.0, hi: float = 9500.0,
+               every_s: float = 0.35) -> np.ndarray:
+    """Sibilance as a singer makes it, in a bright AI vocal: "s" and "sh"
+    held 80-180 ms, "t" and "ch" 15-40 ms and sharp at the start, each a
+    half-octave noise burst centred at its own frequency in 4.5-9.5 kHz,
+    levels spread over 9 dB, at irregular times about every 0.35 s. Mono,
+    as a lead vocal is centred. A harder, more varied case than
+    `sibilance`, whose bursts are all alike.
+
+    Not modelled: the vowel between consonants (the host has no voice), and
+    lisps or whistled "s" that sit on one pitch."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros(n)
+    edge = 2 ** 0.25
+    t = 0.3 * sr
+    while True:
+        t += rng.uniform(0.5, 1.5) * every_s * sr
+        i = int(t)
+        held = rng.uniform() < 0.6
+        L = int((rng.uniform(0.08, 0.18) if held else rng.uniform(0.015, 0.04)) * sr)
+        if i + L >= n:
+            break
+        fc = float(np.exp(rng.uniform(np.log(lo * edge), np.log(hi / edge))))
+        pad = 2048
+        nz = _band_noise(L + 2 * pad, sr, fc / edge, fc * edge, rng, channels=1)[pad:pad + L, 0]
+        if held:
+            env = np.hanning(L)
+        else:
+            r = max(2, int(0.002 * sr))
+            env = np.concatenate([np.linspace(0.0, 1.0, r), np.exp(-np.linspace(0.0, 5.0, L - r))])
+        out[i:i + L] += nz * env * 10.0 ** (rng.uniform(-9.0, 0.0) / 20.0)
+    y = (out / max(float(np.max(np.abs(out))), 1e-9)).astype(np.float32)
+    return np.stack([y, y], axis=1)
+
+
+def phasiness(n: int, sr: int, host: np.ndarray, seed: int = 11, lo: float = 1000.0,
+              hi: float = 12000.0, n_fft: int = 2048) -> np.ndarray:
+    """Phasiness: the song's own decays with their phase scrambled from frame
+    to frame, the grainy, watery tails and swishy cymbals a codec leaves
+    when it rebuilds phase badly (docs/PRESET_REVIEW.md §1: lost phase
+    coherence between frames). On each channel separately, in 1-12 kHz, on
+    the frames where a bin's level is falling (a tail), that bin's phase is
+    replaced by a random one. Each frame keeps its levels; overlapping
+    scrambled frames partly cancel when added back, so the tails come out
+    about 1.5 dB quieter, as smeared tails do. Returned as the difference
+    from the host, so host + 1.0 x this is the fully smeared render and the
+    harness can scale it.
+
+    Not modelled: a codec keeps some phase coherence, and may smear attacks
+    too; here the attacks are left intact."""
+    rng = np.random.default_rng(seed)
+    h = _host_2d(host, n)
+    hop = n_fft // 4
+    out = np.zeros_like(h)
+    for c in range(h.shape[1]):
+        f, _, X = ss.stft(h[:, c], fs=sr, nperseg=n_fft, noverlap=n_fft - hop)
+        mag = np.abs(X)
+        falling = np.zeros(mag.shape, dtype=bool)
+        falling[:, 1:] = mag[:, 1:] < mag[:, :-1] * 10.0 ** (-0.5 / 20.0)
+        mask = falling & ((f >= lo) & (f <= hi))[:, None]
+        ph = np.angle(X)
+        ph[mask] = rng.uniform(-np.pi, np.pi, int(mask.sum()))
+        _, y = ss.istft(mag * np.exp(1j * ph), fs=sr, nperseg=n_fft, noverlap=n_fft - hop)
+        y = np.pad(y, (0, max(0, n - len(y))))[:n]
+        out[:, c] = y - h[:, c]
+    return out.astype(np.float32)
+
+
+# Name -> generator. The NEEDS_HOST ones are built from the host; the harness
+# passes it.
 GENERATORS: Dict[str, Callable[..., np.ndarray]] = {
     "hash": hash_flicker,
     "hash_wide": hash_wide,
@@ -258,10 +397,14 @@ GENERATORS: Dict[str, Callable[..., np.ndarray]] = {
     "sibilance": sibilance,
     "clicks": clicks,
     "crackle": crackle,
+    "consonants": consonants,
+    "harshness": harshness,
+    "mud": mud,
+    "phasiness": phasiness,
 }
 
-# Models that are built from the host's own envelope.
-NEEDS_HOST: tuple = ("shadow", "crackle")
+# Models that are built from the host's own content or envelope.
+NEEDS_HOST: tuple = ("shadow", "crackle", "harshness", "mud", "phasiness")
 
 # Which presets are aimed at which model. A preset absent from every list is
 # "not covered": its target has no honest model here, and its efficacy is
@@ -280,8 +423,22 @@ TARGETS: Dict[str, tuple] = {
     # de-clicker on its own (`--declick`).
     "clicks": ("sibilance_rattle",),
     "crackle": ("sibilance_rattle",),
+    "consonants": ("sibilance_rattle",),
+    "harshness": ("harsh_veil",),
+    "mud": ("muddy_boxy",),
+    "phasiness": ("reverb_flutter",),
 }
-NOT_COVERED: tuple = ("reverb_flutter", "cymbal_chatter")
+NOT_COVERED: tuple = ("cymbal_chatter",)
+
+# Which "What do you hear?" card (shimmer.core.catalog) is aimed at which
+# model, for the new engine's fixes (scripts/efficacy_harness.py --cards).
+CARD_TARGETS: Dict[str, str] = {
+    "line": "tones", "whistle": "tones", "comb": "tones",
+    "hash": "shimmer", "hash_wide": "shimmer", "fizz": "shimmer", "shadow": "shimmer",
+    "sibilance": "sibilance", "consonants": "sibilance",
+    "clicks": "clicks", "crackle": "clicks",
+    "harshness": "harshness", "mud": "mud", "phasiness": "phasiness",
+}
 
 
 def make(name: str, n: int, sr: int, host: Optional[np.ndarray] = None,
