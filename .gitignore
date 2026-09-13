@@ -128,3 +128,6 @@ scripts/hash_learn/*.pt
 # them. Regenerate with scripts/make_bench_set.py; committing the manifests
 # without their audio would ship broken sets and leak the blinding.
 listening-test/ab/
+# The real-codec test case (scripts/make_codec_case.py): clean masters
+# through EnCodec. Test audio only, made on this machine; never committed.
+listening-test/codec/

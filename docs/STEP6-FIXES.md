@@ -409,9 +409,34 @@ permission (package `encodec` 0.1.1, 3.7 MB, into the stems environment
 without dependencies; its 48 kHz model, 72.8 MB, in the stems model cache).
 It makes test material only and never ships.
 
-Next: the author judges whether the codec's damage sounds like Suno shimmer
-(listening question 1). If it does, the codec pairs are the ground truth
-every Shimmer fix is measured on.
+### What the codec does (measured 2026-09-13, 20 s of each master)
+
+| Song | Bitrate | Change against the song | Heard (added / missing, sones) | Change in the sides | Top-band flicker | Where (2k / 4k / 8k octaves) |
+|---|---|---|---|---|---|---|
+| Alive Again | 3 / 6 / 12 kbps | -5.1 / -6.2 / -7.2 dB | 2.15 / 1.12, 1.35 / 0.93, 1.00 / 0.73 | 37 % (song 20 %) | -0.7 to -0.8 dB | 17-23 % / 28-35 % / 15-25 % |
+| Falling For You | 3 / 6 / 12 | -2.9 / -3.8 / -4.8 dB | 1.41 / 0.80, 1.21 / 0.60, 0.74 / 0.48 | 26 % (song 23 %) | -0.2 dB | 11-20 % / 37-46 % / 18-27 % |
+| Leave The World Behind | 3 / 6 / 12 | -4.0 / -4.6 / -5.2 dB | 2.31 / 1.37, 1.61 / 0.97, 1.02 / 0.67 | 26-30 % (song 11 %) | -0.1 to -0.2 dB | 10-17 % / 29-32 % / 28-38 % |
+| We Were Meant For The Stars | 3 / 6 / 12 | -4.3 / -5.2 / -6.2 dB | 6.00 / 2.23, 3.79 / 1.60, 2.21 / 1.14 | 17-19 % (song 14 %) | -0.3 dB | 11-19 % / 33-38 % / 25-36 % |
+| Hey | 3 / 6 / 12 | -2.0 / -2.7 / -3.5 dB | 1.48 / 1.04, 1.19 / 0.93, 0.90 / 0.70 | 16-17 % (song 15 %) | -0.1 dB | 7-13 % / 41-42 % / 30-40 % |
+
+- The codec rewrites the waveform: the change is only 2-7 dB under the
+  song itself, since a codec like this keeps what the sound is like, not
+  the exact wave. The hearing model says how much of that is audible.
+- The change sits in 2-16 kHz, most in the 4 and 8 kHz octaves, and more
+  of it is in the sides than the song's own balance.
+- **The top band flickers less, not more** (0.1-0.8 dB less level swing
+  over 20-50 ms). This codec replaces the top with a smoother texture; it
+  does not add the flickering "hash" the earlier models are built on.
+- None of the built fixes touches it (-4 % to +3 %), as expected: they aim
+  at other problems.
+
+**Next:** the author judges the five `codec-*` sets: does any bitrate sound
+like Suno shimmer (listening question 1)? If one does, those pairs are the
+ground truth every Shimmer fix is measured on, and the research's ranked
+fixes (a model retrained on codec pairs, or rebuilding the top band) can be
+tried against them. If none does, the cause is something this codec does
+not do, and the next step is to measure Suno's own renders against their
+stems or a clean re-record.
 
 ## Phasiness
 
