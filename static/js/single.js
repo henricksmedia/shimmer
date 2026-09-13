@@ -2869,6 +2869,12 @@ export async function initSingleTab() {
             return;
         }
 
+        // A fix that must read the whole song first (Shimmer's spectral
+        // de-noise: about 50 s for a 3-minute song, once per song) gets
+        // ready as its own job, with its progress in the status line. The
+        // preview follows when it is done.
+        if (!(await ensurePrepared(payload))) return;
+
         const ctrl = new AbortController();
         previewState.renderInflight = ctrl;
         setPreviewStatus(`Rendering preview · ${region}…`, 'busy');
@@ -2898,6 +2904,48 @@ export async function initSingleTab() {
                 doPreviewRender();
             }
         }
+    }
+
+    // POST /api/prepare answers {ready: true}, or a job to follow. While
+    // one runs, later previews wait for it; when it ends, the latest
+    // settings render. True: go ahead with the preview now.
+    async function ensurePrepared(payload) {
+        if (previewState.prepareFailed) {
+            // The last job failed: let the preview itself say why, rather
+            // than start the same job again.
+            previewState.prepareFailed = false;
+            return true;
+        }
+        let r;
+        try {
+            const res = await fetch('/api/prepare', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload),
+            });
+            r = res.ok ? await res.json() : {ready: true};
+        } catch (_) {
+            return true;
+        }
+        if (r.ready) return true;
+        if (previewState.prepareJob === r.job_id) return false;  // already following it
+        previewState.prepareJob = r.job_id;
+        setPreviewStatus('Getting ready for this song…', 'busy');
+        const last = await new Promise((resolve) => {
+            openSSE(`/api/progress/${r.job_id}`, {
+                onMessage: (msg) => {
+                    if (msg.detail && previewState.prepareJob === r.job_id) {
+                        setPreviewStatus(`${msg.status} · ${msg.detail}`, 'busy');
+                    }
+                },
+                onDone: (msg) => resolve(msg),
+                onError: () => resolve({error: 'lost'}),
+            });
+        });
+        previewState.prepareJob = null;
+        if (last && last.error && !last.cancelled) previewState.prepareFailed = true;
+        if (previewState.active) doPreviewRender();
+        return false;
     }
 
     function schedulePreviewRender() {

@@ -1,5 +1,5 @@
-"""Render and export: preview, process, progress, metrics, result, cancel
-(docs/API.md §4).
+"""Render and export: preview, prepare, process, progress, metrics, result,
+cancel (docs/API.md §4).
 
 Every route here renders with shimmer.core.render() and writes with
 shimmer.core.export(), so the preview and the export are the same sound path
@@ -639,6 +639,48 @@ async def preview(payload: Dict[str, Any]) -> Response:
     body = b"".join([struct.pack("<I", len(meta)), meta,
                      struct.pack("<I", len(processed)), processed, removed])
     return Response(content=body, media_type="application/octet-stream")
+
+
+async def _run_prepare_async(job: jobs_mod.Job, source: core.Source, s: core.Settings) -> None:
+    loop = asyncio.get_running_loop()
+    prog = jobs_mod.pusher(job, loop)
+    job.status = "running"
+    try:
+        await loop.run_in_executor(None, core.prepare, source, s, prog)
+    except Exception as e:  # noqa: BLE001  (Cancelled included)
+        await jobs_mod.finish(job, e)
+        return
+    await jobs_mod.finish(job)
+
+
+@router.post("/api/prepare")
+async def prepare(payload: Dict[str, Any]) -> JSONResponse:
+    """Get a slow fix ready for the loaded song: the whole-song work
+    Shimmer's spectral de-noise needs once per song (about 50 s for a
+    3-minute song), as a job the screen follows on /api/progress and can
+    cancel. The body is the preview's.
+
+    {"ready": true} when nothing is left to do. Otherwise {"ready": false,
+    "job_id", "cards"}: the running job for this song if there is one, or a
+    new one. A request that no longer needs it (the card was turned off)
+    cancels the running job."""
+    sess = sessions.SESSIONS.get(payload.get("session_id") or "")
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+    s = settings_from_request(payload, output_format=payload.get("output_format") or "wav")
+    pending = core.plans_pending(sess.source, s)
+    running = sess.prepare_job
+    if running is not None and running.status not in ("queued", "running"):
+        running = sess.prepare_job = None
+    if not pending:
+        if running is not None:
+            running.cancel()
+        return JSONResponse({"ready": True})
+    if running is None:
+        running = sess.prepare_job = jobs_mod.JOB_STORE.create()
+        asyncio.create_task(_run_prepare_async(running, sess.source, s))
+        jobs_mod.JOB_STORE.sweep()
+    return JSONResponse({"ready": False, "job_id": running.id, "cards": pending})
 
 
 @router.post("/api/size")

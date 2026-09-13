@@ -380,6 +380,10 @@ de-click stays off until it finds pops in dense music.
       first).
 - [ ] The cards and their Amount sliders are wired into the existing panels,
       with sign-off.
+- [x] A fix that reads the whole song first (Shimmer) does it once per
+      song, as its own job with its progress in the preview's status line,
+      and can be cancelled (`POST /api/prepare`, 2026-09-13). A preview and
+      an export that ask at once share the work.
 - [ ] Everything on at full, on clean music, passes the same checks.
 - [x] The screens read `/api/rules`, and the Step 6 test mark comes off
       (2026-09-12).

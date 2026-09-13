@@ -42,7 +42,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from math import gcd
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
@@ -62,6 +62,9 @@ WEIGHTS = os.environ.get(
 
 WORKERS = max(1, min(8, os.cpu_count() or 1))   # threads; more gained nothing
 ROWS = 2                # frequency rows per thread job: small enough to stay in cache
+# plan() runs the network over the whole song, about 50 s for a 3-minute
+# song, so render() and core.prepare() say how far it has got.
+SLOW_PLAN = True
 
 _NET: Optional[Dict[str, Any]] = None
 _POOL: Optional[ThreadPoolExecutor] = None
@@ -134,7 +137,11 @@ def _stft(x: np.ndarray) -> np.ndarray:
     return Z
 
 
-def plan(audio: np.ndarray, sr: int) -> Plan:
+def plan(audio: np.ndarray, sr: int,
+         step: Optional[Callable[[float], None]] = None) -> Plan:
+    """Run the network over the whole song. `step(fraction)`, when given,
+    hears how far it has got (0-1) after each piece; it may raise to stop
+    the work, as a cancelled render does."""
     if not available():
         return Plan(())
     net = _net()
@@ -144,11 +151,13 @@ def plan(audio: np.ndarray, sr: int) -> Plan:
     rows = net["band"] > 0
     x48 = _to48(a, sr)
     means, gains = [], []
-    for c in range(x48.shape[1]):
+    n = x48.shape[1]
+    for c in range(n):
         lm = np.log(np.abs(_stft(x48[:, c])[ctx]) + 1e-6)
         mean = float(lm.mean())
         means.append(mean)
-        gains.append(_gains((lm - mean).astype(np.float32), net)[rows].astype(np.float16))
+        each = None if step is None else (lambda f, c=c: step((c + f) / n))
+        gains.append(_gains((lm - mean).astype(np.float32), net, each)[rows].astype(np.float16))
     return Plan(tuple(means), tuple(gains))
 
 
@@ -216,9 +225,11 @@ def _mask(lm: np.ndarray, net: Dict[str, Any]) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-y))
 
 
-def _gains(lm: np.ndarray, net: Dict[str, np.ndarray]) -> np.ndarray:
+def _gains(lm: np.ndarray, net: Dict[str, np.ndarray],
+           step: Optional[Callable[[float], None]] = None) -> np.ndarray:
     """The network over a long spectrogram, CHUNK frames at a time with a
-    HALO either side, so any length fits in memory."""
+    HALO either side, so any length fits in memory. `step(fraction)` after
+    each piece."""
     T = lm.shape[1]
     out = np.empty_like(lm, dtype=np.float32)
     for t0 in range(0, T, CHUNK):
@@ -226,6 +237,8 @@ def _gains(lm: np.ndarray, net: Dict[str, np.ndarray]) -> np.ndarray:
         a, b = max(0, t0 - HALO), min(T, t1 + HALO)
         g = _mask(lm[:, a:b], net)
         out[:, t0:t1] = g[:, t0 - a:t0 - a + (t1 - t0)]
+        if step is not None:
+            step(t1 / T)
     return out
 
 

@@ -68,6 +68,9 @@ class Session:
     # It lives and dies with the song's session.
     reference: Optional[core.Source] = None
     reference_info: Dict[str, Any] = field(default_factory=dict)
+    # The job getting a slow fix ready for this song (POST /api/prepare),
+    # while it runs, so a second request follows it instead of starting another.
+    prepare_job: Optional[Any] = None
 
     @property
     def samples(self) -> np.ndarray:

@@ -12,7 +12,9 @@ The order, each stage at its place in the chain:
      44.1 kHz), so the limiter's ceiling holds at the rate that is written.
   2. Fixes. One tool per card that is on (_FIX_TOOLS): the de-click first,
      since a click would ring on through a notch; then the Fixed tones
-     notch; then the de-esser and the dynamic EQ.
+     notch; then the spectral de-noise, the de-esser and the dynamic EQ.
+     A tool whose plan reads the whole song slowly (SLOW_PLAN) says how far
+     it has got, once per song; prepare() does that work ahead of a preview.
   2b. With mastering on, the tone curve (1.1.1's, ported bit-exact): worked
      out once from the whole raw song, applied after the notch as 1.1.1 did.
      With a reference track, the curve moves the song toward the reference
@@ -31,6 +33,7 @@ from __future__ import annotations
 
 import dataclasses
 import os
+import threading
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -86,6 +89,10 @@ class Source:
     sr: int
     path: Optional[str] = None
     _cache: Dict[Any, Any] = field(default_factory=dict, repr=False)
+    # Work in progress, by key: two threads asking for the same thing at once
+    # (a preview and an export, or the prepare job) work it out once.
+    _busy: Dict[Any, Any] = field(default_factory=dict, repr=False)
+    _lock: Any = field(default_factory=threading.Lock, repr=False)
 
     @classmethod
     def from_array(cls, x: np.ndarray, sr: int, path: Optional[str] = None) -> "Source":
@@ -110,11 +117,30 @@ class Source:
                               lambda: io.resample(self.audio, self.sr, sr)[0].astype(np.float32))
 
     def _remember(self, key: Any, make) -> Any:
-        if key not in self._cache:
-            if len(self._cache) >= _CACHE_LIMIT:
-                self._cache.pop(next(iter(self._cache)))
-            self._cache[key] = make()
-        return self._cache[key]
+        """The value for key, worked out by make() the first time. A thread
+        that asks while another is still working it out waits for that one
+        rather than doing the work again. If that one fails or is cancelled,
+        the next to ask works it out itself."""
+        while True:
+            with self._lock:
+                if key in self._cache:
+                    return self._cache[key]
+                busy = self._busy.get(key)
+                if busy is None:
+                    busy = self._busy[key] = threading.Event()
+                    break
+            busy.wait()
+        try:
+            value = make()
+            with self._lock:
+                if len(self._cache) >= _CACHE_LIMIT:
+                    self._cache.pop(next(iter(self._cache)))
+                self._cache[key] = value
+            return value
+        finally:
+            with self._lock:
+                self._busy.pop(key, None)
+            busy.set()
 
 
 @dataclass
@@ -155,17 +181,57 @@ def _tones_amount(s: Settings) -> float:
     return max(0.0, float(amount))
 
 
-def _tools(source: Source, sr: int, s: Settings) -> List[Tuple[str, Any, Any, float]]:
+def _tools(source: Source, sr: int, s: Settings,
+           progress: Optional[Progress] = None) -> List[Tuple[str, Any, Any, float]]:
     """The fixes after the notch this render applies, in chain order:
     (card, module, its whole-song plan, amount)."""
     out = []
     for card, mod in _FIX_TOOLS:
         amount = float(s.fixes.get(card, 0.0))
         if amount > 0.0:
-            p = source._remember((card, "plan", sr),
-                                 lambda mod=mod: mod.plan(source.at_rate(sr), sr))
-            out.append((card, mod, p, amount))
+            out.append((card, mod, _plan(source, sr, card, mod, progress), amount))
     return out
+
+
+def _plan(source: Source, sr: int, card: str, mod: Any,
+          progress: Optional[Progress] = None) -> Any:
+    """A tool's whole-song plan, worked out once per song and rate. A slow
+    one (SLOW_PLAN) says how far it has got under Fixes, and stops there if
+    the run is cancelled."""
+    if not getattr(mod, "SLOW_PLAN", False):
+        return source._remember((card, "plan", sr), lambda: mod.plan(source.at_rate(sr), sr))
+    c = catalog.card(card)
+    label = f"{c.label}: {catalog.TOOL_LABELS.get(c.tool or '', card)}"
+
+    def step(f: float) -> None:
+        _stage(progress, "fixes", label, f"reading the whole song once, {f:.0%}")
+    return source._remember((card, "plan", sr),
+                            lambda: mod.plan(source.at_rate(sr), sr, step=step))
+
+
+def plans_pending(source: Source, settings: Optional[Settings] = None) -> List[str]:
+    """The cards on in these settings whose fix still has to read the whole
+    song first: a slow plan (SLOW_PLAN) not yet worked out for this song.
+    It never does the work."""
+    s = settings if settings is not None else Settings()
+    sr = int(catalog.output_format(s.format).sr or source.sr)
+    return [card for card, mod in _FIX_TOOLS
+            if float(s.fixes.get(card, 0.0)) > 0.0 and getattr(mod, "SLOW_PLAN", False)
+            and (card, "plan", sr) not in source._cache]
+
+
+def prepare(source: Source, settings: Optional[Settings] = None,
+            progress: Optional[Progress] = None) -> None:
+    """Do now the whole-song work the slow fixes need, saying how far it has
+    got, so the previews after it are quick. The screen runs this as its own
+    job the first time a card like Shimmer is on for a song. Cancel stops it
+    and keeps nothing half done."""
+    s = settings if settings is not None else Settings()
+    sr = int(catalog.output_format(s.format).sr or source.sr)
+    pending = plans_pending(source, s)
+    for card, mod in _FIX_TOOLS:
+        if card in pending:
+            _plan(source, sr, card, mod, progress)
 
 
 def _tools_key(s: Settings) -> Tuple:
@@ -452,7 +518,7 @@ def render(source: Source, settings: Optional[Settings] = None,
 
     # 2. Fixes.
     plan = _tones_plan(source, sr, s, notches)
-    tools = _tools(source, sr, s)
+    tools = _tools(source, sr, s, progress)
     if plan or tools:
         names = (["Fixed tones"] if plan else []) + [catalog.card(c).label for c, _, _, _ in tools]
         _stage(progress, "fixes", ", ".join(names),

@@ -32,13 +32,14 @@ from .master.release import add_check, release_check, tags_check
 from .progress import Cancelled, Progress
 from .analyze.percussion import percussive_share
 from .chain import describe_chain
-from .render import (Rendered, Source, known_gain, premaster_levels, reference_view, render,
-                     tone_plan)
+from .render import (Rendered, Source, known_gain, plans_pending, premaster_levels, prepare,
+                     reference_view, render, tone_plan)
 from .repair.notch import Notch, NotchPlan, plan_from_lines
 from .settings import EqBand, Settings, migrate
 
 __all__ = ["catalog", "tags", "export", "estimate_size", "estimate_sizes",
            "estimate_sizes_for", "render", "premaster_levels", "Rendered", "Source",
+           "prepare", "plans_pending",
            "tone_plan", "family_list", "normalize_family", "moves_to_eq_payload",
            "reference_view", "percussive_share", "describe_chain", "known_gain",
            "Settings", "EqBand", "migrate", "Progress", "Cancelled",

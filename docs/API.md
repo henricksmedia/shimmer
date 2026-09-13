@@ -191,6 +191,26 @@ change.
   construction it matches the export (contract test
   `test_the_preview_is_the_export_on_a_window`).
 
+**`POST /api/prepare`** — New (2026-09-13).
+
+- **Why:** Shimmer's spectral de-noise reads the whole song once before it
+  can run: about 50 s for a 3-minute song. A preview with mastering on needs
+  that whole-song pass for its level. Without this route, the first preview
+  after the card turns on would sit silent for that long.
+- **Sends:** the preview's body.
+- **Returns:**
+  - `{ready: true}` when nothing is left to do.
+  - Otherwise `{ready: false, job_id, cards}`: the job for this song, followed
+    on `GET /api/progress/{job_id}`. Its events carry `status` (for example
+    "Shimmer: Spectral de-noise") and `detail` ("reading the whole song once,
+    40%").
+- **Rules:**
+  - A second request while the job runs gets the same job.
+  - A request that no longer needs it (the card was turned off) cancels it.
+  - The work is kept with the song, so previews after it are quick.
+  - An export that gets there first shows the same progress in its progress
+    window.
+
 **`GET /api/progress/{job_id}`** — Keep, new stage keys. Server-sent events.
 
 - **Events:** `{fraction, status}` first, then `{fraction}`,

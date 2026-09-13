@@ -643,7 +643,10 @@ Against the rule:
 "Spectral de-noise · Shimmer", as it shows the other three before their
 blind round, so the author can try it on real songs. The first time it is
 turned on for a song, the network takes about 50 s for a 3-minute song.
-After that, a new Amount or a preview is quick.
+The screen says how far it has got ("reading the whole song once, 40%"),
+in the preview's status line or the export's progress window, and it can
+be cancelled (`POST /api/prepare`, API.md §4). After that, a new Amount or
+a preview is quick.
 
 ## Phasiness
 
