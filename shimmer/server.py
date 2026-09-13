@@ -1,28 +1,25 @@
 """
 server.py — Shimmer by The Treq: FastAPI backend.
 
-Endpoints:
-    GET  /                       → static index.html
-    GET  /static/*               → static assets (css, js)
-    GET  /api/presets            → list of presets + their full Params
-    POST /api/process            → multipart file + JSON params → job_id
-    GET  /api/progress/{job_id}  → SSE stream of processing progress
-    GET  /api/result/{job_id}?kind={processed|diff|original}
-                                 → streams the finished file (or 202 if not ready)
-    GET  /api/metrics/{job_id}   → measurements dict (or 202 if not ready)
-    POST /api/suggest            → multipart file → {preset, scores, ...}
-    POST /api/batch              → JSON body; SSE stream of per-file status
-    POST /api/browse-folder       → open native folder picker, return path
-    GET  /api/settings           → last-saved UI settings
-    POST /api/settings           → save UI settings
-    POST /api/upload             → upload a file once, get a session_id
-    DELETE /api/upload/{sid}     → release a preview session
-    POST /api/preview            → render a small slice for live A/B
-    GET  /api/preview/{sid}/{rid}?kind={processed|diff}
-                                 → stream the slice WAV
+The engine's routes live in shimmer/api (docs/API.md): upload, envelope,
+process, progress, cancel, metrics, result, preview and rules. They are
+included first, so they answer before anything here. This file serves the
+rest, until each moves:
 
-Runs single-user, single-job-in-flight.  CPU-heavy `process()` is pushed
-onto a thread executor so the event loop stays responsive.
+    GET  /                        the page
+    GET  /api/presets             the 1.x preset list (retires with the
+                                  preset browser)
+    POST /api/chain               the Signal Chain view (1.x stages)
+    POST /api/suggest             Analyze: findings, fixed tones, tone plan
+    POST /api/tone, GET /api/tone/families
+                                  Suggested EQ
+    POST /api/batch               a folder, as server-sent events
+    GET/POST /api/settings, POST /api/browse-folder, POST /api/reveal
+    POST /api/project/{digest}    save a Remix project
+    /api/stems/*, /api/remix/*    separation, the Remix mixer and its export
+    /api/dev/*                    the listening bench and reference library
+
+CPU-heavy work runs on a thread executor so the event loop stays responsive.
 """
 
 from __future__ import annotations
@@ -34,7 +31,6 @@ import glob
 import json
 import math
 import os
-import shutil
 import struct
 import zipfile
 import tempfile
@@ -45,49 +41,24 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from fastapi import (
-    FastAPI, UploadFile, File, Form, HTTPException, Request,
-    BackgroundTasks,
-)
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import (
     FileResponse, JSONResponse, StreamingResponse, HTMLResponse, Response,
 )
 from fastapi.staticfiles import StaticFiles
 
-from .audio_io import (
-    load_audio, save_audio, measure, preserve_volume, clip_protect,
-    process_file, encode_wav_bytes, resolve_output_format, resample_to,
-)
-from .chain import folder_label
-from .engine import process, apply_post_filters
-from .release import (
-    add_check, count_clipped, release_check, summary as release_summary,
-    tags_check,
-)
-from .dsp import as_2d, trim_silence as dsp_trim_silence
-from .edges import apply_trim, detect_edge_artifacts
-from .repair import NotchPlan, estimate_cutoff_hz, plan_from_lines
-from .detect import scan_fixed_lines
+from .audio_io import save_audio, measure, encode_wav_bytes
+from .release import summary as release_summary
+from .dsp import as_2d
 from .eq import EqParams, eq_params_from_json
 from .jobs import JOB_STORE, Job
-from .params import Params, apply_preset_strength, preset_overrides, MasterParams
+from .params import Params, apply_preset_strength, MasterParams
 from .mastering import (
-    master, master_params_from_json, analyze_track, measure_loudness,
-    get_export_ceiling_dbtp,
+    master, master_params_from_json, measure_loudness, get_export_ceiling_dbtp,
 )
-from .pipeline import clean_and_master
-from .presets import (
-    PRESETS, PRESET_NAMES, VISIBLE_PRESETS,
-    get_preset, describe_preset, label_for, is_visible,
-)
-from .report import plr_db, spectra_report, stereo_correlation
+from .presets import PRESET_NAMES, get_preset, describe_preset, label_for, is_visible
 from .core import family_list, moves_to_eq_payload, normalize_family
-from .mastering import compute_tone_curve, resolve_eq_strength
-from .tags import (
-    build_tags, read_tags, shimmer_note, strip_shimmer_suffix, title_from_stem,
-    write_tags,
-)
-from . import __version__ as SHIMMER_VERSION
+from .tags import read_tags
 from .preview_store import PREVIEW_STORE, clamp_samples_for_preview
 from .settings_store import load_settings, save_settings
 from . import stems as stems_mod
@@ -95,7 +66,7 @@ from .stem_effects import (
     apply_fx_only, apply_gain_mute, fx_signature,
     remix_settings_from_json, render_remix, render_stems,
 )
-from .projects_store import list_projects, load_project, save_project
+from .projects_store import save_project
 
 
 HERE = Path(__file__).resolve().parent.parent   # project root; package is one level down
@@ -259,31 +230,6 @@ def _tone_settings(preset: Optional[str], mastering_json: Dict[str, Any]) -> Any
         {"preset": preset, "mastering": mastering_json or {"enabled": False}})
 
 
-def _download_name(job: Job, kind: str, ext: Optional[str] = None) -> str:
-    """The filename a download of `kind` gets, and the name a copy saved
-    into the user's folder gets, so the two never disagree:
-    `{stem}_{preset}_{processed|removed|trimmed}_{jobid8}{ext}`. The
-    short job id keeps successive runs of one song apart."""
-    ext = ext if ext is not None else job.output_ext
-    safe_stem = _safe_filename_stem(job.source_stem) or "audio"
-    safe_preset = _safe_filename_stem(job.preset_name) or "preset"
-    short_id = job.id[:8]
-    if kind == "original":
-        return f"{safe_stem}_original{ext}"
-    if ext == ".zip":
-        # A stems bundle: {track}_stems_{model|mixed}_{id}.zip
-        return f"{safe_stem}_{safe_preset}_{short_id}{ext}"
-    suffix = {"diff": "removed", "trimmed": "trimmed"}.get(kind, "processed")
-    return f"{safe_stem}_{safe_preset}_{suffix}_{short_id}{ext}"
-
-
-def _file_size(path: str) -> Optional[int]:
-    try:
-        return int(os.path.getsize(path)) if path and os.path.isfile(path) else None
-    except OSError:
-        return None
-
-
 def _reveal_in_file_manager(path: str) -> bool:
     """Show `path` in the OS file manager, selected where the platform
     can: Explorer on Windows, Finder on macOS, the folder elsewhere."""
@@ -302,353 +248,6 @@ def _reveal_in_file_manager(path: str) -> bool:
 
 # Swapped out by tests; the route reads it at call time.
 _REVEAL_LAUNCHER = _reveal_in_file_manager
-
-
-def _validated_save_folder(raw: str) -> str:
-    """Normalise the optional "Save to folder" target: '' when unset,
-    otherwise an existing (or just created) directory, or a 400 that
-    names the problem before a long run starts."""
-    folder = (raw or "").strip()
-    if not folder:
-        return ""
-    try:
-        os.makedirs(folder, exist_ok=True)
-    except OSError as e:
-        raise HTTPException(
-            400, f"Save folder not usable: {folder} ({e.strerror or e})")
-    if not os.path.isdir(folder):
-        raise HTTPException(400, f"Save folder is not a folder: {folder}")
-    return os.path.abspath(folder)
-
-
-def _tag_export(path: str, source_path: str, req: Optional[Dict[str, Any]],
-                note: str) -> Dict[str, Any]:
-    """Write tags onto an export: the source's own tags, the user's
-    defaults for the blanks, and Shimmer's note in the comment."""
-    req = dict(req or {})
-    if req.get("enabled", True) is False:
-        return {"written": False, "reason": "off"}
-    source = read_tags(source_path) if source_path and os.path.exists(source_path) else {}
-    stem = Path(source_path).stem if source_path else ""
-    if stem.startswith("input_"):
-        stem = stem[len("input_"):]
-    tags = build_tags(source, req, title_hint=stem,
-                      note=note if req.get("notes", True) else "",
-                      software=f"Shimmer {SHIMMER_VERSION}")
-    rep = write_tags(path, tags)
-    rep["tags"] = {k: v for k, v in tags.items() if k != "software"}
-    rep["source_had_tags"] = bool(source)
-    return rep
-
-
-def _eq_moves(eq_params: Optional[EqParams], sr: int) -> List[str]:
-    """The EQ as applied, for the export note: `5.6kHz +3.0dB Q0.8`.
-    A band count alone cannot tell a brightening plan from a darkening one."""
-    if eq_params is None or not eq_params.is_active(sr):
-        return []
-    out: List[str] = []
-    for b in eq_params.active_bands(sr):
-        f = f"{b.freq_hz / 1000:g}kHz" if b.freq_hz >= 1000 else f"{b.freq_hz:g}Hz"
-        out.append(f"{f} {b.gain_db:+.1f}dB Q{b.q:g}")
-    return out
-
-
-def _tone_label(mp: Optional[MasterParams]) -> str:
-    """Mastering tone setting, e.g. `med/neutral` — the pair that decides
-    how hard the pre-clean tone curve pulls and in which direction."""
-    if mp is None or not mp.enabled:
-        return ""
-    return f"{mp.intensity}/{mp.tilt}"
-
-
-def _pass_label(source_path: str) -> str:
-    """Pass number for the note: one more than the Shimmer notes already in
-    the source's comment (a pass-1 export carries one)."""
-    try:
-        comment = read_tags(source_path).get("comment", "") if source_path else ""
-    except Exception:  # noqa: BLE001
-        comment = ""
-    prior = sum(1 for ln in comment.splitlines() if ln.strip().startswith("Shimmer"))
-    return f"pass {prior + 1}"
-
-
-def _repair_plan_for(x: Optional[np.ndarray], sr: int,
-                     req: Optional[Dict[str, Any]],
-                     lines: Optional[list] = None) -> Optional[NotchPlan]:
-    """Resolve the static-repair plan for a request.
-
-    `req` is the client's `repair` block: `{"enabled": false}` turns the
-    stage off; an explicit `notches` list (from Analyze, possibly with
-    lines unticked) is validated and used as-is; otherwise the file is
-    scanned (or the session's cached scan is used)."""
-    req = req or {}
-    if req.get("enabled") is False:
-        return None
-    if isinstance(req.get("notches"), list):
-        return NotchPlan.from_dict(req, sr)
-    if lines is None:
-        if x is None:
-            return None
-        lines = scan_fixed_lines(x, sr)
-    return plan_from_lines(lines, sr)
-
-
-def _run_job_sync(job: Job, upload_path: str, params: Params,
-                  preserve_vol: bool, progress_cb,
-                  master_params: Optional[MasterParams] = None,
-                  mastering_analysis: Optional[Dict[str, Any]] = None,
-                  trim_silence: bool = False,
-                  eq_params: Optional[EqParams] = None,
-                  trim_in_s: float = 0.0,
-                  trim_out_s: Optional[float] = None,
-                  repair_req: Optional[Dict[str, Any]] = None,
-                  export_meta: Optional[Dict[str, Any]] = None) -> None:
-    """CPU-bound worker: runs in a thread executor."""
-    x, sr = load_audio(upload_path)
-    export_meta = export_meta or {}
-    # The export spec (format key, subtype, delivery rate). A release
-    # copy is resampled here, before anything runs, so the chain and the
-    # true-peak limiter work at the delivery rate.
-    out_spec = export_meta.get("output") or resolve_output_format(job.output_ext)
-    x, sr = resample_to(x, sr, out_spec.get("sr"))
-    out_dither = bool(out_spec.get("dither"))
-    stage_cb = getattr(progress_cb, "stage", None)
-
-    def _stage(key: str, label: str, detail: str = "") -> None:
-        if stage_cb:
-            stage_cb(key, label, detail)
-
-    # Explicit in/out points are applied to the SOURCE, before anything
-    # else runs. A head click is a transient the limiter would otherwise
-    # duck the whole intro for, and cutting first keeps every downstream
-    # measurement (loudness, tone curve) describing the real music.
-    if float(trim_in_s or 0.0) > 0 or trim_out_s is not None:
-        _stage("edit", "Trimming the edges",
-               f"in at {float(trim_in_s or 0.0):.2f} s" + (f" · out at {float(trim_out_s):.2f} s" if trim_out_s is not None else ""))
-    x, edge_trim_report = apply_trim(x, sr, trim_in_s, trim_out_s)
-
-    meas_in = measure(x)
-    use_mastering = master_params is not None and master_params.enabled
-
-    # RAW-input analysis: the tone curve must come from the unprocessed
-    # signal, never from cleaned audio (post-clean tone match would
-    # boost the harshness the cleaner removed).
-    if use_mastering and mastering_analysis is None:
-        mastering_analysis = analyze_track(x, sr)
-
-    # Deterministic repairs come from the whole file: the fixed-line plan
-    # and the bandwidth cutoff (shelves / tone curve never boost above it).
-    repair_plan = _repair_plan_for(x, sr, repair_req)
-    cut = (mastering_analysis or {}).get("cutoff_hz") if mastering_analysis else None
-    if cut is None:
-        cut = estimate_cutoff_hz(x, sr).get("cutoff_hz")
-    params.cutoff_hz = float(cut or 0.0)
-
-    y2, removed, pipe_report = clean_and_master(
-        x, sr, params,
-        master_params=master_params if use_mastering else None,
-        progress_callback=progress_cb,
-        raw_analysis=mastering_analysis,
-        eq_params=eq_params,
-        repair=repair_plan,
-        stage_callback=stage_cb,
-    )
-    mastering_report: Dict[str, Any] = pipe_report.get(
-        "mastering", {"enabled": False})
-
-    if not use_mastering and preserve_vol:
-        _stage("level", "Preserve volume", "matching the original level")
-        y2 = preserve_volume(
-            y2, meas_in["peak_linear"], input_rms=meas_in["rms_linear"])
-        y2 = clip_protect(y2)
-
-    meas_out = measure(y2)
-    # The removed-signal file is exported UNBOOSTED — audition boost is a
-    # client-side monitoring gain only (never baked into files).
-    diff = clip_protect(removed)
-
-    # Input/output LUFS so the client can loudness-match A/B in every
-    # state, not just when mastering ran (the report covers that case).
-    loudness: Dict[str, Any] = {}
-    if use_mastering:
-        before = mastering_report.get("before") or {}
-        after = mastering_report.get("after") or {}
-        loudness = {
-            "input_lufs_i": _finite_or_none(before.get("lufs_i")),
-            "output_lufs_i": _finite_or_none(after.get("lufs_i")),
-        }
-    else:
-        try:
-            loudness = {
-                "input_lufs_i": _finite_or_none(
-                    measure_loudness(x, sr).get("lufs_i")),
-                "output_lufs_i": _finite_or_none(
-                    measure_loudness(y2, sr).get("lufs_i")),
-            }
-        except Exception:  # noqa: BLE001
-            loudness = {}
-
-    processed_path = os.path.join(
-        job.workdir, f"processed{job.output_ext}")
-    diff_path = os.path.join(job.workdir, f"removed{job.output_ext}")
-    save_folder = str(export_meta.get("save_folder") or "")
-    _stage("export", "Writing the file",
-           f"{job.output_ext.lstrip('.').upper()} · tags"
-           + (" · silence trim" if trim_silence else "")
-           + (f" · saving to {folder_label(save_folder)}" if save_folder else ""))
-    save_audio(processed_path, y2, sr, subtype=out_spec["subtype"], dither=out_dither)
-    save_audio(diff_path, diff, sr, subtype=out_spec["subtype"], dither=out_dither)
-
-    # Tags: the source's own, the user's defaults, and one note per pass.
-    eq_bands = len(eq_params.active_bands(sr)) if eq_params is not None and eq_params.is_active(sr) else 0
-    preset_strength = float(export_meta.get("preset_strength", 1.0))
-    note = shimmer_note(
-        f"Shimmer {SHIMMER_VERSION}", _pass_label(upload_path),
-        label_for(job.preset_name) if job.preset_name in PRESET_NAMES else job.preset_name,
-        preset_strength, use_mastering,
-        float(master_params.target_lufs) if use_mastering else None,
-        float(master_params.ceiling_dbtp) if use_mastering else None,
-        eq_bands=eq_bands,
-        overrides=preset_overrides(params, job.preset_name, preset_strength),
-        eq_moves=_eq_moves(eq_params, sr),
-        tone=_tone_label(master_params if use_mastering else None))
-    tags_report = _tag_export(processed_path, upload_path, export_meta.get("tags"), note)
-
-    # Silence trim is an export-only variant: the playback files above stay
-    # full length so the synced A/B/C player keeps a shared clock.
-    trim_report: Dict[str, Any] = {"enabled": False}
-    y_export = y2
-    if trim_silence:
-        y_trim, cut_head, cut_tail = dsp_trim_silence(y2, sr)
-        y_export = y_trim
-        trimmed_path = os.path.join(job.workdir, f"trimmed{job.output_ext}")
-        save_audio(trimmed_path, y_trim, sr, subtype=out_spec["subtype"], dither=out_dither)
-        _tag_export(trimmed_path, upload_path, export_meta.get("tags"), note)
-        job.trimmed_path = trimmed_path
-        trim_report = {
-            "enabled": True,
-            "cut_head_s": round(cut_head, 3),
-            "cut_tail_s": round(cut_tail, 3),
-        }
-
-    # Save to folder: the file the Download button would give, copied
-    # into the user's folder as part of the run (the trimmed variant is
-    # the export when silence trim is on). A copy that fails is reported,
-    # not fatal: the run's files are still on the server to download.
-    saved_report: Dict[str, Any] = {"enabled": False}
-    if save_folder:
-        src_kind = "trimmed" if trim_silence else "processed"
-        src_path = job.trimmed_path if trim_silence else processed_path
-        dest = os.path.join(save_folder, _download_name(job, src_kind))
-        try:
-            os.makedirs(save_folder, exist_ok=True)
-            shutil.copyfile(src_path, dest)
-            job.saved_path = dest
-            saved_report = {"enabled": True, "path": dest,
-                            "folder": save_folder,
-                            "name": os.path.basename(dest)}
-        except OSError as e:
-            saved_report = {"enabled": True, "folder": save_folder,
-                            "error": str(e.strerror or e)}
-
-    # Report-stage numbers: band spectra before / after / removed, the
-    # peak-to-loudness ratio and the stereo correlation, plus what the
-    # export actually is. Measurement only.
-    try:
-        spectra = spectra_report(x, y2, removed, sr)
-    except Exception:  # noqa: BLE001
-        spectra = None
-    try:
-        loudness = dict(loudness)
-        loudness["input_plr_db"] = plr_db(x, sr, loudness.get("input_lufs_i"))
-        loudness["output_plr_db"] = plr_db(y2, sr, loudness.get("output_lufs_i"))
-        loudness["input_correlation"] = stereo_correlation(x)
-        loudness["output_correlation"] = stereo_correlation(y2)
-    except Exception:  # noqa: BLE001
-        pass
-    ext = job.output_ext.lower()
-    export = {
-        "format": ext.lstrip("."),
-        "format_key": out_spec.get("key", ext.lstrip(".")),
-        "subtype": out_spec["subtype"] if ext in (".wav", ".flac") else None,
-        "bit_depth": out_spec.get("bit_depth"),
-        "dither": out_dither,
-        "sample_rate": int(sr),
-        "bitrate": "320k" if ext == ".mp3" else None,
-        "tags": tags_report,
-        "saved": saved_report,
-        # What the Download step shows: the download's filename and size.
-        "name": _download_name(job, "trimmed" if trim_silence else "processed"),
-        "size_bytes": _file_size(job.trimmed_path if trim_silence else processed_path),
-    }
-
-    # Release check: the verdict on the file the user downloads.
-    release = None
-    if use_mastering:
-        try:
-            release = release_check(
-                y_export, sr, x_in=x, mastering=mastering_report, export=export,
-                correlation=loudness.get("output_correlation"),
-                duration_s=float(y_export.shape[0] / sr),
-                tags=tags_report.get("tags"),
-                tags_written=bool(tags_report.get("written")))
-        except Exception:  # noqa: BLE001
-            release = None
-
-    job.processed_path = processed_path
-    job.diff_path = diff_path
-    job.metrics = {
-        "spectra": spectra,
-        "export": export,
-        "release": release,
-        "sample_rate": sr,
-        "channels": int(x.shape[1]),
-        "duration_s": float(x.shape[0] / sr),
-        "input": meas_in,
-        "output": meas_out,
-        "pipeline": {
-            "tone_curve_db": pipe_report.get("tone_curve_db", []),
-            "side_width_compensation": pipe_report.get(
-                "side_width_compensation", {}),
-        },
-        "mastering": mastering_report,
-        "loudness": loudness,
-        "trim": trim_report,
-        "edge_trim": edge_trim_report,
-        "repair": pipe_report.get("static_repair", {"enabled": False}),
-        "declick": pipe_report.get("declick", {"enabled": False}),
-        "cutoff_hz": float(params.cutoff_hz or 0.0),
-        "eq": pipe_report.get("eq", {"enabled": False}),
-    }
-
-
-async def _run_job_async(job: Job, upload_path: str, params: Params,
-                         preserve_vol: bool,
-                         master_params: Optional[MasterParams] = None,
-                         mastering_analysis: Optional[Dict[str, Any]] = None,
-                         trim_silence: bool = False,
-                         eq_params: Optional[EqParams] = None,
-                         trim_in_s: float = 0.0,
-                         trim_out_s: Optional[float] = None,
-                         repair_req: Optional[Dict[str, Any]] = None,
-                         export_meta: Optional[Dict[str, Any]] = None) -> None:
-    """Schedule the worker on the default executor; push done sentinel."""
-    loop = asyncio.get_running_loop()
-    cb = _threadsafe_progress_pusher(job, loop)
-    job.status = "running"
-    try:
-        await loop.run_in_executor(
-            None, _run_job_sync,
-            job, upload_path, params, preserve_vol, cb,
-            master_params, mastering_analysis, trim_silence, eq_params,
-            trim_in_s, trim_out_s, repair_req, export_meta)
-        job.progress = 1.0
-        job.status = "done"
-        await job.queue.put({"fraction": 1.0, "done": True})
-    except Exception as e:  # noqa: BLE001
-        job.status = "error"
-        job.error = str(e)
-        await job.queue.put({"error": str(e), "done": True})
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -881,161 +480,7 @@ def _open_folder_dialog(initial_dir: str | None, title: str) -> str | None:
 
 
 # ───────────────────────────────────────────────────────────────────────────
-# Single-file processing
-# ───────────────────────────────────────────────────────────────────────────
-
-@app.post("/api/process")
-async def api_process(
-    background: BackgroundTasks,
-    file: UploadFile = File(...),
-    params: str = Form(...),
-    preserve_volume: bool = Form(True),
-    output_format: str = Form("wav"),
-    trim_silence: bool = Form(False),
-    trim_in_s: float = Form(0.0),
-    trim_out_s: Optional[float] = Form(None),
-    save_folder: str = Form(""),
-) -> JSONResponse:
-    try:
-        params_data = json.loads(params)
-    except json.JSONDecodeError as e:
-        raise HTTPException(400, f"Invalid params JSON: {e}")
-
-    try:
-        p = _params_from_json(params_data)
-    except KeyError as e:
-        raise HTTPException(400, f"Unknown preset: {e}")
-
-    mp = _master_params_from_request(params_data)
-    eqp = _eq_params_from_request(params_data)
-    mastering_analysis = params_data.get("mastering_analysis")
-
-    try:
-        out_spec = resolve_output_format(output_format)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    output_ext = out_spec["ext"]
-    # "Save to folder": checked now so a bad folder fails in a second,
-    # not after a full run.
-    save_folder = _validated_save_folder(save_folder)
-
-    # Codec-aware true-peak ceiling: lossy encoders overshoot on decode,
-    # so MP3/OGG/M4A exports get -1.5 dBTP unless the user explicitly
-    # chose a ceiling.
-    if (params_data.get("mastering") or {}).get("ceiling_dbtp") is None:
-        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_ext)
-
-    job = JOB_STORE.create(output_ext=output_ext)
-    job.preset_name = params_data.get("preset") or "generic"
-
-    orig_name = Path(file.filename or "upload").name
-    # Exports never chain suffixes: a pass-2 file is named from the
-    # original stem, and the pass ledger lives in the tags instead.
-    job.source_stem = strip_shimmer_suffix(Path(orig_name).stem) or "audio"
-    job.original_path = os.path.join(job.workdir, "input_" + orig_name)
-    with open(job.original_path, "wb") as f:
-        while True:
-            chunk = await file.read(1 << 20)
-            if not chunk:
-                break
-            f.write(chunk)
-
-    # Fire-and-forget worker task; progress flows via job.queue → SSE.
-    try:
-        preset_strength = float(params_data.get("preset_strength", 1.0))
-    except (TypeError, ValueError):
-        preset_strength = 1.0
-    export_meta = {
-        "tags": params_data.get("tags") if isinstance(params_data.get("tags"), dict) else None,
-        "preset_strength": preset_strength,
-        "save_folder": save_folder,
-        "output": out_spec,
-    }
-    asyncio.create_task(_run_job_async(
-        job, job.original_path, p, preserve_volume, mp, mastering_analysis,
-        trim_silence, eqp, trim_in_s, trim_out_s,
-        params_data.get("repair"), export_meta))
-    JOB_STORE.sweep()
-    return JSONResponse({"job_id": job.id})
-
-
-@app.get("/api/progress/{job_id}")
-async def api_progress(job_id: str, request: Request) -> StreamingResponse:
-    job = JOB_STORE.get(job_id)
-    if job is None:
-        raise HTTPException(404, "Unknown job")
-
-    async def event_stream():
-        # Send the current status first so late subscribers get context.
-        yield _sse_event({
-            "fraction": job.progress,
-            "status": job.status,
-        })
-        while True:
-            if await request.is_disconnected():
-                break
-            try:
-                msg = await asyncio.wait_for(job.queue.get(), timeout=15.0)
-            except asyncio.TimeoutError:
-                yield ": keepalive\n\n"
-                continue
-            yield _sse_event(msg)
-            if msg.get("done"):
-                break
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
-
-
-@app.get("/api/metrics/{job_id}")
-async def api_metrics(job_id: str) -> JSONResponse:
-    job = JOB_STORE.get(job_id)
-    if job is None:
-        raise HTTPException(404, "Unknown job")
-    if job.status == "error":
-        raise HTTPException(500, job.error or "Job failed")
-    if job.status != "done":
-        return JSONResponse({"status": job.status}, status_code=202)
-    return JSONResponse({
-        "status": "done",
-        "metrics": job.metrics,
-    })
-
-
-@app.get("/api/result/{job_id}")
-async def api_result(job_id: str, kind: str = "processed") -> FileResponse:
-    job = JOB_STORE.get(job_id)
-    if job is None:
-        raise HTTPException(404, "Unknown job")
-    if job.status == "error":
-        raise HTTPException(500, job.error or "Job failed")
-    if job.status != "done":
-        raise HTTPException(202, "Job not finished")
-
-    path = {
-        "processed": job.processed_path,
-        "diff":      job.diff_path,
-        "original":  job.original_path,
-        "trimmed":   job.trimmed_path,
-    }.get(kind)
-    if not path or not os.path.isfile(path):
-        raise HTTPException(404, f"No {kind} artefact for this job")
-
-    ext = os.path.splitext(path)[1].lower()
-    media = {
-        ".wav": "audio/wav", ".flac": "audio/flac",
-        ".mp3": "audio/mpeg", ".ogg": "audio/ogg",
-        ".m4a": "audio/mp4", ".zip": "application/zip",
-    }.get(ext, "application/octet-stream")
-    # Make download filenames informative + unique-per-run so successive
-    # downloads of different presets / different songs don't all collide on
-    # `processed.wav` in the user's Downloads folder. Filesystem-safe stem +
-    # short job id so old/new runs are visually distinguishable.
-    download_name = _download_name(job, kind, ext)
-    return FileResponse(path, media_type=media, filename=download_name)
-
-
-# ───────────────────────────────────────────────────────────────────────────
-# Suggest preset
+# Analyze
 # ───────────────────────────────────────────────────────────────────────────
 
 @app.post("/api/suggest")
@@ -1101,16 +546,6 @@ async def api_suggest(file: UploadFile = File(...),
     return JSONResponse(result)
 
 
-@app.post("/api/analyze")
-async def api_analyze(file: UploadFile = File(...),
-                      tone_family: str = Form("neutral"),
-                      mastering: str = Form(""),
-                      tone: bool = Form(True),
-                      overrides: str = Form("")) -> JSONResponse:
-    """Combined artifact detect + mastering analysis (alias of suggest)."""
-    return await api_suggest(file, tone_family, mastering, tone, overrides)
-
-
 def _parse_json_form(raw: str) -> Dict[str, Any]:
     if not raw:
         return {}
@@ -1119,13 +554,6 @@ def _parse_json_form(raw: str) -> Dict[str, Any]:
     except json.JSONDecodeError:
         return {}
     return data if isinstance(data, dict) else {}
-
-
-def _parse_master_form(raw: str) -> Optional[MasterParams]:
-    data = _parse_json_form(raw)
-    if not data:
-        return None
-    return master_params_from_json(data)
 
 
 @app.get("/api/tone/families")
@@ -1436,16 +864,6 @@ _PREVIEW_PREROLL_S = 1.5
 _PREVIEW_POSTROLL_S = 0.5
 
 
-def _preview_margin_s(p: Params, sr: int,
-                      master_params: Optional[MasterParams]) -> float:
-    """Extra safety margin: FIR crossover group delay + limiter lookahead."""
-    fir_delay_s = (int(p.crossover_taps) // 2) / float(max(1, sr))
-    lookahead_s = 0.0
-    if master_params is not None and master_params.enabled:
-        lookahead_s = float(master_params.lookahead_ms) / 1000.0
-    return fir_delay_s + lookahead_s
-
-
 def extract_preview_block(samples: np.ndarray, sr: int,
                           start_s: float, end_s: float,
                           extra_margin_s: float = 0.0):
@@ -1483,84 +901,6 @@ def trim_processed_preview(y: np.ndarray, head_pad: int,
     if out.shape[0] < audible_len:
         out = np.pad(out, ((0, audible_len - out.shape[0]), (0, 0)))
     return out
-
-
-@app.post("/api/upload")
-async def api_upload(file: UploadFile = File(...)) -> JSONResponse:
-    """Accept an audio file once, decode it, and create a preview session.
-
-    The decoded samples stay resident in memory so subsequent /api/preview
-    calls can re-render arbitrary slices in milliseconds without re-uploading
-    or re-decoding.  Also stores the original file on disk so the existing
-    full-file `/api/process` flow can reuse it via `session_id`.
-    """
-    sess_workdir = tempfile.mkdtemp(prefix="shimmer_upload_")
-    orig_name = Path(file.filename or "upload").name
-    orig_path = os.path.join(sess_workdir, "input_" + orig_name)
-    with open(orig_path, "wb") as f:
-        while True:
-            chunk = await file.read(1 << 20)
-            if not chunk:
-                break
-            f.write(chunk)
-
-    loop = asyncio.get_running_loop()
-    try:
-        x, sr = await loop.run_in_executor(None, load_audio, orig_path)
-    except Exception as e:  # noqa: BLE001
-        try:
-            os.unlink(orig_path)
-            os.rmdir(sess_workdir)
-        except OSError:
-            pass
-        raise HTTPException(400, f"Could not decode '{orig_name}': {e}")
-
-    x = np.asarray(x, dtype=np.float32)
-    if x.ndim == 1:
-        x = x[:, None]
-    x = clamp_samples_for_preview(x, sr)
-
-    loop2 = asyncio.get_running_loop()
-    track_analysis = await loop2.run_in_executor(None, analyze_track, x, sr)
-    # Scan both edges for render glitches. Reported, never auto-applied —
-    # the UI raises it and the user decides.
-    edges = await loop2.run_in_executor(None, detect_edge_artifacts, x, sr)
-    # Content digest: keys both the stem cache and the per-track project
-    # store, so the client can restore prior work for this exact file.
-    digest = await loop2.run_in_executor(
-        None, stems_mod.file_digest, orig_path)
-
-    sess = PREVIEW_STORE.create(
-        samples=x, sr=sr,
-        original_path=orig_path,
-        original_name=orig_name,
-    )
-    sess.track_analysis = track_analysis
-    sess.digest = digest
-    # Whole-file scan for the generator's fixed lines: the static-repair
-    # plan every preview slice and run for this session starts from.
-    lines = await loop2.run_in_executor(None, scan_fixed_lines, x, sr)
-    sess.repair_lines = lines
-    source_tags = await loop2.run_in_executor(None, read_tags, orig_path)
-    PREVIEW_STORE.sweep()
-    return JSONResponse({
-        "session_id": sess.id,
-        "source_tags": source_tags,
-        "title_hint": title_from_stem(Path(orig_name).stem),
-        "sample_rate": sr,
-        "channels": sess.channels,
-        "duration_s": sess.duration_s,
-        "name": orig_name,
-        "analysis": track_analysis,
-        "edges": edges,
-        "repair": {"lines": lines, "plan": plan_from_lines(lines, sr).as_dict()},
-        "digest": digest,
-        # Any tier with a finished stem set for this exact file: the
-        # Remix tab separates instantly on those.
-        "stems_cached": bool(stems_mod.cached_models(digest)),
-        "stems_tiers": stems_mod.cached_tiers(digest),
-        "project": load_project(digest),
-    })
 
 
 def _slice_loudness_db(arr: np.ndarray, sr: int) -> float:
@@ -1618,202 +958,9 @@ def _master_loudness_ref(sess, block: np.ndarray, sr: int
     return {"whole_lufs": float(whole), "slice_lufs": float(sl)}
 
 
-def _render_preview_sync(sess, start_s: float, end_s: float, p: Params,
-                         preserve_vol: bool,
-                         master_params: Optional[MasterParams] = None,
-                         eq_params: Optional[EqParams] = None,
-                         repair: Optional[NotchPlan] = None) -> Dict[str, Any]:
-    """Render processed + diff slices for the requested window.
-
-    The Original player keeps the full file in the browser (so the user
-    can scrub through the whole track), so the server only needs to ship
-    the two slices that change as the user moves sliders. Slices are
-    encoded to in-memory WAVs and returned in the response body — no
-    per-render files, no render ids, no GC.
-
-    We pad the window with PREROLL/POSTROLL (+ FIR/lookahead margins) on
-    both sides, run the safe pipeline with pad=False and fade_ms=0, then
-    trim back to the audible window so loop boundaries are clean and
-    stateful stages have warmed up.
-    """
-    sr = sess.sr
-
-    use_mastering = master_params is not None and master_params.enabled
-    margin_s = _preview_margin_s(p, sr, master_params)
-    in_slice, head_pad, audible_len = extract_preview_block(
-        sess.samples, sr, start_s, end_s, extra_margin_s=margin_s)
-
-    # Disable engine's own pad/fade for slice rendering — the discarded
-    # warm-up tail handles edge effects, and looping needs no fades.
-    p.pad = False
-    p.fade_ms = 0.0
-
-    # Full safe pipeline (tone curve from the session's RAW analysis,
-    # band split, M/S clean, width comp, mastering) on the padded block.
-    y2, removed_block, _report = clean_and_master(
-        in_slice, sr, p,
-        master_params=master_params if use_mastering else None,
-        raw_analysis=dict(sess.track_analysis or {}),
-        eq_params=eq_params,
-        master_loudness_ref=(
-            _master_loudness_ref(sess, in_slice, sr) if use_mastering else None),
-        repair=repair,
-    )
-
-    proc_audible = trim_processed_preview(y2, head_pad, audible_len)
-    orig_audible = in_slice[head_pad:head_pad + audible_len, :]
-
-    # Measure ONLY the audible region — using the full padded slice
-    # mixes in 1.5 s of preroll which is often quieter than the loop,
-    # making the RMS comparison wrong (preview ends up scaled DOWN
-    # because input_rms < proc_audible_rms).
-    audible_in_meas = measure(orig_audible)
-
-    if not use_mastering:
-        if preserve_vol:
-            proc_audible = preserve_volume(
-                proc_audible, audible_in_meas["peak_linear"],
-                input_rms=audible_in_meas["rms_linear"])
-        proc_audible = clip_protect(proc_audible)
-
-    # Removed signal straight from the pipeline (what cleaning stripped
-    # from the high band). Shipped UNBOOSTED — the client applies an
-    # audition boost via a gain node (capped against the slice's own
-    # peak to avoid clipping).
-    diff = trim_processed_preview(removed_block, head_pad, audible_len)
-    diff = clip_protect(diff)
-
-    return {
-        "duration_s": float(audible_len / sr),
-        "sample_rate": sr,
-        "lufs_original": _slice_loudness_db(orig_audible, sr),
-        "lufs_processed": _slice_loudness_db(proc_audible, sr),
-        "wav_processed": encode_wav_bytes(proc_audible, sr),
-        "wav_removed": encode_wav_bytes(diff, sr),
-    }
-
-
-@app.post("/api/preview")
-async def api_preview(payload: Dict[str, Any]) -> Response:
-    """Render a small looped slice for live A/B previewing.
-
-    Returns a single binary payload so one round trip carries everything:
-        [u32 json_len][json meta][u32 wav_len][processed wav][removed wav]
-    Meta includes per-slice loudness so the client can loudness-match A/B
-    during preview.
-    """
-    sid = payload.get("session_id") or ""
-    sess = PREVIEW_STORE.get(sid)
-    if sess is None:
-        raise HTTPException(404, "Unknown session_id")
-
-    try:
-        start_s = float(payload.get("start_s", 0.0))
-        end_s = float(payload.get("end_s", min(10.0, sess.duration_s)))
-    except (TypeError, ValueError) as e:
-        raise HTTPException(400, f"Invalid start_s/end_s: {e}")
-
-    preserve_vol = bool(payload.get("preserve_volume", True))
-    mp = master_params_from_json(payload.get("mastering") or {})
-    eqp = eq_params_from_json(payload.get("eq") or {})
-    # Static repair from the session's whole-file scan (or the client's
-    # explicit list), so a preview slice gets the same notches the run will.
-    repair_plan = _repair_plan_for(
-        None, sess.sr, payload.get("repair"), lines=sess.repair_lines)
-
-    try:
-        p = _params_from_json({
-            "preset": payload.get("preset") or "generic",
-            "preset_strength": payload.get("preset_strength"),
-            "overrides": payload.get("overrides") or {},
-        })
-    except KeyError as e:
-        raise HTTPException(400, f"Unknown preset: {e}")
-    p.cutoff_hz = float((sess.track_analysis or {}).get("cutoff_hz") or 0.0)
-
-    loop = asyncio.get_running_loop()
-    t0 = time.time()
-    try:
-        result = await loop.run_in_executor(
-            None, _render_preview_sync, sess, start_s, end_s, p,
-            preserve_vol, mp, eqp, repair_plan)
-    except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, f"Preview render failed: {e}")
-    elapsed_ms = int((time.time() - t0) * 1000)
-
-    meta = json.dumps({
-        "duration_s": result["duration_s"],
-        "sample_rate": result["sample_rate"],
-        "render_ms": elapsed_ms,
-        "start_s": start_s,
-        "end_s": end_s,
-        "lufs_original": result["lufs_original"],
-        "lufs_processed": result["lufs_processed"],
-    }).encode("utf-8")
-    wav_processed = result["wav_processed"]
-    body = b"".join([
-        struct.pack("<I", len(meta)), meta,
-        struct.pack("<I", len(wav_processed)), wav_processed,
-        result["wav_removed"],
-    ])
-    return Response(content=body, media_type="application/octet-stream")
-
-
-@app.get("/api/envelope/{session_id}")
-async def api_envelope(session_id: str, start_s: float = 0.0,
-                       end_s: float = 1.0, points: int = 600) -> JSONResponse:
-    """Peak envelope in dBFS over a time range, for the Trim view.
-
-    Returned in dB rather than linear amplitude on purpose: the artifacts
-    this view exists to show sit near -50 dBFS, which is a flat line on a
-    linear waveform. Served from the resident session, so scrubbing zoom
-    levels costs no upload and no decode.
-    """
-    sess = PREVIEW_STORE.get(session_id)
-    if sess is None:
-        raise HTTPException(404, "Unknown session_id")
-
-    sr = sess.sr
-    n = sess.samples.shape[0]
-    a = int(np.clip(round(start_s * sr), 0, n))
-    b = int(np.clip(round(end_s * sr), a + 1, n))
-    points = int(np.clip(points, 16, 4000))
-
-    seg = np.max(np.abs(sess.samples[a:b]), axis=1)
-    # One bucket per output point; peak within each so a single-sample
-    # click survives downsampling instead of averaging away.
-    idx = np.linspace(0, seg.shape[0], points + 1).astype(np.int64)
-    peaks = np.array([
-        seg[idx[i]:max(idx[i] + 1, idx[i + 1])].max() for i in range(points)
-    ], dtype=np.float64)
-    db = 20.0 * np.log10(peaks + 1e-9)
-
-    return JSONResponse({
-        "start_s": a / sr,
-        "end_s": b / sr,
-        "sample_rate": sr,
-        "db": [round(float(v), 2) for v in db],
-    })
-
-
-@app.delete("/api/upload/{session_id}")
-async def api_upload_drop(session_id: str) -> JSONResponse:
-    PREVIEW_STORE.drop(session_id)
-    return JSONResponse({"ok": True})
-
-
 # ───────────────────────────────────────────────────────────────────────────
 # Projects — per-track persisted work (keyed by file content digest)
 # ───────────────────────────────────────────────────────────────────────────
-
-@app.get("/api/projects")
-async def api_projects_list() -> JSONResponse:
-    return JSONResponse({"projects": list_projects()})
-
-
-@app.get("/api/project/{digest}")
-async def api_project_get(digest: str) -> JSONResponse:
-    return JSONResponse(load_project(digest))
 
 
 @app.post("/api/project/{digest}")
@@ -1873,27 +1020,6 @@ async def api_stems_library() -> JSONResponse:
     loop = asyncio.get_running_loop()
     rows = await loop.run_in_executor(None, stems_mod.library)
     return JSONResponse({"items": rows})
-
-
-@app.get("/api/stems/status/{session_id}")
-async def api_stems_status(session_id: str) -> JSONResponse:
-    sess = PREVIEW_STORE.get(session_id)
-    if sess is None:
-        raise HTTPException(404, "Unknown session_id")
-    digest = sess.digest
-    if not digest:
-        try:
-            digest = stems_mod.file_digest(sess.original_path)
-        except OSError:
-            digest = ""
-    return JSONResponse({
-        "ready": sess.stems is not None,
-        "cached": bool(digest and stems_mod.cached_models(digest)),
-        "cached_tiers": stems_mod.cached_tiers(digest) if digest else [],
-        "env_ready": stems_mod.stems_python() is not None,
-        "cuda": stems_mod.has_cuda(),
-        "info": sess.stems_info or {},
-    })
 
 
 @app.get("/api/stems/info/{session_id}")

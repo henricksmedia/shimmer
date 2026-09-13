@@ -226,8 +226,6 @@ def test_stems_info_route(six_stem_session):
     assert info["order"] == ["vocals", "drums", "bass", "guitar", "piano", "other", "residual"]
     assert info["null_db"] < -80
     assert len(info["stems"]) == 7
-    status = json.loads(asyncio.run(server.api_stems_status(six_stem_session.id)).body)
-    assert status["ready"] is True and status["info"]["model"] == "htdemucs_6s"
 
 
 def test_stems_info_requires_separation():
@@ -259,7 +257,8 @@ def test_stems_export_as_separated_sums_to_the_mix(six_stem_session):
     np.testing.assert_allclose(total, sess.samples[:total.shape[0]], atol=2e-4)
     assert job.metrics["processed"] is False and job.metrics["bit_depth"] == 24
     # The download name marks it as a stems bundle of that model.
-    resp = asyncio.run(server.api_result(job.id, "processed"))
+    from shimmer.api import render as api_render
+    resp = asyncio.run(api_render.result(job.id, "processed"))
     assert resp.media_type == "application/zip"
     assert resp.headers["content-disposition"].endswith(f'six_stems_htdemucs_6s_{job.id[:8]}.zip"')
 

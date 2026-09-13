@@ -368,7 +368,7 @@ All kept, unchanged, because Remix works as it does today.
 | `POST /api/remix/preview` | `{session_id, start_s, end_s, stems{<lane>:{gain_db,pan,mute,effects{formant,saturation,doubler,reverb}}}, mastering, output_format, cleaning{preset}}` | binary: u32 meta length, meta (`lufs_original, lufs_remix, render_ms, mastered, exact, building`), one WAV. `exact` is false while the whole mix is built in the background (the loop's own mix, level approximate); `building` true means asking again gives the exact preview |
 | `POST /api/project/{digest}` | `{name, remix{strips,master,cleanup,tier,format}}` | nothing |
 
-**Retire (no caller):**
+**Retire (no caller). Removed 2026-09-12:**
 
 - `GET /api/stems/status/{session_id}`
 - `POST /api/analyze` (an alias of suggest)

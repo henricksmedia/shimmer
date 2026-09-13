@@ -421,6 +421,15 @@ the music" (`GOALS.md`):*
     in every tab's report.
 - [ ] Old saved settings migrate.
 - [ ] Delete the retired modules and their tests.
+  - [x] `server.py`'s dead 1.x code (2026-09-12), 878 lines:
+    - the 8 handlers the engine's routers answer first
+    - the four routes API.md §1 item 5 retires (`/api/analyze`,
+      `/api/stems/status`, `/api/projects`, `GET /api/project/{digest}`)
+    - 1.x's job pipeline, and every helper only they used
+  - [ ] The 1.x engine modules, once nothing live imports them. Still
+        using them: the chain view (`/api/chain`), the Remix loop's quick
+        preview (1.x `master()`), the preset list (`/api/presets`) and the
+        settings screens.
 - [ ] README, `docs/README.md`, `FEATURES.md` and the help text rewritten; a
       new architecture doc.
 - [ ] Release check: 1.1.1 against 2.0, blind; 2.0 must win or tie.
