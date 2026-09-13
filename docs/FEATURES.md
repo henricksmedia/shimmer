@@ -1,1406 +1,984 @@
-# Shimmer — Complete Feature Reference
+# Shimmer 2.0.0: feature reference
 
-Shimmer is an offline, local, deterministic tool for removing the high-frequency
-artifacts that AI music generators leave behind: metallic "shimmer" fizz,
-narrow-band birdies and whistles, amplitude-modulated hash flicker, and periodic
-"checkerboard" comb textures. This document is the authoritative catalog of
-every feature in the tool, sourced directly from the codebase.
+Shimmer is a local app that cleans and masters songs made with AI music
+tools such as Suno. It runs on your own computer. Version 2.0.0 (2026-09-13)
+is a rebuild of 1.1.1.
 
-Related docs: [README.md](README.md) for quick start and project layout.
+This page lists the features in 2.0.0, by tab and by stage. Each one was
+checked against the code. Some things are not built yet. They are named as
+such, and all of them are listed in
+[Known limits in 2.0.0](#10-known-limits-in-200).
+
+Other docs:
+
+- [SOUND-CHANGES.md](SOUND-CHANGES.md): every change to the sound since
+  1.1.1, with numbers.
+- [STEP6-FIXES.md](STEP6-FIXES.md): how each fix was measured.
+- [API.md](API.md): the routes the screens call.
+- [ARCHITECTURE.md](ARCHITECTURE.md): how the app is built, and why.
 
 ## Contents
 
-1. [Overview](#1-overview)
-2. [Entry points and launch](#2-entry-points-and-launch)
-3. [Audio I/O](#3-audio-io)
-4. [DSP processing engine](#4-dsp-processing-engine)
-5. [Presets](#5-presets)
-6. [Auto-detect and analysis](#6-auto-detect-and-analysis)
-7. [Mastering chain](#7-mastering-chain)
-8. [Web UI](#8-web-ui)
-9. [HTTP API reference](#9-http-api-reference)
-10. [CLI reference](#10-cli-reference)
-11. [Batch processing](#11-batch-processing)
-12. [Job system and infrastructure](#12-job-system-and-infrastructure)
+1. [One sound path](#1-one-sound-path)
+2. [Master tab](#2-master-tab)
+3. [Mastering](#3-mastering)
+4. [Output, tags and the release check](#4-output-tags-and-the-release-check)
+5. [Signal Chain tab and the progress window](#5-signal-chain-tab-and-the-progress-window)
+6. [Batch tab and album mode](#6-batch-tab-and-album-mode)
+7. [Remix tab](#7-remix-tab)
+8. [Settings tab, and where things are saved](#8-settings-tab-and-where-things-are-saved)
+9. [Command line](#9-command-line)
+10. [Known limits in 2.0.0](#10-known-limits-in-200)
 
 ---
 
-## 1. Overview
+## 1. One sound path
 
-- **Purpose:** remove narrowband flickering high-frequency artifacts (default
-  band 5.1–7.2 kHz) produced by diffusion models, VAE/neural vocoders, and
-  phase-reconstruction errors. Presets extend coverage from ~2 kHz (Vocal
-  Glaze) up to 20 kHz (Deep Scrub), plus two full-band tonal-rescue presets.
-- **Beyond cleanup:** a true mastering chain (LUFS target, corrective tone
-  curve, true-peak limiter), a user parametric EQ, and a Remix tab (Demucs
-  stem separation + per-stem character effects) — one tool from raw AI
-  render to release-ready file.
-- **Architecture:** Python backend (FastAPI + NumPy/SciPy STFT DSP) with a
-  native HTML/ES-module frontend. No Gradio.
-- **Execution model:** single-user, single job in flight. CPU-heavy processing
-  runs on a thread executor so the event loop stays responsive
-  ([server.py](server.py)).
-- **Determinism:** processing is fully deterministic; the only randomness
-  (noise resynthesis phase) is seeded via the `seed` parameter.
+Every tab makes its sound with one function, `render()` in
+`shimmer/core/render.py`. It is used by:
+
+- the Master tab's live preview and its export
+- the Batch tab, and album mode
+- the Remix tab's export
+- the command line
+
+Every file is written by one function too, `export()` in
+`shimmer/core/export.py`.
+
+1.1.1 had six copies of this work, and its preview did not match its
+export. In 2.0.0 the preview is the same render on a short window of the
+song. A test holds each preview window to the same span of the full export:
+the difference must be at least 60 dB below the signal. This holds with
+every fix at full, too.
+
+### The order of the stages
+
+Each stage runs at one fixed place in the chain. The order is set in the
+docstring at the top of `shimmer/core/render.py`.
 
 ```mermaid
-flowchart TB
-  subgraph entry [Entry Points]
-    BAT[Shimmer.bat]
-    CLI[shimmer.py CLI]
-    PROBE[probe.py CLI]
-    WEB[FastAPI Web UI]
-  end
-  subgraph core [Processing Core]
-    PRESET[Presets + Strength]
-    ENGINE[9-stage STFT Engine]
-    MASTER[Mastering Chain]
-  end
-  subgraph io [I/O]
-    LOAD[Multi-format Load/Save]
-    BATCH[Batch Folder Scan]
-    PREVIEW[Live Preview Sessions]
-  end
-  BAT --> WEB
-  CLI --> ENGINE
-  WEB --> PRESET --> ENGINE --> MASTER
-  WEB --> PREVIEW
-  WEB --> BATCH
-  PROBE --> PRESET
+flowchart TD
+  A["Read the whole original file"] --> B["Edge cuts you placed in Trim (Master tab)"]
+  B --> C["Resample: only for the 16-bit release copies, to 44.1 kHz"]
+  C --> D["De-click: Clicks and crackle (command line only in 2.0.0)"]
+  D --> E["Notch filter: Fixed tones"]
+  E --> F["Spectral de-noise: Shimmer"]
+  F --> G["De-esser: Sibilance"]
+  G --> H["Dynamic EQ, 2-5 kHz: Harshness"]
+  H --> I["Dynamic EQ, 200-500 Hz: Low-mid build-up"]
+  I --> J{"Mastering on?"}
+  J -- yes --> K["Tone curve: tone target, or reference-track match"]
+  J -- no --> L
+  K --> L["Parametric EQ: your bands and Suggested EQ moves"]
+  L --> M{"Mastering on?"}
+  M -- yes --> N["25 Hz low-cut, one static gain, peak shaper, true-peak limiter"]
+  M -- no --> O["Preserve volume: one gain back to the song's own level"]
+  N --> P["Export: silence trim, dither for 16-bit, tags, peak check for lossy files"]
+  O --> P
+  P --> Q["Release check: measures the written file (mastering on)"]
 ```
+
+A fix only runs when its card is on. A stage with nothing to do passes the
+audio through unchanged. With everything off, the output is bit for bit the
+input.
+
+Some work is done once for the whole song and kept:
+
+- the scan for fixed tones
+- each fix's plan (for example, which bands the dynamic EQ watches)
+- the mastering tone curve
+- the loudness gain
+
+So a preview window uses the same notches, the same gains and the same
+level as the full export. A window is rendered with 1 s of lead-in and
+0.5 s of tail, so the filters and the limiter settle as they do in a full
+render.
 
 ---
 
-## 2. Entry points and launch
+## 2. Master tab
 
-### Web UI launcher — [Shimmer.bat](Shimmer.bat)
+The Master tab takes one song from upload to a finished file. It has three
+steps, shown at the top: **1 Upload**, **2 Analyze**, **3 Clean & Master**.
 
-- Creates and reuses a `.venv` via `uv`; installs
-  [requirements.txt](requirements.txt) on first run.
-- Probes that fastapi, uvicorn, numpy, scipy, soundfile, and pyloudnorm import
-  cleanly before starting.
-- Kills any prior process bound to port **7860** (netstat + PowerShell
-  `Stop-Process`).
-- Starts `uvicorn server:app --host 127.0.0.1 --port 7860` and auto-opens the
-  browser at `http://localhost:7860` after a 2-second delay.
+### 2.1 The app around it
 
-Manual launch:
+- **Side rail:** Master, Remix, Batch, Signal Chain, Settings and Help. Below
+  them, a card shows the loaded song's name.
+- **Transport bar** (along the bottom, on Master and Remix):
+  - **Transport:** back to the start, back 5 s, play/pause, forward 5 s,
+    and a scrubber you can click or drag. The amber band on the scrubber is
+    the preview loop.
+  - **Monitor:** **1 Original**, **2 Processed**, **3 Removed**, and a
+    **Loudness-matched A/B** switch (on by default).
+  - **Preview loop:** the **Live** switch, the loop length and **Set from
+    playhead**.
+- **Keys:** Space plays and pauses. 1, 2 and 3 switch tracks. The left and
+  right arrows skip 5 s. **Ctrl+K** opens a command palette that can switch
+  tabs, play, switch tracks, run Analyze and open Help.
+- **Help** has six tabs: Quick start, What do you hear? (with a short quiz
+  that points you to a card), Controls, Troubleshoot, Setup and About. A
+  **?** next to a card or control opens help on that one.
 
-```bash
-pip install -r requirements.txt
-python -m uvicorn server:app --host 127.0.0.1 --port 7860
-```
+### 2.2 Upload
 
-### CLI — [shimmer.py](shimmer.py)
+You drop in one song, or click **Choose file…**. It is uploaded once, and
+the Master tab reuses it for the rest of the session.
 
-- `shimmer input output [options]` — input formats WAV/MP3/FLAC/OGG/M4A;
-  output format inferred from the extension.
-- Inline 40-character progress bar during processing.
-- `--list-presets` prints all visible presets with descriptions.
-- `--suggest INPUT` analyzes a file and prints the recommended preset and
-  strength, the verified ranking (score, confidence, strength, residue,
-  collateral, audible loss in sones, tone shift) with reasons, any
-  second-pass suggestion and notes.
-- Nearly every processing parameter is overridable via flags (see
-  [Section 10](#10-cli-reference); a few advanced params are preset/API-only).
+- **File types:** WAV, MP3, FLAC, OGG and M4A. WAV, FLAC and OGG are read
+  directly. MP3 and M4A need ffmpeg installed (Help, Setup).
+- **Long files:** the copy kept for the preview stops at 30 minutes. The
+  export always reads the whole original file.
+- **Clean-up:** a session unused for one hour is removed, with its files.
+- **Recent sessions:** the empty Master tab lists up to six recent songs.
+  In browsers that allow it (Chromium-based ones), a click reloads the song
+  and its settings. Otherwise the row asks you to drop the file again.
 
-### Diagnostic CLI — [probe.py](probe.py)
+The upload already measures fixed tones and loudness, so the cards can show
+what was found before you click Analyze.
 
-- `python probe.py input [--outdir ...]` — standalone artifact analysis.
-- Region selection with `--t0` / `--dur`, plus band and STFT parameters.
-- Outputs `artifact.wav` (isolated flagged bins), `roi_band_spectrogram.png`,
-  and `roi_residual_map.png` for manual diagnosis.
-- Hosts `suggest_preset()`, used by the CLI `--suggest`, the API, and batch
-  auto-detect.
+### 2.3 Analyze
 
----
+Click **Analyze** in the Analysis card, or step 2 in the right column. It
+takes about 10 seconds for a four-minute song. It measures the song and
+never changes it. It:
 
-## 3. Audio I/O
+- measures loudness (LUFS), true peak (dBTP) and loudness range
+- draws a 1/3-octave spectrum, and finds where the top end stops (many AI
+  renders stop at 12-15 kHz)
+- scans the whole file for **fixed tones**: steady tones the generator
+  leaves at one pitch for the whole song
+- marks what it found on the **What do you hear?** cards, and turns on
+  **Fixed tones** when it finds steady tones
+- moves the preview loop to where the top end is busiest
+- plans a **Suggested EQ** (see [2.9](#29-eq-and-suggested-eq))
 
-Source: [audio_io.py](audio_io.py)
+**Expand** opens the analysis in a bigger panel over the page, with a
+**Loop the worst part** button.
 
-| Capability | Details |
+**What Analyze reports as found.** Only two cards get a "Found" note today,
+because only these can be measured reliably:
+
+- **Fixed tones:** each tone found, with its pitch and how far it stands
+  above its surroundings.
+- **Loudness:** how far the song is under the chosen loudness target, when
+  it is 1 dB or more.
+
+Every other card stays quiet until its detector passes its own tests. A
+card that cannot measure its problem does not guess.
+
+### 2.4 "What do you hear?" cards and their fixes
+
+The cards replace 1.x's 19 presets. You listen, then turn on a card for
+each problem you hear. Each card that is on runs one tool. The cards and
+their tools come from `shimmer/core/catalog.py` (`CARDS`, `TOOL_LABELS`,
+`TOOLS_READY`) and `shimmer/core/render.py` (`_FIX_TOOLS`).
+
+| Card | What you hear | Tool | Band | Deepest cut at Amount 100 % | State in 2.0.0 |
+|---|---|---|---|---|---|
+| Shimmer | Fizzy, flickering hiss up top | Spectral de-noise | 1.5-16 kHz | a gain per frequency bin, set by a trained model | On, to try |
+| Fixed tones | A whistle or whine that never changes | Notch filter | at each tone found | full notch depth | On |
+| Sibilance | Harsh, spitty "s" and "sh" | De-esser | 4.5-10 kHz | 7.2 dB | On, to try |
+| Clicks and crackle | Short pops, ticks or static | De-click | above 2 kHz | not a fixed cut | Built, not passed. The card says "Not built yet" |
+| Harshness | Piercing, painful upper mids | Dynamic EQ | 2-5 kHz | 5.1 dB | On, to try |
+| Phasiness | Grainy or watery reverb tails | none | | | "No fix yet" |
+| Low-mid build-up | Muddy, boxy, words hard to hear | Dynamic EQ | 200-500 Hz | 4.0 dB | On, to try |
+| Lack of air | Dull, no sparkle | Tone target | whole spectrum | | Part of mastering |
+| Loudness | Quieter than released music | Loudness target | whole signal | | Part of mastering |
+
+"On, to try" means the fix is measured and turned on so it can be tried on
+real songs, but its blind listening round is still to come. How each fix
+was measured, and what it takes from a clean song:
+[STEP6-FIXES.md](STEP6-FIXES.md).
+
+**How the cards look and work:**
+
+- The cards come in two groups: **Artifacts** and **Tone and level**. A line
+  at the top counts them, for example "Analyze found 1 · 2 fixes on".
+- A card Analyze measured shows **Found** and what it found: a tone's pitch
+  in kHz (or how many tones), or how many dB under the target.
+- Click a card to turn it on. Click again to turn it off.
+- Each card that is on adds a row under **Fixes on**: the tool's name, the
+  card, who turned it on ("by you" or "by Analyze") and an **Amount**
+  slider. A card Analyze did not measure says "Starting gentle — check the
+  Removed track."
+- A card marked **Not built yet** or **No fix yet** can still be picked. It
+  shows as "noted" and changes nothing. The pick is counted in your browser
+  to help test new fixes.
+- **Lack of air** and **Loudness** change Mastering instead of running a
+  fix. Turning either on turns mastering on. Loudness sets the loudness
+  target to Commercial (-9 LUFS). Lack of air sets Tilt to Bright, and back
+  to Neutral when you turn it off.
+
+**Each tool, in plain words:**
+
+- **Spectral de-noise (Shimmer).** A small trained model looks at the
+  song's spectrum and gives each frequency bin in 1.5-16 kHz a gain: how
+  much of it to keep. It runs in numpy on your own computer, on the CPU,
+  so nothing extra is installed. Its weights ship with Shimmer
+  (`shimmer/core/repair/hash_remover.npz`). Without that file the tool
+  does nothing and says so. On the test models it removes the flicker it
+  was trained on, but not the other three kinds of fizz, so it passes on
+  one of its four fault models. It takes at most 0.064 sones from a clean
+  song.
+- **Notch filter (Fixed tones).** Narrow notches at each steady tone the
+  scan finds, on both channels. Each notch is narrow, so the music on
+  either side is kept. It removes 96 % of a fixed tone. It only catches
+  tones that hold one pitch. This is 1.1.1's repair, ported unchanged.
+- **De-esser (Sibilance).** While an "s", "sh", "t" or "ch" sticks out, it
+  turns the 4.5-10 kHz band down, and leaves it alone the rest of the time.
+  The centre, where the lead vocal is, gets the full cut. The sides get
+  half. It listens for sounds that jump above the brightness around them
+  and are more centred than the song's top end usually is, so it can tell
+  most consonants from cymbals.
+- **Dynamic EQ (Harshness, Low-mid build-up).** It finds, once for the
+  whole song, the band that most often rings out above its neighbours. It
+  then cuts that band only while it sticks out. Harshness watches up to two
+  bands in 2-5 kHz. Low-mid build-up watches one band in 200-500 Hz. If no
+  band sticks out, nothing is cut. Both channels get the same cut, so the
+  stereo image stays put.
+- **De-click (Clicks and crackle).** It finds pops up to about 3 ms long
+  and fills each gap from the sound on both sides, above 2 kHz only. It
+  runs first, before the notch filter, since a click would ring on through
+  a notch. It is built but has not passed its tests: it does not yet find
+  pops in dense music. The Master tab does not offer it. The command line
+  runs it with `--fix clicks`.
+- **Tone target and loudness target (Lack of air, Loudness).** These two
+  cards are handled in the Tone and Master stages. With mastering off, they
+  change nothing.
+
+**The first time Shimmer is on for a song.** The spectral de-noise has to
+read the whole song once before it can run. That takes about 50 s for a
+3-minute song.
+
+- With Live preview on, Shimmer does this as its own job
+  (`POST /api/prepare`). The preview status line at the bottom says
+  "Getting ready for this song…", then how far it has got, for example
+  "reading the whole song once, 40%".
+- Turning the Shimmer card off during this first read stops it. Nothing
+  half done is kept.
+- If you export first, the read happens during the export, and the progress
+  window shows it under Fixes.
+- After that, a new Amount or a new preview window is quick, because the
+  model's gains are kept for the song.
+
+### 2.5 Amount
+
+Each card that is on has an **Amount** slider, from 0 to 100 %. 0 % changes
+nothing. 100 % is the deepest cut that fix allows.
+
+- A card starts at 50 % when you turn it on. Fixed tones starts at 100 %,
+  the depth 1.1.1 used.
+- For Fixed tones, Amount scales how deep each notch goes.
+- For the other fixes, the top of the slider is set from measurement: at
+  100 %, the fix takes at most 0.10 sones from a clean song (the decision
+  rule in [STEP6-FIXES.md](STEP6-FIXES.md)).
+- Moving the slider renders the loop again when Live is on.
+
+**Auto.** The fixes Analyze finds are turned on too. Today that is Fixed
+tones: its notches run at full depth unless you set its Amount yourself. If
+you turn Fixed tones off for a song, it stays off.
+
+### 2.6 The Removed track
+
+Press **3** (or click **Removed**) to hear the Removed track. It is what the
+fixes took out, and nothing else: the song before the fixes, less the song
+after them. It does not include the tone curve, the EQ or mastering.
+
+- It is marked **boosted**: the player turns it up so you can hear it. That
+  boost is a monitoring level only and never goes into a file.
+- It should sound like hiss, fizz, whistles or sizzle. If you hear vocals,
+  snare hits or melody in it, a fix is cutting into your music. Lower that
+  card's Amount.
+- It plays once Live preview is on, or after Clean & Master has run.
+
+Every export also writes the Removed track on the server as its own file,
+`{song}_removed_{id}.{ext}`. The command line writes it with
+`--write-diff`.
+
+### 2.7 Live preview
+
+Turn on **Live** in the Preview loop. A window of the song loops, and every
+change renders it again.
+
+- **Loop length:** 10, 20 (default) or 30 s. **Set from playhead** moves the
+  window to where the playhead is.
+- **A/B:** press 1 for the original, 2 for the processed song, 3 for the
+  Removed track.
+- **Loudness-matched A/B** (on by default) turns the louder track down, so
+  you judge the sound, not the level. It changes what you hear only, never
+  the export.
+- **The status line** says what the preview is doing, for example how long
+  a render took.
+
+The preview renders its window with the same settings as the export
+(`POST /api/preview`). With mastering on, it uses the whole song's
+loudness gain. With mastering off and Preserve volume on, it uses the whole
+song's gain too. So a quiet verse previews at the level it will export at.
+In 1.1.1 each window was matched on its own, so a quiet verse previewed too
+loud.
+
+**The player** shows the song as **Waveform**, **Spectrogram** or **Both**,
+with a live spectrum and a loudness meter.
+
+### 2.8 Trim
+
+The **Trim** card shows the start and end of the song ("top and tail") on a
+level scale in dB. Short glitches at the edges are around -50 dBFS, which is
+a flat line on a normal waveform, so the dB scale is what makes them
+visible.
+
+- **Edge glitches.** Shimmer scans both ends for a short burst (a click, a
+  cut reverb tail, a DC step) that a silence trim cannot catch. When it
+  finds one, the card says so and offers **Use suggested cut** or
+  **Review**. It never cuts anything by itself.
+- **Edge cuts.** Pick **Head** or **Tail**, then click to place the in or
+  out point. Arrow keys nudge it by 1 ms (10 ms with Shift). You can also
+  type the in and out points in ms. Zoom: 250 ms, 1 s, 3 s or 10 s.
+  **Audition** plays from the marker. **Clear** removes the cuts.
+- Edge cuts run first in the export, before any other stage, so no stage
+  works on audio you cut.
+- **Silence trim** is a separate option (in the Trim card and in Output).
+  It removes the quiet floor below -60 dBFS from the start and end of the
+  finished file, keeping a short natural pad. Playback in the app stays full
+  length so A/B stays in sync. It is 1.1.1's trim, ported unchanged.
+
+### 2.9 EQ and Suggested EQ
+
+**Parametric EQ.** Your own EQ bands, in the right column. They run after
+the fixes and the tone curve, and before mastering's gain. An **EQ
+presets…** menu holds starting points.
+
+| Limit | Value |
 |---|---|
-| Read formats | WAV, FLAC, OGG, AIFF via soundfile; MP3, M4A, AAC, MP4 via ffmpeg fallback |
-| Write formats | Same set; lossless subtypes PCM_16 / PCM_24 / FLOAT; optional TPDF dither on PCM_16 |
-| In-memory WAV | `encode_wav_bytes()` for live-preview payloads |
-| Measurements | Peak and RMS in dBFS and linear (`measure()`) |
-| Volume preservation | `preserve_volume()` — RMS-matched scaling when mastering is off; peak-limited, max 4× gain |
-| Clip protection | `clip_protect()` normalizes to a 0.999 ceiling |
-| Full pipeline | `process_file()` — read, process, optional mastering, write, optional diff file |
-| Removed/diff signal | `(post-filtered dry − processed) × 5.0` so users can audition exactly what was removed |
+| Bands | up to 12 |
+| Types | bell, low shelf, high shelf, low-cut (high-pass), high-cut (low-pass), notch |
+| Frequency | 20 Hz to 20 kHz |
+| Gain | ±18 dB |
+| Q | 0.1 to 18 |
 
-ffmpeg on the system PATH is required for MP3/M4A/AAC; WAV/FLAC/OGG work
-without it. The web UI's help Setup tab documents the install
-(`winget install ffmpeg` on Windows).
+- Bells and shelves land on their setting: within 0.1 dB for bells and
+  0.2 dB for shelves. (1.x doubled them.)
+- The low-cut and high-cut run one way, so they add no pre-echo. They are
+  -3 dB at the frequency you set.
+
+**Suggested EQ.** Analyze proposes a few EQ moves. They show above the EQ.
+**Apply to EQ** puts them in the Parametric EQ, where every move stays
+editable. With **Use on the final pass** on, the plan goes into the EQ by
+itself.
+
+- It judges the loud parts of the song, not a quiet intro.
+- It judges the song the way it will render: after the fixes and, with
+  mastering on, after the tone curve, so nothing is corrected twice.
+- Real problems (a ringing tone, a mud stack, a harsh band) get narrow
+  cuts. The overall balance gets at most three broad, gentle moves.
+- Cuts come before boosts. Every plan is checked on the loudest 20 s. If
+  peaks would rise more than loudness, boosts are halved, then dropped.
+- A **tone family** sets how far from neutral the balance may be before a
+  move is worth making: Neutral (the default), Pop, Hip-hop / Trap, EDM /
+  Dance, Rock / Metal, R&B / Soul, Acoustic / Folk, Lo-fi / Ambient or
+  Cinematic / Orchestral. Shimmer does not guess the genre. The family is
+  your call.
+
+### 2.10 Clean & Master, and after the run
+
+Click **Clean & Master** (step 3; it says **Clean** when mastering is off).
+The progress window shows each stage (see
+[5.2](#52-the-progress-window)) and ends on a **Download** step.
+
+After the run, the Master tab shows:
+
+- a **✓ Ready to download** banner with a **Download** button
+- **What changed:** the whole-file spectrum before and after, what was
+  removed, and the level-matched difference. Hover for the numbers at any
+  frequency.
+- **Release check:** is this file ready to upload? (see
+  [4.3](#43-the-release-check))
 
 ---
 
-## 4. DSP processing engine
+## 3. Mastering
 
-Sources: [engine.py](engine.py), [dsp.py](dsp.py), [params.py](params.py)
+Mastering sets the release level, shapes the tone and holds the peaks under
+a ceiling. In the app, **Master for release** is on by default. (On the
+command line it is off unless you ask for it, as in 1.x.)
 
-`process(x, sr, p)` runs the STFT stage pipeline for `iterations` passes,
-applies wet/dry mix, then post filters and edge fades.
+### 3.1 Loudness targets
 
-### The 9-stage STFT pipeline (in `STAGE_REGISTRY` order)
+From `LOUDNESS_TARGETS` in `shimmer/core/catalog.py`:
 
-| # | Stage | Enable param | Purpose |
+| Choice | Level | What it means |
+|---|---|---|
+| **Commercial** (default) | -9 LUFS | As loud as most released songs |
+| **Balanced** | -11 LUFS | A little quieter, with more punch left in |
+| **Streaming standard** | -14 LUFS | The level streaming apps play songs at; sounds quiet in other players |
+
+How the level is set, in order:
+
+1. **Low-cut at 25 Hz.** Removes rumble and DC. It runs one way, so it
+   adds no pre-echo.
+2. **One static gain.** Worked out once from the whole song, after the
+   fixes, tone curve and EQ. It does not ride up and down.
+3. **Peak shaper.** Softly rounds the tallest peaks, so the limiter has
+   less to do.
+4. **True-peak limiter.** Holds every peak under the format's ceiling
+   (see [4.1](#41-formats)). It finds peaks at 8x and aims 0.17 dB under
+   the ceiling, the most a peak can hide between readings.
+
+### 3.2 Tone target: Built-in
+
+With mastering on, a tone curve moves the song toward a tone target, band
+by band. **Tone target** has two choices: **Built-in** (the default,
+measured from finished masters) or **Reference track**.
+
+The built-in target is 1.1.1's tone curve, ported bit for bit. It is worked
+out once from the whole song.
+
+- **Tone match:** Low (gentle EQ), Medium (default) or High (more
+  correction). How much of the move to make. It shapes tone only, not
+  loudness.
+- **Tilt:** Brightest, Bright, Neutral (default), Warm or Warmer. Warm to
+  bright, up to about 2 dB at the ends of the spectrum.
+- No band is boosted more than 2 dB or cut more than 3 dB.
+- Where the song's top end stops (many AI renders stop at 12-15 kHz),
+  nothing is boosted in the empty band above it.
+
+### 3.3 Tone target: Reference track
+
+Pick **Reference track** and load a released song you like. Your song's
+tone then moves toward it instead of toward the built-in target.
+
+- It only runs with mastering on.
+- Both songs are matched in level first, so only the tone is compared.
+  Loudness still follows the loudness target.
+- **Amount** sets how much of the difference to take: 0 to 100 %, 50 % by
+  default. The screen advises 50 % or lower.
+- The EQ is smoothed over about an octave. No band moves more than 3 dB
+  either way. Boosts in 5-12 kHz stop at +2 dB. Tilt still applies.
+- Where the reference has no top end to compare (above 90 % of its own
+  top-end cutoff), your song's own top is kept.
+- If the reference has a lot more or a lot less drums than your song, you
+  get a warning. (Today the line is 1.5 times either way. The sources give
+  no number, so this is a first guess.)
+- A chart shows **Your song**, the **Reference** and the **EQ Shimmer
+  applies**, from 31.5 Hz to 20 kHz. A line above it names the biggest move
+  in the low end, the mids and the top end.
+- **Remove** drops the reference, and the tone target goes back to
+  Built-in. The reference is also removed with the song's session.
+
+### 3.4 Mastering off: Preserve volume
+
+With mastering off, there is no loudness target, no tone curve and no
+limiter. **Preserve volume** (in Output, on by default) adds one gain for
+the whole song, so a cleaning-only file plays at the level it came in at:
+
+- It matches the song's own RMS level.
+- It never goes past a peak of 0.999.
+- It never moves the level more than 4 times (12 dB) either way.
+- If no stage changed the sound, it does nothing.
+
+---
+
+## 4. Output, tags and the release check
+
+### 4.1 Formats
+
+From `FORMATS` in `shimmer/core/catalog.py`. The names are as the Format
+menu shows them:
+
+| Format | Sample rate | Bit depth | True-peak ceiling |
 |---|---|---|---|
-| 1 | Expander | `expander` (bool) | Downward expander pushing quiet high-band tails further down |
-| 2 | Denoise | `denoise` > 0 | Wiener-like spectral denoise with minimum-statistics noise PSD tracking |
-| 3 | De-resonator | `deres` > 0 | Dynamic notch EQ on persistent narrow peaks, with persistence EMA and tonal-frame threshold boost |
-| 4 | Shimmer | always on | Core stage: flags narrowband outliers above the local frequency median inside the target band and attenuates with a soft knee |
-| 5 | De-harsh | `deharsh` > 0 | De-esser-style dynamic tamer comparing band energy against a mid-band reference |
-| 6 | FlickerTamer | `flicker_tame` > 0 | Sub-band AM compressor; splits the band into independent sub-band compressors that squash rapid level swings (the defining "Suno hash" flicker). Intentionally ignores the transient gate |
-| 7 | De-checkerboard | `decheck` > 0 | Detects and attenuates periodic spectral peaks from deconvolution upsampling ("checkerboard" grids) |
-| 8 | Narrow-tone killer | `tone_kill` > 0 | Long-term per-bin EMA notcher for fixed whistles (e.g. 16 kHz / 17.8 kHz Suno tones); no per-frame gates by design |
-| 9 | Noise resynth | `noise_resynth` > 0 | Random-phase blend to de-crystallize residual texture |
+| **WAV (24-bit PCM)** (default) | the song's own | 24-bit | -1.0 dBTP |
+| **WAV release copy (16-bit · 44.1 kHz · dithered)** | 44.1 kHz | 16-bit | -1.0 dBTP |
+| **FLAC (24-bit)** | the song's own | 24-bit | -1.0 dBTP |
+| **FLAC release copy (16-bit · 44.1 kHz · dithered)** | 44.1 kHz | 16-bit | -1.0 dBTP |
+| **MP3 (320 kbps)** | the song's own | lossy | -2.0 dBTP |
+| **OGG Vorbis** (quality 0.8) | the song's own | lossy | -2.0 dBTP |
+| **M4A (AAC)** 256 kbps | the song's own | lossy | -2.0 dBTP |
 
-### Shared per-frame gates
+- **Release copies** are resampled to 44.1 kHz before the fixes and the
+  limiter, so the ceiling holds at the rate that is written. The FLAC
+  release copy is the same audio as the WAV one at about half the size.
+- **Dither:** 16-bit files get TPDF dither of ±1 LSB.
+- **Lossy files are checked after encoding.** Encoders push peaks up. Each
+  MP3, OGG and M4A file is decoded and measured. If it is over -1.0 dBTP,
+  it is turned down by the excess and encoded again, and the report says
+  by how much. On drum-heavy songs an M4A can be turned down by up to
+  about 2.5 dB this way.
+- **MP3 and M4A need ffmpeg.** They are encoded from 32-bit float.
+- **The source is never overwritten.**
+- **A file appears whole or not at all.** It is written under a temporary
+  name, tagged, then renamed.
+- **The report reads the written file.** Loudness and true peak are measured
+  on what is on disk.
 
-- **Noise-likeness gate** (`flat_start` / `flat_end`) — spectral flatness maps
-  each frame from tonal (skip) to noise-like (full processing).
-- **Transient gate** (`flux_thr_db` / `flux_range_db`) — energy flux protects
-  drum hits and consonants from being processed.
-- **`steady_state_mode`** — when true, the Shimmer, De-harsh, De-checker,
-  Denoise, and De-resonator stages skip the transient gate entirely. Use for
-  steady-state artifacts (Suno hash, sustained sheen) where the gate would
-  silently weaken cleaning on every hit.
-- **Density gate** (`density_lo` / `density_hi` / `density_floor`) — protects
-  broadband musical events; `density_floor` forces a minimum stage activity on
-  dense frames (essential when "dense" *is* the artifact).
+**File size.** Below the Format menu, Shimmer shows how big the file will
+be. Before the run, it renders three 10-second windows exactly as the export
+will and scales up from them. WAV sizes are exact. FLAC and lossy sizes are
+a close range. With a size limit set (see [8.1](#81-settings-tab)), a file
+over the limit gets a warning, and Shimmer offers a lossless format that
+fits. It offers MP3 only when nothing lossless fits. It never changes the
+format or cuts the song by itself.
 
-### Post-STFT time-domain filters
+**File names.** Downloads are named `{song}_processed_{id}.{ext}`, or
+`{song}_trimmed_{id}.{ext}` with silence trim on. `{id}` is the first 8
+characters of the run's id. A second pass on a Shimmer file is named from
+the song, so suffixes never chain.
 
-Applied by `apply_post_filters()` using primitives in [dsp.py](dsp.py):
+**Remember settings next time** (in Output): when on, your card picks,
+mastering, EQ and other Master choices come back on your next visit, and
+your own card picks stay when you load a new song. When off, each page load
+starts from the defaults.
 
-- Subsonic highpass (`subsonic_hz`, 0 = disabled)
-- High shelf cut/boost (`high_shelf_hz` / `high_shelf_db`)
-- Presence shelf (`presence_hz` / `presence_db`)
+### 4.2 Tags
 
-### User parametric EQ ([eq.py](eq.py))
+Shimmer reads the song's own tags and carries them into the export. The
+**Tags** section:
 
-Separate from the automatic mastering tone curve: the user's creative
-filter bank, applied in the pipeline **after** artifact cleaning and post
-filters, **before** mastering — so the limiter always catches user boosts.
+- **Write tags on the export** (on by default).
+- **Fields:** Title, Artist, Album artist, Album, Genre, Year, Track no.,
+  Copyright and ISRC. The title is filled from the file.
+- **Keep the file's own tags** (on by default): the file's own tags stay and
+  your fields fill only the blanks. Off: your fields replace the file's tags
+  where you typed something.
+- Album artist falls back to the artist. A blank copyright is filled as
+  "© year artist" when both are known.
+- **Add a Shimmer note to the comment** (on by default): one line per pass,
+  for example `Shimmer 2.0.0: pass 1, Fixed tones 2 notches, mastered -9
+  LUFS / -1 dBTP`. The note names every fix that ran, each card with its
+  Amount, then your EQ moves and the loudness target and ceiling (or
+  "cleaning only"). The pass number counts the Shimmer notes already in the
+  file, so a file carries its own history.
+- **How tags are written:** WAV gets a RIFF INFO chunk and an ID3 chunk.
+  FLAC and OGG get Vorbis comments. MP3 gets ID3v2.3. M4A gets iTunes
+  atoms.
 
-- Up to **12 bands**; types: bell, low shelf, high shelf, high-pass,
-  low-pass, notch. Safety clamps: 20 Hz–20 kHz, ±18 dB, Q 0.1–18.
-- Runs zero-phase (`sosfiltfilt`, forward + backward). The two passes
-  square the magnitude response, so gain bands are **designed at half
-  gain** and land exactly at the user's dB; pass/notch filters get their
-  slope doubled (a 12 dB/oct biquad high-pass is effectively 24 dB/oct).
-  The frontend curve renderer mirrors the same rule, so the drawn curve
-  is exactly what is applied.
-- Frontend ([static/js/eq.js](static/js/eq.js)): interactive curve editor
-  — drag nodes, scroll to change Q, double-click to add/remove bands —
-  with the track's analysis spectrum as a background silhouette, per-band
-  chips, and 13 starting points at mastering scale, grouped in the
-  menu with a one-line gloss each. Corrective: Rumble cut (high-pass
-  28 Hz), Tighten lows (high-pass, −1.5 dB @ 65 Hz, −1 dB shelf @
-  130 Hz), De-mud (−2 dB @ 300 Hz), Box cut (−1.5 dB @ 450 Hz), Smooth
-  the top (−1.5 dB @ 5.5 kHz, −0.5 dB shelf @ 10 kHz). Tonal: Tilt
-  darker / Tilt brighter (±0.75 dB shelves pivoting near 1 kHz), Warmth
-  (+1 dB @ 120 Hz, −1 dB @ 8 kHz), Open mids (+1 dB @ 1.5 kHz), Presence
-  (+1.5 dB @ 3 kHz), Air, gentle (+1 dB shelf @ 10 kHz, greyed out when
-  the render's cutoff is under 12 kHz), Vocal clarity. Creative: Lo-fi
-  telephone. A preset replaces the current bands; every band stays
-  editable.
-- Participates in live preview, full processing, and batch (via the
-  "Apply EQ from Master tab" checkbox, which reuses the persisted EQ
-  settings).
+### 4.3 The release check
 
-### Suggested EQ (the Tone step) — [autoeq.py](autoeq.py)
+After a mastered export, Shimmer opens the file it just wrote and checks
+it, the way an engineer signs off a file before it goes to a distributor.
+It measures only. It changes nothing. It runs when mastering is on.
 
-A per-track corrective EQ plan, measured at Analyze time and applied in
-the user EQ stage above. Analysis only: nothing here changes audio except
-the verification run on a copy of the loudest excerpt.
+You get one verdict first, then each check:
 
-How it decides (a producer's order of business):
+| Check | Passes when |
+|---|---|
+| Loudness | within 0.5 LU of the target (within 1 LU warns) |
+| True peak | at or under the format's ceiling |
+| Clipping in the source | the uploaded file was not already clipped |
+| Sample rate | 44.1 or 48 kHz (hi-res rates also pass) |
+| Format | WAV or FLAC. A lossy file warns: fine for listening, not for a store |
+| Start, End | no long silence at the start or end |
+| Length | 30 seconds or more |
+| DC offset | none |
+| Mono check | the left and right channels are not out of phase |
+| Bass in mono | the bass below 100 Hz does not drop more than 3 dB when played in mono |
+| Tags | title, artist and album are written |
+| ISRC | noted, not required: the distributor assigns one if you have none |
 
-1. **Judge the loud parts.** 3 s windows; "loud" = within 6 dB of the
-   90th-percentile window RMS (at least 4 windows). Long tracks are
-   sampled evenly (up to 96 windows). Shape = median 1/3-octave band
-   power over the loud windows, relative to the 200 Hz–2 kHz median (the
-   same scale as the mastering reference, `mastering._REF_DB`).
-2. **Judge what the EQ will hear.** The server passes a `cleaner` that
-   runs the chosen preset on the loudest 20 s; the balance is judged
-   after that change and after the mastering tone curve when mastering
-   is on (`tone_curve_db`), so the plan never corrects what cleaning or
-   the tone match already handles. Bands at or above 0.9 × the render's
-   cutoff are not judged and never boosted.
-3. **Fix first** (narrow, subtractive, verified):
-   - *Ringing tone*: on a 96-points-per-octave grid, spectrum minus its
-     ±1/6-octave median; a peak ≥ 8 dB above that baseline, ≤ 1/8 octave
-     wide, present (≥ 5 dB) in ≥ 60 % of loud windows, with no partner at
-     1/3, 1/2, 2/3, 3/2, 2 or 3 × its frequency (a played note has
-     partners), not within 3 % of a static-repair notch, never under
-     120 Hz, and not more than 40 dB under the loudest region. Bell, Q
-     4–10 from the measured width, cut = half the prominence, 4 dB max,
-     two at most.
-   - *Mud stack*: the 200–500 Hz band whose residual against a line
-     fitted through 100 Hz–1 kHz (log-frequency) is ≥ 2 dB in ≥ 60 % of
-     loud windows, unless a narrow tone dominates that band. Bell Q 1.4,
-     cut = 0.6 × excess, 2.5 dB max.
-   - *Harsh band*: the 2–5 kHz band ≥ 2.5 dB over a line fitted through
-     1–8 kHz, persistent. Bell Q 1.2, cut = half the excess, 1.5 dB max.
-4. **Shape second**: six regions (sub 20–60, bass 60–150, low mids
-   150–500, mids 500–2k, presence 2–6k, air 6k+). A region outside the
-   family range gets one broad move toward the range (¾ of the amount
-   outside, 2 dB max, 0.5 dB minimum): bell 40 Hz, low shelf 100 Hz,
-   bell 300 Hz, bell 1 kHz, bell 3.5 kHz, high shelf 8 kHz. Sub and bass
-   moving the same way become one low shelf at 90 Hz. Regions the Fix
-   layer already cut get no shape move. Three shape moves at most; cuts
-   first; boosts ≤ +1.5 dB (≤ +1 dB in presence and air; no air lift
-   when the cutoff is ≤ 11 kHz).
-5. **Budget and check**: four moves total, cuts before boosts. The plan
-   is run (zero-phase, through `eq.apply_eq`) on the loudest 20 s (the
-   cleaned copy when a cleaner was given); integrated LUFS and true peak
-   before and after give PLR before/after. If peaks rise more than
-   loudness by over 1 dB, boosts are halved, then dropped.
+It also shows **how loud it plays** on each service, from the file's
+loudness:
 
-**Families** (`FAMILIES`): per-region offset from neutral and tolerance
-(± dB). Neutral 0 / ±4 sub, ±3 bass, ±2.5 low mids, ±2 mids, ±2.5
-presence, ±3 air; Pop, Hip-hop / Trap (sub +4, bass +3, top −1), EDM /
-Dance, Rock / Metal, R&B / Soul, Acoustic / Folk, Lo-fi / Ambient,
-Cinematic / Orchestral. Offsets say where a family usually sits;
-tolerances say how far a track may stray before a move is worth making.
-No reference tracks and no genre detection.
-
-**Result** (`plan_tone(...)`): `moves[]` (`type, freq_hz, gain_db, q,
-enabled, layer fix|shape, kind resonance|mud|harsh|balance, region,
-reason`), `regions[]` (deviation from the family center, tolerance,
-status, deviation after the plan), `shape` (29-band measured / judged /
-center / tolerance), `verify` (excerpt, LUFS and true peak before/after,
-PLR, `plr_shift_db`, `limiter_safe`, `boosts_scaled|dropped`), `summary`
-(8th-grade sentence), `eq` (ready for `eq_params_from_json`).
-
-### Deterministic repairs (run first) — [repair.py](repair.py)
-
-Placed after Trim and before the tone curve and crossover, so every
-adaptive detector downstream sees a signal without clicks or generator
-lines (docs/PLAN.md Section 2, approved 2026-09-04).
-
-- **De-click / de-crackle** (`declick` 0..1, `dc_min_hz` 2000,
-  `dc_order` 32, `dc_max_ms` 2.0, `dc_pad` 8). The band above `dc_min_hz`
-  is whitened with a per-second linear predictor; samples whose residual
-  exceeds a robust threshold (9σ at 0 down to 4σ at 1) are flagged;
-  padded runs are kept only if short and *isolated* (the level after the
-  run is within 6 dB of the level before, and the run peaks 10 dB above
-  both), which rejects drum hits and consonant onsets; kept runs are
-  re-synthesised from the predictor forwards and backwards and
-  cross-faded. Regions dense with accepted clicks (> 40/s) get a second,
-  lower-threshold pass (crackle). Only the high-band component changes.
-  On in Sibilance Rattle (0.6) and Deep Scrub (0.5); an Advanced slider
-  and `--declick` expose it everywhere. `declick` is on the
-  preset-strength whitelist.
-- **Static repair** (`repair.NotchPlan`, `apply_static_repair`). The
-  whole-file scan (`detect.scan_fixed_lines`: 25th-percentile excess over
-  a 51-bin envelope, plus comb teeth by frequency-axis autocorrelation
-  with a neighbour test) yields fixed lines; `plan_from_lines` keeps
-  those with ≥ 6 dB persistent excess (below 3 kHz: ≥ 10 dB and ≥ 90 %
-  duty), never below 2 kHz, at most 24. Line frequencies are refined to
-  sub-bin accuracy. Each becomes a four-bin-wide (about 43 Hz) RBJ
-  peaking cut applied zero-phase to both channels; depth follows the
-  line's 90th-percentile excess (how strong it gets in the loud parts of
-  the song), capped at 30 dB. The upload endpoint scans once per session, Analyze
-  returns the plan (`repair_plan`) and the Master tab lists the lines
-  with checkboxes; the request's `repair` block carries the choice
-  (`{"enabled": false}` skips the stage, an explicit `notches` list is
-  validated and used, otherwise the server scans). Batch (`static_repair`,
-  default on), Remix cleaning and the CLI (`--no-static-repair` to skip)
-  scan automatically. Both repair diffs are folded into the Removed
-  signal.
-- **Bandwidth cutoff** (`estimate_cutoff_hz`, `Params.cutoff_hz`). Welch
-  spectrum, trend fitted on 4–10 kHz; the cutoff is the lowest frequency
-  above 8 kHz sitting ≥ 30 dB under trend for the rest of the band with
-  real content in the octave below. `analyze_track` reports it, the tone
-  curve never boosts at or above 0.9× cutoff, and a positive shelf in the
-  post filters is followed by a zero-phase low-pass at the cutoff.
-
-### Fine-grid dynamic pass — [finepass.py](finepass.py)
-
-Runs on each M/S high-band channel *before* the coarse 4096/1024 engine
-(docs/PLAN.md Section 2, placement approved 2026-09-04). A 1024-point
-window at hop 256 (about 23 ms / 6 ms at 44.1 kHz) catches fast events
-without smearing; the coarse pass then sees a steadier signal.
-
-- **Flicker Tamer** moves here (`flicker_tame`, `ft_*`). Two things
-  were wrong with the coarse version. At 4096/1024 the frame rate is
-  43 Hz, so modulation above about 23 Hz averaged out inside a frame; on
-  the fine grid it sees 10–50 Hz. And it measured the on-phases of the
-  flicker against the running mean, which a half-duty flicker sits only
-  3 dB above, so it could never cut more than about 1 dB. The fine
-  version measures each sub-band against a floor follower (drops at
-  once, rises `ft_floor_up_db_s` = 20 dB/s) and engages only where the
-  band's fine-time spread (std of the detrended dB envelope over
-  `ft_release_ms`, hits masked out) says flicker is present
-  (`ft_flicker_min_db` 1.5 → `ft_flicker_full_db` 4.0), so steady cymbal
-  wash is left alone. Gated by a fine-grid transient hold on the high
-  band (flux > 9 dB → 30 ms hold, 150 ms release). When the fine pass
-  runs, the coarse Flicker Tamer is disabled for that channel so the
-  same flicker is not compressed twice.
-- **Spectral de-esser** (`deess` 0..1, `de_start_hz` 4000, `de_end_hz`
-  10000, `de_ref_*` 1000–4000, `de_thr_db` 6, `de_slope` 0.6,
-  `de_max_att_db` 8, `de_attack_ms` 1, `de_release_ms` 40,
-  `de_bin_med_bins` 31, `de_bin_excess_db` 3). When the band rises more
-  than `de_thr_db` above its reference the band is cut like a de-esser,
-  weighted per bin: bins above the band's 31-bin median spectrum take up
-  to 1.5× the cut, bins below take down to 0×. Not gated by the transient
-  hold. On in Sibilance Rattle (0.6), Deep Scrub (0.4) and Vocal Glaze +
-  Top End (0.3); Advanced slider "De-esser". `deess` and `de_max_att_db`
-  are on the preset-strength whitelist.
-- `fine_pass` (default on), `fine_n_fft` 1024, `fine_hop` 256. Long files
-  are processed in 90 s chunks with a 0.5 s lead-in so the envelope
-  followers settle before each audible region.
-- **De-harsh per-bin weighting** (`dh_per_bin` 0.5 default,
-  `dh_bin_med_bins` 31): the coarse De-harsh keeps its band-level
-  trigger, but the cut is weighted per bin the same way, so a glazed
-  overtone is cut harder than the band around it.
-
-### Stage reporting
-
-`clean_and_master(..., stage_callback=fn)` calls `fn(key, label, detail)`
-as each chain stage starts: `repair`, `pre` (mastering on), `split`,
-`fine` (when the fine pass runs) and `engine` per M/S channel (detail
-"Mid channel" / "Side channel"), `recombine`, `post` (label adds "and
-your EQ" when bands are active), `master` (mastering on). The server adds
-`edit` (explicit trim points), `level` (preserve volume) and `export`
-(writing the file and tags) around it and pushes every stage down the
-job's progress stream, which the processing window draws as the live
-chain ([static/js/progress-chain.js](static/js/progress-chain.js), one
-module shared by Clean & Master, stem separation and the remix render).
-Separation reports `setup`, `separate` and `load`; the remix render
-reports `mix`, `analyze` (auto preset), the chain phases and `export`.
-Tests: `tests/test_pipeline_stages.py`.
-
-### Pipeline-level controls
-
-- **Iterations** (`iterations`, 1–3): re-runs the full pipeline on the previous
-  pass's output. Detectors re-converge on the cleaner background; often the
-  difference between "almost gone" and "gone" on stubborn hash.
-- **Pre-analyze** (`pre_analyze` + `pa_*`): optional two-pass mode; a cheap
-  full-file scan builds a per-bin attenuation mask (long-term magnitude excess
-  plus AM depth), applied as a multiplicative pre-filter in the main pass.
-  Eliminates long-EMA warmup error.
-- **Diagnostic** (`diagnostic`): computes before/after 5–8 kHz band energy and
-  AM depth plus the top surviving narrow peaks; surfaced in job metrics and
-  the UI metrics strip.
-- **Wet/dry mix** (`mix`, 0..1).
-- **Padding and fade** (`pad`, `fade_ms`): STFT edge padding and output fades.
-- **Preset strength** (0..2): `apply_preset_strength()` in
-  [params.py](params.py) linearly scales a whitelist of amount-style fields
-  (stage strengths, dB ceilings, density floors, air cut, denoise floor,
-  iterations) between the neutral baseline and the preset value, extrapolating
-  past 100% with per-key safety clamps. Structural fields (band edges, time
-  constants, thresholds, `mix`) are deliberately untouched.
-
-### Full parameter reference
-
-Every tunable lives in the `Params` dataclass in [params.py](params.py).
-Defaults shown below.
-
-**Shimmer band:** `start_hz` 5100, `end_hz` 7200, `edge_hz` 200 (cosine taper).
-
-**STFT:** `n_fft` 2048, `hop` 512.
-
-**Detection and gating:** `flat_start` 0.25, `flat_end` 0.70, `freq_med_bins`
-9, `thr_db` 8.0, `slope` 0.6, `density_lo` 0.02, `density_hi` 0.15,
-`density_floor` 0.0, `flux_thr_db` 6.0, `flux_range_db` 8.0,
-`steady_state_mode` false.
-
-**Creative:** `noise_resynth` 0.0, `mix` 1.0, `pad` true, `fade_ms` 5.0.
-
-**Spectral denoise (`dn_*`):** `denoise` 0.0, `dn_start_hz` 1500,
-`dn_end_hz` 16000, `dn_edge_hz` 200, `dn_floor_db` −18, `dn_psd_smooth_ms` 50,
-`dn_minwin_ms` 400, `dn_up_db_per_s` 3, `dn_attack_ms` 5, `dn_release_ms` 120,
-`dn_freq_smooth_bins` 3.
-
-**De-resonator (`deq_*`):** `deres` 0.0, `deq_start_hz` 300, `deq_end_hz`
-12000, `deq_edge_hz` 150, `deq_freq_med_bins` 31, `deq_thr_db` 6.0,
-`deq_slope` 0.7, `deq_max_att_db` 8, `deq_density_lo` 0.03, `deq_density_hi`
-0.20, `deq_density_floor` 0.0, `deq_persist_ms` 600, `deq_persist_thr_db` 2.5,
-`deq_freq_smooth_bins` 5, `deq_tonal_boost_db` 6.
-
-**De-harsh (`dh_*`):** `deharsh` 0.0, `dh_start_hz` 5000, `dh_end_hz` 9000,
-`dh_edge_hz` 250, `dh_ref_start_hz` 1000, `dh_ref_end_hz` 4000, `dh_thr_db`
-6.0, `dh_slope` 0.5, `dh_max_att_db` 6, `dh_attack_ms` 5, `dh_release_ms` 120.
-
-**Narrow-tone killer (`tk_*`):** `tone_kill` 0.0, `tk_start_hz` 3500,
-`tk_end_hz` 20000, `tk_long_ms` 2000, `tk_freq_med_bins` 51, `tk_thr_db` 3.0,
-`tk_slope` 5.0, `tk_max_att_db` 20, `tk_warmup_ms` 500,
-`tk_freq_smooth_bins` 1.
-
-**FlickerTamer (`ft_*`):** `flicker_tame` 0.0, `ft_start_hz` 4500,
-`ft_end_hz` 12000, `ft_n_bands` 6, `ft_edge_hz` 100, `ft_attack_ms` 3,
-`ft_release_ms` 250, `ft_thr_db` 1.5, `ft_slope` 0.85, `ft_max_att_db` 18.
-
-**De-checkerboard (`cb_*`):** `decheck` 0.0, `cb_start_hz` 3000, `cb_end_hz`
-16000, `cb_min_spacing_hz` 80, `cb_max_spacing_hz` 600, `cb_peak_thr_db` 4,
-`cb_max_att_db` 8, `cb_persist_ms` 400.
-
-**Expander (`exp_*`):** `expander` false, `exp_start_hz` 3000, `exp_end_hz`
-8000, `exp_threshold_db` −45, `exp_ratio` 2.0, `exp_attack_ms` 10,
-`exp_release_ms` 150.
-
-**Post filters:** `high_shelf_hz` 0, `high_shelf_db` 0, `subsonic_hz` 0,
-`presence_hz` 0, `presence_db` 0 (0 = disabled).
-
-**Pipeline control:** `iterations` 1, `pre_analyze` false (`pa_start_hz` 4000,
-`pa_end_hz` 14000, `pa_n_fft` 4096, `pa_hop` 2048, `pa_max_seconds` 60,
-`pa_freq_med_bins` 51, `pa_thr_db` 3, `pa_max_att_db` 18, `pa_am_weight` 1.0),
-`diagnostic` false, `seed` 0, `debug` false.
-
-**CLI coverage note:** the following are *not* exposed as CLI flags and are
-reachable only through presets or API `overrides`: `density_floor`,
-`steady_state_mode`, `tone_kill` and all `tk_*`, `flicker_tame` and all
-`ft_*`, `iterations`, `pre_analyze` and all `pa_*`, and `diagnostic`.
+| Service | Plays at | Turns quiet songs up? |
+|---|---|---|
+| Spotify | -14 LUFS | yes, leaving 1 dB of headroom |
+| Apple Music | -16 LUFS | yes |
+| YouTube | -14 LUFS | no |
+| Amazon Music | -14 LUFS | no |
+| Tidal | -14 LUFS | no |
+| Deezer | -15 LUFS | no |
 
 ---
 
-## 5. Presets
+## 5. Signal Chain tab and the progress window
 
-Source: [presets.py](presets.py). Default preset: `generic`. Presets are
-named for the artifact shape they target, not the model version that produced
+### 5.1 Signal Chain tab
+
+The **Signal Chain** tab shows what each stage will do with the settings on
+the Master tab right now, before you export. It updates when you change a
+setting. It reads your settings and the song's facts (its rate, bit depth,
+the tones found, a reference track). It touches no audio
+(`POST /api/chain`).
+
+It shows nine stages, in the order the sound goes through them:
+
+| Stage | Name on screen | What it says |
+|---|---|---|
+| Read | Original file | The file's rate, bit depth, channels and length |
+| Trim | Edge cuts | Your in and out points, and how much is kept |
+| Sample rate | Resample | Whether the format needs a new rate |
+| Fixes | the tools that run | One row per card: on, nothing to cut, needs mastering, not built yet or no fix yet. Each notch, and each fix's deepest cut at its Amount |
+| Tone | Tone match or Reference match | Tone match and Tilt, or the reference and its Amount |
+| EQ | Parametric EQ | Your bands |
+| Master | Loudness and limiter (or Preserve volume) | The target, the ceiling, the 25 Hz low-cut and the gain |
+| Export | the format | Rate, dither, tags, silence trim, save folder |
+| Report | Release check | The checks it will run |
+
+- A stage that does not run is dashed and says why.
+- Each stage shows where on the spectrum it acts.
+- A summary line at the top says where the sound changes.
+- Master shows the actual gain once the preview has played with these
+  settings. Until then it shows the target.
+- Each stage has a button that opens the matching part of the Master tab
+  (for example "Open Mastering").
+
+### 5.2 The progress window
+
+One progress window is used by Clean & Master, stem separation and the
+Remix render. During a Master tab export it lights each stage as the server
+reports it, in chain order: read, trim, sample rate, fixes, tone, EQ,
+master, export, report. Stages that do not run in this export are dashed.
+Under the chain are the current stage, a short detail (for example the
+notches found, or the loudness target and ceiling) and a percentage.
+
+When the file is written, the window ends on the **Download** step: "Your
+file is ready", with **Download** and **Close**. When the file is saved to
+a folder (see [8.1](#81-settings-tab)), the step offers **Show in folder**
+and **Download a copy**.
+
+The server can stop a Master tab or Remix export between stages
+(`POST /api/cancel/{job_id}`). In 2.0.0 no screen has a Cancel button for
 it.
 
-### 19 visible presets
+---
 
-| Key | UI label | Target artifact |
-|---|---|---|
-| `generic` | Generic | Safe defaults for unknown sources; moderate narrow-tone killer for fixed Suno whistles |
-| `suno_hash` | Suno Hash (5-12 kHz Flicker) | AM-modulated narrowband hiss; FlickerTamer-led, broadband stages kept gentle |
-| `cymbal_sheen` | Cymbal Sheen | Sustained tonal high tone (8–14 kHz) that never decays; tone-killer-led |
-| `laser_whistle` | Laser Whistle | Thin, intermittent narrow-band tonal chirps (9–15 kHz) |
-| `air_brittle` | Brittle Air | Glassy top end above 12 kHz while mids stay clean |
-| `sibilance_rattle` | Sibilance Rattle | Harsh "sss"/"tss" bursts on vocals (6–10 kHz) |
-| `cymbal_chatter` | Cymbal Chatter | Repetitive "ta-ta-ta" rattle on hi-hats and percussion |
-| `broadband_fizz` | Broadband Fizz | Constant fuzzy haze across the brilliance band (8–18 kHz) |
-| `checkerboard_grid` | Checkerboard Grid | Faint deconvolution comb / ringing texture |
-| `reverb_flutter` | Reverb Flutter | Reverb tails that grain instead of smoothing |
-| `vocal_glaze` | Vocal Glaze | Shimmery glaze coating vocal harmonics (2–8 kHz) |
-| `vocal_glaze_plus` | Vocal Glaze + Top End | Vocal Glaze + Suno Hash combined in one pass (2–12 kHz) |
-| `echo_sheen` | Echo Sheen | Signal-correlated shimmer/hiss shadowing the content |
-| `presence_haze` | Presence Haze | Smooth noise-like haze in the 3–8 kHz presence band |
-| `phantom_cymbal` | Phantom Cymbal | Washy metallic cymbal wash in the 4–10 kHz band |
-| `harsh_veil` | Harsh Veil | Gritty texture across the upper mids (4–12 kHz) |
-| `deep_scrub` | Deep Scrub | Maximum-strength wide-band cleanup (3–18 kHz) |
-| `muddy_boxy` | Muddy / Boxy (De-Mud) | Congested 200–500 Hz low-mid buildup ("cardboard box" mixes). Works through gentle static EQ, not STFT surgery — the band-split pipeline never sends low-mids through the artifact engine |
-| `dark_mix_rescue` | Dark Mix Rescue (Brighten) | Dull, behind-a-blanket mixes: high-shelf air lift + presence lift + mud cut, paired with moderate high-band cleaning because brightening exposes the hash the darkness was hiding |
+## 6. Batch tab and album mode
 
-Each preset's factory docstring (returned by `/api/presets` and
-`--list-presets`) explains the artifact signature and which stages are
-emphasized.
+The Batch tab runs every audio file in a folder through the same render and
+export as the Master tab, one file at a time.
 
-### 8 legacy hidden aliases
+### 6.1 What you pick
 
-Version-named keys remain resolvable so existing CLI calls, saved settings,
-and scripts keep working. They never appear in UI dropdowns (`visible: false`
-in the API).
+- **Folders:** an **Input folder** and an **Output folder (optional)**. With
+  no output folder, files go to a new folder named after the input folder
+  with `_deshimmered` added. **Browse…** opens a folder picker.
+- **Preset:** Batch still shows the 1.x preset menu. The preset you pick
+  turns on its matching card, at that card's starting Amount (see
+  [8.3](#83-how-1x-settings-carry-over)). Generic turns on no card.
+  **Same preset for all** and **Auto-detect each file** are still there, but
+  in 2.0 **Auto-detect each file** no longer tries presets on each file, and
+  **Preset strength** has no effect.
+- **Processing:**
+  - **Output format:** the same seven formats as the Master tab.
+  - **Preserve volume:** with mastering off, each file keeps its own level.
+  - **Trim leading/trailing silence.**
+  - **Apply EQ from Master tab:** the EQ bands you set on the Master tab.
+    If none are set, the log says so and skips the EQ.
+  - **Suggested EQ per file:** plans a short EQ for each file on its own,
+    judged after that file's fixes, with the **Family for the suggested
+    EQ** you pick. Its moves are added after any EQ from the Master tab.
+  - **Write tags from the Master tab:** the Master tab's artist, album
+    artist, album, genre, year, copyright and ISRC, with its keep-or-replace
+    choice and Shimmer note. Each file keeps its own title, or takes it from
+    its file name.
+  - **Master for release**, **Loudness target**, **Tone match** and
+    **Tone** (the Tilt).
+  - **Album mode** (only with mastering on).
+- **Process All** starts the run.
 
-| Alias | Maps to |
+Fixed tones are found and notched in each file, as on the Master tab.
+
+### 6.2 Which files, and how they are named
+
+- Batch reads the `.wav`, `.mp3`, `.flac`, `.ogg` and `.m4a` files in the
+  input folder itself (not in folders inside it).
+- Each output keeps the file's name, with the chosen format's extension. A
+  file of the same name in the output folder is replaced. A source file is
+  never written over.
+
+### 6.3 The log
+
+The **Log** shows one line per file, as it happens:
+
+- the file's length and its peak before and after
+- with mastering on: its loudness, true peak, how hard the limiter worked,
+  and the release check (✓, or ⚠ or ✕ with the checks that need a look)
+- what Analyze found in the file (fixed tones, and how far under the target
+  it was)
+- seconds trimmed, Suggested EQ moves, and whether tags were written
+- **FAILED** and the reason, for a file that could not be processed
+
+### 6.4 Album mode
+
+Album mode masters the folder as one record. Mastering each track on its
+own would bring every song to the target, so a quiet song would end up as
+loud as the single. Album mode keeps the tracks' levels in step instead.
+
+1. **Pass 1** measures every track just before mastering's gain: after its
+   fixes, tone curve and EQ. Nothing is written.
+2. **One gain** is worked out: the one that brings the loudest track to the
+   target. The log shows the loudest track, the gain, the album's overall
+   loudness and the spread from the loudest to the quietest track.
+3. **Pass 2** renders every track again from its original file, with that
+   one gain. The peak shaper and the limiter still work on each track at
+   the format's ceiling.
+
+Each track's release check grades its loudness against the level album
+mode gives it, not against the target, since being under the target is the
+point.
+
+Batch has no Cancel button.
+
+---
+
+## 7. Remix tab
+
+The Remix tab splits a song into stems (separate parts, such as vocals and
+drums), lets you rebalance them and add effects, then renders a mastered
+remix. It has three steps: **1 Upload**, **2 Separate**, **3 Mix &
+Render**.
+
+### 7.1 Stem separation
+
+- After you drop a song, the mixer asks **How many stems?** Click a choice
+  to separate. The **Quality** menu and **Separate stems** button re-run it
+  at another quality later.
+- **The choices:** Fast, Best, 6 stems, Ultra and Studio.
+  - Fast, Best, Ultra and Studio make four stems: **vocals, drums, bass**
+    and **other**. 6 stems adds **guitar** and **piano** (experimental).
+  - Best uses the fine-tuned model, about 2.5 times slower than Fast.
+    Ultra blends three Demucs models and is the slowest. Studio uses a
+    RoFormer vocal model with the fine-tuned Demucs for the rest.
+  - With an NVIDIA graphics card, a four-minute song takes about 10 s at
+    Fast and 25 s at Best. Without one it still works, several times
+    slower.
+- **Models are downloaded the first time** you pick a choice, from each
+  author's own release: about 80 MB for Fast and for 6 stems, 330 MB for
+  Best, 160 MB more for Ultra, and for Studio a 915 MB vocal model plus
+  its runner (about 300 MB). Shimmer ships no model. Every model offered
+  may be used on music you release and sell (Help, Setup, lists each one
+  and its licence).
+- **Stems are kept** per song and per choice, in `stem_cache` next to the
+  app, so a song only waits once. Recent sessions on the Remix tab reload
+  finished stems at once.
+
+### 7.2 The mixer
+
+- **One lane per stem**, each with its own waveform, mute, solo, fader, pan
+  and an **FX** rack: formant, saturation, doubler and reverb. The original
+  stays on top as the reference.
+- **A Residual lane** holds whatever the separator dropped: the mix minus
+  every stem (reverb tails, room, most of the AI fizz). With it in the mix,
+  an untouched remix is identical to your original.
+- **Quick:** **Instrumental** (vocals muted), **Acapella** (vocals solo),
+  **Vocal lift** (vocals +2 dB, the other lanes -1 dB) and **Reset** (every
+  lane back to neutral; the stems stay separated).
+
+### 7.3 Preview
+
+Live preview is always on in Remix. Every move renders the loop again.
+
+- **Loop length:** 10 (default), 15 or 20 s, and **Set from playhead**.
+- Press **1** for the original and **2** for the remix. **Loudness-matched
+  A/B** is on by default.
+- The loop plays at once from its own mix, without cleanup, marked "level
+  approximate". A few seconds later it switches to `render()` on a window
+  of the whole remix, cleanup and format included, and says "matches the
+  export". That preview matches the export within 60 dB (a test). The
+  export reuses that mix.
+
+### 7.4 Render & Download
+
+**Render & Download** sums the lanes with their effects, then runs the
+Master tab's `render()` and `export()`.
+
+- **Mastering:** **Master the remix**, with **Loudness target**, **Tone
+  match** and **Tilt**, as on the Master tab.
+- **Artifact cleanup on export:**
+  - **Auto — find and cut fixed tones in the remix** (the default): applies
+    what the remix itself shows, which is Fixed tones today.
+  - **Off — export the mix as-is.**
+  - The 1.x presets are also on this menu. A preset turns on its matching
+    card.
+- **Format:** the same seven formats as the Master tab.
+- The export carries the original upload's tags and a Shimmer note.
+
+### 7.5 Stems download
+
+The **Stems** section downloads the parts themselves as a ZIP of 24-bit WAV
+files at the song's sample rate, one file per lane:
+
+- **Download stems as separated:** every lane exactly as separated,
+  residual included, so the files add back up to the original.
+- **Download stems with this mix:** each lane through its fader and
+  effects. Muted lanes, and lanes left out by solo, are not included.
+
+### 7.6 Projects
+
+Your Remix settings for a song are saved as you work, keyed by the file's
+contents (see [8.2](#82-where-things-are-saved)). Load the same file again
+and they come back, with its stems from the cache.
+
+---
+
+## 8. Settings tab, and where things are saved
+
+### 8.1 Settings tab
+
+The Settings tab has one card, **Downloads**: what happens when a run
+finishes.
+
+- **Download automatically when a run finishes:** the file starts
+  downloading as the run ends. The Download step stays as a backup.
+- **Download location:**
+  - **My browser's Downloads folder** (the default): the normal browser
+    download.
+  - **This folder:** Shimmer writes the finished file straight into a
+    folder you pick (type a path or use **Browse…**), under the same name a
+    download gets, tags included.
+- **Size limit:** **Warn when a file is over** a size in MB (50 by
+  default). Set it to the largest file your upload site takes. See
+  [4.1](#41-formats).
+
+### 8.2 Where things are saved
+
+| What | Where |
 |---|---|
-| `suno_v3` | `laser_whistle` |
-| `suno_v3.5` | `laser_whistle` |
-| `suno_v4` | `cymbal_chatter` |
-| `suno_v4.5` | `broadband_fizz` |
-| `suno_v5` | `checkerboard_grid` |
-| `suno_v5_pro` | `air_brittle` |
-| `suno_v5.5` | `reverb_flutter` |
-| `suno_cymbal` | `cymbal_sheen` |
+| Settings | `settings.json` in `%APPDATA%\Shimmer\` on Windows, or `~/.config/shimmer/` elsewhere |
+| Remix projects | `projects/<file hash>.json` in the same folder |
+| Stems | `stem_cache/<file hash>/<model>/` next to the app |
+| Recent sessions, and "noted" card picks | your browser's own storage |
+| Uploads and exports while you work | temporary folders, removed after one hour |
 
-Saved settings that reference an alias are migrated to the canonical key on
-load ([settings_store.py](settings_store.py)).
+- Setting `SHIMMER_CONFIG_DIR` moves the settings and projects to another
+  folder.
+- The screens save your settings as you change them. One settings file
+  serves every running copy of Shimmer. Batch reads the Master tab's EQ,
+  tags and tone family from it.
 
----
+### 8.3 How 1.x settings carry over
 
-## 6. Auto-detect and analysis
+A 1.x `settings.json` is carried over when it is read
+(`migrate_saved()` in `shimmer/settings_store.py`), and old Remix projects,
+old requests and old command lines map through `migrate()` in
+`shimmer/core/settings.py`:
 
-Source: [probe.py](probe.py)
+- **The old preset turns on its card** at that card's starting Amount.
+  1.x's version-named presets (`suno_v3`, `suno_v4.5` and the rest) get
+  their current names first. If you used 1.x with **Remember settings next
+  time** on, the preset you saved turns on its card on the Master tab.
+- **Once 2.0 has saved your card picks, they are kept as saved**, so a card
+  you turned off stays off.
+- **Preset strength does not carry over.** Those presets applied their
+  filters at twice their setting, so the old numbers mean nothing now.
+- **Kept as saved:** the loudness choice, the format, the EQ, silence trim,
+  Preserve volume, and the tone match and Tilt.
+- Nothing is written back to the file until the screen next saves.
 
-Source: [detect.py](detect.py) (scorer), [probe.py](probe.py) (`suggest_preset`
-wrapper, region diagnostics)
-
-- `suggest_preset(path)` returns the best-matching artifact preset **with a
-  recommended preset strength**, a ranked list of up to 6 matches (each with
-  its own strength, confidence, reason and verification numbers), an optional
-  second-pass suggestion, tonal-balance notes, and the intensity timeline.
-- **Stage 1 — evidence scan** (whole file, up to 300 s, non-overlapping
-  4096-pt frames, power summed over L/R so side-only artifacts cannot cancel
-  as they would in a mono mix). Calibrated measurements in dB or fractions:
-  steady narrow tones (25th-percentile excess over a 51-bin envelope, plus
-  duty cycle; flicker is measured on its own 1024/256 grid so 10–50 Hz hash
-  modulation is visible),
-  spectral balance (top tilt, presence, upper-mid, mud, dullness), and on the
-  hottest 5 s window at 1024 hop: sub-band amplitude flicker vs. the body,
-  comb spacing, sibilance bursts, high-band periodicity beyond the beat,
-  decay-tail residue, intermittent ringing, presence/body correlation and
-  band flatness. These give each preset a *prior* and its evidence phrase.
-- **Stage 2 — verification** (hottest window). Every artifact preset is run
-  through the real cleaning pipeline (`clean_and_master`, no mastering / EQ)
-  and the result is compared with the input by the ITU-R BS.1387 hearing
-  model (`perceptual.py`): `missing` is the audible content that went, in
-  sones; `lin_dist` is how far the tone tilted. Verified score = net audible
-  benefit, `(2p − 1) × M − L`, where `M` ramps `missing` to 1 at 0.10 sones
-  (the budget's ceiling on audible removal), `L` ramps `lin_dist` to 1 at
-  3.0 (the budget's ceiling on tilt) and `p` is the preset's evidence prior.
-  Audible removal is credited by the evidence for the artifact and debited by
-  the evidence against it; tilt is always a cost. A preset with no evidence
-  earns nothing for removing a lot, and removal the hearing model cannot
-  hear earns nothing at all. The removed signal's energy split (residue
-  ≥ 2 kHz outside transients and partials; collateral) is still reported,
-  as a description of where the preset worked, not as a score. The earlier
-  `purity` ratio — the share of removed energy outside the transient /
-  partial mask — is gone: on finished masters that mask covered 84–95 % of
-  the top end, so it read ~1.0 for any top-end preset and recommended
-  cleaning finished commercial masters at 80 % confidence.
-- **Strength** — the top picks are re-run at 50/100/150/200 % (top pick also
-  ±25 % around its choice) and the *gentlest* strength within 0.04 of the
-  best net audible benefit wins, guarded so collateral may not rise more than
-  3 dB versus 100 %. Batch auto-detect applies it through
-  `apply_preset_strength` (the batch strength slider multiplies it), Remix
-  auto-clean applies it, and the Single File tab sets the Preset strength
-  slider when a match is applied.
-- **Tone kill** — steady tones found by the scan (≥ 6 dB excess) are
-  re-measured in the processed output; the share of their excess removed
-  carries up to 40 % of the verified score. When the winner still leaves a
-  tone more than half intact, a note names the frequency, says whether it
-  sits in the center (Mid is cleaned at 20 %, so it is largely out of reach)
-  and points to a Parametric EQ notch.
-- **Second pass** — off by default; the automated flow is one pass. When
-  asked for (`follow_up=True` on `suggest_array`), the runner-ups are tried
-  on the winner's cleaned output and one is reported as `follow_up` if it
-  still removes ≥ 40 % as much residue, at least −26 dB re. the top end, and
-  clears 0.05 net audible benefit measured against the winner's output.
-  Measured on three multi-artifact tracks the routine check found no new
-  artifact but raised other presets' priors, which are relative measures;
-  under the net-benefit score it fired on none of 8 corpus files.
-- A per-second top-end intensity timeline (3–16 kHz level against the body,
-  normalised per track) is returned; the UI draws it as the "Noise over
-  time" strip, parks the live-preview loop on the worst stretch, and the
-  verification window is chosen from it.
-- Falls back to `generic` when the top score is below 0.05 or the best trial
-  clean removes less than −48 dB re. the top end.
-- Cost: roughly 25–30 short pipeline runs, about 8–15 s per track.
-- `analyze_track()` ([mastering.py](mastering.py)) adds a loudness/spectrum
-  snapshot: integrated LUFS, LRA, true peak, and a 1/3-octave long-term
-  spectrum.
-- Exposed via: the Analyze button in the UI, `POST /api/suggest` and
-  `POST /api/analyze`, CLI `shimmer --suggest`, and batch `auto_detect: true`.
-- `analyze_region()` isolates flagged bins into `artifact.wav` plus
-  spectrogram/residual PNGs for manual diagnosis (standalone probe.py CLI).
-
----
-
-## 7. Mastering chain
-
-Source: [mastering.py](mastering.py)
-
-Single-pass mastering chain. The corrective tone curve is computed from the
-RAW input analysis and applied BEFORE artifact cleaning (so EQ can never
-re-boost what the cleaner removed); the level chain runs after cleaning:
-
-| Step | Details |
+| 1.x preset | Card in 2.0.0 |
 |---|---|
-| 1. Tone curve (pre-clean) | Analysis-driven 1/3-octave correction toward a reference curve, applied zero-phase in the STFT domain. The track is measured as band **power** per 1/3-octave band relative to its own 200 Hz–2 kHz median and compared with `_REF_DB`, shape against shape, so only the difference matters. **What `_REF_DB` is, as of 2026-09-08: on this branch, the median of 135 masters that one automated mastering service produced from AI renders on its neutral setting** (`docs/tone-reference.json`; the file says of itself that it is a target for this tool's material, not a general commercial reference). `docs/BRIGHTNESS-ASSESSMENT.md` §7 measures that curve about 8 dB hot over 2.5–12.5 kHz against contemporary commercial masters, so it is **retracted**: checklist item 12 replaces it with a curve derived from captured commercial masters, and commit `97609c0` is not to merge before that. `main` still carries the previous curve, transcribed from the AES 135 (2013) study of 1950–2010 releases, which reads a present-day master as too bright the other way (§2.1). Neither is a commercial reference; until item 12 lands, every automatic tone decision is measured against a curve known to be wrong, and nothing else in the product should be calibrated to it. Bounds on this branch: +2.0 / −3.0 dB, boosts capped at +2.0 dB in the 5–12 kHz harshness band (raised from +0.5 to let the curve reach the retracted target, so in scope for item 12), no boost at or above 0.9 × the render's cutoff. A per-band tolerance (`_REF_TOL_DB`, the measured spread of the reference set, 1.6 dB at 500 Hz to 11 dB at 20 kHz) is defined **but not consumed**: `compute_tone_curve` has no deadband, so any departure from the curve, however far inside the normal range, is corrected. Scaled by `eq_strength`/`intensity`; the warm↔bright `tilt` (±2 dB smooth tilt, 5 positions) rides on top within the same bounds |
-| 2. DC removal + highpass | `hp_hz`, default 25 Hz (zero-phase Butterworth) |
-| 3. LUFS gain | One static gain toward the target integrated loudness — measured once, applied once, no iterative passes |
-| 4. Soft peak shaper | Transparent below the knee; smoothly compresses the top ~2 dB so the limiter only shaves the last fraction of a dB |
-| 5. True-peak limiter | Lookahead brickwall with 4× oversampled true-peak detection |
-
-`MasterParams` ([params.py](params.py)): `enabled` (true), `target_lufs`
-(−14.0), `ceiling_dbtp` (−1.0), `eq_strength` (0.55), `intensity`
-(low/med/high, mapping to EQ strength 0.25/0.55/0.85), `tilt`
-(brightest/bright/neutral/warm/warmer), `hp_hz` (25), `lookahead_ms` (2.0),
-`release_ms` (50).
-
-Loudness target presets (`LOUDNESS_TARGETS`): `streaming` −14 LUFS, `loud`
-−11 LUFS, `cd` −9 LUFS.
-
-**Codec-aware export ceilings** (`get_export_ceiling_dbtp`): unless the user
-sets an explicit ceiling, exports use −1.0 dBTP for lossless (WAV/FLAC) and
-−1.5 dBTP for lossy (MP3/OGG/M4A/AAC/Opus) so decoders can't clip. Applied
-on the web single/batch/remix paths and by the CLI (from the output
-extension). TPDF dither is applied on PCM_16 exports.
-
-Analysis exports: `measure_loudness()` (integrated LUFS, LRA, true peak),
-`analyze_spectrum()` (1/3-octave long-term spectrum: `band_db` mean
-per-bin level, `band_power_db` total band power, `rel_db` band power
-relative to the 200 Hz–2 kHz median; all true dB, 10·log10 of power),
-`analyze_track()` (combined snapshot). The mastering report (before/after LUFS, true peak,
-limiter max gain reduction) flows into job metrics and the UI metrics strip.
+| Generic | none |
+| Cymbal Sheen, Laser Whistle, Brittle Air, Checkerboard Grid | Fixed tones |
+| Suno Hash (5-12 kHz Flicker), Broadband Fizz, Presence Haze, Echo Sheen, Cymbal Chatter, Phantom Cymbal, Vocal Glaze + Top End, Deep Scrub | Shimmer |
+| Sibilance Rattle, Vocal Glaze | Sibilance |
+| Harsh Veil | Harshness |
+| Muddy / Boxy (De-Mud) | Low-mid build-up |
+| Dark Mix Rescue (Brighten) | Lack of air |
+| Reverb Flutter | Phasiness |
 
 ---
 
-## 8. Web UI
+## 9. Command line
 
-Sources: [static/index.html](static/index.html) and the ES modules in
-[static/js/](static/js/) (`main.js`, `single.js`, `batch.js`, `visualizer.js`,
-`trim.js`, `controls.js`, `preset.js`, `help.js`, `settings.js`, `api.js`).
+The command line runs one file through the same `render()` and `export()`
+as the Master tab.
 
-### Application shell
-
-- Three main tabs with ARIA tablist roles: **Single File** (default),
-  **Remix**, and **Batch**.
-- Dark purple/gold theme ([static/css/tokens.css](static/css/tokens.css));
-  viewport-locked layout that degrades to a scrollable single column below
-  1100 px.
-- First-visit onboarding: the Quick start help opens automatically once
-  (tracked in `localStorage`).
-- Optional “Remember settings next time” under Trim silence (off by
-  default); when on, Single File choices restore on the next visit.
-
-### Single File workflow (3-step wizard: Upload, Analyze, Clean & Master)
-
-**Upload**
-- Dropzone with drag-and-drop and click-to-pick; accepts `.wav`, `.mp3`,
-  `.flac`, `.ogg`, `.m4a`.
-- Drag-over highlight; after selection the dropzone collapses to a compact
-  chip and the whole window becomes a drop target.
-- The Clean & Master button stays disabled until a file is selected.
-
-**Trim (top & tail)**
-- Detection is two-pass ([edges.py](edges.py)): an absolute pass wants a
-  gap below −75 dBFS between the burst and the music (renders with real
-  digital silence); a relative pass finds where the music proper starts
-  (within 20 dB of the scan's loudest point), estimates the head's own
-  quiet level as the 20th percentile of the peak envelope before it, and
-  looks for a burst standing ≥ 10 dB above that level with a quiet run
-  after it. AI renders usually need the relative pass: their heads sit
-  at −60 to −70 dBFS, never at silence.
-- Every upload is scanned at both ends for render artifacts — the short
-  burst generators leave at the very top of a track, typically 15–35 ms
-  around −50 dBFS. These sit *above* the −60 dBFS silence gate, so the
-  "trim silence" option keeps them, and they are invisible on a linear
-  waveform.
-- A finding is always surfaced: an amber notice names what was found
-  (length, peak level, gap before the music) and offers "Use suggested cut"
-  or "Review". A clean scan is surfaced too, as a green "edges clean" chip
-  in the card header. Detection **never** edits audio on its own.
-- The Trim view draws a dB envelope (floor −100 dBFS) rather than a
-  waveform, so quiet artifacts are actually visible. The detected region is
-  shaded, and the discarded region is dimmed behind the marker.
-- Head/Tail toggle, zoom presets (250 ms / 1 s / 3 s / 10 s), click or drag
-  to place the marker, ←/→ nudge 1 ms (Shift 10 ms), numeric ms fields, and
-  Audition to play the original from the marker.
-- Suggested cuts land 10 ms past the point where the artifact's slope has
-  reached the floor (the middle of the gap's noise band), so the tick and
-  its decay go and the quiet floor stays; removing that floor is the
-  separate "Trim leading/trailing silence on export" setting, mirrored in
-  the Trim card. Cuts snap to the nearest zero crossing, and a 5 ms fade
-  is applied at each new edge so the cut itself cannot click.
-- An armed cut shows in the card header while the panel is closed, and the
-  applied cut is reported on the done banner ("Trimmed 40 ms head").
-- The cut is applied to the source *before* cleaning and mastering, so a
-  head click never drives the limiter or skews loudness measurement.
-
-**Preset and analysis**
-- Preset dropdown populated from `/api/presets` (visible presets only), with
-  an expandable description under it.
-- Analyze button runs the verified auto-detect (Section 6) plus loudness
-  analysis, applies the top preset *and its recommended strength*, and
-  shows the result as a verdict. The applied match is a hero block: name,
-  strength as a big number, a solid amber Applied pill, the match bar and
-  the reason in full. It is whichever match is applied, so it moves when
-  you click Apply on another; the other matches (up to five) sit in a
-  quiet ranked table (rank, name, match bar, strength, Apply; reason on
-  hover). Apply also moves the Preset strength slider. When a runner-up
-  still finds residue on the winner's output, a two-pass plan card lays
-  out both passes by name ("Pass 1: <applied> now · Pass 2: <follow-up>"),
-  shows the settings pass 1 needs as state rows (mastering off, Preserve
-  volume on) and offers one button: "Set up pass 1" flips them, then
-  "Run pass 1: <applied> (Clean)" starts the run. When that run finishes,
-  "Continue to pass 2" loads its result in place (named like an export,
-  {stem}_{preset}_processed_{id}.wav), applies the pass-2 preset, turns
-  mastering on and shows the pass-2 card immediately, ready to run, with
-  an optional "Analyze this result first" button. Run both passes (and
-  Continue) hand off to pass 2 inside the processing window, which stays
-  up the whole way: "Pass 1 done" over a busy bar while the result loads
-  and the EQ is planned, then a big 3-2-1 count in front of the pass-2
-  chain (the wordmark's face in the aurora gradient, an amber ring
-  draining, Go in green), so the gap never reads as the end; Stop here
-  or Esc keeps the loaded result and runs nothing. A loaded file whose name matches an export is treated as
-  pass 1's output: the dropzone notes "Shimmer output · pass 1 was …",
-  and the card becomes "Pass 2: <follow-up>" (mastering on, Preserve
-  volume off) whose button applies the pass-2 preset and runs
-  Clean & Master. Tonal-balance and cutoff
-  notes sit in a Details list. Below: the "Noise over time" strip, one bar
-  per second of top-end noise, amber for the worst stretches, with a time
-  axis; click it to jump there (moves the loop window while Live is on,
-  seeks the player otherwise). Takes roughly ten seconds.
-- Workflow stepper: three equal segments across the page (1 Upload,
-  2 Analyze, 3 Clean & Master). Each stage has one colour everywhere it
-  appears (1 teal, 2 cyan, 3 amber); the current stage has a filled badge
-  and a full underline, done stages an outlined badge, pending stages
-  grey. Stage buttons carry the same number badge and colour, and step 3
-  reads "Clean" when mastering is off.
-- Dock status line under the two stage buttons: the current preset,
-  strength, and "master to <target>" or "cleaning only", read from the
-  live controls.
-- Analyze also lives in the dock above Clean & Master (cyan, step 2). It
-  runs the analysis and jumps to the card; once done it becomes "View
-  analysis" (still cyan, outlined, with a check). Clicking it then, or
-  the card's Expand button, opens the Analysis workspace: a sheet that
-  slides up over the page (four status tiles on top: Applied, Second
-  pass, Fixed tones, Top end; then the timeline, the hero and table left,
-  next step, details and fixed tones right) with "Loop the worst part"
-  and Close. The transport stays visible below it; Escape or a new upload
-  closes it.
-- Preset strength slider 0–200% (step 5%): visible sliders re-scale live in
-  the client, hidden amount keys scale server-side via the same whitelist.
-- Clean & Master with a pending second-pass suggestion and mastering on
-  asks first with three choices: turn mastering off for this pass
-  (Preserve volume on), master anyway, or cancel (nothing runs; Escape
-  also cancels). The progress window is titled "Cleaning" or
-  "Cleaning & mastering" to match the run.
-
-**Mastering controls**
-- Master for release toggle (default on), loudness target (Streaming −14 /
-  Loud −11 / CD & Club −9 LUFS), tone match (Low/Medium/High), and tone
-  tilt (Brightest/Bright/Neutral/Warm/Warmer).
-- After Analyze, a readout shows input LUFS, true peak, and LRA.
-- "Preserve volume" (in Output; also in Batch) keeps a cleaning-only pass
-  at the original's level. It stays in view while mastering is on, greyed
-  and locked, since the loudness target sets the level then.
-- Trim leading/trailing silence on export (below −60 dBFS, keeps a short
-  natural pad; playback stays full-length so A/B stays in sync).
-
-**Equalizer card**
-- The user parametric EQ (see Section 4) as an interactive curve editor;
-  changes re-render the live preview like any other control.
-
-**Output and processing**
-- Output format: WAV 24-bit, WAV release copy (`wav16`: 16-bit at
-  44.1 kHz with TPDF dither; the source is resampled before the chain
-  runs, so cleaning, mastering and the true-peak limiter work at the
-  delivery rate), FLAC, MP3 320k, OGG, M4A. `OUTPUT_FORMATS` /
-  `resolve_output_format()` in [audio_io.py](audio_io.py) hold the specs.
-- Clean & Master runs full-file processing with an SSE-driven progress bar,
-  then loads the results into the player.
-- A green "Ready to download" banner appears with metric chips and the
-  download link. Download filenames follow
-  `{stem}_{preset}_{processed|removed}_{jobid8}{ext}`.
-- **Release check** card ([release.py](release.py) grades, `single.js`
-  draws), shown after a mastered run above the numbers: one verdict
-  ("Ready to upload", "n things to look at", "Not ready"), one line per
-  check with its value and one line of advice, then "How loud it plays"
-  chips for Spotify, Apple Music, YouTube, Amazon Music, Tidal and
-  Deezer. Checks: loudness against the target (0.5 LU passes, 1 LU
-  warns, more fails), true peak against the ceiling, clipping in the
-  uploaded file, sample rate, format (WAV/FLAC pass, lossy warns),
-  silence at the start (over 1 s warns) and end (over 5 s warns), length
-  (under 30 s warns), DC offset, mono compatibility (negative
-  correlation warns), tags (title, artist, album) and the ISRC (noted).
-  The metrics carry it as `release` (`status`, counts, `checks[]`,
-  `platforms[]`); the green banner adds a "release check" chip.
-- The processing window ends on a **Download step**
-  (`processModal.offerDownload` in `static/js/progress-chain.js`): the
-  chain stays drawn as finished, and the progress lines give way to the
-  file's name and size (`export.name`, `export.size_bytes` in the
-  metrics), a primary button, an optional secondary one, Close and
-  Escape. What the step does comes from the Settings tab (below). Pass 1
-  of a two-pass plan gets no step: its window closes by itself, or the
-  plan holds it for the hand-off.
-- **Settings tab, Downloads** (`#tab-settings`): "Download automatically
-  when a run finishes" presses the Download step's button for you.
-  "Download location" is the browser's Downloads folder (default) or
-  "This folder": the client sends the folder as `save_folder`, the
-  server copies the export (the silence-trimmed variant when that is
-  on) there as the job ends under the download filename, tags included,
-  and the step leads with "Show in folder" (`POST /api/reveal`) with
-  "Download a copy" beside it. The picker is `/api/browse-folder`, as
-  in Batch. The banner says where the file went and keeps its Download
-  button; a copy that failed shows as a warning chip and the step falls
-  back to the browser download. Neither applies to pass 1 of a two-pass
-  plan (the client sends no `save_folder` for it). The Signal Chain's
-  Export stage carries a "saved to <folder>" badge, and the Output
-  section points at Settings.
-- "What changed" card ([report.py](report.py) measures,
-  `static/js/report.js` draws): whole-file 1/6-octave spectra before and
-  after the pass plus the removed signal, and a level-matched "after
-  minus before" strip (level match = median change from 100 Hz to
-  2 kHz). A one-line verdict names the deepest cut and its range, the
-  largest change under 2 kHz and the level change; hover gives the
-  numbers per band.
-- Stat readout in three labeled rows. Loudness: LUFS in→out against the
-  target, true peak, LRA, limiter max gain reduction, peak and RMS in→out,
-  peak-to-loudness ratio in→out, stereo correlation in→out. Cleaning:
-  5–8 kHz energy, flicker depth (AM depth as a percentage), narrow peaks
-  left, clicks fixed, fixed tones notched, top-end cutoff. Job: edge
-  trim, export trim, EQ bands, length (m:ss), sample rate, channels, and
-  the export (format, bit depth, dither). Warnings (limiter pumping) get
-  their own row.
-
-**Advanced artifact controls (the Advanced pane)**
-- A wide sheet (1060 px, full screen on phones), not a side drawer.
-  Left: the controls in chain order, in sections with the Signal Chain's
-  phase colours: Repair (De-click), Band (Start Hz, End Hz), Detection
-  (Threshold, Slope), Cleanup tools (De-esser, Noise Reduction,
-  De-resonator, De-harsh, Flicker Tamer, Comb Suppressor, Tone Notcher,
-  Noise Resynthesis), Recombine (Mix), Post (Air cut). Labels are the
-  chain's own terms with a plain-words gloss; each slider says what its
-  two ends mean, so no group needs a paragraph. Right: a Focus panel
-  that explains whatever is under the pointer or keyboard (what it does,
-  move it right when, move it left when, typical range, the preset value
-  against the current one) and lights its stage on a mini chain.
-- The tick under every slider is the preset's value at the current
-  strength (`presetToSliderValues`); a slider that differs is marked
-  "changed", its section counts them, the header says "Generic · 100% ·
-  2 controls overridden for this run", and Reset all appears. Double-click
-  a slider to put it back on the preset; Shift + arrow keys move ten steps.
-- Shows whether the Live loop is on, since that is how a change is heard.
-- Source of truth: `CONTROL_SPEC` and `GROUPS` in
-  [static/js/controls.js](static/js/controls.js); `renderControls` returns
-  `getValues / setValues / setBaseline / getChanged / resetAll`. Closes
-  via ×, backdrop click, or Escape.
-
-**Player and visualizer** ([static/js/visualizer.js](static/js/visualizer.js))
-- Three track tabs sharing one playhead: **Original** (enabled on upload),
-  **Processed** and **Removed** (enabled after processing). Switching is
-  instant and preserves the playhead.
-- Two canvas modes: **Waveform** (per-column min/max peaks + RMS fill) and
-  **Spectrogram** (real 1024-point FFT, Hann window, log-frequency rows,
-  Inferno colormap) with the current shimmer band drawn as overlay lines.
-- Click to seek; gold loop-window overlay during live preview.
-- Transport in the bridge: back to start, back 5 s, play/pause, forward
-  5 s, the clock, and a scrubber (click or drag to seek; cyan fill =
-  playhead, amber band = Live loop window). Space, ←/→ and 1/2/3 keys
-  still work.
-- Canvas height follows the mode: 150 px in Waveform (a navigation strip),
-  300 px in Spectrogram and Both, where vertical resolution matters.
-- While playing: a 170 px live log-frequency analyzer with a 12 dB grid
-  (0 dB = full-scale sine), frequency labels, a 4.5 dB/oct display tilt
-  around 1 kHz so a mix reads roughly flat, shimmer-band shading, and a
-  dashed ghost of the other A/B track's smoothed spectrum (Original behind
-  Processed and the reverse). Under it, a momentary-loudness strip
-  (BS.1770 K-weighting, 400 ms, from the audio being heard) with a target
-  marker tied to the mastering target; hover for the LUFS value.
-- Loudness-matched A/B toggle attenuates the louder track using the measured
-  LUFS values (per-slice during Live preview, whole-file after a run),
-  capped at 6 dB. The applied monitoring gain is shown next to the toggle
-  ("Processed −2.2 dB", "(capped)" when the cap engaged); it never reaches
-  the export.
-- Keyboard shortcuts (suppressed while focus is in a form control): Space
-  play/pause, 1/2/3 select track, Left/Right seek ±5 s.
-
-**Live preview**
-- Toggle loops a short window (5/10/15/20 s) and re-renders the processed and
-  removed slices on every parameter change (debounced 250 ms).
-- The file is uploaded once to create a preview session; the loop anchors
-  automatically at the hottest artifact region from the analyze timeline, or
-  manually via "Set from playhead".
-- LRU cache of the last 20 renders makes parameter comparisons instant;
-  track swaps use a ~15 ms Web Audio crossfade for gapless A/B.
-- The Removed track gets a ~14 dB client-side audition boost, capped against
-  the slice's own peak to avoid clipping.
-- Mastering level parity: a slice is mastered with the static gain the
-  whole file receives (`master(..., loudness_ref=...)`: whole-file raw LUFS
-  plus the slice's own pre/post-clean offset), not normalised on its own.
-  Without this a quiet verse previewed at the full target level, the
-  Original/Processed delta ballooned, and the A/B match silently cut the
-  Processed monitor by up to 6 dB.
-- Status line shows idle / uploading / rendering / live / error. Preview
-  exits when a full Clean & Master runs; the session is released on page
-  unload.
-
-### Signal Chain tab
-
-Sources: [chain.py](chain.py), [static/js/chain.js](static/js/chain.js),
-`POST /api/chain`.
-
-- The view is generated, not hand-written. The Master tab exposes the
-  exact state a Clean & Master click would send (preset, strength, slider
-  overrides, mastering, EQ, preserve volume, trim silence, output format,
-  whether a Trim cut is armed); `build_chain()` resolves it with the same
-  functions as `/api/process` and returns the modules in the order
-  `pipeline.py`, `engine.py` and `server.py` apply them.
-- How it is drawn: stages flow left to right and wrap like text, with one
-  continuous SVG wire that drops down and returns to the left edge at each
-  row break (no horizontal scrolling; the wire follows the real card
-  positions and redraws on resize). Each stage carries a `phase` (edit,
-  repair, pre, split, fine, engine, recombine, post, level, master,
-  export) with one hue per phase, moving around the wheel in signal order,
-  used on the wire, the card's top rail, the phase label and the badges.
-  Each stage also carries a `band` ([lo, hi] Hz, or null for whole-signal
-  or time-only stages), drawn as a small log-frequency bar (40 Hz to
-  20 kHz) with a tick at the crossover. Inactive stages are dashed with a
-  one-line reason and a dashed wire into them. A summary sits on top
-  (stages on, STFT size and passes, bypass point, the two gates, and a
-  phase legend with on/total counts); a sticky detail panel beside the
-  flow shows the selected stage's phase, number, larger band bar with
-  axis labels, full text, every value, and the Advanced-drawer link.
-- Modules: Trim → De-click → Static repair → Tone curve → Crossover →
-  M/S → Pre-analyze mask → the nine STFT stages in registry order → Side
-  width comp → Recombine + wet/dry → Post filters + fades → Parametric
-  EQ → Preserve volume / clip protect → HP/DC → LUFS gain → Soft clip →
-  True-peak limiter → Export. The repair modules show the de-click
-  amount and threshold and the notch list the request carries ("3 lines",
-  deepest line), and the tone curve / post filters show the cutoff cap. Each carries live badges (crossover in Hz, Mid/Side scale,
-  stage bands, ceilings, strengths after preset-strength scaling) and an
-  `active` flag; inactive modules are drawn dashed with the reason
-  ("mastering is off", "this preset leaves it at zero").
-- The gates row shows the flatness gate range, transient hold and
-  release, the low-band bypass point, the STFT grid and pass count, and
-  how many modules are active.
-- Re-renders on every settings change while the tab is visible and on
-  opening the tab after a change.
-
-### Remix tab
-
-Sources: [stems.py](stems.py), [stems_runner.py](stems_runner.py),
-[stem_effects.py](stem_effects.py), [projects_store.py](projects_store.py),
-[static/js/remix.js](static/js/remix.js)
-
-Split a track into stems, rebalance and reshape each part in a lane
-mixer, then render a cleaned, mastered remix or export the parts. The
-tab walks the same three stages as Master (1 Upload, 2 Separate,
-3 Mix & Render): a hero dropzone with a Recent sessions list (rows whose
-stems are already separated carry a "stems ready" badge, from
-`GET /api/stems/library`) and an engine line (installed, importable,
-GPU name, time estimates from `GET /api/stems/engine`); then a two-column
-working layout: the mixer on the left, the dock (2 Separate stems with
-the quality tier, 3 Render & Download) and the render options on the
-right.
-
-**Stem separation** ([stems.py](stems.py), [stems_runner.py](stems_runner.py))
-- Demucs in a dedicated side venv (`.venv-stems`, ~6 GB with torch —
-  never installed into the app venv). Env resolution:
-  `$SHIMMER_STEMS_PYTHON` override, else `.venv-stems` created on demand
-  with uv (or venv+pip). CUDA is installed when `nvidia-smi` is present;
-  the worker picks the GPU when torch can see it.
-- The worker, `stems_runner.py`, runs with the side venv's Python and
-  streams JSON events (status, progress, done, error) on stdout. Progress
-  comes from Demucs' own segment loop across models and shift passes, so
-  the processing window moves with the real work. Model checkpoints
-  download on first use (torch hub, under `stem_cache/torch-home`). A
-  CUDA out-of-memory error retries with shorter segments, then the CPU.
-- Quality tiers (`stems.TIERS`): **fast** = `htdemucs` (one pass),
-  **best** = `htdemucs_ft` (fine-tuned, one specialist model per stem,
-  four passes, 330 MB download the first time), **six** = `htdemucs_6s`
-  (adds guitar and piano), **ultra** = `htdemucs_ft+htdemucs+hdemucs_mmi`
-  averaged per stem (the first model counts double), 2 shift passes,
-  0.5 overlap: the MDX23 recipe, about 4.5× Best. A tier's `model` may
-  join several names with `+`; the worker builds one flat BagOfModels
-  from their leaf models. **studio** = `kim_melroformer+htdemucs_ft`
-  with `engine="hybrid"`: the worker first runs Kimberley Jensen's
-  Mel-Band RoFormer vocal model (`vocals_mel_band_roformer.ckpt`, MIT,
-  913 MB, through audio-separator with normalisation off so
-  instrumental = mix − vocals exactly), then `htdemucs_ft` on the
-  instrumental; Demucs' vocal output (bleed) is added to the RoFormer
-  vocal so the four lanes still sum to the mix. audio-separator is
-  installed into `.venv-stems` on first use (`install_roformer`); its
-  checkpoints live in `stem_cache/models/`. No weights ship with
-  Shimmer: audio-separator fetches the checkpoint on first use from the
-  UVR project's public model mirror on GitHub
-  (`TRvlvr/model_repo` releases) and its config from
-  `TRvlvr/application_data`; Demucs fetches Meta's from
-  `dl.fbaipublicfiles.com`. Once downloaded everything runs offline. A
-  checkpoint placed by hand in `stem_cache/models/` (same file name) is
-  used without a download. Default: best with a GPU,
-  fast without. Measured on an RTX 4070 SUPER with a 4:32 track: Fast
-  9 s, Best 22 s; Studio on a 20 s clip 12 s (8 s of it the vocal
-  stage), so roughly 2× Best.
-- Stems are written as 32-bit float WAVs at Demucs' 44.1 kHz exactly as
-  the model produced them (no clipping, rescaling or 16-bit
-  truncation), cached at `stem_cache/<sha1>/<model>/` (content hash and
-  model), and resampled to the session's rate on load. The pre-tier
-  layout (`<sha1>/vocals.wav`, 16-bit) is migrated into `<sha1>/htdemucs/`
-  the first time it is touched.
-- **Residual and null test.** After loading, the server keeps
-  `residual = mix − Σ stems` as a lane of its own (docs/PLAN.md,
-  decision 2): reverb tails, room, and most of the generator's junk.
-  With it in the mix the untouched remix nulls against the original
-  exactly. `measure_stems` reports the residual's RMS relative to the
-  mix (`null_db`; about −29 dB for Fast, −20 dB for Best on the test
-  clip, since four specialists agree less about the sum than one
-  model), per-stem RMS, peak and share of the mix's energy, per-lane
-  peaks for the waveforms, and `suggested_loop_s`: the 10 s window
-  where every stem is playing, scored by summed log energy.
-- `GET /api/stems/info/{sid}` returns those measurements; the SSE job
-  reports stages `setup` (first run only), `separate`, `load`, `null`.
-
-**The mixer** (one row per lane, built by remix.js from `/api/stems/info`)
-- Original on top as the reference (the monitor's key 1), then the
-  stems in canonical order (vocals, drums, bass, guitar, piano, other),
-  the residual last. Each row: the lane's waveform in its colour on a
-  shared time ruler (click any lane to seek; the loop window and the
-  playhead are drawn across all lanes), mute, solo (exclusive click,
-  Ctrl+click for additive DAW-style groups), fader −24…+12 dB, pan (a
-  balance control: turning toward one side only attenuates the other),
-  an FX button that opens the rack under the row, a whole-file level
-  bar with a peak tick, and the lane's share of the mix. Other is
-  labelled for what it holds (synths, keys, strings, FX). Comparing:
-  the Original lane carries a Listen button, the ruler's corner a
-  1 Original / 2 Remix switch, and clicking a lane's name plays that
-  side inside the loop (`listenTo()`, which also drives keys 1 and 2).
-- Effects rack, fixed order: **Formant** (spectral-envelope shift,
-  voice character without pitch change) → **Saturation**
-  (RMS-compensated tanh drive) → **Doubler** (two detuned, delayed
-  copies) → **Reverb** (stereo Schroeder, room→hall); then gain, pan
-  and mute (`stem_effects.apply_gain_mute`, the cheap uncached stage).
-  Each effect has industry-term labels with plain-language hints; the
-  enabled effects' sliders show inline beside the chips.
-- Quick mixes: Instrumental (mute vocals), Acapella (solo vocals),
-  Vocal lift (vocals +2 dB, the rest −1 dB), Reset (every lane back to
-  neutral, in place, so the rows and racks stay bound to their state).
-- The loop parks on `suggested_loop_s` when the stems arrive; the
-  mixer header shows the null-test figure and a pill with the stem
-  count, tier, device and time (or "cached").
-
-**Looped A/B preview** (`POST /api/remix/preview`)
-- Loop window (10/15/20 s) follows the playhead; per-stem fx renders are
-  cached server-side keyed by window, stem and effect settings, so
-  mute/solo/gain/pan edits re-render only what changed. Any lane names
-  are accepted, including the residual and the 6-stem extras.
-- The summed slice runs through the **mastering chain** when "Master the
-  remix" is on, with the whole-file gain reference (see Live preview), so
-  the preview loop sits at the level the export will have.
-- Per-slice LUFS of original vs remix comes back in the meta and drives a
-  **loudness-matched A/B** checkbox: the louder side is attenuated, capped
-  at 6 dB like Master's and skipped while the remix is silent, with the
-  bar saying what it does ("Remix −3.1 dB").
-
-**Render & Download** (`POST /api/remix/render`)
-- Full mastering controls matching the other tabs: loudness target, tone
-  match, tilt, plus format (WAV/FLAC/MP3/OGG/M4A, codec-aware ceiling).
-- **Artifact cleanup on export**: Off, a specific preset, or Auto-detect
-  (default) — the summed remix runs through the full safe pipeline
-  (tone curve → band split → M/S cleaning → mastering). Auto-detect
-  analyzes the remix itself, since the separator spreads the source's
-  artifacts across the lanes and the effects rack can reshape them. The
-  loop preview stays uncleaned for speed; cleanup runs at export only.
-- The render ends in a green banner (cleaning preset, LUFS, format) with
-  a Download button that stays, plus a Loudness / Cleaning / Job readout
-  (LUFS before → after vs target, true peak, limiter gain reduction,
-  preset with detection confidence and strength, notched tones, lanes
-  used, length, format). The file also downloads at once.
-
-**Stems export** (`POST /api/stems/export`)
-- A ZIP of 24-bit WAVs at the session's rate, one per lane, named
-  `{track}_{lane}.wav`: as separated (`processed: false`, residual
-  included, so the files sum back to the original) or through the mix
-  (`processed: true`: each lane's gain, pan and effects; muted or
-  un-soloed lanes left out). A job like the others; the ZIP comes from
-  `/api/result` as `{track}_stems_{model|mixed}_{id}.zip`.
-
-**Per-track projects** ([projects_store.py](projects_store.py))
-- Every edit (lanes, mastering settings, cleanup, format, tier)
-  autosaves to `%APPDATA%/Shimmer/projects/<sha1>.json`, keyed by the
-  same content digest as the stem cache — re-dropping the file restores
-  the whole mix, and a cached tier separates instantly on drop.
-
-**Player in the bridge.** The bottom bar (transport, monitor, preview
-loop) belongs to whichever tab owns the player: `<body data-tab>` picks
-the Master set or the Remix set of controls in each zone (`.bz-owner`).
-On Remix it drives the A/B loop player: start / back 5 s / play /
-forward 5 s, a scrubber whose amber band is the loop window (seeking
-outside the loop moves it), 1 Original / 2 Remix, loudness-matched
-A/B, loop length, Set from playhead, and the live status. The mixer
-stays in the page. Space, 1, 2 and the arrow keys apply to the active
-tab's player.
-
-### Batch tab
-
-See [Section 11](#11-batch-processing) for the backend. UI features:
-
-- Input and output folder fields with native folder pickers
-  (via `/api/browse-folder`); output defaults to `{input}_deshimmered`.
-- Preset mode radio: **Same preset for all** (dropdown) or **Auto-detect each
-  file** (hides the dropdown).
-- Preset strength (0–200%), output format, preserve volume, trim silence,
-  "Apply EQ from Master tab" (reuses the persisted user EQ), **Suggested
-  EQ per file** (plans a Tone step for each file, judged after that
-  file's cleaning, added to any EQ from the Master tab) with a family
-  picker, **Write tags from the Master tab** (the Tags defaults on every
-  export, title from each file's tags or its name), and a full mastering
-  block (enable/target/intensity/tilt) mirroring the single-file tab.
-- **Album mode** (under Master for release; greyed when mastering is
-  off): the folder is mastered as one record. Pass 1 cleans every track
-  with mastering held back, then one gain is decided from the loudest
-  track and pass 2 masters each track with it, so the tracks keep their
-  relative levels and the loudest lands on the target. Off, every track
-  is normalised to the target on its own.
-- Process All streams a color-coded log: header lines in gold, per-file
-  successes in green (duration, peak in→out, and with mastering on the
-  output's integrated LUFS, true peak and limiter gain reduction; detected
-  preset + confidence in auto mode, the number of suggested-EQ moves,
-  "tags written"), failures in red, then a completion summary. In album
-  mode the log shows the two passes, each track's cleaned loudness, and
-  an album line: the loudest track, the one gain, the album's overall
-  loudness and the spread from loudest to quietest.
-
-### Help system ([static/js/help.js](static/js/help.js))
-
-Modal with focus management (Escape, ×, or backdrop to close) and five tabs:
-
-1. **Quick start** — what shimmer is and the five-step workflow, plus tips
-   (listen to the Removed track; click any `?`).
-2. **Pick a preset** — an interactive decision-tree quiz starting from "where
-   do you hear the artifact?" (vocals / percussion / top end / wash / reverb /
-   nothing worked / unsure) that routes to a recommended preset with a "why"
-   explanation and a one-click "Use [preset]" action.
-3. **Controls** — reference cards auto-generated from `CONTROL_SPEC`: short
-   description, when to turn up/down, and typical ranges. Slider `?` buttons
-   deep-link here with a scroll-and-flash highlight.
-4. **Troubleshoot** — symptom cards covering "shimmer still there",
-   over-cutting, and workflow questions.
-5. **Setup** — ffmpeg installation for MP3/M4A support.
-
-Trigger points: header `?` (Quick start), preset label `?` (Pick a preset),
-per-slider `?` (Controls, anchored).
-
-### Settings persistence
-
-Autosaved via a debounced (300 ms) `POST /api/settings` while the UI is
-open (`remember_settings`, `preset`, `preset_strength`, `sliders`,
-`preserve_volume`, `trim_silence`, `output_format`, `mastering`, `eq`,
-`ab_loudness_match`, `tags` (the Tags defaults: artist, album artist,
-album, genre, year, copyright, ISRC, keep, notes), `tone` (Suggested EQ
-family, "use on the final pass", amount), `downloads` (`{auto, location:
-"browser"|"folder", folder}`, the Settings tab's Downloads choices,
-restored like `tags` regardless of `remember_settings`)) so Batch can reuse the Master
-tab's EQ, tags and family in the same session. On page load / refresh,
-the Single File tab restores the run settings only when
-`remember_settings` is true (the “Remember settings next time” checkbox
-under Trim silence; off by default); `tags` and `tone` come back
-regardless, since an artist name and a family are identity, not run
-state. One settings file serves every running instance. Remix-tab
-state persists per track in the projects store instead (see the Remix
-tab section).
-
-Storage location ([settings_store.py](settings_store.py)):
-`%APPDATA%/Shimmer/settings.json` on Windows, `~/.config/shimmer/settings.json`
-elsewhere. Legacy preset aliases are migrated when the file is read.
-
----
-
-## 9. HTTP API reference
-
-Source: [server.py](server.py). All endpoints are served by FastAPI on
-`127.0.0.1:7860`.
-
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/` | Serves `static/index.html` |
-| GET | `/static/*` | Static assets with `Cache-Control: no-cache` |
-| GET | `/api/presets` | Every resolvable preset: `name`, `label`, `description`, full `values` (Params dict), `visible` flag; plus `default` |
-| POST | `/api/chain` | Signal Chain description for a settings payload (same shape as `/api/process` JSON plus `eq`, `preserve_volume`, `trim_silence`, `output_format`, `trim_armed`) → `{modules[], gates, summary}` |
-| GET | `/api/settings` | Load persisted UI settings |
-| POST | `/api/settings` | Save UI settings JSON |
-| POST | `/api/browse-folder` | Open the native (tkinter) folder picker; `{initial_dir?, title?}` → `{path}` or `{path: null}` |
-| POST | `/api/reveal` | Show a file the server wrote in the OS file manager (the Download step's "Show in folder"); `{path}` → `{ok}`, 404 when the path does not exist |
-| POST | `/api/process` | Start a full-file job → `{job_id}` |
-| GET | `/api/progress/{job_id}` | SSE stream of `{fraction}` progress events, `{fraction, stage, status, detail}` chain-stage events (stage keys match the Signal Chain phases: edit, repair, pre, split, fine, engine, recombine, post, level, master, export), then `{done}` or `{error}`; 15 s keepalives |
-| GET | `/api/metrics/{job_id}` | Job metrics; 202 while running, 500 on job error |
-| GET | `/api/result/{job_id}?kind=` | Stream the file: `processed` \| `diff` \| `original` |
-| POST | `/api/suggest` | Multipart upload (+ optional form fields `tone_family`, `mastering` JSON, `overrides` JSON, `tone` bool) → `{preset, strength, ranked[≤6], follow_up, notes, timeline, scores, evidence, verification, metrics, analysis, source_tags, tone_plan}` (see Section 6; ~10 s plus a few seconds for the Tone plan, which cleans the loudest 20 s with the picked preset) |
-| POST | `/api/analyze` | Alias of `/api/suggest` |
-| POST | `/api/tone` | Multipart upload + `preset`, `preset_strength`, `tone_family`, `mastering` JSON, `repair` JSON, `overrides` JSON → `{tone_plan, analysis, source_tags}`: re-plan the suggested EQ for the current settings |
-| GET | `/api/tone/families` | `{families: [{key, label, blurb}]}` in display order |
-| POST | `/api/batch` | JSON body → SSE stream of per-file batch status |
-| POST | `/api/upload` | Upload once → preview session `{session_id, sample_rate, channels, duration_s, name, analysis, edges, repair: {lines, plan}, source_tags, title_hint}` |
-| GET | `/api/envelope/{session_id}?start_s=&end_s=&points=` | Peak envelope in dBFS over a range of the resident session (drawing data for the Trim view) |
-| DELETE | `/api/upload/{session_id}` | Release a preview session |
-| POST | `/api/preview` | Render a loop slice → single binary payload |
-| GET | `/api/stems/engine` | Separation engine state: installed/importable, GPU, per-tier model, checkpoint state and time estimates (`?check=false` skips the import check) |
-| GET | `/api/stems/library` | Cached stem sets on disk (digest, source name, models, tiers) |
-| GET | `/api/stems/status/{sid}` | Session's separation state: ready, cached tiers, engine |
-| POST | `/api/stems/separate` | Demucs stem separation for an upload session at a `tier` (fast/best/six) → `{job_id}`; the session then holds stems + residual |
-| GET | `/api/stems/info/{sid}` | Per-stem measurements: order, RMS/peak/share, lane peaks, null test, suggested loop |
-| POST | `/api/stems/export` | ZIP of 24-bit WAV stems (`processed: false` as separated, `true` through the mix) → `{job_id}` |
-| POST | `/api/remix/preview` | Remix loop slice: per-lane fx + gain/pan/mute + sum, optionally mastered (`mastering: {...}`); meta carries per-slice LUFS for A/B matching |
-| POST | `/api/remix/render` | Full-length remix job: lane fx + sum → optional artifact cleanup (`cleaning: {preset: "auto"\|key\|"off"}`, runs the full safe pipeline) → mastering; metrics include cleaning + mastering reports |
-
-### Request shapes
-
-`POST /api/process` (multipart form):
-
-- `file` — the audio upload
-- `params` — JSON string:
-  `{preset, preset_strength (0..2), overrides: {param: value, ...}, mastering: {...}, mastering_analysis: {...}, eq: {...}, repair: {...}, tags: {...}}`.
-  Order of application: preset → strength scaling → explicit overrides.
-  `tags` = `{enabled, title, artist, album_artist, album, genre, year, track, copyright, isrc, mode: "fill"|"overwrite", notes: bool}`;
-  the export's tags are the source's own tags, the blanks filled from these
-  (`fill`) or these winning where set (`overwrite`), plus one Shimmer note
-  per pass in the comment when `notes` is true.
-- `trim_in_s`, `trim_out_s` — optional explicit in/out points from the Trim
-  view. Applied to the source before cleaning and mastering, with a 5 ms
-  fade at each new edge. Omitted entirely when no trim is armed.
-- `preserve_volume` — bool, default true
-- `output_format` — `wav` | `wav16` (the release copy: 16-bit WAV at
-  44.1 kHz, dithered, chain run at 44.1 kHz) | `flac` | `mp3` | `ogg` |
-  `m4a`. The metrics' `export` block reports `format_key`, `bit_depth`,
-  `dither` and `sample_rate`.
-- `save_folder` — optional path. When set, the export (the trimmed
-  variant when `trim_silence` is on) is copied there as the job ends,
-  under the download filename. The folder is created if missing; a
-  path that cannot be a folder is a 400 before the run starts. The
-  metrics report it as `export.saved` (`{enabled, path, folder, name}`,
-  or `{enabled, folder, error}` when the copy failed; the job still
-  succeeds).
-
-`POST /api/batch` (JSON):
-
-```json
-{
-  "input_folder": "D:\\music\\in",
-  "output_folder": "",
-  "preset": "generic",
-  "preset_strength": 1.0,
-  "preserve_volume": true,
-  "output_format": "wav",
-  "auto_detect": false,
-  "mastering": {"enabled": true, "target_lufs": -14.0, "intensity": "med"},
-  "album_mode": false,
-  "auto_eq": false,
-  "tone_family": "neutral",
-  "tags": {"enabled": true, "artist": "The Treq", "mode": "fill", "notes": true}
-}
+```
+python -m shimmer input.wav output.wav [options]
 ```
 
-`auto_eq` plans a suggested EQ per file (judged after that file's
-cleaning) and adds it to `eq`; `file_done` events carry `tone_moves`,
-`tone_summary` and `tags_written`.
+The output format follows the output file's extension: `.wav`, `.flac`,
+`.mp3`, `.ogg` or `.m4a`.
 
-`POST /api/preview` (JSON): `{session_id, start_s, end_s, preset,
-preset_strength, overrides, preserve_volume, mastering}`. The response is one
-binary payload — `[u32 json_len][json meta][u32 wav_len][processed wav]
-[removed wav]` — where the meta includes per-slice LUFS for client-side
-loudness matching plus `render_ms`.
+**Fixes (the "What do you hear?" cards):**
 
-### Job metrics
-
-`GET /api/metrics/{job_id}` returns `sample_rate`, `channels`, `duration_s`,
-`input`/`output` peak and RMS, `diagnostic` (when enabled), the `mastering`
-report, `loudness` (input/output integrated LUFS, populated whether or
-not mastering ran, so the client can loudness-match A/B in every state),
-and `export` (`format, subtype, bit_depth, dither, bitrate, tags:
-{written, form, fields, tags}, saved, name, size_bytes`), plus `release`
-(the release check, or null when the run was not mastered).
-
----
-
-## 10. CLI reference
-
-Source: [shimmer.py](shimmer.py). Flags grouped as in `--help`:
-
-| Group | Flags |
+| Option | What it does |
 |---|---|
-| Preset selection | `--preset` (visible keys + legacy aliases), `--list-presets`, `--suggest INPUT` |
-| Shimmer band | `--start-hz`, `--end-hz`, `--center-hz` + `--width-cents` (alternative band spec), `--edge-hz` |
-| STFT | `--n-fft`, `--hop` |
-| Shimmer detection | `--freq-med-bins`, `--thr-db`, `--slope`, `--density-lo`, `--density-hi` |
-| Gating | `--flat-start`, `--flat-end`, `--flux-thr-db`, `--flux-range-db` |
-| Creative | `--noise-resynth`, `--mix` |
-| Spectral denoise | `--denoise`, `--dn-start-hz`, `--dn-end-hz`, `--dn-edge-hz`, `--dn-floor-db`, `--dn-psd-smooth-ms`, `--dn-minwin-ms`, `--dn-up-db-per-s`, `--dn-attack-ms`, `--dn-release-ms`, `--dn-freq-smooth-bins` |
-| De-harsh | `--deharsh`, `--dh-start-hz`, `--dh-end-hz`, `--dh-edge-hz`, `--dh-ref-start-hz`, `--dh-ref-end-hz`, `--dh-thr-db`, `--dh-slope`, `--dh-max-att-db`, `--dh-attack-ms`, `--dh-release-ms` |
-| De-checkerboard | `--decheck`, `--cb-start-hz`, `--cb-end-hz`, `--cb-min-spacing-hz`, `--cb-max-spacing-hz`, `--cb-peak-thr-db`, `--cb-max-att-db`, `--cb-persist-ms` |
-| De-resonator | `--deres`, `--deq-start-hz`, `--deq-end-hz`, `--deq-edge-hz`, `--deq-freq-med-bins`, `--deq-thr-db`, `--deq-slope`, `--deq-max-att-db`, `--deq-density-lo`, `--deq-density-hi`, `--deq-persist-ms`, `--deq-persist-thr-db`, `--deq-freq-smooth-bins`, `--deq-tonal-boost-db` |
-| Downward expander | `--expander`, `--exp-start-hz`, `--exp-end-hz`, `--exp-threshold-db`, `--exp-ratio`, `--exp-attack-ms`, `--exp-release-ms` |
-| Post-STFT filters | `--high-shelf-hz`, `--high-shelf-db`, `--subsonic-hz`, `--presence-hz`, `--presence-db` |
-| Mastering | `--master`, `--no-master`, `--target {streaming,loud,cd}`, `--target-lufs`, `--ceiling` (default: codec-aware from the output extension), `--master-intensity {low,med,high}`, `--master-tilt {brightest,bright,neutral,warm,warmer}` |
-| Output | `--no-pad`, `--fade-ms`, `--no-preserve-volume`, `--subtype {PCM_16,PCM_24,FLOAT}` (default PCM_24), `--sample-rate HZ` (resample before processing), `--release` (16-bit at 44.1 kHz with dither), `--write-diff FILE` |
-| Misc | `--seed`, `--debug` |
+| `--fix CARD[=AMOUNT]` | Turn on a card, at an Amount from 0 to 1 (the card's starting Amount if left out). Repeat for more cards |
+| `--no-auto` | Only the cards you name. Do not also fix what Analyze finds (Fixed tones today) |
+| `--no-static-repair` | No Fixed tones at all, found or named (1.x's name) |
+| `--preset NAME` | A 1.x preset name: turns on the card it became |
+| `--list` (or `--list-presets`) | List the cards, loudness targets, formats and 1.x presets, then exit |
+| `--suggest INPUT` | Analyze a file and print what it finds, then exit |
 
-Explicit flags always override the chosen preset. Mastering is off by default
-on the CLI; enable it with `--master`, `--target`, or `--target-lufs`. After
-processing, the CLI prints duration, peak/RMS in→out, LUFS and true-peak
-before→after (when mastering ran), and elapsed time.
+Card names for `--fix`: `shimmer`, `tones`, `sibilance`, `clicks`,
+`harshness`, `phasiness`, `mud`, `air`, `loudness`. `--list` shows each
+card's state: ready, built but not passed yet (`clicks`), or no fix yet
+(`phasiness`). A fix that is built but not passed still runs when you name
+it here. The screens do not offer it.
 
-The advanced parameters not exposed as flags are listed at the end of
-[Section 4](#4-dsp-processing-engine).
+**Mastering:**
 
----
-
-## 11. Batch processing
-
-Source: `api_batch` and `_batch_one` in [server.py](server.py)
-
-- Scans the input folder (non-recursive) for `*.wav`, `*.mp3`, `*.flac`,
-  `*.ogg`, `*.m4a` (plus uppercase `*.WAV`, `*.MP3`, `*.FLAC`), sorted and
-  deduplicated.
-- Output folder defaults to `{input_folder}_deshimmered` and is created if
-  missing; each output file keeps its stem with the chosen format's extension.
-- Each file runs through `process_file()` on a thread executor with the
-  shared preset (strength-scaled) or, with `auto_detect: true`, a per-file
-  `suggest_preset()` pick reported back as `detected_preset`,
-  `detected_label`, `detected_confidence`, `detected_strength` and
-  `effective_strength`. In auto mode the request's `preset_strength`
-  multiplies the detected strength (1.0 = trust the analysis) and the
-  product goes through `apply_preset_strength`.
-- Optional mastering applies to every file. With mastering on, `file_done`
-  also carries `lufs_out`, `true_peak_out`, `limiter_gr_db` and a
-  `release` summary (`status`, counts, the flagged labels) from the
-  release check ([release.py](release.py)); the log prints the verdict
-  per file.
-- **Album mode** (`album_mode: true`, with mastering on): two passes.
-  `_album_clean_one` runs `clean_and_master(..., defer_master=True)` for
-  each file (tone curve included, mastering held back), parks the
-  pre-master signal as a float WAV in a temp folder and measures it;
-  `_album_gain` picks one gain, `target − loudest track's LUFS`, and
-  reports the album's overall loudness (duration-weighted energy mean of
-  the tracks' integrated loudness) and the spread; `_album_master_one`
-  masters each parked track with `master(..., fixed_gain_db=gain)` (the
-  shaper and limiter still run per track), trims, writes and tags it.
-  The temp folder is removed when the run ends.
-- SSE event stream: `start` (total count, output folder, preset or
-  "auto-detect", `album_mode`), `file_start`, `file_done` (duration, peak
-  in/out, detection info, output loudness), `file_error`, `end`. Album
-  mode adds `phase` (`clean` | `master`, with a message), a `phase` field
-  on the per-file events (pass-1 `file_done` carries `lufs_clean` and
-  `true_peak_clean`; pass-2 `file_done` carries the output loudness and
-  `gain_db`), and one `album` event (`loudest`, `loudest_lufs`,
-  `gain_db`, `album_lufs`, `spread_lu`, `target_lufs`, `tracks`).
-
----
-
-## 12. Job system and infrastructure
-
-- **Job store** ([jobs.py](jobs.py)): one UUID job per full-file run with a
-  temp workdir, an asyncio progress queue feeding the SSE stream, and a
-  status lifecycle of queued → running → done | error. Jobs older than
-  **1 hour** are swept.
-- **Preview store** ([preview_store.py](preview_store.py)): decoded float32
-  samples held in RAM per session, capped at the first **30 minutes** of
-  audio; sessions idle for **1 hour** are evicted. Every preview render pads
-  the requested window with 1.5 s of preroll and 0.25 s of postroll so
-  stateful stages (noise PSD trackers, persistence EMAs) warm up before the
-  audible slice, then trims back.
-- **Settings store** ([settings_store.py](settings_store.py)): JSON
-  persistence with legacy-alias migration (see Section 8).
-- **Windows import fix** ([_winfix.py](_winfix.py)): must be imported before
-  scipy/numpy on Windows; both entry points do this.
-- **CI** ([.github/workflows/ci.yml](.github/workflows/ci.yml)): on push/PR to
-  main, byte-compiles all sources and runs an import smoke test on Python
-  3.11 and 3.12.
-- **PushToGitHub.bat**: interactive commit-and-push helper.
-- **Dependencies** ([requirements.txt](requirements.txt)): numpy, scipy,
-  soundfile, matplotlib, fastapi, uvicorn, python-multipart, pyloudnorm.
-  ffmpeg (system PATH) is an optional runtime dependency for compressed
-  formats.
-
-### Module map
-
-| Module | Role |
+| Option | What it does |
 |---|---|
-| [shimmer.py](shimmer.py) | CLI entry point, argparse, orchestration |
-| [server.py](server.py) | FastAPI HTTP API |
-| [params.py](params.py) | `Params` and `MasterParams` dataclasses, preset-strength scaler, loudness targets |
-| [presets.py](presets.py) | 17 artifact-shape preset factories + legacy aliases |
-| [engine.py](engine.py) | STFT loop, 9 processing stages, shared gates, post filters |
-| [dsp.py](dsp.py) | Primitive DSP helpers (filters, conversions, band math) |
-| [audio_io.py](audio_io.py) | File I/O, measurements, `process_file()` |
-| [mastering.py](mastering.py) | LUFS / tone-match EQ / true-peak limiter chain and analysis |
-| [pipeline.py](pipeline.py) | Safe-pipeline orchestrator: tone curve → band split → M/S clean → EQ → master |
-| [eq.py](eq.py) | User parametric EQ (zero-phase biquad cascade) |
-| [stems.py](stems.py) | Stem separation: quality tiers, side-venv bootstrap, worker subprocess, per-model content-hash cache, residual/null test and per-stem measurements |
-| [stems_runner.py](stems_runner.py) | The separation worker (runs in `.venv-stems`): Demucs with real progress, float32 stems, JSON events on stdout |
-| [stem_effects.py](stem_effects.py) | Per-stem effects rack (formant/saturation/doubler/reverb), gain/pan/mute, remix sum and per-stem renders |
-| [projects_store.py](projects_store.py) | Per-track project persistence (remix state, keyed by file digest) |
-| [probe.py](probe.py) | Auto-detect scoring, region analysis, diagnostics CLI |
-| [preview_store.py](preview_store.py) | In-memory live-preview sessions |
-| [jobs.py](jobs.py) | Async job state for full-file processing |
-| [settings_store.py](settings_store.py) | UI settings persistence |
-| [_winfix.py](_winfix.py) | Windows scipy/numpy import-order fix |
-| [static/](static/) | Frontend: HTML, split CSS, ES-module JS |
+| `--master` | Master to the default target (Commercial, -9 LUFS) |
+| `--target cd\|loud\|streaming` | Master to this target: Commercial (-9), Balanced (-11) or Streaming standard (-14 LUFS) |
+| `--no-master` | No mastering |
+| `--intensity low\|med\|high` | How much of the tone correction to make (Tone match) |
+| `--tilt warmer\|warm\|neutral\|bright\|brightest` | Warm to bright |
+| `--reference FILE` | Move the tone toward this reference track (mastering only) |
+| `--match-amount 0-1` | How much of the reference's difference to take (default 0.5, at most ±3 dB) |
+
+Mastering is off unless you pass `--master` or `--target`, as in 1.x.
+Naming `air` or `loudness` with `--fix` turns mastering on, unless you also
+pass `--no-master`.
+
+**Output:**
+
+| Option | What it does |
+|---|---|
+| `--release` | The release copy: 16-bit at 44.1 kHz with dither, as WAV (or FLAC for a `.flac` output) |
+| `--trim-silence` | Cut silence from the start and end |
+| `--no-preserve-volume` | With mastering off, do not put the result back at the input's level |
+| `--write-diff FILE` | Also write the Removed track to FILE |
+
+**Old flags.** 1.x's 84 cleaning and output flags (`--denoise`,
+`--start-hz`, `--ceiling` and the rest) went with the chain they tuned.
+They are still accepted, so old scripts run, and the run prints which ones
+it ignored.
+
+**What it prints:** each stage as it runs, the notches cut, the other fixes
+that ran, any card that is not built yet, the loudness before and after,
+the true peak, the tone target used and, with mastering on, the release
+check verdict: "ready to upload", "things to look at" or "not ready".
+
+Examples:
+
+```
+python -m shimmer input.wav output.wav --target cd
+python -m shimmer input.wav output.wav --fix tones=0.5 --no-auto
+python -m shimmer input.wav release.wav --master --release
+python -m shimmer input.wav output.wav --master --fix sibilance --fix harshness=0.8
+python -m shimmer --suggest input.mp3
+python -m shimmer --list
+```
+
+---
+
+## 10. Known limits in 2.0.0
+
+- **The Remix and Batch tabs still show the old preset menu.** A preset
+  you pick there turns on the card it maps to (see
+  [8.3](#83-how-1x-settings-carry-over)). In Batch, **Preset strength** and
+  **Auto-detect each file** have no effect.
+- **The Master tab still has the 1.x "Advanced artifact controls"
+  drawer.** Its sliders do not change the sound in 2.0.
+- **Clicks and crackle and Phasiness have no working fix yet.** The
+  de-click is built but has not passed its tests. The Master tab card says
+  "Not built yet". The command line runs it with `--fix clicks`. Phasiness
+  says "No fix yet".
+- **All four fixes at full can take too much.** With Shimmer, Sibilance,
+  Harshness and Low-mid build-up all at Amount 100 %, two of five test songs
+  lost a little more than one fix may take (0.10 sones). See
+  [STEP6-FIXES.md, "All four fixes on at once"](STEP6-FIXES.md#all-four-fixes-on-at-once-2026-09-13).
+- **The Shimmer fix passes on one of its four fault models.** It is on to
+  try on real songs.
+- **Blind listening rounds for the fixes are still to come.** The Shimmer,
+  Sibilance, Harshness and Low-mid build-up fixes are measured but not yet
+  judged blind.
+- **No screen has a Cancel button.** This includes Batch. The server can
+  stop a Master tab or Remix export, but no button calls it. Turning the
+  Shimmer card off during a live preview stops its first read.
+- **Icons show as words when you are offline.** The icon font loads from
+  Google Fonts.
+- **Sound tuning is planned for 2.0.1.**

@@ -15,7 +15,7 @@ For the user-facing introduction, see the [root README](../README.md).
 | [SOUND-CHANGES.md](SOUND-CHANGES.md) | Every change that alters an export against 1.1.1, with numbers |
 | [STEP6-FIXES.md](STEP6-FIXES.md) | How each card's fix was measured, and the numbers behind each Amount slider |
 | [API.md](API.md) | Every HTTP route the screens call, what it sends and what it reads back |
-| [FEATURES.md](FEATURES.md) | The 1.1.1 feature and parameter reference. Not yet rewritten for 2.0 |
+| [FEATURES.md](FEATURES.md) | The full feature reference for 2.0: every tab, card, format and setting |
 
 Background and rules:
 
