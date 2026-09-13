@@ -83,6 +83,40 @@ def test_the_preview_is_the_export_on_a_window(dense_mix, window):
     assert _residual_db(win, ref) >= 60.0
 
 
+# Every card whose fix is built and on in the Master tab, at the top of its
+# Amount (docs/STEP6-FIXES.md).
+ALL_FIXES = {"shimmer": 1.0, "sibilance": 1.0, "harshness": 1.0, "mud": 1.0}
+
+
+@rendering
+@pytest.mark.parametrize("window", [(0.0, 2.0), (3.137, 6.411), (7.5, 10.0)])
+def test_every_fix_on_at_full_still_previews_as_it_exports(dense_mix, window):
+    """All the fixes at once, with Fixed tones and mastering as they come:
+    the preview is still the export on a window."""
+    from shimmer.core.render import Source, render
+    from shimmer.core.settings import Settings
+    x, sr = dense_mix
+    src = Source.from_array(_stepped(x), sr)
+    s = Settings(fixes=ALL_FIXES)
+    full = render(src, s)
+    assert all(full.report["fixes"][k]["enabled"] for k in ALL_FIXES)
+    win = render(src, s, window=window).audio
+    ref = full.audio[round(window[0] * sr):round(window[1] * sr)]
+    assert len(win) == len(ref)
+    assert _residual_db(win, ref) >= 60.0
+
+
+@rendering
+def test_every_fix_on_at_full_still_lands_on_the_target(dense_mix):
+    from shimmer.core.render import Source, render
+    from shimmer.core.settings import Settings
+    x, sr = dense_mix
+    out = render(Source.from_array(x, sr), Settings(fixes=ALL_FIXES))
+    assert np.all(np.isfinite(out.audio)) and out.audio.shape == x.shape
+    assert abs(lufs(out.audio, out.sr) - TARGET_LUFS["cd"]) <= 0.3
+    assert true_peak_16x_db(out.audio) <= -1.0 + 0.05
+
+
 @rendering
 def test_the_release_copy_preview_matches_it(dense_mix):
     from shimmer.core.render import Source, render

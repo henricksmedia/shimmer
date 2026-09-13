@@ -385,6 +385,13 @@ de-click stays off until it finds pops in dense music.
       and can be cancelled (`POST /api/prepare`, 2026-09-13). A preview and
       an export that ask at once share the work.
 - [ ] Everything on at full, on clean music, passes the same checks.
+      *Measured 2026-09-13 ([STEP6-FIXES.md](STEP6-FIXES.md)):*
+      - The preview still matches the export, and loudness and the ceiling
+        hold.
+      - Each fault is removed about as well as by its own fix alone.
+      - Together, though, they take 0.075-0.138 sones from a clean song.
+        That is over the 0.10 one-fix limit on 2 of 5 songs.
+      - Left open for 2.0.1, with the rest of the sound work.
 - [x] The screens read `/api/rules`, and the Step 6 test mark comes off
       (2026-09-12).
   - The three loudness menus are filled from the rules; no screen keeps its

@@ -41764,6 +41764,6926 @@
    },
    "energy_left": 0.9103,
    "targeted": true
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.4996,
+   "injected_missing": 0.1091,
+   "injected_lin_dist": 0.104,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.011,
+    "flat_3_8": 0.462,
+    "flat_4_12": 0.319,
+    "flat_8_18": 0.156,
+    "presence_db": -5.953,
+    "ring_4_10": 0.043,
+    "comb": 0.229,
+    "sib_burst": 0.022,
+    "tail_contrast": 0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.031,
+    "umid_db": -11.318,
+    "top_tilt_db": -19.838,
+    "tone_8_12": {
+     "hz": 10601.0,
+     "excess_db": 4.87,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 14401.1,
+     "excess_db": 4.9,
+     "duty": 0.344
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 8.0,
+     "duty": 0.452
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4998,
+   "efficacy": -0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.003,
+   "cost_missing_raw": 0.109,
+   "cost_lin_dist_raw": 0.107,
+   "cost_added": 0.4998,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.4996,
+   "injected_missing": 0.1091,
+   "injected_lin_dist": 0.104,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.011,
+    "flat_3_8": 0.462,
+    "flat_4_12": 0.319,
+    "flat_8_18": 0.156,
+    "presence_db": -5.953,
+    "ring_4_10": 0.043,
+    "comb": 0.229,
+    "sib_burst": 0.022,
+    "tail_contrast": 0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.031,
+    "umid_db": -11.318,
+    "top_tilt_db": -19.838,
+    "tone_8_12": {
+     "hz": 10601.0,
+     "excess_db": 4.87,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 14401.1,
+     "excess_db": 4.9,
+     "duty": 0.344
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 8.0,
+     "duty": 0.452
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.3392,
+   "efficacy": 0.321,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.568,
+   "cost_missing_raw": 0.0924,
+   "cost_lin_dist_raw": 0.671,
+   "cost_added": 0.3513,
+   "control": {
+    "missing": 0.0749,
+    "lin_dist": 0.758,
+    "added": 0.1109,
+    "width_db": -0.026,
+    "attack_db": -0.001,
+    "pumping_db": 1.664
+   },
+   "energy_left": 0.613,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 1.9983,
+   "injected_missing": 3.1865,
+   "injected_lin_dist": 2.948,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.423,
+    "flat_3_8": 0.461,
+    "flat_4_12": 0.301,
+    "flat_8_18": 0.153,
+    "presence_db": -5.837,
+    "ring_4_10": 0.041,
+    "comb": 0.225,
+    "sib_burst": 0.139,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.037,
+    "umid_db": -10.621,
+    "top_tilt_db": -20.408,
+    "tone_8_12": {
+     "hz": 10601.1,
+     "excess_db": 4.84,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 14401.1,
+     "excess_db": 4.91,
+     "duty": 0.344
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 8.0,
+     "duty": 0.441
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9985,
+   "efficacy": -0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.003,
+   "cost_missing_raw": 3.1864,
+   "cost_lin_dist_raw": 2.952,
+   "cost_added": 1.9985,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 1.9983,
+   "injected_missing": 3.1865,
+   "injected_lin_dist": 2.948,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.423,
+    "flat_3_8": 0.461,
+    "flat_4_12": 0.301,
+    "flat_8_18": 0.153,
+    "presence_db": -5.837,
+    "ring_4_10": 0.041,
+    "comb": 0.225,
+    "sib_burst": 0.139,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.037,
+    "umid_db": -10.621,
+    "top_tilt_db": -20.408,
+    "tone_8_12": {
+     "hz": 10601.1,
+     "excess_db": 4.84,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 14401.1,
+     "excess_db": 4.91,
+     "duty": 0.344
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 8.0,
+     "duty": 0.441
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.9306,
+   "efficacy": 0.534,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.2574,
+   "cost_lin_dist_raw": 0.88,
+   "cost_added": 0.9195,
+   "control": {
+    "missing": 0.0749,
+    "lin_dist": 0.758,
+    "added": 0.1109,
+    "width_db": -0.026,
+    "attack_db": -0.001,
+    "pumping_db": 1.664
+   },
+   "energy_left": 0.2776,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.5002,
+   "injected_missing": 0.4637,
+   "injected_lin_dist": 0.64,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.867,
+    "flat_3_8": 0.449,
+    "flat_4_12": 0.265,
+    "flat_8_18": 0.16,
+    "presence_db": -7.208,
+    "ring_4_10": 0.053,
+    "comb": 0.233,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.004,
+    "period_excess": 0.024,
+    "echo_corr": 0.231,
+    "umid_db": -11.899,
+    "top_tilt_db": -20.534,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5004,
+   "efficacy": -0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.004,
+   "cost_missing_raw": 0.4637,
+   "cost_lin_dist_raw": 0.644,
+   "cost_added": 0.5004,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.5002,
+   "injected_missing": 0.4637,
+   "injected_lin_dist": 0.64,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.867,
+    "flat_3_8": 0.449,
+    "flat_4_12": 0.265,
+    "flat_8_18": 0.16,
+    "presence_db": -7.208,
+    "ring_4_10": 0.053,
+    "comb": 0.233,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.004,
+    "period_excess": 0.024,
+    "echo_corr": 0.231,
+    "umid_db": -11.899,
+    "top_tilt_db": -20.534,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.4551,
+   "efficacy": 0.09,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.368,
+   "cost_missing_raw": 0.2667,
+   "cost_lin_dist_raw": 1.008,
+   "cost_added": 0.4606,
+   "control": {
+    "missing": 0.0749,
+    "lin_dist": 0.758,
+    "added": 0.1109,
+    "width_db": -0.026,
+    "attack_db": -0.001,
+    "pumping_db": 1.664
+   },
+   "energy_left": 0.7947,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 0.907,
+   "injected_missing": 7.0095,
+   "injected_lin_dist": 82.659,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.692,
+    "flat_3_8": 0.187,
+    "flat_4_12": 0.066,
+    "flat_8_18": 0.154,
+    "presence_db": -7.426,
+    "ring_4_10": 0.053,
+    "comb": 0.235,
+    "sib_burst": 0.0,
+    "tail_contrast": -0.002,
+    "period_excess": 0.09,
+    "echo_corr": 0.98,
+    "umid_db": -11.391,
+    "top_tilt_db": -28.216,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.94,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.94,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.98,
+     "duty": 0.462
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.9017,
+   "efficacy": 0.006,
+   "cost_missing": 0.0793,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 7.0888,
+   "cost_lin_dist_raw": 80.562,
+   "cost_added": 0.9017,
+   "notches": 5,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 0.907,
+   "injected_missing": 7.0095,
+   "injected_lin_dist": 82.659,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.692,
+    "flat_3_8": 0.187,
+    "flat_4_12": 0.066,
+    "flat_8_18": 0.154,
+    "presence_db": -7.426,
+    "ring_4_10": 0.053,
+    "comb": 0.235,
+    "sib_burst": 0.0,
+    "tail_contrast": -0.002,
+    "period_excess": 0.09,
+    "echo_corr": 0.98,
+    "umid_db": -11.391,
+    "top_tilt_db": -28.216,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.94,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.94,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.98,
+     "duty": 0.462
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.9291,
+   "efficacy": -0.024,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 6.1132,
+   "cost_lin_dist_raw": 78.923,
+   "cost_added": 0.9161,
+   "control": {
+    "missing": 0.0749,
+    "lin_dist": 0.758,
+    "added": 0.1109,
+    "width_db": -0.026,
+    "attack_db": -0.001,
+    "pumping_db": 1.664
+   },
+   "energy_left": 0.6685,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.4993,
+   "injected_missing": 0.2887,
+   "injected_lin_dist": 7.521,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.893,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.3,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": -0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.016,
+    "umid_db": -12.133,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4996,
+   "efficacy": -0.001,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.013,
+   "cost_missing_raw": 0.2886,
+   "cost_lin_dist_raw": 7.534,
+   "cost_added": 0.4996,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.4993,
+   "injected_missing": 0.2887,
+   "injected_lin_dist": 7.521,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.893,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.3,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": -0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.016,
+    "umid_db": -12.133,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.4069,
+   "efficacy": 0.185,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.262,
+   "cost_lin_dist_raw": 7.067,
+   "cost_added": 0.455,
+   "control": {
+    "missing": 0.0749,
+    "lin_dist": 0.758,
+    "added": 0.1109,
+    "width_db": -0.026,
+    "attack_db": -0.001,
+    "pumping_db": 1.664
+   },
+   "energy_left": 0.8689,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 2.0005,
+   "injected_missing": 0.7141,
+   "injected_lin_dist": 82.18,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.896,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.308,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": -0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.018,
+    "umid_db": -12.142,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0006,
+   "efficacy": -0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.008,
+   "cost_missing_raw": 0.7138,
+   "cost_lin_dist_raw": 82.188,
+   "cost_added": 2.0006,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 2.0005,
+   "injected_missing": 0.7141,
+   "injected_lin_dist": 82.18,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.896,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.308,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": -0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.018,
+    "umid_db": -12.142,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.3194,
+   "efficacy": 0.34,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.5677,
+   "cost_lin_dist_raw": 73.433,
+   "cost_added": 1.4826,
+   "control": {
+    "missing": 0.0749,
+    "lin_dist": 0.758,
+    "added": 0.1109,
+    "width_db": -0.026,
+    "attack_db": -0.001,
+    "pumping_db": 1.664
+   },
+   "energy_left": 0.8662,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.5001,
+   "injected_missing": 0.1001,
+   "injected_lin_dist": 0.042,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.009,
+    "flat_3_8": 0.459,
+    "flat_4_12": 0.394,
+    "flat_8_18": 0.387,
+    "presence_db": -6.292,
+    "ring_4_10": 0.039,
+    "comb": 0.18,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.028,
+    "umid_db": -11.796,
+    "top_tilt_db": -12.981,
+    "tone_8_12": {
+     "hz": 9599.7,
+     "excess_db": 3.24,
+     "duty": 0.118
+    },
+    "tone_9_15": {
+     "hz": 9599.7,
+     "excess_db": 3.24,
+     "duty": 0.118
+    },
+    "tone_12_20": {
+     "hz": 19199.2,
+     "excess_db": 5.88,
+     "duty": 0.355
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5001,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.1001,
+   "cost_lin_dist_raw": 0.042,
+   "cost_added": 0.5001,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.5001,
+   "injected_missing": 0.1001,
+   "injected_lin_dist": 0.042,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.009,
+    "flat_3_8": 0.459,
+    "flat_4_12": 0.394,
+    "flat_8_18": 0.387,
+    "presence_db": -6.292,
+    "ring_4_10": 0.039,
+    "comb": 0.18,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.028,
+    "umid_db": -11.796,
+    "top_tilt_db": -12.981,
+    "tone_8_12": {
+     "hz": 9599.7,
+     "excess_db": 3.24,
+     "duty": 0.118
+    },
+    "tone_9_15": {
+     "hz": 9599.7,
+     "excess_db": 3.24,
+     "duty": 0.118
+    },
+    "tone_12_20": {
+     "hz": 19199.2,
+     "excess_db": 5.88,
+     "duty": 0.355
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.3088,
+   "efficacy": 0.382,
+   "cost_missing": 0.0523,
+   "cost_lin_dist": 0.728,
+   "cost_missing_raw": 0.1525,
+   "cost_lin_dist_raw": 0.771,
+   "cost_added": 0.3179,
+   "control": {
+    "missing": 0.0749,
+    "lin_dist": 0.758,
+    "added": 0.1109,
+    "width_db": -0.026,
+    "attack_db": -0.001,
+    "pumping_db": 1.664
+   },
+   "energy_left": 0.7001,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 2.0002,
+   "injected_missing": 3.2803,
+   "injected_lin_dist": 11.285,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 2.486,
+    "flat_3_8": 0.712,
+    "flat_4_12": 0.749,
+    "flat_8_18": 0.643,
+    "presence_db": -2.851,
+    "ring_4_10": 0.008,
+    "comb": 0.087,
+    "sib_burst": 0.0,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.24,
+    "umid_db": -4.056,
+    "top_tilt_db": -2.35,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0002,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 3.2803,
+   "cost_lin_dist_raw": 11.285,
+   "cost_added": 2.0002,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 2.0002,
+   "injected_missing": 3.2803,
+   "injected_lin_dist": 11.285,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 2.486,
+    "flat_3_8": 0.712,
+    "flat_4_12": 0.749,
+    "flat_8_18": 0.643,
+    "presence_db": -2.851,
+    "ring_4_10": 0.008,
+    "comb": 0.087,
+    "sib_burst": 0.0,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.24,
+    "umid_db": -4.056,
+    "top_tilt_db": -2.35,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.5448,
+   "efficacy": 0.228,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 1.3384,
+   "cost_lin_dist_raw": 3.493,
+   "cost_added": 1.5263,
+   "control": {
+    "missing": 0.0749,
+    "lin_dist": 0.758,
+    "added": 0.1109,
+    "width_db": -0.026,
+    "attack_db": -0.001,
+    "pumping_db": 1.664
+   },
+   "energy_left": 0.2662,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.4993,
+   "injected_missing": 0.837,
+   "injected_lin_dist": 0.801,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.053,
+    "flat_3_8": 0.45,
+    "flat_4_12": 0.333,
+    "flat_8_18": 0.28,
+    "presence_db": -2.1,
+    "ring_4_10": 0.252,
+    "comb": 0.113,
+    "sib_burst": 0.121,
+    "tail_contrast": 0.006,
+    "period_excess": 0.179,
+    "echo_corr": -0.147,
+    "umid_db": -5.023,
+    "top_tilt_db": -15.079,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5303,
+   "efficacy": -0.062,
+   "cost_missing": 0.0623,
+   "cost_lin_dist": 0.437,
+   "cost_missing_raw": 0.8993,
+   "cost_lin_dist_raw": 1.238,
+   "cost_added": 0.5303,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.4993,
+   "injected_missing": 0.837,
+   "injected_lin_dist": 0.801,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.053,
+    "flat_3_8": 0.45,
+    "flat_4_12": 0.333,
+    "flat_8_18": 0.28,
+    "presence_db": -2.1,
+    "ring_4_10": 0.252,
+    "comb": 0.113,
+    "sib_burst": 0.121,
+    "tail_contrast": 0.006,
+    "period_excess": 0.179,
+    "echo_corr": -0.147,
+    "umid_db": -5.023,
+    "top_tilt_db": -15.079,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.4007,
+   "efficacy": 0.197,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.3954,
+   "cost_lin_dist_raw": 0.722,
+   "cost_added": 0.4245,
+   "control": {
+    "missing": 0.0829,
+    "lin_dist": 0.339,
+    "added": 0.0926,
+    "width_db": 0.091,
+    "attack_db": 0.001,
+    "pumping_db": 1.947
+   },
+   "energy_left": 0.7267,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 2.0034,
+   "injected_missing": 26.9106,
+   "injected_lin_dist": 30.041,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.471,
+    "flat_3_8": 0.374,
+    "flat_4_12": 0.281,
+    "flat_8_18": 0.262,
+    "presence_db": -1.96,
+    "ring_4_10": 0.244,
+    "comb": 0.111,
+    "sib_burst": 0.247,
+    "tail_contrast": 0.007,
+    "period_excess": 0.136,
+    "echo_corr": 0.033,
+    "umid_db": -4.523,
+    "top_tilt_db": -16.947,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.247
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.247
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.2103,
+   "efficacy": -0.103,
+   "cost_missing": 1.0808,
+   "cost_lin_dist": 2.111,
+   "cost_missing_raw": 27.9914,
+   "cost_lin_dist_raw": 32.152,
+   "cost_added": 2.2103,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 2.0034,
+   "injected_missing": 26.9106,
+   "injected_lin_dist": 30.041,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.471,
+    "flat_3_8": 0.374,
+    "flat_4_12": 0.281,
+    "flat_8_18": 0.262,
+    "presence_db": -1.96,
+    "ring_4_10": 0.244,
+    "comb": 0.111,
+    "sib_burst": 0.247,
+    "tail_contrast": 0.007,
+    "period_excess": 0.136,
+    "echo_corr": 0.033,
+    "umid_db": -4.523,
+    "top_tilt_db": -16.947,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.247
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.247
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.9268,
+   "efficacy": 0.537,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 4.1125,
+   "cost_lin_dist_raw": 5.736,
+   "cost_added": 0.9735,
+   "control": {
+    "missing": 0.0829,
+    "lin_dist": 0.339,
+    "added": 0.0926,
+    "width_db": 0.091,
+    "attack_db": 0.001,
+    "pumping_db": 1.947
+   },
+   "energy_left": 0.2802,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.4992,
+   "injected_missing": 0.5904,
+   "injected_lin_dist": 5.845,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.475,
+    "flat_3_8": 0.327,
+    "flat_4_12": 0.249,
+    "flat_8_18": 0.286,
+    "presence_db": -2.986,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.082,
+    "tail_contrast": 0.003,
+    "period_excess": 0.1,
+    "echo_corr": 0.141,
+    "umid_db": -5.721,
+    "top_tilt_db": -17.119,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.29,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.29,
+     "duty": 0.237
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4992,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.5904,
+   "cost_lin_dist_raw": 5.845,
+   "cost_added": 0.4992,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.4992,
+   "injected_missing": 0.5904,
+   "injected_lin_dist": 5.845,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.475,
+    "flat_3_8": 0.327,
+    "flat_4_12": 0.249,
+    "flat_8_18": 0.286,
+    "presence_db": -2.986,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.082,
+    "tail_contrast": 0.003,
+    "period_excess": 0.1,
+    "echo_corr": 0.141,
+    "umid_db": -5.721,
+    "top_tilt_db": -17.119,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.29,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.29,
+     "duty": 0.237
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.4115,
+   "efficacy": 0.176,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.3666,
+   "cost_lin_dist_raw": 2.613,
+   "cost_added": 0.3784,
+   "control": {
+    "missing": 0.0829,
+    "lin_dist": 0.339,
+    "added": 0.0926,
+    "width_db": 0.091,
+    "attack_db": 0.001,
+    "pumping_db": 1.947
+   },
+   "energy_left": 0.6494,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 2.0033,
+   "injected_missing": 2.6939,
+   "injected_lin_dist": 118.735,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.414,
+    "flat_3_8": 0.181,
+    "flat_4_12": 0.101,
+    "flat_8_18": 0.284,
+    "presence_db": -2.834,
+    "ring_4_10": 0.26,
+    "comb": 0.116,
+    "sib_burst": 0.039,
+    "tail_contrast": 0.001,
+    "period_excess": 0.0,
+    "echo_corr": 0.749,
+    "umid_db": -5.172,
+    "top_tilt_db": -22.238,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.29,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.29,
+     "duty": 0.237
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0033,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 2.6939,
+   "cost_lin_dist_raw": 118.735,
+   "cost_added": 2.0033,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 2.0033,
+   "injected_missing": 2.6939,
+   "injected_lin_dist": 118.735,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.414,
+    "flat_3_8": 0.181,
+    "flat_4_12": 0.101,
+    "flat_8_18": 0.284,
+    "presence_db": -2.834,
+    "ring_4_10": 0.26,
+    "comb": 0.116,
+    "sib_burst": 0.039,
+    "tail_contrast": 0.001,
+    "period_excess": 0.0,
+    "echo_corr": 0.749,
+    "umid_db": -5.172,
+    "top_tilt_db": -22.238,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.29,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.29,
+     "duty": 0.237
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.6259,
+   "efficacy": 0.188,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 1.6529,
+   "cost_lin_dist_raw": 88.117,
+   "cost_added": 1.6132,
+   "control": {
+    "missing": 0.0829,
+    "lin_dist": 0.339,
+    "added": 0.0926,
+    "width_db": 0.091,
+    "attack_db": 0.001,
+    "pumping_db": 1.947
+   },
+   "energy_left": 0.6444,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.4999,
+   "injected_missing": 0.2963,
+   "injected_lin_dist": 2.898,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.671,
+    "flat_3_8": 0.414,
+    "flat_4_12": 0.35,
+    "flat_8_18": 0.235,
+    "presence_db": -2.943,
+    "ring_4_10": 0.326,
+    "comb": 0.119,
+    "sib_burst": 0.126,
+    "tail_contrast": 0.009,
+    "period_excess": 0.083,
+    "echo_corr": -0.063,
+    "umid_db": -6.246,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5368,
+   "efficacy": -0.074,
+   "cost_missing": 0.0212,
+   "cost_lin_dist": 0.467,
+   "cost_missing_raw": 0.3175,
+   "cost_lin_dist_raw": 3.364,
+   "cost_added": 0.5368,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.4999,
+   "injected_missing": 0.2963,
+   "injected_lin_dist": 2.898,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.671,
+    "flat_3_8": 0.414,
+    "flat_4_12": 0.35,
+    "flat_8_18": 0.235,
+    "presence_db": -2.943,
+    "ring_4_10": 0.326,
+    "comb": 0.119,
+    "sib_burst": 0.126,
+    "tail_contrast": 0.009,
+    "period_excess": 0.083,
+    "echo_corr": -0.063,
+    "umid_db": -6.246,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.448,
+   "efficacy": 0.104,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.2339,
+   "cost_lin_dist_raw": 2.204,
+   "cost_added": 0.4582,
+   "control": {
+    "missing": 0.0829,
+    "lin_dist": 0.339,
+    "added": 0.0926,
+    "width_db": 0.091,
+    "attack_db": 0.001,
+    "pumping_db": 1.947
+   },
+   "energy_left": 0.8489,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 1.9991,
+   "injected_missing": 4.2855,
+   "injected_lin_dist": 192.833,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.667,
+    "flat_3_8": 0.414,
+    "flat_4_12": 0.35,
+    "flat_8_18": 0.235,
+    "presence_db": -2.977,
+    "ring_4_10": 0.326,
+    "comb": 0.119,
+    "sib_burst": 0.126,
+    "tail_contrast": 0.004,
+    "period_excess": 0.086,
+    "echo_corr": 0.021,
+    "umid_db": -6.304,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.1094,
+   "efficacy": -0.055,
+   "cost_missing": 0.1189,
+   "cost_lin_dist": 15.587,
+   "cost_missing_raw": 4.4044,
+   "cost_lin_dist_raw": 208.42,
+   "cost_added": 2.1094,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 1.9991,
+   "injected_missing": 4.2855,
+   "injected_lin_dist": 192.833,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.667,
+    "flat_3_8": 0.414,
+    "flat_4_12": 0.35,
+    "flat_8_18": 0.235,
+    "presence_db": -2.977,
+    "ring_4_10": 0.326,
+    "comb": 0.119,
+    "sib_burst": 0.126,
+    "tail_contrast": 0.004,
+    "period_excess": 0.086,
+    "echo_corr": 0.021,
+    "umid_db": -6.304,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.6292,
+   "efficacy": 0.185,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 1.9588,
+   "cost_lin_dist_raw": 169.957,
+   "cost_added": 1.7723,
+   "control": {
+    "missing": 0.0829,
+    "lin_dist": 0.339,
+    "added": 0.0926,
+    "width_db": 0.091,
+    "attack_db": 0.001,
+    "pumping_db": 1.947
+   },
+   "energy_left": 0.8724,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.4997,
+   "injected_missing": 0.1163,
+   "injected_lin_dist": 0.116,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.661,
+    "flat_3_8": 0.465,
+    "flat_4_12": 0.441,
+    "flat_8_18": 0.487,
+    "presence_db": -2.817,
+    "ring_4_10": 0.209,
+    "comb": 0.115,
+    "sib_burst": 0.048,
+    "tail_contrast": 0.002,
+    "period_excess": 0.169,
+    "echo_corr": -0.256,
+    "umid_db": -5.981,
+    "top_tilt_db": -10.811,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5228,
+   "efficacy": -0.046,
+   "cost_missing": 0.0125,
+   "cost_lin_dist": 0.314,
+   "cost_missing_raw": 0.1287,
+   "cost_lin_dist_raw": 0.43,
+   "cost_added": 0.5228,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.4997,
+   "injected_missing": 0.1163,
+   "injected_lin_dist": 0.116,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.661,
+    "flat_3_8": 0.465,
+    "flat_4_12": 0.441,
+    "flat_8_18": 0.487,
+    "presence_db": -2.817,
+    "ring_4_10": 0.209,
+    "comb": 0.115,
+    "sib_burst": 0.048,
+    "tail_contrast": 0.002,
+    "period_excess": 0.169,
+    "echo_corr": -0.256,
+    "umid_db": -5.981,
+    "top_tilt_db": -10.811,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.3023,
+   "efficacy": 0.395,
+   "cost_missing": 0.0352,
+   "cost_lin_dist": 0.342,
+   "cost_missing_raw": 0.1514,
+   "cost_lin_dist_raw": 0.458,
+   "cost_added": 0.3257,
+   "control": {
+    "missing": 0.0829,
+    "lin_dist": 0.339,
+    "added": 0.0926,
+    "width_db": 0.091,
+    "attack_db": 0.001,
+    "pumping_db": 1.947
+   },
+   "energy_left": 0.7679,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 2.0016,
+   "injected_missing": 3.2349,
+   "injected_lin_dist": 10.601,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.911,
+    "flat_3_8": 0.693,
+    "flat_4_12": 0.725,
+    "flat_8_18": 0.639,
+    "presence_db": -0.454,
+    "ring_4_10": 0.016,
+    "comb": 0.086,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.002,
+    "period_excess": 0.001,
+    "echo_corr": 0.354,
+    "umid_db": -1.519,
+    "top_tilt_db": -3.026,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0016,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 3.2349,
+   "cost_lin_dist_raw": 10.601,
+   "cost_added": 2.0016,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 2.0016,
+   "injected_missing": 3.2349,
+   "injected_lin_dist": 10.601,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.911,
+    "flat_3_8": 0.693,
+    "flat_4_12": 0.725,
+    "flat_8_18": 0.639,
+    "presence_db": -0.454,
+    "ring_4_10": 0.016,
+    "comb": 0.086,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.002,
+    "period_excess": 0.001,
+    "echo_corr": 0.354,
+    "umid_db": -1.519,
+    "top_tilt_db": -3.026,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.5163,
+   "efficacy": 0.242,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 1.6712,
+   "cost_lin_dist_raw": 9.3,
+   "cost_added": 1.5863,
+   "control": {
+    "missing": 0.0829,
+    "lin_dist": 0.339,
+    "added": 0.0926,
+    "width_db": 0.091,
+    "attack_db": 0.001,
+    "pumping_db": 1.947
+   },
+   "energy_left": 0.3085,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.5004,
+   "injected_missing": 1.5036,
+   "injected_lin_dist": 0.569,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.309,
+    "flat_3_8": 0.524,
+    "flat_4_12": 0.531,
+    "flat_8_18": 0.202,
+    "presence_db": -2.839,
+    "ring_4_10": 0.029,
+    "comb": 0.088,
+    "sib_burst": 0.043,
+    "tail_contrast": 0.008,
+    "period_excess": 0.0,
+    "echo_corr": 0.081,
+    "umid_db": -5.188,
+    "top_tilt_db": -8.68,
+    "tone_8_12": {
+     "hz": 9467.3,
+     "excess_db": 3.23,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9467.3,
+     "excess_db": 3.23,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.3,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4965,
+   "efficacy": 0.008,
+   "cost_missing": 0.1145,
+   "cost_lin_dist": 0.238,
+   "cost_missing_raw": 1.6181,
+   "cost_lin_dist_raw": 0.807,
+   "cost_added": 0.4965,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.5004,
+   "injected_missing": 1.5036,
+   "injected_lin_dist": 0.569,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.309,
+    "flat_3_8": 0.524,
+    "flat_4_12": 0.531,
+    "flat_8_18": 0.202,
+    "presence_db": -2.839,
+    "ring_4_10": 0.029,
+    "comb": 0.088,
+    "sib_burst": 0.043,
+    "tail_contrast": 0.008,
+    "period_excess": 0.0,
+    "echo_corr": 0.081,
+    "umid_db": -5.188,
+    "top_tilt_db": -8.68,
+    "tone_8_12": {
+     "hz": 9467.3,
+     "excess_db": 3.23,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9467.3,
+     "excess_db": 3.23,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.3,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.3445,
+   "efficacy": 0.311,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.097,
+   "cost_missing_raw": 0.5262,
+   "cost_lin_dist_raw": 0.667,
+   "cost_added": 0.3833,
+   "control": {
+    "missing": 0.099,
+    "lin_dist": 0.278,
+    "added": 0.0978,
+    "width_db": 0.024,
+    "attack_db": 0.004,
+    "pumping_db": 2.283
+   },
+   "energy_left": 0.6728,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 1.9997,
+   "injected_missing": 29.637,
+   "injected_lin_dist": 17.846,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.84,
+    "flat_3_8": 0.482,
+    "flat_4_12": 0.509,
+    "flat_8_18": 0.193,
+    "presence_db": -2.381,
+    "ring_4_10": 0.033,
+    "comb": 0.09,
+    "sib_burst": 0.221,
+    "tail_contrast": 0.007,
+    "period_excess": 0.058,
+    "echo_corr": 0.063,
+    "umid_db": -4.924,
+    "top_tilt_db": -9.306,
+    "tone_8_12": {
+     "hz": 9469.3,
+     "excess_db": 3.5,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9469.3,
+     "excess_db": 3.5,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.4,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0597,
+   "efficacy": -0.03,
+   "cost_missing": 0.1783,
+   "cost_lin_dist": 0.79,
+   "cost_missing_raw": 29.8153,
+   "cost_lin_dist_raw": 18.636,
+   "cost_added": 2.0597,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 1.9997,
+   "injected_missing": 29.637,
+   "injected_lin_dist": 17.846,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.84,
+    "flat_3_8": 0.482,
+    "flat_4_12": 0.509,
+    "flat_8_18": 0.193,
+    "presence_db": -2.381,
+    "ring_4_10": 0.033,
+    "comb": 0.09,
+    "sib_burst": 0.221,
+    "tail_contrast": 0.007,
+    "period_excess": 0.058,
+    "echo_corr": 0.063,
+    "umid_db": -4.924,
+    "top_tilt_db": -9.306,
+    "tone_8_12": {
+     "hz": 9469.3,
+     "excess_db": 3.5,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9469.3,
+     "excess_db": 3.5,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.4,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.1061,
+   "efficacy": 0.447,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 11.7148,
+   "cost_lin_dist_raw": 5.041,
+   "cost_added": 1.1128,
+   "control": {
+    "missing": 0.099,
+    "lin_dist": 0.278,
+    "added": 0.0978,
+    "width_db": 0.024,
+    "attack_db": 0.004,
+    "pumping_db": 2.283
+   },
+   "energy_left": 0.2921,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.5011,
+   "injected_missing": 0.4404,
+   "injected_lin_dist": 1.313,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.038,
+    "flat_3_8": 0.431,
+    "flat_4_12": 0.448,
+    "flat_8_18": 0.209,
+    "presence_db": -4.128,
+    "ring_4_10": 0.041,
+    "comb": 0.087,
+    "sib_burst": 0.035,
+    "tail_contrast": 0.01,
+    "period_excess": 0.065,
+    "echo_corr": 0.235,
+    "umid_db": -6.12,
+    "top_tilt_db": -9.501,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5011,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.4404,
+   "cost_lin_dist_raw": 1.313,
+   "cost_added": 0.5011,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.5011,
+   "injected_missing": 0.4404,
+   "injected_lin_dist": 1.313,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.038,
+    "flat_3_8": 0.431,
+    "flat_4_12": 0.448,
+    "flat_8_18": 0.209,
+    "presence_db": -4.128,
+    "ring_4_10": 0.041,
+    "comb": 0.087,
+    "sib_burst": 0.035,
+    "tail_contrast": 0.01,
+    "period_excess": 0.065,
+    "echo_corr": 0.235,
+    "umid_db": -6.12,
+    "top_tilt_db": -9.501,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.312,
+   "efficacy": 0.377,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.2273,
+   "cost_lin_dist_raw": 0.638,
+   "cost_added": 0.2971,
+   "control": {
+    "missing": 0.099,
+    "lin_dist": 0.278,
+    "added": 0.0978,
+    "width_db": 0.024,
+    "attack_db": 0.004,
+    "pumping_db": 2.283
+   },
+   "energy_left": 0.7057,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 2.0028,
+   "injected_missing": 4.7709,
+   "injected_lin_dist": 11.812,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -0.388,
+    "flat_3_8": 0.331,
+    "flat_4_12": 0.328,
+    "flat_8_18": 0.206,
+    "presence_db": -4.254,
+    "ring_4_10": 0.02,
+    "comb": 0.091,
+    "sib_burst": 0.095,
+    "tail_contrast": 0.009,
+    "period_excess": 0.113,
+    "echo_corr": 0.662,
+    "umid_db": -6.628,
+    "top_tilt_db": -11.331,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0028,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 4.7709,
+   "cost_lin_dist_raw": 11.812,
+   "cost_added": 2.0028,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 2.0028,
+   "injected_missing": 4.7709,
+   "injected_lin_dist": 11.812,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -0.388,
+    "flat_3_8": 0.331,
+    "flat_4_12": 0.328,
+    "flat_8_18": 0.206,
+    "presence_db": -4.254,
+    "ring_4_10": 0.02,
+    "comb": 0.091,
+    "sib_burst": 0.095,
+    "tail_contrast": 0.009,
+    "period_excess": 0.113,
+    "echo_corr": 0.662,
+    "umid_db": -6.628,
+    "top_tilt_db": -11.331,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.3818,
+   "efficacy": 0.31,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 1.8271,
+   "cost_lin_dist_raw": 6.344,
+   "cost_added": 1.3739,
+   "control": {
+    "missing": 0.099,
+    "lin_dist": 0.278,
+    "added": 0.0978,
+    "width_db": 0.024,
+    "attack_db": 0.004,
+    "pumping_db": 2.283
+   },
+   "energy_left": 0.6776,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.5004,
+   "injected_missing": 0.7952,
+   "injected_lin_dist": 0.437,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.289,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.292,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.009,
+    "period_excess": 0.045,
+    "echo_corr": 0.094,
+    "umid_db": -5.694,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.507,
+   "efficacy": -0.013,
+   "cost_missing": 0.0331,
+   "cost_lin_dist": 0.207,
+   "cost_missing_raw": 0.8283,
+   "cost_lin_dist_raw": 0.644,
+   "cost_added": 0.507,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.5004,
+   "injected_missing": 0.7952,
+   "injected_lin_dist": 0.437,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.289,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.292,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.009,
+    "period_excess": 0.045,
+    "echo_corr": 0.094,
+    "umid_db": -5.694,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.4169,
+   "efficacy": 0.167,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.5534,
+   "cost_lin_dist_raw": 0.396,
+   "cost_added": 0.3736,
+   "control": {
+    "missing": 0.099,
+    "lin_dist": 0.278,
+    "added": 0.0978,
+    "width_db": 0.024,
+    "attack_db": 0.004,
+    "pumping_db": 2.283
+   },
+   "energy_left": 0.6007,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 2.0034,
+   "injected_missing": 2.7255,
+   "injected_lin_dist": 22.975,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.217,
+    "flat_3_8": 0.51,
+    "flat_4_12": 0.544,
+    "flat_8_18": 0.207,
+    "presence_db": -3.3,
+    "ring_4_10": 0.021,
+    "comb": 0.087,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.009,
+    "period_excess": 0.005,
+    "echo_corr": 0.195,
+    "umid_db": -5.709,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0908,
+   "efficacy": -0.044,
+   "cost_missing": 0.1897,
+   "cost_lin_dist": 1.474,
+   "cost_missing_raw": 2.9152,
+   "cost_lin_dist_raw": 24.449,
+   "cost_added": 2.0908,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 2.0034,
+   "injected_missing": 2.7255,
+   "injected_lin_dist": 22.975,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.217,
+    "flat_3_8": 0.51,
+    "flat_4_12": 0.544,
+    "flat_8_18": 0.207,
+    "presence_db": -3.3,
+    "ring_4_10": 0.021,
+    "comb": 0.087,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.009,
+    "period_excess": 0.005,
+    "echo_corr": 0.195,
+    "umid_db": -5.709,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.2577,
+   "efficacy": 0.372,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.9753,
+   "cost_lin_dist_raw": 6.928,
+   "cost_added": 1.3157,
+   "control": {
+    "missing": 0.099,
+    "lin_dist": 0.278,
+    "added": 0.0978,
+    "width_db": 0.024,
+    "attack_db": 0.004,
+    "pumping_db": 2.283
+   },
+   "energy_left": 0.5545,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.5,
+   "injected_missing": 0.3739,
+   "injected_lin_dist": 0.333,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.323,
+    "flat_3_8": 0.587,
+    "flat_4_12": 0.637,
+    "flat_8_18": 0.494,
+    "presence_db": -2.762,
+    "ring_4_10": 0.0,
+    "comb": 0.086,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.004,
+    "period_excess": 0.103,
+    "echo_corr": -0.0,
+    "umid_db": -4.648,
+    "top_tilt_db": -5.553,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.3739,
+   "cost_lin_dist_raw": 0.333,
+   "cost_added": 0.5,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.5,
+   "injected_missing": 0.3739,
+   "injected_lin_dist": 0.333,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.323,
+    "flat_3_8": 0.587,
+    "flat_4_12": 0.637,
+    "flat_8_18": 0.494,
+    "presence_db": -2.762,
+    "ring_4_10": 0.0,
+    "comb": 0.086,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.004,
+    "period_excess": 0.103,
+    "echo_corr": -0.0,
+    "umid_db": -4.648,
+    "top_tilt_db": -5.553,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.326,
+   "efficacy": 0.348,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.592,
+   "cost_missing_raw": 0.3615,
+   "cost_lin_dist_raw": 0.925,
+   "cost_added": 0.3472,
+   "control": {
+    "missing": 0.099,
+    "lin_dist": 0.278,
+    "added": 0.0978,
+    "width_db": 0.024,
+    "attack_db": 0.004,
+    "pumping_db": 2.283
+   },
+   "energy_left": 0.6709,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 1.9979,
+   "injected_missing": 7.8972,
+   "injected_lin_dist": 14.068,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.21,
+    "flat_3_8": 0.738,
+    "flat_4_12": 0.751,
+    "flat_8_18": 0.632,
+    "presence_db": -0.295,
+    "ring_4_10": 0.0,
+    "comb": 0.083,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.002,
+    "period_excess": 0.026,
+    "echo_corr": 0.379,
+    "umid_db": -0.787,
+    "top_tilt_db": -2.47,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9979,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 7.8972,
+   "cost_lin_dist_raw": 14.068,
+   "cost_added": 1.9979,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 1.9979,
+   "injected_missing": 7.8972,
+   "injected_lin_dist": 14.068,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.21,
+    "flat_3_8": 0.738,
+    "flat_4_12": 0.751,
+    "flat_8_18": 0.632,
+    "presence_db": -0.295,
+    "ring_4_10": 0.0,
+    "comb": 0.083,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.002,
+    "period_excess": 0.026,
+    "echo_corr": 0.379,
+    "umid_db": -0.787,
+    "top_tilt_db": -2.47,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.6725,
+   "efficacy": 0.163,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 3.2273,
+   "cost_lin_dist_raw": 11.745,
+   "cost_added": 1.8426,
+   "control": {
+    "missing": 0.099,
+    "lin_dist": 0.278,
+    "added": 0.0978,
+    "width_db": 0.024,
+    "attack_db": 0.004,
+    "pumping_db": 2.283
+   },
+   "energy_left": 0.2398,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.4997,
+   "injected_missing": 4.5654,
+   "injected_lin_dist": 1.825,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.583,
+    "flat_3_8": 0.461,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.17,
+    "presence_db": -2.615,
+    "ring_4_10": 0.18,
+    "comb": 0.105,
+    "sib_burst": 0.139,
+    "tail_contrast": 0.009,
+    "period_excess": 0.021,
+    "echo_corr": -0.153,
+    "umid_db": -4.388,
+    "top_tilt_db": -13.967,
+    "tone_8_12": {
+     "hz": 9002.1,
+     "excess_db": 4.21,
+     "duty": 0.215
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.86,
+     "duty": 0.344
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5055,
+   "efficacy": -0.012,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 4.4693,
+   "cost_lin_dist_raw": 1.814,
+   "cost_added": 0.5055,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.4997,
+   "injected_missing": 4.5654,
+   "injected_lin_dist": 1.825,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.583,
+    "flat_3_8": 0.461,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.17,
+    "presence_db": -2.615,
+    "ring_4_10": 0.18,
+    "comb": 0.105,
+    "sib_burst": 0.139,
+    "tail_contrast": 0.009,
+    "period_excess": 0.021,
+    "echo_corr": -0.153,
+    "umid_db": -4.388,
+    "top_tilt_db": -13.967,
+    "tone_8_12": {
+     "hz": 9002.1,
+     "excess_db": 4.21,
+     "duty": 0.215
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.86,
+     "duty": 0.344
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.4006,
+   "efficacy": 0.198,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 1.5151,
+   "cost_lin_dist_raw": 1.447,
+   "cost_added": 0.6006,
+   "control": {
+    "missing": 0.1376,
+    "lin_dist": 0.687,
+    "added": 0.5045,
+    "width_db": 0.077,
+    "attack_db": 0.013,
+    "pumping_db": 2.944
+   },
+   "energy_left": 0.7252,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 1.9955,
+   "injected_missing": 16.707,
+   "injected_lin_dist": 11.784,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.946,
+    "flat_3_8": 0.44,
+    "flat_4_12": 0.371,
+    "flat_8_18": 0.155,
+    "presence_db": -1.802,
+    "ring_4_10": 0.168,
+    "comb": 0.105,
+    "sib_burst": 0.242,
+    "tail_contrast": 0.007,
+    "period_excess": 0.057,
+    "echo_corr": -0.119,
+    "umid_db": -3.727,
+    "top_tilt_db": -14.148,
+    "tone_8_12": {
+     "hz": 9820.8,
+     "excess_db": 4.23,
+     "duty": 0.258
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.83,
+     "duty": 0.344
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.23,
+     "duty": 0.559
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9897,
+   "efficacy": 0.003,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 16.6066,
+   "cost_lin_dist_raw": 11.639,
+   "cost_added": 1.9897,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 1.9955,
+   "injected_missing": 16.707,
+   "injected_lin_dist": 11.784,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.946,
+    "flat_3_8": 0.44,
+    "flat_4_12": 0.371,
+    "flat_8_18": 0.155,
+    "presence_db": -1.802,
+    "ring_4_10": 0.168,
+    "comb": 0.105,
+    "sib_burst": 0.242,
+    "tail_contrast": 0.007,
+    "period_excess": 0.057,
+    "echo_corr": -0.119,
+    "umid_db": -3.727,
+    "top_tilt_db": -14.148,
+    "tone_8_12": {
+     "hz": 9820.8,
+     "excess_db": 4.23,
+     "duty": 0.258
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.83,
+     "duty": 0.344
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.23,
+     "duty": 0.559
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.9323,
+   "efficacy": 0.533,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 5.5473,
+   "cost_lin_dist_raw": 5.617,
+   "cost_added": 1.2653,
+   "control": {
+    "missing": 0.1376,
+    "lin_dist": 0.687,
+    "added": 0.5045,
+    "width_db": 0.077,
+    "attack_db": 0.013,
+    "pumping_db": 2.944
+   },
+   "energy_left": 0.4104,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.4997,
+   "injected_missing": 0.3675,
+   "injected_lin_dist": 1.584,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.931,
+    "flat_3_8": 0.396,
+    "flat_4_12": 0.326,
+    "flat_8_18": 0.185,
+    "presence_db": -3.933,
+    "ring_4_10": 0.188,
+    "comb": 0.103,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.009,
+    "period_excess": 0.055,
+    "echo_corr": 0.134,
+    "umid_db": -5.535,
+    "top_tilt_db": -14.647,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.51,
+   "efficacy": -0.021,
+   "cost_missing": 0.0025,
+   "cost_lin_dist": 0.077,
+   "cost_missing_raw": 0.37,
+   "cost_lin_dist_raw": 1.661,
+   "cost_added": 0.51,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.4997,
+   "injected_missing": 0.3675,
+   "injected_lin_dist": 1.584,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.931,
+    "flat_3_8": 0.396,
+    "flat_4_12": 0.326,
+    "flat_8_18": 0.185,
+    "presence_db": -3.933,
+    "ring_4_10": 0.188,
+    "comb": 0.103,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.009,
+    "period_excess": 0.055,
+    "echo_corr": 0.134,
+    "umid_db": -5.535,
+    "top_tilt_db": -14.647,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.4296,
+   "efficacy": 0.14,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.3375,
+   "cost_lin_dist_raw": 1.451,
+   "cost_added": 0.6739,
+   "control": {
+    "missing": 0.1376,
+    "lin_dist": 0.687,
+    "added": 0.5045,
+    "width_db": 0.077,
+    "attack_db": 0.013,
+    "pumping_db": 2.944
+   },
+   "energy_left": 0.7699,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 2.0026,
+   "injected_missing": 2.5875,
+   "injected_lin_dist": 11.321,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.781,
+    "flat_3_8": 0.302,
+    "flat_4_12": 0.257,
+    "flat_8_18": 0.185,
+    "presence_db": -2.967,
+    "ring_4_10": 0.191,
+    "comb": 0.103,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.01,
+    "period_excess": 0.037,
+    "echo_corr": 0.411,
+    "umid_db": -5.573,
+    "top_tilt_db": -16.162,
+    "tone_8_12": {
+     "hz": 9001.9,
+     "excess_db": 4.47,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0219,
+   "efficacy": -0.01,
+   "cost_missing": 0.0137,
+   "cost_lin_dist": 0.282,
+   "cost_missing_raw": 2.6012,
+   "cost_lin_dist_raw": 11.603,
+   "cost_added": 2.0219,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 2.0026,
+   "injected_missing": 2.5875,
+   "injected_lin_dist": 11.321,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.781,
+    "flat_3_8": 0.302,
+    "flat_4_12": 0.257,
+    "flat_8_18": 0.185,
+    "presence_db": -2.967,
+    "ring_4_10": 0.191,
+    "comb": 0.103,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.01,
+    "period_excess": 0.037,
+    "echo_corr": 0.411,
+    "umid_db": -5.573,
+    "top_tilt_db": -16.162,
+    "tone_8_12": {
+     "hz": 9001.9,
+     "excess_db": 4.47,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.6008,
+   "efficacy": 0.201,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 1.4009,
+   "cost_lin_dist_raw": 8.451,
+   "cost_added": 1.9569,
+   "control": {
+    "missing": 0.1376,
+    "lin_dist": 0.687,
+    "added": 0.5045,
+    "width_db": 0.077,
+    "attack_db": 0.013,
+    "pumping_db": 2.944
+   },
+   "energy_left": 0.75,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.4994,
+   "injected_missing": 0.5688,
+   "injected_lin_dist": 0.878,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.551,
+    "flat_3_8": 0.455,
+    "flat_4_12": 0.398,
+    "flat_8_18": 0.176,
+    "presence_db": -3.563,
+    "ring_4_10": 0.203,
+    "comb": 0.106,
+    "sib_burst": 0.087,
+    "tail_contrast": 0.01,
+    "period_excess": 0.055,
+    "echo_corr": -0.087,
+    "umid_db": -5.799,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5066,
+   "efficacy": -0.014,
+   "cost_missing": 0.001,
+   "cost_lin_dist": 0.079,
+   "cost_missing_raw": 0.5698,
+   "cost_lin_dist_raw": 0.957,
+   "cost_added": 0.5066,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.4994,
+   "injected_missing": 0.5688,
+   "injected_lin_dist": 0.878,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.551,
+    "flat_3_8": 0.455,
+    "flat_4_12": 0.398,
+    "flat_8_18": 0.176,
+    "presence_db": -3.563,
+    "ring_4_10": 0.203,
+    "comb": 0.106,
+    "sib_burst": 0.087,
+    "tail_contrast": 0.01,
+    "period_excess": 0.055,
+    "echo_corr": -0.087,
+    "umid_db": -5.799,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.5013,
+   "efficacy": -0.004,
+   "cost_missing": 0.0303,
+   "cost_lin_dist": 0.489,
+   "cost_missing_raw": 0.5991,
+   "cost_lin_dist_raw": 1.368,
+   "cost_added": 0.886,
+   "control": {
+    "missing": 0.1376,
+    "lin_dist": 0.687,
+    "added": 0.5045,
+    "width_db": 0.077,
+    "attack_db": 0.013,
+    "pumping_db": 2.944
+   },
+   "energy_left": 0.9386,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 1.9981,
+   "injected_missing": 1.4952,
+   "injected_lin_dist": 5.862,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.183,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.59,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.01,
+    "period_excess": 0.113,
+    "echo_corr": 0.043,
+    "umid_db": -5.828,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0123,
+   "efficacy": -0.007,
+   "cost_missing": 0.0104,
+   "cost_lin_dist": 0.222,
+   "cost_missing_raw": 1.5056,
+   "cost_lin_dist_raw": 6.084,
+   "cost_added": 2.0123,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 1.9981,
+   "injected_missing": 1.4952,
+   "injected_lin_dist": 5.862,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.183,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.59,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.01,
+    "period_excess": 0.113,
+    "echo_corr": 0.043,
+    "umid_db": -5.828,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.7815,
+   "efficacy": 0.108,
+   "cost_missing": 0.4852,
+   "cost_lin_dist": 0.533,
+   "cost_missing_raw": 1.9805,
+   "cost_lin_dist_raw": 6.396,
+   "cost_added": 3.1611,
+   "control": {
+    "missing": 0.1376,
+    "lin_dist": 0.687,
+    "added": 0.5045,
+    "width_db": 0.077,
+    "attack_db": 0.013,
+    "pumping_db": 2.944
+   },
+   "energy_left": 0.9385,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.5005,
+   "injected_missing": 0.4021,
+   "injected_lin_dist": 0.244,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.446,
+    "flat_3_8": 0.528,
+    "flat_4_12": 0.485,
+    "flat_8_18": 0.403,
+    "presence_db": -3.099,
+    "ring_4_10": 0.084,
+    "comb": 0.097,
+    "sib_burst": 0.082,
+    "tail_contrast": 0.003,
+    "period_excess": 0.08,
+    "echo_corr": -0.051,
+    "umid_db": -4.898,
+    "top_tilt_db": -9.61,
+    "tone_8_12": {
+     "hz": 9822.5,
+     "excess_db": 3.21,
+     "duty": 0.183
+    },
+    "tone_9_15": {
+     "hz": 9822.5,
+     "excess_db": 3.21,
+     "duty": 0.183
+    },
+    "tone_12_20": {
+     "hz": 16003.1,
+     "excess_db": 3.56,
+     "duty": 0.161
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5005,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.4021,
+   "cost_lin_dist_raw": 0.244,
+   "cost_added": 0.5005,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.5005,
+   "injected_missing": 0.4021,
+   "injected_lin_dist": 0.244,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.446,
+    "flat_3_8": 0.528,
+    "flat_4_12": 0.485,
+    "flat_8_18": 0.403,
+    "presence_db": -3.099,
+    "ring_4_10": 0.084,
+    "comb": 0.097,
+    "sib_burst": 0.082,
+    "tail_contrast": 0.003,
+    "period_excess": 0.08,
+    "echo_corr": -0.051,
+    "umid_db": -4.898,
+    "top_tilt_db": -9.61,
+    "tone_8_12": {
+     "hz": 9822.5,
+     "excess_db": 3.21,
+     "duty": 0.183
+    },
+    "tone_9_15": {
+     "hz": 9822.5,
+     "excess_db": 3.21,
+     "duty": 0.183
+    },
+    "tone_12_20": {
+     "hz": 16003.1,
+     "excess_db": 3.56,
+     "duty": 0.161
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.3894,
+   "efficacy": 0.222,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.996,
+   "cost_missing_raw": 0.3535,
+   "cost_lin_dist_raw": 1.24,
+   "cost_added": 0.6049,
+   "control": {
+    "missing": 0.1376,
+    "lin_dist": 0.687,
+    "added": 0.5045,
+    "width_db": 0.077,
+    "attack_db": 0.013,
+    "pumping_db": 2.944
+   },
+   "energy_left": 0.7211,
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 1.9975,
+   "injected_missing": 9.7941,
+   "injected_lin_dist": 7.126,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.982,
+    "flat_3_8": 0.702,
+    "flat_4_12": 0.719,
+    "flat_8_18": 0.624,
+    "presence_db": -0.84,
+    "ring_4_10": 0.004,
+    "comb": 0.088,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.002,
+    "period_excess": 0.06,
+    "echo_corr": 0.179,
+    "umid_db": -1.607,
+    "top_tilt_db": -3.451,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9975,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 9.7941,
+   "cost_lin_dist_raw": 7.126,
+   "cost_added": 1.9975,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 1.9975,
+   "injected_missing": 9.7941,
+   "injected_lin_dist": 7.126,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.982,
+    "flat_3_8": 0.702,
+    "flat_4_12": 0.719,
+    "flat_8_18": 0.624,
+    "presence_db": -0.84,
+    "ring_4_10": 0.004,
+    "comb": 0.088,
+    "sib_burst": 0.0,
+    "tail_contrast": 0.002,
+    "period_excess": 0.06,
+    "echo_corr": 0.179,
+    "umid_db": -1.607,
+    "top_tilt_db": -3.451,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 2.1089,
+   "efficacy": -0.056,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 2.745,
+   "cost_missing_raw": 4.5513,
+   "cost_lin_dist_raw": 9.872,
+   "cost_added": 2.6355,
+   "control": {
+    "missing": 0.1376,
+    "lin_dist": 0.687,
+    "added": 0.5045,
+    "width_db": 0.077,
+    "attack_db": 0.013,
+    "pumping_db": 2.944
+   },
+   "energy_left": 0.316,
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.5001,
+   "injected_missing": 0.2393,
+   "injected_lin_dist": 0.054,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.56,
+    "flat_3_8": 0.614,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.228,
+    "presence_db": 0.833,
+    "ring_4_10": 0.016,
+    "comb": 0.091,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.132,
+    "umid_db": -1.385,
+    "top_tilt_db": -11.759,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5001,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.2393,
+   "cost_lin_dist_raw": 0.054,
+   "cost_added": 0.5001,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "consonants",
+   "level": 0.5,
+   "injected_added": 0.5001,
+   "injected_missing": 0.2393,
+   "injected_lin_dist": 0.054,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.56,
+    "flat_3_8": 0.614,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.228,
+    "presence_db": 0.833,
+    "ring_4_10": 0.016,
+    "comb": 0.091,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.132,
+    "umid_db": -1.385,
+    "top_tilt_db": -11.759,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.5144,
+   "efficacy": -0.029,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.321,
+   "cost_missing_raw": 0.1523,
+   "cost_lin_dist_raw": 0.375,
+   "cost_added": 0.5341,
+   "control": {
+    "missing": 0.1275,
+    "lin_dist": 0.371,
+    "added": 0.1681,
+    "width_db": 0.005,
+    "attack_db": 0.0,
+    "pumping_db": 1.585
+   },
+   "energy_left": 0.9124,
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 1.9982,
+   "injected_missing": 3.9959,
+   "injected_lin_dist": 0.347,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.623,
+    "flat_3_8": 0.616,
+    "flat_4_12": 0.519,
+    "flat_8_18": 0.228,
+    "presence_db": 1.009,
+    "ring_4_10": 0.012,
+    "comb": 0.091,
+    "sib_burst": 0.104,
+    "tail_contrast": -0.001,
+    "period_excess": 0.0,
+    "echo_corr": 0.141,
+    "umid_db": -1.136,
+    "top_tilt_db": -11.988,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9982,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 3.9959,
+   "cost_lin_dist_raw": 0.347,
+   "cost_added": 1.9982,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "consonants",
+   "level": 2.0,
+   "injected_added": 1.9982,
+   "injected_missing": 3.9959,
+   "injected_lin_dist": 0.347,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.623,
+    "flat_3_8": 0.616,
+    "flat_4_12": 0.519,
+    "flat_8_18": 0.228,
+    "presence_db": 1.009,
+    "ring_4_10": 0.012,
+    "comb": 0.091,
+    "sib_burst": 0.104,
+    "tail_contrast": -0.001,
+    "period_excess": 0.0,
+    "echo_corr": 0.141,
+    "umid_db": -1.136,
+    "top_tilt_db": -11.988,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.6453,
+   "efficacy": 0.177,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.171,
+   "cost_missing_raw": 0.4439,
+   "cost_lin_dist_raw": 0.518,
+   "cost_added": 1.6269,
+   "control": {
+    "missing": 0.1275,
+    "lin_dist": 0.371,
+    "added": 0.1681,
+    "width_db": 0.005,
+    "attack_db": 0.0,
+    "pumping_db": 1.585
+   },
+   "energy_left": 0.7997,
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.4993,
+   "injected_missing": 0.3209,
+   "injected_lin_dist": 1.103,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.982,
+    "flat_3_8": 0.532,
+    "flat_4_12": 0.44,
+    "flat_8_18": 0.229,
+    "presence_db": 0.074,
+    "ring_4_10": 0.02,
+    "comb": 0.09,
+    "sib_burst": 0.19,
+    "tail_contrast": -0.001,
+    "period_excess": 0.0,
+    "echo_corr": 0.276,
+    "umid_db": -1.687,
+    "top_tilt_db": -12.737,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4993,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.3209,
+   "cost_lin_dist_raw": 1.103,
+   "cost_added": 0.4993,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "harshness",
+   "level": 0.5,
+   "injected_added": 0.4993,
+   "injected_missing": 0.3209,
+   "injected_lin_dist": 1.103,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.982,
+    "flat_3_8": 0.532,
+    "flat_4_12": 0.44,
+    "flat_8_18": 0.229,
+    "presence_db": 0.074,
+    "ring_4_10": 0.02,
+    "comb": 0.09,
+    "sib_burst": 0.19,
+    "tail_contrast": -0.001,
+    "period_excess": 0.0,
+    "echo_corr": 0.276,
+    "umid_db": -1.687,
+    "top_tilt_db": -12.737,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.2302,
+   "efficacy": 0.539,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.2121,
+   "cost_lin_dist_raw": 0.819,
+   "cost_added": 0.3131,
+   "control": {
+    "missing": 0.1275,
+    "lin_dist": 0.371,
+    "added": 0.1681,
+    "width_db": 0.005,
+    "attack_db": 0.0,
+    "pumping_db": 1.585
+   },
+   "energy_left": 0.7397,
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 1.9982,
+   "injected_missing": 3.2872,
+   "injected_lin_dist": 10.489,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -2.645,
+    "flat_3_8": 0.411,
+    "flat_4_12": 0.339,
+    "flat_8_18": 0.229,
+    "presence_db": -0.371,
+    "ring_4_10": 0.023,
+    "comb": 0.091,
+    "sib_burst": 0.169,
+    "tail_contrast": -0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.566,
+    "umid_db": -2.111,
+    "top_tilt_db": -14.36,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9982,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 3.2872,
+   "cost_lin_dist_raw": 10.489,
+   "cost_added": 1.9982,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "harshness",
+   "level": 2.0,
+   "injected_added": 1.9982,
+   "injected_missing": 3.2872,
+   "injected_lin_dist": 10.489,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -2.645,
+    "flat_3_8": 0.411,
+    "flat_4_12": 0.339,
+    "flat_8_18": 0.229,
+    "presence_db": -0.371,
+    "ring_4_10": 0.023,
+    "comb": 0.091,
+    "sib_burst": 0.169,
+    "tail_contrast": -0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.566,
+    "umid_db": -2.111,
+    "top_tilt_db": -14.36,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.2689,
+   "efficacy": 0.365,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 1.4019,
+   "cost_lin_dist_raw": 5.857,
+   "cost_added": 1.3525,
+   "control": {
+    "missing": 0.1275,
+    "lin_dist": 0.371,
+    "added": 0.1681,
+    "width_db": 0.005,
+    "attack_db": 0.0,
+    "pumping_db": 1.585
+   },
+   "energy_left": 0.6949,
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.5002,
+   "injected_missing": 1.3332,
+   "injected_lin_dist": 1.258,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.297,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.703,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": 0.004,
+    "period_excess": 0.0,
+    "echo_corr": 0.151,
+    "umid_db": -1.539,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5002,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 1.3332,
+   "cost_lin_dist_raw": 1.258,
+   "cost_added": 0.5002,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "mud",
+   "level": 0.5,
+   "injected_added": 0.5002,
+   "injected_missing": 1.3332,
+   "injected_lin_dist": 1.258,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.297,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.703,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": 0.004,
+    "period_excess": 0.0,
+    "echo_corr": 0.151,
+    "umid_db": -1.539,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.3939,
+   "efficacy": 0.213,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.6638,
+   "cost_lin_dist_raw": 1.115,
+   "cost_added": 0.4747,
+   "control": {
+    "missing": 0.1275,
+    "lin_dist": 0.371,
+    "added": 0.1681,
+    "width_db": 0.005,
+    "attack_db": 0.0,
+    "pumping_db": 1.585
+   },
+   "energy_left": 0.7732,
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 1.9962,
+   "injected_missing": 16.5292,
+   "injected_lin_dist": 11.978,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.299,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.666,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": 0.007,
+    "period_excess": 0.0,
+    "echo_corr": 0.14,
+    "umid_db": -1.566,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17203.0,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9962,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 16.5292,
+   "cost_lin_dist_raw": 11.978,
+   "cost_added": 1.9962,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "mud",
+   "level": 2.0,
+   "injected_added": 1.9962,
+   "injected_missing": 16.5292,
+   "injected_lin_dist": 11.978,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.299,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.666,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": 0.007,
+    "period_excess": 0.0,
+    "echo_corr": 0.14,
+    "umid_db": -1.566,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17203.0,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.5554,
+   "efficacy": 0.221,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 8.2089,
+   "cost_lin_dist_raw": 7.97,
+   "cost_added": 1.8488,
+   "control": {
+    "missing": 0.1275,
+    "lin_dist": 0.371,
+    "added": 0.1681,
+    "width_db": 0.005,
+    "attack_db": 0.0,
+    "pumping_db": 1.585
+   },
+   "energy_left": 0.775,
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.5008,
+   "injected_missing": 0.0918,
+   "injected_lin_dist": 0.035,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.492,
+    "flat_3_8": 0.614,
+    "flat_4_12": 0.53,
+    "flat_8_18": 0.273,
+    "presence_db": 0.707,
+    "ring_4_10": 0.012,
+    "comb": 0.09,
+    "sib_burst": 0.121,
+    "tail_contrast": -0.004,
+    "period_excess": 0.0,
+    "echo_corr": 0.128,
+    "umid_db": -1.508,
+    "top_tilt_db": -11.194,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5008,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.0918,
+   "cost_lin_dist_raw": 0.035,
+   "cost_added": 0.5008,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "hash_wide",
+   "level": 0.5,
+   "injected_added": 0.5008,
+   "injected_missing": 0.0918,
+   "injected_lin_dist": 0.035,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.492,
+    "flat_3_8": 0.614,
+    "flat_4_12": 0.53,
+    "flat_8_18": 0.273,
+    "presence_db": 0.707,
+    "ring_4_10": 0.012,
+    "comb": 0.09,
+    "sib_burst": 0.121,
+    "tail_contrast": -0.004,
+    "period_excess": 0.0,
+    "echo_corr": 0.128,
+    "umid_db": -1.508,
+    "top_tilt_db": -11.194,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 0.2691,
+   "efficacy": 0.463,
+   "cost_missing": 0.1706,
+   "cost_lin_dist": 0.671,
+   "cost_missing_raw": 0.2624,
+   "cost_lin_dist_raw": 0.706,
+   "cost_added": 0.3141,
+   "control": {
+    "missing": 0.1275,
+    "lin_dist": 0.371,
+    "added": 0.1681,
+    "width_db": 0.005,
+    "attack_db": 0.0,
+    "pumping_db": 1.585
+   },
+   "energy_left": 0.9178,
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 2.0021,
+   "injected_missing": 0.9755,
+   "injected_lin_dist": 0.229,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.713,
+    "flat_3_8": 0.637,
+    "flat_4_12": 0.568,
+    "flat_8_18": 0.399,
+    "presence_db": 0.782,
+    "ring_4_10": 0.008,
+    "comb": 0.089,
+    "sib_burst": 0.087,
+    "tail_contrast": -0.008,
+    "period_excess": 0.0,
+    "echo_corr": 0.12,
+    "umid_db": -1.323,
+    "top_tilt_db": -9.408,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0021,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.9755,
+   "cost_lin_dist_raw": 0.229,
+   "cost_added": 2.0021,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "hash_wide",
+   "level": 2.0,
+   "injected_added": 2.0021,
+   "injected_missing": 0.9755,
+   "injected_lin_dist": 0.229,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.713,
+    "flat_3_8": 0.637,
+    "flat_4_12": 0.568,
+    "flat_8_18": 0.399,
+    "presence_db": 0.782,
+    "ring_4_10": 0.008,
+    "comb": 0.089,
+    "sib_burst": 0.087,
+    "tail_contrast": -0.008,
+    "period_excess": 0.0,
+    "echo_corr": 0.12,
+    "umid_db": -1.323,
+    "top_tilt_db": -9.408,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "card:shimmer+sibilance+harshness+mud",
+   "strength": 1.0,
+   "residue_added": 1.2909,
+   "efficacy": 0.355,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 1.045,
+   "cost_missing_raw": 0.4822,
+   "cost_lin_dist_raw": 1.274,
+   "cost_added": 1.1328,
+   "control": {
+    "missing": 0.1275,
+    "lin_dist": 0.371,
+    "added": 0.1681,
+    "width_db": 0.005,
+    "attack_db": 0.0,
+    "pumping_db": 1.585
+   },
+   "energy_left": 0.7364,
+   "targeted": false
   }
  ]
 }

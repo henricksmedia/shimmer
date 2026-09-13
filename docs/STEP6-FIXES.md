@@ -654,3 +654,47 @@ The `phasiness` model scrambles phase in the song's tails. A fix that
 restores smooth phase in tails would undo that model almost by definition,
 so it would pass without proving anything. The codec test case above is
 the honest check for Phasiness too: the codec rebuilds phase on its own.
+
+## All four fixes on at once (2026-09-13)
+
+This run turns on Shimmer, Sibilance, Harshness and Low-mid build-up
+together, all at Amount 100 %, on the same five songs
+(`--cards shimmer+sibilance+harshness+mud`).
+
+- **Preview and export:** the preview still matches the export. The export
+  still lands on its loudness target under the ceiling, with Fixed tones and
+  mastering on too (`tests/core/test_core_render_export.py`).
+- **Removal:** each fault model loses about as much as with its own fix
+  alone, so the fixes do not undo each other.
+
+  | Fault model | All four (0.5 / 2.0 sones) | Its own fix alone |
+  |---|---|---|
+  | Consonants | 20 % / 45 % | 21 % / 46 % |
+  | Harshness | 26 % / 21 % | 26 % / 20 % |
+  | Low-mid build-up | 13 % / 25 % | 14 % / 27 % |
+  | Wide hash | 36 % / 19 % | 36 % / 13 % |
+
+- **Cost on clean songs** (missing, sones):
+
+  | Song | All four | The four alone, added up |
+  |---|---|---|
+  | Alive Again | 0.075 | 0.127 |
+  | Falling For You | 0.083 | 0.142 |
+  | Leave The World Behind | 0.099 | 0.168 |
+  | We Were Meant For The Stars | 0.138 | 0.272 |
+  | Hey | 0.128 | 0.200 |
+
+  Together they take less than their sum. On Stars and Hey, though, they
+  take more than the 0.10 one fix may take.
+- **Width and attacks:** width moves at most 0.09 dB, and attacks do not
+  change.
+- **Pumping:** this reading cannot be compared with the single fixes. Each
+  fix's pumping is read a full octave outside its own band. With all four
+  on, every octave from 100 Hz up is some fix's own band, so the reading
+  (1.6-2.9 dB) includes the fixes doing their jobs. Looking band by band is
+  for 2.0.1.
+
+**Verdict:** the four work together. Everything at full, though, costs more
+than one fix may on two of the five songs. Sound tuning waits for 2.0.1
+(the author's call, 2026-09-13). The likely fixes then are lower Amount
+tops when several cards are on, or one shared budget.

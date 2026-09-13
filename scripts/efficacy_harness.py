@@ -170,17 +170,20 @@ def run_declick(x, sr, amount):
 def run_card(x, sr, card, amount):
     """One card's fix in the new engine, on its own: render() with only that
     card on at `amount` (no auto, no mastering, no EQ, no level matching),
-    the same call the Master tab's export makes."""
+    the same call the Master tab's export makes. A mix of cards joined by
+    "+" (shimmer+sibilance) turns them all on at `amount`, together."""
     from shimmer import core
-    s = core.Settings(fixes={card: float(amount)}, auto=False, mastering=False,
-                      preserve_volume=False)
+    s = core.Settings(fixes={c: float(amount) for c in card.split("+")}, auto=False,
+                      mastering=False, preserve_volume=False)
     r = core.render(core.Source.from_array(x, sr), s)
     return np.ascontiguousarray(np.asarray(r.audio, dtype=np.float32)[:x.shape[0]])
 
 
 def card_band(card):
+    """The card's band, for the side-effect checks; None for a mix of cards,
+    so every band is checked."""
     from shimmer.core import catalog
-    return catalog.card(card).band_hz
+    return None if "+" in card else catalog.card(card).band_hz
 
 
 def energy_left(K, C, art):
