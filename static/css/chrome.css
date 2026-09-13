@@ -877,6 +877,7 @@
 .chip.ok { color: var(--success); border-color: rgba(74,222,128,.3); background: rgba(74,222,128,.08); }
 .chip.cyan { color: var(--cyan); border-color: rgba(56,189,248,.3); background: rgba(56,189,248,.08); }
 .chip.violet { color: var(--purple); border-color: rgba(167,139,250,.3); background: var(--purple-soft); }
+.chip.amber { color: var(--amber); border-color: rgba(245,165,36,.3); background: var(--amber-soft); }
 @media (max-width: 1100px) { .session-card, .session-card.visible { display: none; } }
 
 /* ── Signal Chain view ──────────────────────────────────────────────── */

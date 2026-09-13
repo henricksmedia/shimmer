@@ -10,6 +10,7 @@ import { initPresetBrowser } from './preset-browser.js';
 import { initMasterView } from './master-view.js';
 import { initRecents } from './recents.js';
 import { initLoudnessCards } from './loudness-cards.js';
+import { fillFormatCeilings, loadRules } from './rules.js';
 
 const VIEW_TITLES = {
     single: ['Master', 'clean AI artifacts · master for release'],
@@ -56,6 +57,11 @@ async function boot() {
         // First, so each menu has its choices before a tab restores into it.
         await Promise.all(['master-target', 'remix-master-target', 'batch-master-target']
             .map((id) => initLoudnessCards(document.getElementById(id))));
+        // Each format's true-peak ceiling, from the engine.
+        const rules = await loadRules();
+        for (const id of ['output-format', 'remix-format']) {
+            fillFormatCeilings(rules, document.getElementById(id));
+        }
         await initSingleTab();
         await initBatchTab();
         await initRemixTab();

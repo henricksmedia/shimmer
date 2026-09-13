@@ -401,14 +401,15 @@
                             <div class="acc-body">
                                 <div class="inline-field">
                                     <label class="label" for="output-format">Format</label>
+                                    <!-- Each option's true-peak ceiling comes from /api/rules (rules.js). -->
                                     <select id="output-format" class="select"
-                                            title="True-peak ceiling adapts to the format: −1.0 dBTP for lossless (WAV/FLAC), −1.5 dBTP for lossy (MP3/OGG/M4A) so the encoder can't clip on decode.">
-                                        <option value="wav" selected>WAV (24-bit PCM) · −1.0 dBTP</option>
-                                        <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered) · −1.0 dBTP</option>
-                                        <option value="flac">FLAC · −1.0 dBTP</option>
-                                        <option value="mp3">MP3 (320 kbps) · −1.5 dBTP</option>
-                                        <option value="ogg">OGG Vorbis · −1.5 dBTP</option>
-                                        <option value="m4a">M4A (AAC) · −1.5 dBTP</option>
+                                            title="Each format has its own true-peak ceiling, shown beside it. Lossy formats sit lower so the encoder can't push peaks past it on decode.">
+                                        <option value="wav" selected>WAV (24-bit PCM)</option>
+                                        <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered)</option>
+                                        <option value="flac">FLAC</option>
+                                        <option value="mp3">MP3 (320 kbps)</option>
+                                        <option value="ogg">OGG Vorbis</option>
+                                        <option value="m4a">M4A (AAC)</option>
                                     </select>
                                 </div>
                                 <label class="checkbox-row loudness-line" id="preserve-vol-card"
@@ -673,14 +674,15 @@
                                 </div>
                                 <div class="inline-field">
                                     <label class="label" for="remix-format">Format</label>
+                                    <!-- Each option's true-peak ceiling comes from /api/rules (rules.js). -->
                                     <select id="remix-format" class="select"
-                                            title="True-peak ceiling adapts to the format: −1.0 dBTP for lossless (WAV/FLAC), −1.5 dBTP for lossy (MP3/OGG/M4A) so the encoder can't clip on decode.">
-                                        <option value="wav" selected>WAV (24-bit PCM) · −1.0 dBTP</option>
-                                        <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered) · −1.0 dBTP</option>
-                                        <option value="flac">FLAC · −1.0 dBTP</option>
-                                        <option value="mp3">MP3 (320 kbps) · −1.5 dBTP</option>
-                                        <option value="ogg">OGG Vorbis · −1.5 dBTP</option>
-                                        <option value="m4a">M4A (AAC) · −1.5 dBTP</option>
+                                            title="Each format has its own true-peak ceiling, shown beside it. Lossy formats sit lower so the encoder can't push peaks past it on decode.">
+                                        <option value="wav" selected>WAV (24-bit PCM)</option>
+                                        <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered)</option>
+                                        <option value="flac">FLAC</option>
+                                        <option value="mp3">MP3 (320 kbps)</option>
+                                        <option value="ogg">OGG Vorbis</option>
+                                        <option value="m4a">M4A (AAC)</option>
                                     </select>
                                 </div>
                             </div>

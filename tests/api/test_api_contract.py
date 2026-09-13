@@ -121,10 +121,14 @@ def test_the_rules_route_serves_the_engines_rules():
 
 # Each pattern matches a copy found in the screens on 2026-09-12:
 # single.js:859, remix.js:463, visualizer.js:293, index.html:348-350 (x3).
+# The last one matches the format menus' ceilings, found 2026-09-13 at
+# index.html:409-411 and 681-683 still saying 1.x's -1.5 dBTP for lossy
+# formats while the engine uses its measured -2.0.
 COPIES = [
     re.compile(r"\b(streaming|loud|cd)['\"]?\s*:\s*['\"]?[-−]\s?\d"),
     re.compile(r"\btargetLufs\s*:\s*-?\d"),
     re.compile(r"<option[^>]*value=['\"](streaming|loud|cd)['\"]"),
+    re.compile(r"<option[^>]*>[^<]*[-−]\d+(\.\d+)?\s*dBTP"),
 ]
 
 

@@ -200,8 +200,9 @@ is signed off. **Done 2026-09-12.**
     - Analyze, `/api/tone` and Batch use it; `shimmer/autoeq.py` points to
       it.
   - [ ] The chain view (`/api/chain`) still runs on 1.x. It draws 1.x's
-        stages, so moving it means redrawing the Signal Chain view: a
-        mockup first.
+        stages, so moving it means redrawing the Signal Chain view. Mockup
+        (2026-09-13, local): `static/tmp/shimmer-signal-chain-mockup.html`,
+        waiting for sign-off.
 
 ## Step 5 — Mastering (the main complaint)
 
@@ -262,7 +263,9 @@ is signed off. **Done 2026-09-12.**
     - an empty top in an MP3 reference never cuts the song's real top
     - Tilt still applies. The preview matches the export, and every
       loudness choice still lands. 20 contract tests.
-  - [ ] Upload route and screen: a mockup first, then sign-off.
+  - [ ] Upload route and screen: mockup (2026-09-13, local)
+        `static/tmp/shimmer-reference-match-mockup.html`, waiting for
+        sign-off.
   - [ ] A warning when the reference's tempo or percussion differs a lot
         (the sources' last rule).
   - [ ] Judge on the bench.
@@ -348,6 +351,10 @@ the music" (`GOALS.md`):*
     own copy of the choices or their LUFS numbers.
   - The player's target line takes its level from the chosen card.
   - The "no copies" test now passes for real.
+  - The format menus' true-peak ceilings come from the rules too
+    (2026-09-13). They still said 1.x's -1.5 dBTP for MP3, OGG and M4A,
+    while the engine uses its measured -2.0. The test now catches a ceiling
+    typed into a menu.
 - [x] The progress chain reads its stages from the server (2026-09-12).
   - Its names are the engine's: Read, Trim, Sample rate, Fixes, Tone, EQ,
     Master, Export, Report.
@@ -451,7 +458,11 @@ the music" (`GOALS.md`):*
   - It never picks a lossy format without asking, and never cuts the song.
   - Today's default, WAV 24-bit 48 kHz, is 17.3 MB a minute (2:53 under
     50 MB).
-  - It needs a mockup before it is built.
+  - Mockup (2026-09-13, local): `static/tmp/shimmer-size-limit-mockup.html`,
+    waiting for sign-off.
+  - Found while drawing it: Shimmer writes FLAC at 24-bit, so "about half
+    the size" holds only for 16-bit FLAC. A 24-bit FLAC of a 4:31 song is
+    likely near 50 MB.
 
 - **The Remix preview matching the export (measured 2026-09-12).**
   Decided: Option A, built the same day (see Step 7, Remix).
