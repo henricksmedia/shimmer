@@ -2223,18 +2223,20 @@ async def api_remix_preview(payload: Dict[str, Any]) -> Response:
         media_type="application/octet-stream")
 
 
+from .api import jobs as _api_jobs  # noqa: E402
+
+
 @app.post("/api/remix/render")
 async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
-    """Render the full-length remix as a download job.
+    """Render the full-length remix as a download job, on the new engine:
+    each stem's effects and the sum (stem_effects), then shimmer.core.render()
+    and core.export(), the Master tab's own path.
 
-    Optional stages after the stem sum, mirroring the single-file flow:
-      * `cleaning: {"preset": "auto" | "<preset_key>" | "off"}` — run the
-        summed remix through the full safe pipeline (tone curve, band
-        split, M/S artifact cleaning). "auto" analyzes the remix itself,
-        because Demucs redistributes the source artifacts into the stems
-        and the effects rack can reshape them.
-      * `mastering: {...}` — the standard mastering chain, inside the
-        pipeline when cleaning is on, standalone otherwise.
+    `cleaning: {"preset": "off" | "auto" | "<1.x preset>"}` maps through the
+    transition rule (docs/API.md §0): "off" turns every fix off, "auto"
+    applies what the remix itself shows (Fixed tones today), and a preset
+    turns on its card. `mastering: {...}` is the Master tab's mastering.
+    The job runs on the job runner, so it can be cancelled.
     """
     sid = payload.get("session_id") or ""
     sess = PREVIEW_STORE.get(sid)
@@ -2244,124 +2246,137 @@ async def api_remix_render(payload: Dict[str, Any]) -> JSONResponse:
         raise HTTPException(409, "Stems not separated yet")
 
     order = _stem_order(sess)
-    settings = remix_settings_from_json(payload.get("stems") or {}, order)
-    mp = master_params_from_json(payload.get("mastering") or {})
-    output_format = (payload.get("output_format") or "wav").lstrip(".").lower()
+    stem_settings = remix_settings_from_json(payload.get("stems") or {}, order)
+    raw_format = payload.get("output_format") or "wav"
     try:
-        out_spec = resolve_output_format(output_format)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    output_ext = out_spec["ext"]
-    if (payload.get("mastering") or {}).get("ceiling_dbtp") is None:
-        mp.ceiling_dbtp = get_export_ceiling_dbtp(output_ext)
+        fmt = _core.catalog.output_format(raw_format)
+    except KeyError:
+        raise HTTPException(400, f"Unsupported output format: {raw_format}")
 
-    clean_choice = str((payload.get("cleaning") or {}).get("preset")
-                       or "off").lower()
+    clean_choice = str((payload.get("cleaning") or {}).get("preset") or "off").lower()
     do_clean = clean_choice not in ("off", "none", "")
-    if do_clean and clean_choice != "auto":
-        try:
-            get_preset(clean_choice)
-        except KeyError:
-            raise HTTPException(400, f"Unknown cleaning preset: {clean_choice}")
+    if do_clean and clean_choice != "auto" and not _known_preset(clean_choice):
+        raise HTTPException(400, f"Unknown cleaning preset: {clean_choice}")
+    s = _api_render.settings_from_request(
+        {"preset": clean_choice if do_clean and clean_choice != "auto" else None,
+         "mastering": payload.get("mastering") or {},
+         "repair": {"enabled": do_clean}},
+        output_format=fmt.key, preserve_volume=True, trim_silence=False)
 
-    job = JOB_STORE.create(output_ext=output_ext)
+    job = JOB_STORE.create(output_ext=fmt.ext)
     job.source_stem = (Path(sess.original_name).stem or "audio") + "_remix"
     job.preset_name = "remix"
-    loop = asyncio.get_running_loop()
-    cb = _threadsafe_progress_pusher(job, loop)
-    stage_cb = getattr(cb, "stage", None)
-
-    def _stage(key: str, label: str, detail: str = "") -> None:
-        if stage_cb:
-            stage_cb(key, label, detail)
-
-    def _work() -> None:
-        sr = sess.sr
-        cb(0.05)
-        _stage("mix", "Mixing the stems", "each stem's effects, then the sum")
-        y = render_remix({n: sess.stems[n] for n in order}, sr, settings)
-        # A release copy runs the rest of the chain at the delivery rate.
-        y, sr = resample_to(y, sr, out_spec.get("sr"))
-        cb(0.15)
-
-        cleaning_info: Dict[str, Any] = {"enabled": do_clean}
-        m_report: Dict[str, Any] = {"enabled": False}
-        if do_clean:
-            preset_name = clean_choice
-            if preset_name == "auto":
-                from .probe import suggest_preset
-                _stage("analyze", "Picking the cleanup preset", "listening to the summed remix")
-                tmp = os.path.join(job.workdir, "remix_sum.wav")
-                save_audio(tmp, y, sr)
-                sug = suggest_preset(tmp)
-                preset_name = sug["preset"]
-                ranked = sug.get("ranked") or []
-                cleaning_info["detected_confidence"] = float(
-                    ranked[0].get("confidence", 0.0)) if ranked else 0.0
-                cleaning_info["detected_strength"] = float(
-                    sug.get("strength") or 1.0)
-            cleaning_info["preset"] = preset_name
-            cleaning_info["label"] = label_for(preset_name)
-            p = get_preset(preset_name)
-            # Auto mode: the analysis chose the strength too; scale the
-            # preset through the standard hook before cleaning.
-            auto_strength = cleaning_info.get("detected_strength")
-            if auto_strength is not None and abs(auto_strength - 1.0) > 1e-6:
-                apply_preset_strength(p, float(auto_strength))
-            # Deterministic repairs on the summed remix: fixed lines and
-            # the bandwidth cutoff, measured on what is about to be cleaned.
-            remix_plan = plan_from_lines(scan_fixed_lines(y, sr), sr)
-            p.cutoff_hz = float(estimate_cutoff_hz(y, sr).get("cutoff_hz") or 0.0)
-            cleaning_info["repair_notches"] = len(remix_plan.notches)
-            cb(0.2)
-            y, _removed, rep = clean_and_master(
-                y, sr, p,
-                repair=remix_plan,
-                master_params=mp if mp.enabled else None,
-                progress_callback=lambda f: cb(0.2 + 0.7 * f),
-                stage_callback=stage_cb,
-            )
-            m_report = rep.get("mastering", {"enabled": False})
-        elif mp.enabled:
-            _stage("master", "Mastering",
-                   f"level to {float(mp.target_lufs):g} LUFS · peak shaper · true-peak limiter")
-            y, m_report = master(y, sr, mp)
-        cb(0.9)
-
-        processed = os.path.join(job.workdir, f"processed{job.output_ext}")
-        _stage("export", "Writing the file", job.output_ext.lstrip(".").upper())
-        save_audio(processed, y, sr, subtype=out_spec["subtype"],
-                   dither=bool(out_spec.get("dither")))
-        job.processed_path = processed
-        if m_report.get("enabled"):
-            out_lufs = _finite_or_none((m_report.get("after") or {}).get("lufs_i"))
-        else:
-            out_lufs = _finite_or_none(measure_loudness(y, sr).get("lufs_i"))
-        job.metrics = {
-            "sample_rate": sr,
-            "channels": int(y.shape[1]),
-            "duration_s": float(y.shape[0] / sr),
-            "input": measure(sess.samples),
-            "output": measure(y),
-            "cleaning": cleaning_info,
-            "mastering": m_report,
-            "loudness": {"output_lufs_i": out_lufs},
-        }
-        cb(1.0)
-
-    async def _run() -> None:
-        job.status = "running"
-        try:
-            await loop.run_in_executor(None, _work)
-            job.status = "done"
-            await job.queue.put({"fraction": 1.0, "done": True})
-        except Exception as e:  # noqa: BLE001
-            job.status = "error"
-            job.error = str(e)
-            await job.queue.put({"error": str(e), "done": True})
-
-    asyncio.create_task(_run())
+    stems = {n: sess.stems[n] for n in order}
+    # The upload the remix came from: its tags seed the export's, and the
+    # export must never be written over it.
+    original_path = sess.original_path if os.path.isfile(sess.original_path or "") else None
+    asyncio.create_task(_run_remix_async(job, stems, sess.sr, stem_settings, s,
+                                         clean_choice if do_clean else "off", sess.samples,
+                                         original_path))
     return JSONResponse({"job_id": job.id})
+
+
+def _known_preset(name: str) -> bool:
+    """A 1.x preset or alias name (the Remix cleanup menu still sends them)."""
+    from .core.settings import LEGACY_ALIASES, LEGACY_PRESETS
+    return LEGACY_ALIASES.get(name, name) in LEGACY_PRESETS
+
+
+def _remix_clean_label(fixes: Dict[str, Any]) -> str:
+    """What the cleanup did, in the report's words."""
+    parts = []
+    tones = fixes.get("tones")
+    if isinstance(tones, dict):
+        n = int(tones.get("notches") or 0)
+        parts.append(f"Fixed tones, {n} notch{'es' if n != 1 else ''}")
+    waiting = [_core.catalog.card(k).label for k, v in fixes.items() if v == "not built yet"]
+    if waiting:
+        parts.append(", ".join(waiting) + ": not built yet")
+    return "; ".join(parts) or "nothing found to fix"
+
+
+def _run_remix(job: Job, stems: Dict[str, np.ndarray], sr: int, stem_settings: Any,
+               s: Any, clean_choice: str, original: np.ndarray,
+               original_path: Optional[str] = None) -> None:
+    """The worker: runs in a thread. Every stage checks for cancel. Tags and
+    the release check as every other tab's export (docs/API.md §4)."""
+    prog = job.run
+    prog.stage("mix", "Mixing the stems", "each stem's effects, then the sum")
+    mix = render_remix(stems, sr, stem_settings)
+    src = _core.Source.from_array(mix, sr)
+    rendered = _core.render(src, s, progress=prog)
+    out_sr = rendered.sr
+    fmt = _core.catalog.output_format(s.format)
+    tags = None
+    if original_path:
+        tags = _api_render._build_tags(
+            original_path, None,
+            _api_render._note("remix", rendered, _api_render._eq_moves(s, out_sr)))
+    prog.stage("export", "Writing the file", fmt.label + (" · tags" if tags else ""))
+    processed = os.path.join(job.workdir, f"processed{fmt.ext}")
+    exp = _core.export(rendered, processed, source_path=original_path, tags=tags)
+    job.processed_path = processed
+    written = bool((exp.get("tags") or {}).get("written"))
+
+    prog.stage("report", "Measuring the result")
+    fixes = rendered.report.get("fixes", {})
+    tones = fixes.get("tones") if isinstance(fixes.get("tones"), dict) else None
+    cleaning: Dict[str, Any] = {"enabled": clean_choice != "off"}
+    if cleaning["enabled"]:
+        cleaning.update({"preset": clean_choice, "label": _remix_clean_label(fixes),
+                         "repair_notches": int(tones["notches"]) if tones else 0})
+    lufs_out = _finite_or_none(exp["lufs"])
+    tp_out = _finite_or_none(exp["true_peak_dbtp"])
+    m = rendered.report.get("mastering", {})
+    mastering: Dict[str, Any] = {"enabled": False}
+    release = None
+    if m.get("enabled"):
+        mastering = {
+            "enabled": True,
+            "target_lufs": m["target_lufs"], "ceiling_dbtp": m["ceiling_dbtp"],
+            "gain_db": m["gain_db"],
+            "before": {"lufs_i": _finite_or_none(_core.meters.loudness(src.at_rate(out_sr), out_sr))},
+            "after": {"lufs_i": lufs_out, "true_peak_dbtp": tp_out},
+            "limiter": {"max_gain_reduction_db": m["limiter_gain_reduction_db"]},
+            "tone_curve_db": m.get("tone_curve_db", []),
+        }
+        # The clipping check reads the upload, not the stem sum: the sum is
+        # peak-scaled to exactly 0.999, which would read as clipped.
+        release = _core.release_check(
+            rendered.audio, out_sr, x_in=original,
+            mastering={"enabled": True, "target_lufs": m["target_lufs"],
+                       "ceiling_dbtp": m["ceiling_dbtp"],
+                       "after": {"lufs_i": lufs_out, "true_peak_dbtp": tp_out}},
+            export={"format": fmt.ext.lstrip("."), "bit_depth": fmt.bits},
+            correlation=_core.stereo_correlation(rendered.audio),
+            duration_s=float(rendered.audio.shape[0] / out_sr),
+            tags={k: v for k, v in tags.items() if k != "software"} if tags else None,
+            tags_written=written)
+    job.metrics = _api_render._json_safe({
+        "sample_rate": out_sr,
+        "channels": int(rendered.audio.shape[1]),
+        "duration_s": float(rendered.audio.shape[0] / out_sr),
+        "input": measure(original),
+        "output": measure(rendered.audio),
+        "cleaning": cleaning,
+        "mastering": mastering,
+        "loudness": {"output_lufs_i": lufs_out},
+        "release": release,
+        "tags_written": written,
+        "fixes": fixes,
+    })
+
+
+async def _run_remix_async(job: Job, *args) -> None:
+    loop = asyncio.get_running_loop()
+    _api_jobs.pusher(job, loop)
+    job.status = "running"
+    try:
+        await loop.run_in_executor(None, _run_remix, job, *args)
+    except Exception as e:  # noqa: BLE001  (Cancelled included)
+        await _api_jobs.finish(job, e)
+        return
+    await _api_jobs.finish(job)
 
 
 # ───────────────────────────────────────────────────────────────────────────

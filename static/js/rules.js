@@ -17,3 +17,16 @@ export function loudnessLufs(rules, key) {
     const t = (rules.loudness_targets || []).find((x) => x.key === key);
     return t ? t.lufs : null;
 }
+
+// One colour per engine stage, for the progress window.
+export const STAGE_COLOURS = {
+    load: '#2dd4bf', edit: '#22d3ee', rate: '#38bdf8', fixes: '#60a5fa', tone: '#a78bfa',
+    eq: '#c084fc', master: '#f5a524', export: '#fbbf24', report: '#f472b6',
+};
+
+/** The engine's stages as the progress window's [key, label, colour] rows,
+ *  leaving out the keys in `skip`. */
+export function stagePhases(rules, skip = []) {
+    return (rules.stages || []).filter((s) => !skip.includes(s.key))
+        .map((s) => [s.key, s.label, STAGE_COLOURS[s.key] || '#94a3b8']);
+}

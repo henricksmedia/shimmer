@@ -15,15 +15,10 @@ import { processModal } from './progress-chain.js';
 import { initTrim } from './trim.js';
 import { initReport } from './report.js';
 import { initFaultPicker } from './fault-picker.js';
-import { loadRules, loudnessLufs } from './rules.js';
+import { loadRules, loudnessLufs, stagePhases } from './rules.js';
 
 // The progress window's colours for the engine's stages (the stage list
 // itself comes from /api/rules). Signal order runs around the colour wheel.
-const STAGE_COLOURS = {
-    load: '#2dd4bf', edit: '#22d3ee', rate: '#38bdf8', fixes: '#60a5fa', tone: '#a78bfa',
-    eq: '#c084fc', master: '#f5a524', export: '#fbbf24', report: '#f472b6',
-};
-
 
 const PREVIEW_DEBOUNCE_MS = 250;
 const PREVIEW_CACHE_MAX = 20;
@@ -2891,7 +2886,7 @@ export async function initSingleTab() {
     }
     // The engine's stages, from /api/rules, in the progress window's shape.
     function chainPhases() {
-        return RULES.stages.map((s) => [s.key, s.label, STAGE_COLOURS[s.key] || '#94a3b8']);
+        return stagePhases(RULES);
     }
     function openProcessModal() {
         // The title must say what this run actually does, and where it

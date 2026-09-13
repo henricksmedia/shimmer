@@ -270,6 +270,14 @@ change.
 - **Returns:** `{job_id}`.
 - **Fix:** the export now writes tags and runs the release check, like every
   other tab (ARCHITECTURE §17 row 8).
+- **Now (2026-09-12):**
+  - The export runs on `render()` and `export()`, on the job runner, so
+    `POST /api/cancel/{id}` stops it.
+  - Tags come from the original upload's tags, with the provenance note.
+  - The release check is in the metrics as `release`.
+  - `cleaning.label` says what the engine did. `detected_*` are gone.
+  - `/api/remix/preview` is still 1.x's until its proposal is signed off
+    (REBUILD-TRACKER, Proposals).
 
 **`POST /api/stems/export`** — Keep.
 

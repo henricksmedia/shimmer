@@ -9,8 +9,8 @@
 import { uploadFile, dropSession, openSSE, resultUrl,
          fetchPresets, fetchMetrics } from './api.js';
 import { fmtTime } from './visualizer.js';
-import { PHASES as CHAIN_PHASES } from './chain.js';
 import { processModal } from './progress-chain.js';
+import { loadRules, stagePhases } from './rules.js';
 
 // The processing window's phases for the three Remix jobs.
 const SEP_PHASES = [
@@ -36,12 +36,9 @@ const TIER_DESC = {
     ultra: 'vocals · drums · bass · other — Best averaged with two more models, two shift passes, wider overlap: less bleed and fewer seams, about 4× slower',
     studio: 'vocals · drums · bass · other — the best open vocal model (Mel-Band RoFormer, 12.6 dB) takes the vocal out, then Best splits the rest: the cleanest vocal lane',
 };
-const RENDER_PHASES = [
-    ['mix', 'Mix', '#2dd4bf'],
-    ['analyze', 'Analyze', '#22d3ee'],
-    ...CHAIN_PHASES.filter(([k]) => k !== 'edit' && k !== 'level')
-        .map(([k, l, c]) => [k, l === 'Fine pass' ? 'Fine' : l, c]),
-];
+// The render window: the stem mix, then the engine's stages from /api/rules
+// (reading and trimming a file are not part of a remix render).
+const renderPhases = (rules) => [['mix', 'Mix', '#2dd4bf'], ...stagePhases(rules, ['load', 'edit'])];
 const EXPORT_PHASES = [
     ['mix',    'Stems', '#a78bfa'],
     ['export', 'Pack',  '#fbbf24'],
@@ -1702,16 +1699,13 @@ export async function initRemixTab() {
         const mp = masteringPayload();
         const cleaning = cleanupSel.value;
         const format = formatSel.value;
-        const planned = new Set(['mix', 'export']);
-        if (cleaning === 'auto') planned.add('analyze');
-        if (cleaning !== 'off') {
-            ['repair', 'split', 'fine', 'engine', 'recombine', 'post'].forEach((k) => planned.add(k));
-            if (mp.enabled) planned.add('pre');
-        }
-        if (mp.enabled) planned.add('master');
+        const planned = new Set(['mix', 'export', 'report']);
+        if (cleaning !== 'off') planned.add('fixes');
+        if (mp.enabled) { planned.add('tone'); planned.add('master'); }
+        if (format === 'wav16') planned.add('rate');
         processModal.open({
             title: mp.enabled ? 'Rendering & mastering the remix' : 'Rendering the remix',
-            phases: RENDER_PHASES,
+            phases: renderPhases(await loadRules()),
             planned,
             stage: 'Preparing…',
             detail: 'summing the lanes with their effects',

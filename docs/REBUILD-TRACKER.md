@@ -372,7 +372,18 @@ the music" (`GOALS.md`):*
   - Not yet: a cancel button (batch is not on the job runner), and the
     Batch screen's preset menu becoming the cards.
 - [ ] Remix:
-  - [ ] its render and preview on `render()`
+  - [x] Its export on `render()` (2026-09-12).
+    - The stems' effects and sum, then `render()` and `export()`.
+    - A test holds the file equal to the engine's render of the mix.
+    - It runs on the job runner, so it can be cancelled.
+    - Its progress window reads the engine's stages.
+    - The cleanup report says what ran: "Fixed tones, 2 notches", or
+      which cards are not built yet.
+    - It writes tags (from the original upload's, with the provenance
+      note) and runs the release check, like every other tab.
+  - [ ] Its preview on `render()`: waiting for sign-off (see Proposals).
+        Until then it is 1.x's: the loop's own mix, mastered at a level
+        guessed from the original.
   - [ ] its cleanup menu becomes the cards
   - [ ] saved projects migrated
   - [ ] the doubler drift and the silent formant tail fixed
@@ -397,6 +408,24 @@ the music" (`GOALS.md`):*
   - Today's default, WAV 24-bit 48 kHz, is 17.3 MB a minute (2:53 under
     50 MB).
   - It needs a mockup before it is built.
+
+- **The Remix preview matching the export (measured 2026-09-12).**
+  - The export runs on the new engine now; the preview does not yet.
+  - To match the export exactly, the preview must work from the whole
+    remix. The tone curve, the fixed-tone scan and the loudness gain all
+    come from the whole song.
+  - On a 4-minute song with vocal effects on
+    (`testing`-style probe, scratch `remix_cost.py`):
+    - mixing the whole song takes 9.1 s (the vocal effects alone 7.6 s)
+    - the engine's whole-song work takes 3.1 s
+    - each later loop window takes 0.24 s
+  - Option A (recommended): the loop plays at once, as now. The full mix
+    is worked out in the background after each edit. For the few seconds
+    until it lands, the screen says the level is approximate; then the
+    preview matches the export exactly.
+  - Option B: every edit waits for the full mix, 3 to 11 s.
+  - Option C: keep today's preview, which is never exact.
+  - It needs a mockup of the "approximate" state before it is built.
 
 ## Open questions (answered when their step comes)
 
