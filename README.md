@@ -13,6 +13,10 @@
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776ab.svg)](https://www.python.org/)
 [![Runs locally](https://img.shields.io/badge/Runs-100%25%20locally-4ade80.svg)](#your-music-stays-on-your-computer)
 
+<br><br>
+
+<img src="assets/screenshots/shimmer-home.png" alt="Shimmer's Master tab: the Shimmer and Sibilance cards are on under What do you hear?, and the Removed track plays only what the fixes took out" width="100%">
+
 </div>
 
 ---

@@ -261,13 +261,20 @@ export async function initSingleTab() {
     // hit "Cannot access 'currentFile' before initialization".
     let currentFile = null;
     // What stage 3 will do, from the live controls (never a stale copy):
-    // preset, strength, and master target or cleaning only.
+    // the fixes the cards turn on, and master target or cleaning only.
     const dockStatus = $('dock-status');
+    function fixesSummary() {
+        let fixes = {};
+        try { fixes = picker.payload().fixes || {}; } catch (_) { return ''; }
+        const cards = (RULES && RULES.cards) || [];
+        const names = Object.entries(fixes).filter(([, amount]) => amount > 0)
+            .map(([key]) => (cards.find((c) => c.key === key) || {}).label || key);
+        if (!names.length) return 'no fixes';
+        return names.length <= 2 ? names.join(' + ') : `${names.length} fixes`;
+    }
     function syncDockStatus() {
         if (!dockStatus) return;
         if (!currentFile) { dockStatus.hidden = true; return; }
-        const preset = labelOf(presetSelect.value) || presetSelect.value || '';
-        const pct = Math.round(currentStrength() * 100);
         let tail = 'cleaning only';
         if (masterEnabled.checked) {
             const opt = masterTarget.options[masterTarget.selectedIndex];
@@ -275,7 +282,8 @@ export async function initSingleTab() {
             const short = t.includes(')') ? t.slice(0, t.indexOf(')') + 1) : t;
             tail = `master to ${short}`;
         }
-        dockStatus.textContent = `${preset} · ${pct}% · ${tail}`;
+        const fixes = fixesSummary();
+        dockStatus.textContent = fixes ? `${fixes} · ${tail}` : tail;
         dockStatus.hidden = false;
     }
 
