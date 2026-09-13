@@ -9,12 +9,14 @@ import os
 import re
 
 import numpy as np
+import pytest
 
 from shimmer.core import catalog
 from shimmer.core.audio import eq as user_eq
 from shimmer.core.chain import CHECKS, TONE_MAX_BOOST_DB, TONE_MAX_CUT_DB, describe_chain
 from shimmer.core.master import release, tone
-from shimmer.core.render import Source, _tones_plan
+from shimmer.core.render import Source, _tones_plan, known_gain
+from shimmer.core.render import render as render_window
 from shimmer.core.repair.notch import NotchPlan
 from shimmer.core.settings import EqBand, Settings
 
@@ -207,6 +209,44 @@ def test_trim_and_export():
 def test_the_report_lists_every_release_check_row():
     labels = set(re.findall(r'_check\("[a-z_]+", "([^"]+)"', inspect.getsource(release)))
     assert labels == set(CHECKS)
+
+
+def _music(seconds=6.0, sr=44100):
+    rng = np.random.default_rng(1)
+    t = np.arange(int(seconds * sr)) / sr
+    x = 0.2 * np.sin(2 * np.pi * 220 * t) + 0.05 * rng.standard_normal(t.size)
+    return np.stack([x, 0.9 * x], axis=1).astype(np.float32)
+
+
+def _gain_badge(stage):
+    b = stage["badges"][0]
+    assert b.endswith(" dB gain"), stage["badges"]
+    return float(b.split()[0].replace("−", "-"))
+
+
+def test_master_shows_the_gain_once_a_render_has_worked_it_out():
+    src = Source.from_array(_music(), 44100)
+    s = Settings(fixes={"tones": 1.0})
+    assert known_gain(src, s, notches=THREE) is None          # nothing rendered yet
+    unknown = _stages(describe_chain(s, notches=THREE))["master"]
+    assert "once the preview has played" in unknown["steps"][1][1]
+    r = render_window(src, s, window=(0.0, 2.0), notches=THREE)
+    g = known_gain(src, s, notches=THREE)
+    assert g == pytest.approx(r.report["mastering"]["gain_db"])
+    master = _stages(describe_chain(s, notches=THREE, gain_db=g))["master"]
+    assert _gain_badge(master) == pytest.approx(round(g, 1))
+    # A new loudness target needs no new measurement; a new tone does.
+    assert known_gain(src, s.replace(loudness_target="streaming"), notches=THREE) == \
+        pytest.approx(g - 5.0)
+    assert known_gain(src, s.replace(tilt="bright"), notches=THREE) is None
+    # Mastering off: Preserve volume's gain, once rendered.
+    off = s.replace(mastering=False)
+    assert known_gain(src, off, notches=THREE) is None
+    r = render_window(src, off, window=(0.0, 2.0), notches=THREE)
+    g = known_gain(src, off, notches=THREE)
+    assert g == pytest.approx(r.report["mastering"]["preserve_volume_gain_db"])
+    pv = _stages(describe_chain(off, notches=THREE, gain_db=g))["master"]
+    assert pv["verdict"].startswith("On · ") and "dB, back to the song’s own level" in pv["verdict"]
 
 
 def test_tone_limits_are_the_engines():

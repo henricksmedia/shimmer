@@ -121,10 +121,7 @@ def _tones_plan(source: Source, sr: int, s: Settings,
     """The notches this render applies. The Fixed tones card's amount scales
     each notch's depth; "auto" applies them at full depth when the card has
     not been set. `notches` overrides the scan (the screen's own list)."""
-    amount = s.fixes.get("tones")
-    if amount is None and not s.auto:
-        return []
-    a = 1.0 if amount is None else float(amount)
+    a = _tones_amount(s)
     if a <= 0.0:
         return []
     if notches is None:
@@ -132,6 +129,14 @@ def _tones_plan(source: Source, sr: int, s: Settings,
             ("tones_plan", sr),
             lambda: notch.plan_from_lines(scan_fixed_lines(source.at_rate(sr), sr), sr).notches)
     return [dataclasses.replace(n, depth_db=n.depth_db * a) for n in notches]
+
+
+def _tones_amount(s: Settings) -> float:
+    """How deep the Fixed tones notches go, 0-1; 0 when none apply."""
+    amount = s.fixes.get("tones")
+    if amount is None:
+        return 1.0 if s.auto else 0.0
+    return max(0.0, float(amount))
 
 
 def _fix(x: np.ndarray, sr: int, plan: List[notch.Notch]) -> np.ndarray:
@@ -236,6 +241,34 @@ def _preserve_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch]
         scale = min(rin / rout, _PRESERVE_PEAK / peak)
         return float(np.clip(scale, 1.0 / _PRESERVE_MAX_SCALE, _PRESERVE_MAX_SCALE))
     return source._remember(_whole_key(s, sr, plan, "preserve_gain"), make)
+
+
+def known_gain(source: Source, settings: Optional[Settings] = None, *,
+               notches: Optional[Sequence[notch.Notch]] = None,
+               reference: Optional[Source] = None) -> Optional[float]:
+    """The one gain in dB that mastering adds for these settings (with
+    mastering off, Preserve volume's), when a render has already worked it
+    out for this song; else None. It never measures: the Signal Chain view
+    asks on every settings change. `notches` is the list the render was
+    given (None: the scan's, known only once the scan has run)."""
+    s = settings if settings is not None else Settings()
+    if not s.mastering and not s.preserve_volume:
+        return None
+    sr = int(catalog.output_format(s.format).sr or source.sr)
+    if notches is None and _tones_amount(s) > 0.0:
+        notches = source._cache.get(("tones_plan", sr))
+        if notches is None:
+            return None
+    plan = _tones_plan(source, sr, s, notches or [])
+    if s.mastering:
+        if reference is not None and ("reference_shape",) not in reference._cache:
+            return None
+        lufs = source._cache.get(_whole_key(s, sr, plan, "premaster_lufs", reference))
+        if lufs is None:
+            return None
+        return float(loudness.gain_to_target(lufs, catalog.loudness_target(s.loudness_target).lufs))
+    g = source._cache.get(_whole_key(s, sr, plan, "preserve_gain"))
+    return None if g is None else float(20.0 * np.log10(g))
 
 
 def premaster_levels(source: Source, settings: Optional[Settings] = None, *,

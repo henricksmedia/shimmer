@@ -2529,7 +2529,7 @@ export async function initSingleTab() {
     // ── Persistence wiring ────────────────────────────────────────────
     // Always write the current UI (Batch reuses EQ in-session). Restore
     // on next visit only when remember_settings is true.
-    // Signal chain bridge: the chain view asks for the settings a run
+    // Signal Chain bridge: the chain view asks for the settings a run
     // would send, plus the cards picked, the trim and the tags switch, so
     // the server describes the chain the run would take.
     window.shimmerChainState = () => {

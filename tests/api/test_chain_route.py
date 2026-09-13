@@ -78,6 +78,17 @@ def test_the_reference_counts_only_when_one_is_loaded(client):
     assert st["tone"]["name"] == "Tone match"
 
 
+def test_master_shows_the_gain_after_the_preview(client):
+    sid = _upload(client)
+    body = {"session_id": sid, "mastering": {"enabled": True, "target": "cd"}}
+    before = _stages(client.post("/api/chain", json=body))["master"]
+    assert not before["badges"][0].endswith("gain")
+    r = client.post("/api/preview", json={**body, "start_s": 0.0, "end_s": 5.0})
+    assert r.status_code == 200, r.text
+    after = _stages(client.post("/api/chain", json=body))["master"]
+    assert after["badges"][0].endswith(" dB gain"), after["badges"]
+
+
 def test_old_saved_fields_still_work(client):
     """A 1.x body (a preset) maps through migrate(), as the other routes do."""
     r = client.post("/api/chain", json={"preset": "vocal_glaze", "preset_strength": 1.0,

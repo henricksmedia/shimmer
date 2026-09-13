@@ -429,6 +429,10 @@ mockup `static/tmp/shimmer-signal-chain-mockup.html` (2026-09-13).
     label, tool, text, tag {kind, text, stage}, muted`), `checks`, and an
     `action {label, target}` or a `note`.
   - `summary.{on, total, text, facts}`.
+- Master's verdict and first badge carry the gain it adds (with mastering
+  off, Preserve volume's) once the preview has worked it out for these
+  settings (`core.known_gain`, which never measures). Until then Master
+  shows the target.
 
 The 1.x `modules`, `gates` and `summary` fields went with the old handler.
 

@@ -1,4 +1,4 @@
-// chain.js — the Signal chain view.
+// chain.js — the Signal Chain view.
 //
 // Draws what POST /api/chain says each stage does for the settings on the
 // Master tab right now (shimmer.core.chain.describe_chain). The server
@@ -81,7 +81,7 @@ async function refreshChain() {
         const flow = hostEl.querySelector('.chain-flow');
         if (flow) {
             flow.innerHTML =
-                `<div class="chain-error">Could not load the signal chain: ${esc(e.message)}</div>`;
+                `<div class="chain-error">Could not load the Signal Chain: ${esc(e.message)}</div>`;
         }
     }
 }
@@ -112,7 +112,7 @@ export function initChainTab() {
 
     hostEl.innerHTML = `
         <div class="chain-head">
-            <h2>Signal chain</h2>
+            <h2>Signal Chain</h2>
             <span class="lede">Every stage your song passes through, in order, for the settings on the Master tab right now. Follow the wire. Click a stage to read what it does. Dashed stages are skipped for these settings.</span>
         </div>
         <div class="chain-summary"></div>

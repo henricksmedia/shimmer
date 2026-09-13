@@ -199,7 +199,7 @@ is signed off. **Done 2026-09-12.**
       after the fixes and, with mastering on, after the tone curve.
     - Analyze, `/api/tone` and Batch use it; `shimmer/autoeq.py` points to
       it.
-  - [x] The Signal chain view (2026-09-13), from the signed-off mockup
+  - [x] The Signal Chain view (2026-09-13), from the signed-off mockup
         `static/tmp/shimmer-signal-chain-mockup.html`:
     - `core.describe_chain()` says what each of the nine stages does for
       the settings, following `render()`'s rules. Tests hold it to
@@ -214,6 +214,11 @@ is signed off. **Done 2026-09-12.**
     - One change from the mockup: cards with no tool built can only be
       "noted" on the Master tab, so the view lists them under Noted, not
       under "Cards that are on".
+    - The mockup's open questions, answered by the author: the heading
+      matches the rail ("Signal Chain"), and Master shows the gain it adds
+      once the preview has worked it out (`core.known_gain`, which reads
+      the render's cache and never measures). Checked in the browser on
+      "Alive Again": no gain before the preview, "−0.7 dB gain" after.
 
 ## Step 5 — Mastering (the main complaint)
 

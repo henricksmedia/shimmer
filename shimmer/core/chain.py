@@ -1,5 +1,5 @@
 """What each stage of the sound path does for a set of settings, for the
-Signal chain view (static/js/chain.js, POST /api/chain).
+Signal Chain view (static/js/chain.js, POST /api/chain).
 
 It follows the rules render() and export() follow, stage by stage, so the
 view says what a run will do. Settings only: it touches no audio. What the
@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from . import catalog
 from .audio import eq as user_eq
 from .master import tone
-from .render import _PRESERVE_MAX_SCALE, LOW_CUT_HZ
+from .render import _PRESERVE_MAX_SCALE, LOW_CUT_HZ, _tones_amount
 from .repair.notch import Notch
 from .settings import Settings
 
@@ -203,9 +203,8 @@ def _fixes(s: Settings, notches: Optional[Sequence[Notch]], cards_on: List[str],
     # Fixed tones, as render() plans them (_tones_plan): the card's amount
     # scales each notch; "auto" applies them at full depth when the card has
     # not been set.
-    amount = s.fixes.get("tones")
-    live = not (amount is None and not s.auto) and (1.0 if amount is None else amount) > 0.0
-    a = 1.0 if amount is None else float(amount)
+    a = _tones_amount(s)
+    live = a > 0.0
     plan: Optional[List[Tuple[float, float]]] = None
     if not live:
         plan = []
@@ -403,21 +402,36 @@ def _ceiling_words(fmt: catalog.Format) -> str:
             f"{kinds(lossy)} use {_db1(lossy[0].ceiling_dbtp)} dBTP.")
 
 
-def _master(s: Settings, fmt: catalog.Format, changed: bool) -> Dict[str, Any]:
+def _signed(v: float) -> str:
+    """4.24 -> "+4.2", -1.3 -> "−1.3", 0.01 -> "0"."""
+    s = _num(v)
+    return s if s.startswith("−") or s == "0" else "+" + s
+
+
+_UNKNOWN_GAIN = "The amount shows here once the preview has played with these settings."
+
+
+def _master(s: Settings, fmt: catalog.Format, changed: bool,
+            gain_db: Optional[float] = None) -> Dict[str, Any]:
     act = _action("Open Mastering", "mastering")
+    gain = None if gain_db is None else f"{_signed(gain_db)} dB"
     if s.mastering:
         t = catalog.loudness_target(s.loudness_target)
         lufs, ceil, cut = _num(t.lufs), _db1(fmt.ceiling_dbtp), _num(LOW_CUT_HZ)
         return _stage(
             "master", "Loudness and limiter",
             "Sets the release level and keeps peaks under the ceiling.", on=True,
-            verdict=f"On · {t.label}, {lufs} LUFS, ceiling {ceil} dBTP",
-            badges=[f"{lufs} LUFS", f"{ceil} dBTP", f"{cut} Hz low-cut", "one static gain"],
+            verdict=(f"On · {t.label}, {lufs} LUFS"
+                     + (f", {gain} gain" if gain else "") + f", ceiling {ceil} dBTP"),
+            badges=([f"{gain} gain"] if gain else [])
+            + [f"{lufs} LUFS", f"{ceil} dBTP", f"{cut} Hz low-cut", "one static gain"],
             band={"whole": True, "from": LOW_CUT_HZ, "tick": LOW_CUT_HZ},
             band_text=f"Works on the whole signal. The mark is the low-cut at {cut} Hz.",
             steps=[[f"Low-cut at {cut} Hz", f"Removes rumble below {cut} Hz."],
                    [f"Gain to {lufs} LUFS",
-                    "One static gain for the whole song. It does not ride up and down."],
+                    (f"One static gain for the whole song: {gain}. It does not ride up and "
+                     "down." if gain else "One static gain for the whole song. It does not "
+                     f"ride up and down. {_UNKNOWN_GAIN}")],
                    ["Peak shaper", "Softly rounds the tallest peaks, so the limiter has less "
                                    "to do."],
                    ["True-peak limiter", _ceiling_words(fmt)]],
@@ -431,10 +445,12 @@ def _master(s: Settings, fmt: catalog.Format, changed: bool) -> Dict[str, Any]:
             band={"whole": True}, band_text="Works on the whole signal.",
             action=act)
         if changed:
-            d["verdict"] = "On · back to the song’s own level"
-            d["badges"] = ["no limiter", f"at most ±{most} dB"]
+            d["verdict"] = (f"On · {gain}, back to the song’s own level" if gain
+                            else "On · back to the song’s own level")
+            d["badges"] = ([gain] if gain else []) + ["no limiter", f"at most ±{most} dB"]
             d["paras"] = ["The fixes can change the level a little. Preserve volume adds one "
-                          "gain for the whole song, so it plays at the level it came in at.",
+                          "gain for the whole song, so it plays at the level it came in at."
+                          + ("" if gain else f" {_UNKNOWN_GAIN}"),
                           "It keeps peaks just under full scale and never moves the level more "
                           f"than {most} dB either way."]
         else:
@@ -503,7 +519,8 @@ def describe_chain(settings: Optional[Settings] = None, *,
                    cards_on: Optional[Sequence[str]] = None,
                    noted: Sequence[str] = (),
                    tags: bool = True,
-                   save_folder: str = "") -> Dict[str, Any]:
+                   save_folder: str = "",
+                   gain_db: Optional[float] = None) -> Dict[str, Any]:
     """The nine stages for these settings, and a summary.
 
     song         the loaded song's facts: name, sample_rate, bits, float,
@@ -516,6 +533,8 @@ def describe_chain(settings: Optional[Settings] = None, *,
     cards_on     "What do you hear?" cards that are on; None: from the
                  settings' fixes
     noted        cards picked as "noted" (no tool built yet)
+    gain_db      the gain Master (or Preserve volume) adds, when a render has
+                 already worked it out (render.known_gain); None: not known
 
     Each stage: key, stage (its label), name, gloss, on, off (why not),
     standin and tag (Master with mastering off), off_line, verdict, badges
@@ -541,7 +560,7 @@ def describe_chain(settings: Optional[Settings] = None, *,
         fixes,
         _tone(s, reference),
         eq,
-        _master(s, fmt, changed=fixes["on"] or eq["on"]),
+        _master(s, fmt, changed=fixes["on"] or eq["on"], gain_db=gain_db),
         _export(s, fmt, out_sr, tags, save_folder),
         _report(),
     ]

@@ -161,7 +161,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         return { fixes, auto: true };
     }
 
-    /** The cards picked, for the Signal chain view: {on, noted}. */
+    /** The cards picked, for the Signal Chain view: {on, noted}. */
     function state() {
         return {
             on: cards.filter((c) => c.on).map((c) => c.key),

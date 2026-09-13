@@ -678,7 +678,7 @@ async def reference_view(payload: Dict[str, Any]) -> JSONResponse:
     return JSONResponse(_json_safe({**view, "reference": sess.reference_info}))
 
 
-# ── The Signal chain view ───────────────────────────────────────────────
+# ── The Signal Chain view ───────────────────────────────────────────────
 
 def _song_facts(sess: Any) -> Dict[str, Any]:
     """The loaded song's name, rate, bit depth, channels and length."""
@@ -689,7 +689,7 @@ def _song_facts(sess: Any) -> Dict[str, Any]:
 
 @router.post("/api/chain")
 async def chain(payload: Dict[str, Any]) -> JSONResponse:
-    """What each stage does for these settings, for the Signal chain view
+    """What each stage does for these settings, for the Signal Chain view
     (core.describe_chain). The body is the Master tab's settings fields,
     plus session_id, cards {on, noted}, trim {in_s, out_s}, tags_enabled
     and save_folder; every one may be left out. Reads settings and the
@@ -715,11 +715,16 @@ async def chain(payload: Dict[str, Any]) -> JSONResponse:
     cards = data.get("cards") if isinstance(data.get("cards"), dict) else {}
     on = cards.get("on") if isinstance(cards.get("on"), list) else None
     noted = cards.get("noted") if isinstance(cards.get("noted"), list) else []
+    # The gain, when the preview has already worked it out for these
+    # settings (it renders from the same session copy).
+    gain = (core.known_gain(sess.source, s, notches=notches, reference=ref)
+            if sess is not None else None)
     view = core.describe_chain(
         s, song=_song_facts(sess) if sess is not None else None, notches=notches, trim=trim,
         reference=sess.reference_info if ref is not None else None,
         cards_on=[str(k) for k in on] if on is not None else None,
         noted=[str(k) for k in noted],
         tags=bool(data.get("tags_enabled", True)),
-        save_folder=str(data.get("save_folder") or ""))
+        save_folder=str(data.get("save_folder") or ""),
+        gain_db=gain)
     return JSONResponse(_json_safe(view))
