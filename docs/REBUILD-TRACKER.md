@@ -238,7 +238,17 @@ is signed off. **Done 2026-09-12.**
 - [ ] Tone target as a replaceable input, with a deadband.
 - [ ] Reference-track matching.
 - [ ] Genre targets.
-- [ ] Low-end mono and width checks.
+- [x] Low-end mono and width checks (2026-09-12), as checks, not a process.
+  - New release-check row, "Bass in mono": how far everything below
+    100 Hz drops when played in mono. It warns past -3 dB, where the bass's
+    correlation turns negative. 8 contract tests, including out-of-phase
+    bass under an in-phase top, which the whole-mix mono check misses.
+  - Width across the whole mix: 1.1.1's mono check already flags a steady
+    negative correlation; kept.
+  - Not built: a guard for Shimmer itself narrowing the width. It belongs to
+    Step 6's "lost width" rule and needs a sourced threshold (how small a
+    width change the ear hears) before it can grade anything.
+  - Mono bass as a vinyl option: not built; only if asked.
 - [ ] A compressor, only if the bench asks for one.
 - [ ] Judge on the bench: headphones and speakers.
 

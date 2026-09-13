@@ -19,6 +19,9 @@ the streaming services' loudness rules and the stores' delivery rules:
 * Silence at the start and end, and the length: the stores' rules of
   thumb (a long lead-in, a long tail, a track under 30 seconds).
 * DC offset and mono compatibility.
+* The bass in mono (new in the rebuild): how far everything below 100 Hz
+  drops when left and right are summed, as on club systems and mono
+  speakers (docs/MASTERING-SOURCES.md §5).
 * Tags: title, artist and album; the ISRC is noted, not required.
 
 Plus "how loud it plays": how far each service turns the file up or
@@ -33,7 +36,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from ..audio import meters
+from ..audio import filters, meters
 from ..audio.trim import find_audible_bounds
 
 
@@ -65,6 +68,17 @@ TAIL_SILENCE_WARN_S = 5.0
 MIN_DURATION_S = 30.0
 DC_WARN = 0.005               # 0.5 % of full scale, about -46 dBFS
 CORR_WARN = 0.0
+# The bass in mono. Below 100 Hz, "keep bass central" (Sound On Sound,
+# September 2012), and a steady reading in the negative half loses
+# something in mono (Sound On Sound, October 2016). A negative correlation
+# is the same as the side outweighing the centre, so the bass drops more
+# than 3 dB when summed: that is the warning. No published standard gives a
+# number (MASTERING-SOURCES.md §5), so there is no other threshold. The
+# whole song is weighed at once, so brief dips do not count.
+LOW_END_HZ = 100.0
+LOW_END_WARN_DB = 10.0 * np.log10(0.5)    # -3.01 dB: correlation below zero
+LOW_END_CANCEL_DB = -30.0                 # shown as "cancels in mono"
+LOW_END_FLOOR_DB = SILENCE_DB             # quieter bass is not graded
 
 
 def _check(key: str, label: str, status: str, value: str,
@@ -127,6 +141,42 @@ def platform_changes(lufs: Optional[float]) -> List[Dict[str, Any]]:
         out.append({"name": name, "target_lufs": target,
                     "change_db": round(change, 2), "note": note})
     return out
+
+
+def low_end_check(y: np.ndarray, sr: int) -> Optional[Dict[str, Any]]:
+    """How far the bass below 100 Hz drops in mono. None for a mono file.
+
+    Stereo plays left and right; mono plays their average, the centre, on
+    both. So the bass keeps centre / (centre + side) of its power: all of it
+    when both channels match, half (-3 dB) when they are unrelated, none
+    when they are opposite. A 4th-order low-pass (two one-way Butterworth
+    stages) leaves 100 Hz at -6 dB and 1 kHz under -70 dB."""
+    y = as_2d(np.asarray(y, dtype=np.float32))
+    if y.shape[1] < 2 or y.shape[0] < 16:
+        return None
+    lp = filters.design("low_pass", LOW_END_HZ, sr, phase="minimum")
+    left, right = y[:, 0].astype(np.float64), y[:, 1].astype(np.float64)
+    ms = np.stack([left + right, left - right], axis=1) * 0.5
+    ms = filters.apply(filters.apply(ms, sr, lp), sr, lp)
+    centre = float(np.mean(ms[:, 0] ** 2))
+    side = float(np.mean(ms[:, 1] ** 2))
+    level_db = 10.0 * np.log10(centre + side + 1e-30)
+    if level_db < LOW_END_FLOOR_DB:
+        return _check("low_end", "Bass in mono", "info", "no bass",
+                      "nothing below 100 Hz to check")
+    drop = 10.0 * np.log10(max(centre, 1e-30) / (centre + side))
+    if drop <= LOW_END_CANCEL_DB:
+        value = "cancels in mono"
+    else:
+        shown = round(drop, 1) + 0.0            # no "-0.0"
+        value = f"{shown:.1f} dB in mono".replace("-", "−")
+    if drop < LOW_END_WARN_DB:
+        return _check("low_end", "Bass in mono", "warn", value,
+                      "the bass below 100 Hz is out of phase between left and right, "
+                      "so it drops on mono speakers and club systems; "
+                      "check the bass's stereo effects in the mix")
+    return _check("low_end", "Bass in mono", "pass", value,
+                  "the bass below 100 Hz holds up on mono speakers and club systems")
 
 
 def tags_check(tags: Optional[Dict[str, Any]], written: bool) -> Dict[str, Any]:
@@ -332,7 +382,12 @@ def release_check(y: np.ndarray, sr: int, *,
     else:
         checks.append(_check("mono", "Mono check", "pass", f"correlation {corr:+.2f}", ""))
 
-    # 11-12. Tags, when the caller has them already.
+    # 11. The bass in mono.
+    low_end = low_end_check(y, sr)
+    if low_end is not None:
+        checks.append(low_end)
+
+    # 12-13. Tags, when the caller has them already.
     if tags_written is not None:
         checks.append(tags_check(tags, bool(tags_written)))
         checks.append(isrc_check(tags))

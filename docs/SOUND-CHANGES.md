@@ -32,6 +32,7 @@ listed here.
 | Upload analysis true peak | Read from a mono mix at 4x: -5.92 dBTP on the test render | The louder channel at 8x: -5.47 dBTP. 1.1.1 read 0.45 dB low |
 | Peak-to-loudness ratio in the report | 11.98 dB on the test render, from the mono-mix true peak | 12.43 dB, from the per-channel true peak |
 | How each service plays the file (release check) | Amazon, Tidal and Deezer said a quiet track is "turned up" | They play it as is; only Spotify and Apple turn quiet tracks up. Checked against sources, MASTERING-SOURCES.md §2 |
+| Bass in mono (release check) | Not checked. The mono check read the whole mix, so out-of-phase bass under an in-phase top passed | A new row: how far the bass below 100 Hz drops when played in mono. Warns past -3 dB, which is a negative correlation in the bass, the "steady negative reading" the sources flag (MASTERING-SOURCES.md §5). Measurement only; 0.46 s on a 4-minute song |
 
 ## Fixes
 
