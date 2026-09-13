@@ -267,9 +267,9 @@ function renderQuiz(host) {
                 <div class="quiz-prompt">No problem — let Shimmer decide.</div>
                 <p class="quiz-body">
                     Drop your track on the <b>Master</b> screen and click
-                    <b>Analyze</b>. Shimmer listens to your song, checks it
-                    against all 19 presets, and picks the best match. It also
-                    tells you why it chose that one.
+                    <b>Analyze</b>. Shimmer measures your song's loudness,
+                    tone and fixed tones, and marks what it found on the
+                    <b>What do you hear?</b> cards.
                     If you have not loaded a track yet, start with
                     <b>Generic</b> &mdash; it is a safe default that works on
                     most material.
