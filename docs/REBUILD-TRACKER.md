@@ -327,13 +327,18 @@ the music" (`GOALS.md`):*
 
 | Card | Tool | Status |
 |---|---|---|
-| Fixed tones | Notch filter (port) | Not started |
-| Clicks and crackle | De-click, rebuilt | Not started |
-| Sibilance | De-esser | Not started |
-| Low-mid build-up | Dynamic EQ, 200–500 Hz | Not started |
-| Harshness | Dynamic EQ, 2–4 kHz | Not started |
-| Shimmer (the fizz) | See [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md) | Research done 2026-09-12; real-codec test case next |
-| Phasiness | A model first, then a tool | Not started |
+| Fixed tones | Notch filter (port) | Built: ported and nulled against 1.1.1 (Step 3) |
+| Clicks and crackle | De-click, rebuilt | Built and measured 2026-09-13; blind round next |
+| Sibilance | De-esser | Built and measured 2026-09-13; blind round built, waiting for the author |
+| Low-mid build-up | Dynamic EQ, 200–500 Hz | Built and measured 2026-09-13; blind round built, waiting for the author |
+| Harshness | Dynamic EQ, 2–5 kHz | Built and measured 2026-09-13; blind round built, waiting for the author |
+| Shimmer (the fizz) | See [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md) | Research done 2026-09-12; real-codec test case built 2026-09-13 (EnCodec) |
+| Phasiness | A model first, then a tool | Model built; the codec test case is its honest check |
+
+Measurements, designs compared and blind sets: [STEP6-FIXES.md](STEP6-FIXES.md).
+A card turns on in the Master tab (`catalog.TOOLS_READY`) only after its
+blind round passes; until then the engine has the tool but the screens do
+not offer it.
 | Lack of air | Tone target (Step 5) | With Step 5 |
 | Loudness | Loudness target (Step 5) | With Step 5 |
 

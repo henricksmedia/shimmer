@@ -10,8 +10,9 @@ The order, each stage at its place in the chain:
 
   1. Output rate. Resample for the chosen format first (the release copy is
      44.1 kHz), so the limiter's ceiling holds at the rate that is written.
-  2. Fixes. One tool per card that is on: the Fixed tones notch first, then
-     each tool in _FIX_TOOLS (the de-esser so far; Step 6 adds the rest).
+  2. Fixes. One tool per card that is on (_FIX_TOOLS): the de-click first,
+     since a click would ring on through a notch; then the Fixed tones
+     notch; then the de-esser and the dynamic EQ.
   2b. With mastering on, the tone curve (1.1.1's, ported bit-exact): worked
      out once from the whole raw song, applied after the notch as 1.1.1 did.
      With a reference track, the curve moves the song toward the reference
@@ -44,7 +45,7 @@ from .audio import eq as user_eq
 from .audio import filters, io, meters
 from .master import limiter, loudness, tone
 from .progress import Progress
-from .repair import deesser, notch
+from .repair import declick, deesser, dynamic_eq, notch
 from .settings import EqBand, Settings
 
 LEAD_IN_S = 1.0            # filters and the limiter's release settle in this
@@ -64,8 +65,15 @@ _MASTERING_TOOLS = ("tone_target", "loudness_target")
 # Each module has plan(audio, sr), worked out once from the whole song and
 # kept with it; apply(x, sr, plan, amount, offset), which returns x itself
 # when it changes nothing; and summary(plan, amount) for the report.
-_FIX_TOOLS: Tuple[Tuple[str, Any], ...] = (("sibilance", deesser),)
+_FIX_TOOLS: Tuple[Tuple[str, Any], ...] = (
+    ("clicks", declick),
+    ("sibilance", deesser),
+    ("harshness", dynamic_eq.HARSHNESS),
+    ("mud", dynamic_eq.MUD),
+)
 BUILT_CARDS = tuple(card for card, _ in _FIX_TOOLS)
+# These run before the notch: a click would ring on through a notch filter.
+_BEFORE_NOTCH = ("clicks",)
 
 
 @dataclass(eq=False)
@@ -166,11 +174,16 @@ def _tools_key(s: Settings) -> Tuple:
 
 def _fix(x: np.ndarray, sr: int, plan: List[notch.Notch],
          tools: Sequence[Tuple[str, Any, Any, float]] = (), offset: int = 0) -> np.ndarray:
-    """The fixes: the notch, then each tool. Returns x itself when nothing
-    applies, so a bypass render is bit-exact."""
-    y = notch.apply(x, sr, plan) if plan else x
-    for _, mod, p, amount in tools:
-        y = mod.apply(y, sr, p, amount, offset)
+    """The fixes: the de-click, the notch, then each other tool. Returns x
+    itself when nothing applies, so a bypass render is bit-exact."""
+    y = x
+    for card, mod, p, amount in tools:
+        if card in _BEFORE_NOTCH:
+            y = mod.apply(y, sr, p, amount, offset)
+    y = notch.apply(y, sr, plan) if plan else y
+    for card, mod, p, amount in tools:
+        if card not in _BEFORE_NOTCH:
+            y = mod.apply(y, sr, p, amount, offset)
     return y
 
 

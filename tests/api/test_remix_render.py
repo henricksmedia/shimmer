@@ -76,10 +76,19 @@ def test_the_cleanup_report_says_what_the_engine_did(sess):
 
 
 def test_a_preset_whose_card_has_no_tool_says_so(sess):
+    # Reverb Flutter maps to Phasiness, which has no fix yet (Step 6).
+    job = _run({"session_id": sess.id, "stems": {}, "output_format": "wav",
+                "mastering": {"enabled": False}, "cleaning": {"preset": "reverb_flutter"}})
+    assert job.status == "done", job.error
+    assert "not built yet" in job.metrics["cleaning"]["label"]
+
+
+def test_a_preset_whose_card_has_a_fix_names_it(sess):
+    # Harsh Veil maps to Harshness, which the dynamic EQ fixes.
     job = _run({"session_id": sess.id, "stems": {}, "output_format": "wav",
                 "mastering": {"enabled": False}, "cleaning": {"preset": "harsh_veil"}})
     assert job.status == "done", job.error
-    assert "not built yet" in job.metrics["cleaning"]["label"]
+    assert "Harshness" in job.metrics["cleaning"]["label"]
 
 
 def test_a_mastered_remix_carries_the_release_check(sess):

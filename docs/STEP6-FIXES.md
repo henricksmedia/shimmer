@@ -198,12 +198,224 @@ Too weak: the song's own notes at that band jump over the neighbours too,
 so it cut the same moments with or without the resonance. On two songs the
 mud finder picked the song's own 200 Hz, and those songs took the most.
 
-### Next
+### How a moment is judged, compared (Amount at the tested strength)
 
-Comparing how a moment is judged ("relative" to the band's usual level in
-the song, or a band compressor that cuts only when the band gets loud) and
-how the finder ranks bands (how high a band gets, or how far it swings).
+| Card | Design | Removed 2.0 / 0.5 | Music taken, mean | Worst song |
+|---|---|---|---|---|
+| Harshness | Fixed 4 dB over the neighbours | 17 % / 9 % | 0.060 | 0.111 |
+| Harshness | Over the band's usual excess | 13-16 % / 7-17 % | 0.057-0.074 | 0.122-0.160 |
+| Harshness | **Band compressor (over its 70th percentile)** | **26 % / 31 %** | **0.087** | **0.169** |
+| Harshness | Compressor and sticks out (both) | 15-16 % / 13-15 % | 0.072-0.078 | 0.135-0.152 |
+| Harshness | Compressor weighted by sticking out | 16-23 % / -1-22 % | 0.074-0.121 | 0.144-0.237 |
+| Harshness | Every band watched, no finder | 23-34 % / 17-40 % | 0.106-0.263 | 0.154-0.432 |
+| Mud | Fixed 4 dB over the neighbours | 39 % / 8 % | 0.091 | 0.184 |
+| Mud | Over the band's usual excess | 14-22 % / -5-5 % | 0.079-0.123 | 0.132-0.222 |
+| Mud | **Band compressor (over its 70th percentile)** | **35 % / 17 %** | **0.083** | **0.181** |
+| Mud | Compressor and sticks out, or weighted | 30-38 % / 10-12 % | 0.117-0.136 | 0.220-0.228 |
+| Mud | Every band watched, no finder | 25-40 % / -5-14 % | 0.228-0.512 | 0.471-0.911 |
 
-## Clicks and crackle, Shimmer, Phasiness
+- No design showed a side effect worth naming: width within 0.2 dB (every
+  band, mud: up to -0.4), hits unchanged, pumping at most 0.35 dB.
+- Ranking bands by how far they swing, not how high they get, made the mud
+  finder pick 224-252 Hz instead of the planted 480 Hz.
+- Watching every band removes a little more but takes far more music: the
+  songs' own low mids and upper mids stick out too.
+- On "We Were Meant For The Stars" both finders pick the song's own
+  200 Hz and 2.2 kHz bands, so the cut costs music there and removes
+  little. Whether those bands are that song's own mud and harshness is a
+  listening question.
 
-Not started.
+**Chosen:** the finder picks the band that sticks out highest (up to two
+for Harshness, one for Low-mid build-up); a band compressor cuts it by half
+of every dB it gets louder than its own 70th-percentile level in the song.
+Harshness: Q 3, at most 9 dB. Low-mid build-up: Q 1.4, at most 6 dB.
+
+Unit tests (`tests/core/test_core_dynamic_eq.py`): it finds a planted
+resonance within its own bell's half-width; takes it down; leaves a quiet
+stretch untouched (under -60 dB); moves nothing far outside its band
+(under -40 dB); nothing more than 20 ms before a hit (-60 dB); both
+channels get the same cut; a preview window equals the export (under
+-60 dB); nothing found in plain noise, nothing changed.
+
+### Amount
+
+Measured through the engine's `render()` at the tested strength (0.5 dB of
+cut per dB, 9 dB deepest for Harshness and 6 dB for Low-mid build-up), with
+Amount scaling both:
+
+| Card | Share of tested strength | Removed 2.0 / 0.5 | Music taken, mean | Worst song |
+|---|---|---|---|---|
+| Harshness | 50 % | 18 % / 25 % | 0.046 | 0.087 (Stars) |
+| Harshness | 70 % | 23 % / 29 % | 0.063 | 0.121 (Stars) |
+| Harshness | 85 % | 25 % / 31 % | 0.076 | 0.145 (Stars) |
+| Harshness | 100 % | 26 % / 30 % | 0.087 | 0.169 (Stars) |
+| Low-mid build-up | 50 % | 22 % / 12 % | 0.034 | 0.068 (Stars) |
+| Low-mid build-up | 70 % | 28 % / 15 % | 0.051 | 0.107 (Stars) |
+| Low-mid build-up | 85 % | 32 % / 16 % | 0.066 | 0.141 (Stars) |
+| Low-mid build-up | 100 % | 35 % / 17 % | 0.083 | 0.181 (Stars) |
+
+Per song at 100 %, Harshness: Alive Again 0.046, Falling For You 0.070,
+Leave The World Behind 0.152, We Were Meant For The Stars 0.169, Hey 0.000
+(nothing found). Low-mid build-up: 0.013, 0.067, 0.094, 0.181, 0.060. No
+side effect: width within 0.02 dB, hits unchanged, pumping at most 0.32 dB.
+Each card leaves the other's problem alone (3 % and -3 %).
+
+**Decision:** the worst song reaches the 0.10 limit at about 56 % of the
+tested strength for Harshness and 66 % for Low-mid build-up, so those are
+the sliders' 100 %: Harshness 0.28 dB per dB and 5.1 dB deepest, Low-mid
+build-up 0.33 dB per dB and 4.0 dB deepest. Most of the cost is one song
+("Stars"), where both finders pick the song's own bands; the blind round
+will say whether those bands are its own harshness and mud.
+
+### Final numbers (the shipped settings)
+
+| Card | Amount | Removed 2.0 / 0.5 | Music taken, mean | Worst song |
+|---|---|---|---|---|
+| Harshness | 50 % (default) | 11 % / 16 % | 0.026 | 0.049 (Stars) |
+| Harshness | 100 % (top) | 20 % / 26 % | 0.052 | 0.097 (Stars) |
+| Low-mid build-up | 50 % (default) | 15 % / 9 % | 0.021 | 0.041 (Stars) |
+| Low-mid build-up | 100 % (top) | 27 % / 14 % | 0.048 | 0.099 (Stars) |
+
+Per song at 100 %, Harshness: Alive Again 0.029, Falling For You 0.044,
+Leave The World Behind 0.088, Stars 0.097, Hey 0.000 (nothing found).
+Low-mid build-up: 0.009, 0.041, 0.054, 0.099, 0.036. Width within 0.02 dB,
+hits unchanged, pumping at most 0.20 dB. 1.x: Harsh Veil 4 %; Muddy/Boxy a
+static tone move only.
+
+These are modest numbers. A resonance that rides the music's own level looks,
+to any detector, much like the music's own loud notes in that band, so every
+design that removed more also cut more of the clean songs. The blind round
+decides whether what they do is worth having.
+
+### Blind round
+
+Built 2026-09-13 with `scripts/make_fix_round.py`, from the masters where
+each card acts most (of 43 scanned, loudest 20 s at the top Amount):
+
+| Card | Song | Acting | Band found |
+|---|---|---|---|
+| Harshness | Dawn Through Smoke | 44 % | 2245 / 3564 Hz |
+| Harshness | Crooked Run | 38 % | 2245 / 3175 Hz |
+| Harshness | Borrowed Ground | 38 % | 2000 / 2828 Hz |
+| Harshness | Pilot Light | 33 % | 2520 Hz |
+| Low-mid build-up | Crossing Wires - Temple of the Rave | 33 % | 252 Hz |
+| Low-mid build-up | Stitched From Two Directions | 33 % | 200 Hz |
+| Low-mid build-up | Ah | 32 % | 224 Hz |
+| Low-mid build-up | Crossthread | 30 % | 283 Hz |
+
+Harshness found nothing in 7 of the 43 songs. Each set: 20 s where the fix
+acts most, as original, Amount 50 % and Amount 100 %, level-matched and
+shuffled; the residual is what 100 % took out. The Harshness sets were
+built at 5.2 dB deepest, a hair above the shipped 5.1 dB.
+
+## Clicks and crackle: the de-click, rebuilt
+
+`shimmer/core/repair/declick.py`. It runs first in the fixes, before the
+notch, since a click would ring on through a notch filter.
+
+**What 1.x's de-clicker did** (checklist item 17): 450-870 "clicks" found
+per 8 s clip with about 12 planted, since it took drum hits for clicks; the
+pops' energy left where it was (1.0-1.2 of it); pops 15 % / -15 % and
+crackle 48 % / 37 % removed (0.5 / 2.0 sones); 0.104-0.107 sones taken from
+a clean song.
+
+**How it works:**
+
+1. A model of the music predicts each sample from the 24 before it
+   (forward) and the 24 after it (backward), refitted every 40 ms. A click
+   breaks both predictions at the same samples; a hit breaks only the
+   forward one. Only samples both miss by more than 6 robust sigmas (at
+   Amount 100 %; 12 at 0 %) are candidates.
+2. A candidate is a click only if it is short (at most 3 ms), the sound
+   after it is not much louder than before (not a hit's start), and its
+   error stands 3x above every error around it, within 4x its own length
+   (1-10 ms), so crackle, many tiny clicks close together, still counts.
+3. Each click becomes a gap a little wider than the click (a quarter of its
+   length more, for its fading tail), filled by the samples that best
+   continue a 48-sample model of the music fitted on 20 ms either side
+   (least-squares AR interpolation).
+
+### Checks compared (5 real songs, Amount 100 %, first fill)
+
+| Checks | Pops 2.0 / 0.5 | Pop energy left | Crackle 2.0 / 0.5 | Music taken, mean / worst | Found on clean songs, per 8 s |
+|---|---|---|---|---|---|
+| None | 49 % / 60 % | 0.30 | 12 % / -104 % | 0.144 / 0.336 | 205 |
+| Falls back to normal after | 22 % / 59 % | 0.50 | 8 % / -100 % | 0.041 / 0.168 | 44 |
+| Stands alone within 10 ms | 37 % / 35 % | 0.42 | 15 % / -34 % | 0.013 / 0.064 | 1.6 |
+| Both | 18 % / 36 % | 0.57 | 15 % / -34 % | 0.012 / 0.061 | 1.4 |
+
+"Stands alone" cut false alarms from 205 to under 2 per 8 s; the
+fall-back check threw out real pops with the hits, so it is off.
+
+### Filling the gap
+
+A gap in steady chords over a strong bass (the hardest case for a fill),
+filled from the music either side, 30 places each:
+
+| Gap | Typical error | Worst error |
+|---|---|---|
+| 20 samples | -33 dB | -21 dB |
+| 40 samples | -23 dB | -5 dB |
+| 60 samples | -12 dB | about 0 dB (no better than leaving it) |
+
+That is with the best method found (a 48-sample model fitted directly on
+the samples, 20 ms either side). A shorter model filled slow bass badly (it
+dipped toward zero); taking the bass trend out first made it worse. So gaps
+are kept short: a quarter of the click's length added for its tail, not the
+whole length.
+
+With that fill, on the real songs at Amount 100 %: pops about 49 % / 11 %
+removed, crackle 42 % / -34 %, 0.017 sones taken on average and 0.070 at
+worst, 3 false alarms per 8 s. A trigger of 5 sigmas instead of 6 removed a
+little more (pops 47 % / 22 %, crackle 48 % / -31 %) but flagged music just
+past an instant chord change, so it stays at 6.
+
+**The weak spot:** faint crackle (0.5 sones) comes out slightly worse by the
+hearing model. A fill is never exact, and on clicks that faint the fill's
+own error is as large as the click. At the card's default Amount (50 %) the
+trigger is 9 sigmas, so faint crackle is mostly left alone.
+
+Unit tests (`tests/core/test_core_declick.py`): finds planted pops and
+nothing else; fills them (at least 3 dB off overall, most by 5 dB, none
+louder); a gap in a steady tone comes back within -40 dB; clean music and
+drum hits left alone; only the found clicks change; a preview window equals
+the export; the Removed track holds the pops; bypass is bit-exact.
+
+### Numbers through the engine (settings as committed 2026-09-13)
+
+| Amount | Pops 2.0 / 0.5 | Crackle 2.0 / 0.5 | Pop energy left | Music taken, mean | Worst song |
+|---|---|---|---|---|---|
+| 50 % (default) | 40 % / 21 % | 38 % / -40 % | 2.12 | 0.007 | 0.037 (Alive Again) |
+| 100 % (top) | 49 % / 11 % | 42 % / -34 % | 2.44 | 0.017 | 0.070 (Alive Again) |
+
+Width, hits and pumping unchanged. No Amount cap needed: the worst song
+takes 0.070 at the top.
+
+**Open problem, being fixed:** the pop energy left is over 1. By the
+hearing model about half of each planted pop is gone, but by plain energy
+the fills leave more error behind than the pops had. With the first,
+shorter fill it was 0.30-0.42. The longer fill was tuned on steady chords
+over a bass, and on the real songs' denser sound it misfires. The fill is
+being chosen again on the real songs; the card stays off in the Master tab
+until that is settled and the blind round passes.
+
+## Shimmer
+
+The research's step zero, the real-codec test case, is being built
+(`scripts/make_codec_case.py`, 2026-09-13): five clean masters through
+EnCodec 48 kHz at 3, 6 and 12 kbps. EnCodec is the open codec of the kind
+Suno's earlier speech model used; it was installed with the author's
+permission (package `encodec` 0.1.1, 3.7 MB, into the stems environment
+without dependencies; its 48 kHz model, 72.8 MB, in the stems model cache).
+It makes test material only and never ships.
+
+Next: the author judges whether the codec's damage sounds like Suno shimmer
+(listening question 1). If it does, the codec pairs are the ground truth
+every Shimmer fix is measured on.
+
+## Phasiness
+
+The `phasiness` model scrambles phase in the song's tails. A fix that
+restores smooth phase in tails would undo that model almost by definition,
+so it would pass without proving anything. The codec test case above is
+the honest check for Phasiness too: the codec rebuilds phase on its own.

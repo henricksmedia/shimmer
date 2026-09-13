@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from . import catalog
 from .audio import eq as user_eq
 from .master import tone
-from .render import _PRESERVE_MAX_SCALE, LOW_CUT_HZ, _tones_amount
+from .render import _FIX_TOOLS, _PRESERVE_MAX_SCALE, LOW_CUT_HZ, _tones_amount
 from .repair.notch import Notch
 from .settings import Settings
 
@@ -41,6 +41,37 @@ _ONE_WAY = ("highpass", "lowpass")
 _STAGE = dict(catalog.STAGES)
 _MASTERING_TOOLS = ("tone_target", "loudness_target")
 _SAVED = "Your pick is saved on this computer to help test new fixes."
+
+# What each built cleaning tool does, in the Fixes stage's words.
+_TOOL_GLOSS = {
+    "deesser": "Turns down harsh “s”, “t” and “ch” while they stick out.",
+    "dynamic_eq": "Cuts a band only while it rings out above the rest.",
+    "declick": "Finds short pops and crackle and fills them in.",
+}
+
+
+def _card_amount(s: Settings, key: str) -> float:
+    return float(s.fixes.get(key, catalog.card(key).default_amount))
+
+
+def _tool_depth(card: str, amount: float) -> Optional[float]:
+    """The deepest cut a built tool makes at this Amount, from its own
+    settings (render._FIX_TOOLS), or None when it has no such limit."""
+    for c, mod in _FIX_TOOLS:
+        if c == card:
+            top = getattr(mod, "MAX_CUT_DB", None)
+            if top is None and hasattr(mod, "cfg"):
+                top = getattr(mod.cfg, "max_cut_db", None)
+            return None if top is None else float(top) * float(amount)
+    return None
+
+
+def _built_sentence() -> str:
+    built = ["notch filter"] + [_lower_first(catalog.TOOL_LABELS[t]) for t in catalog.TOOLS_READY
+                                if t not in _MASTERING_TOOLS and t != "notch"]
+    if len(built) == 1:
+        return "Only the notch filter is built so far."
+    return f"Built so far: the {_join(built)}."
 
 
 # ── Words and numbers ───────────────────────────────────────────────────
@@ -214,6 +245,7 @@ def _fixes(s: Settings, notches: Optional[Sequence[Notch]], cards_on: List[str],
 
     rows: List[Dict[str, Any]] = []
     to_mastering = needs_mastering = not_built = 0
+    runs: List[str] = []                 # cards whose built tool runs, besides the notch
     tones = catalog.card("tones")
     if on or "tones" in cards_on:
         if plan is None:
@@ -244,6 +276,14 @@ def _fixes(s: Settings, notches: Optional[Sequence[Notch]], cards_on: List[str],
                 lufs = catalog.loudness_target(s.loudness_target).lufs
                 rows.append(_row(c, f"Handled by mastering, in the Master stage, at "
                                     f"{_num(lufs)} LUFS.", _tag("stage", "In Master", "master")))
+        elif c.tool and c.tool in catalog.TOOLS_READY:
+            runs.append(key)
+            amt = _card_amount(s, key)
+            depth = _tool_depth(key, amt)
+            text = _TOOL_GLOSS.get(c.tool, "Runs this card's fix.")
+            if depth is not None:
+                text += f" By up to {_num(depth)} dB at Amount {round(amt * 100)}%."
+            rows.append(_row(c, text, _tag("on", "On")))
         elif c.tool and c.tool not in catalog.TOOLS_READY:
             not_built += 1
             rows.append(_row(c, f"The {_lower_first(catalog.TOOL_LABELS[c.tool])} is not built "
@@ -263,7 +303,17 @@ def _fixes(s: Settings, notches: Optional[Sequence[Notch]], cards_on: List[str],
             noted_rows.append(_row(c, f"No fix yet. {_SAVED}", _tag("nb", "No fix yet"),
                                    muted=True))
 
-    d = _stage("fixes", "Notch filter", "Cuts steady whistles or whines at one pitch.",
+    notch_on = on
+    on = notch_on or bool(runs)
+    running = (["Notch filter"] if notch_on else []) + \
+        [catalog.TOOL_LABELS[catalog.card(k).tool] for k in runs]
+    if len(running) > 1:
+        name, gloss = ", ".join(running), "Runs the fix for each card that is on."
+    elif runs and not notch_on:
+        name, gloss = running[0], _TOOL_GLOSS.get(catalog.card(runs[0]).tool, "")
+    else:
+        name, gloss = "Notch filter", "Cuts steady whistles or whines at one pitch."
+    d = _stage("fixes", name, gloss,
                on=on, off="no steady tones to cut" if live else "no fix is on",
                fixes=rows, noted=noted_rows,
                action=_action("Open What do you hear?", "hear"))
@@ -275,19 +325,25 @@ def _fixes(s: Settings, notches: Optional[Sequence[Notch]], cards_on: List[str],
         d["band_text"] = ("The notches show here once a song is loaded." if plan is None
                           else "No notches.")
     others = len(rows) - (1 if rows and rows[0]["key"] == "tones" else 0) + len(noted_rows)
+    built = _built_sentence()
     if on:
         badges = []
-        if plan:
+        if notch_on and plan:
             deepest = max(dd for _, dd in plan)
             badges += [_count(len(plan), "notch", "notches"), f"deepest −{_num(deepest)} dB"]
-        badges.append(f"Amount {round(a * 100)}%")
+        if notch_on:
+            badges.append(f"Amount {round(a * 100)}%")
+        for k in runs:
+            badges.append(f"{catalog.TOOL_LABELS[catalog.card(k).tool]} "
+                          f"{round(_card_amount(s, k) * 100)}%")
         nb = []
         if not_built + len(noted_rows):
             nb = [f"{not_built + len(noted_rows)} not built yet"]
             badges.insert(1, nb[0])
         d["badges"], d["nb_badges"] = badges, nb
         if others:
-            parts = ["1 fix runs"]
+            n_run = int(notch_on) + len(runs)
+            parts = [f"{n_run} fix{'es' if n_run != 1 else ''} run{'s' if n_run == 1 else ''}"]
             if to_mastering:
                 parts.append(f"{to_mastering} go{'es' if to_mastering == 1 else ''} to mastering")
             if needs_mastering:
@@ -296,7 +352,7 @@ def _fixes(s: Settings, notches: Optional[Sequence[Notch]], cards_on: List[str],
                 parts.append(f"{not_built + len(noted_rows)} not built yet")
             d["verdict"] = " · ".join(parts)
             d["paras"] = ["One tool runs for each card that is on under What do you hear? "
-                          "Only the notch filter is built so far."]
+                          + built]
         else:
             d["verdict"] = ("On · " + f"{_count(len(plan), 'notch', 'notches')}, deepest "
                             f"−{_num(max(dd for _, dd in plan))} dB" if plan
@@ -308,7 +364,8 @@ def _fixes(s: Settings, notches: Optional[Sequence[Notch]], cards_on: List[str],
                           "Each notch is narrow, so the music on either side is kept."]
     else:
         d["paras"] = ["One tool runs for each card that is on under What do you hear? "
-                      "Only the notch filter is built so far: turn on Fixed tones to use it."]
+                      + (built[:-1] + ": turn on Fixed tones to use it."
+                         if built.startswith("Only") else built + " Turn on a card to use it.")]
     return d
 
 

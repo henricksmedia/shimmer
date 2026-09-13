@@ -211,6 +211,28 @@ def test_the_report_lists_every_release_check_row():
     assert labels == set(CHECKS)
 
 
+def test_a_ready_tool_gets_its_own_row(monkeypatch):
+    """Once a card's tool passes and joins TOOLS_READY, the Fixes stage shows
+    it running, with its depth at the Amount set, and says what is built."""
+    from shimmer.core.repair import deesser
+    monkeypatch.setattr(catalog, "TOOLS_READY", catalog.TOOLS_READY + ("deesser",))
+    view = describe_chain(Settings(fixes={"sibilance": 0.5}, auto=False),
+                          cards_on=["sibilance"])
+    fx = _stages(view)["fixes"]
+    assert fx["on"] and fx["name"] == "De-esser"
+    row = fx["fixes"][0]
+    assert (row["key"], row["tag"]["text"]) == ("sibilance", "On")
+    assert f"By up to {deesser.MAX_CUT_DB * 0.5:g} dB at Amount 50%." in row["text"]
+    assert fx["verdict"] == "1 fix runs"
+    assert fx["badges"] == ["De-esser 50%"]
+    assert "Built so far: the notch filter and de-esser." in fx["paras"][0]
+    assert view["summary"]["text"] == "The sound changes in Fixes, Tone and Master."
+    # With the notch too, both run and both are named.
+    both = _stages(describe_chain(Settings(fixes={"tones": 1.0, "sibilance": 0.5}),
+                                  notches=THREE, cards_on=["tones", "sibilance"]))["fixes"]
+    assert both["name"] == "Notch filter, De-esser" and both["verdict"].startswith("2 fixes run")
+
+
 def _music(seconds=6.0, sr=44100):
     rng = np.random.default_rng(1)
     t = np.arange(int(seconds * sr)) / sr
