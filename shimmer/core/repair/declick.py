@@ -17,10 +17,12 @@ took 0.104-0.107 sones of music. This one:
 - **Tells a pop from a hit.** A pop is short (at most MAX_MS) and the sound
   after it carries on at the level it had before; a hit starts something
   louder that keeps going (ONSET_RATIO).
-- **Fills the gap from both sides.** The missing samples are the ones that
-  best continue the model of the music on either side of the gap
-  (least-squares AR interpolation, Janssen, Veldhuis and Vries, 1986), not a
-  crossfade and not silence.
+- **Fills the gap from both sides, above 2 kHz only.** The gap's top band
+  is replaced by the samples that best continue a model of the music on
+  either side (least-squares AR interpolation, Janssen, Veldhuis and Vries,
+  1986), not a crossfade and not silence. The bass and mids in the gap are
+  kept: a click lives mostly up top, and a short model cannot carry a bass
+  through a gap.
 
 Amount sets how far a sample must stray to count: THRESHOLD_TOP x the
 music's own prediction error at Amount 100 %, THRESHOLD_BOTTOM at 0 %.
@@ -57,6 +59,13 @@ ONSET_RATIO = 4.0              # louder after than before by this power ratio: a
 # energy left on one song).
 FILL_ORDER = ORDER
 CONTEXT = 4 * ORDER
+# Only the band above FILL_SPLIT_HZ is filled inside a gap; the bass and
+# mids there are kept as they were. A click's energy lives mostly up there,
+# and a short model cannot carry a bass or a chord through a gap. Found on
+# the whole band as before. Measured: the synthetic song's pops lost 9-16 dB
+# each (the whole-band fill: -13 to +8 dB, three made worse); on "Hey" the
+# energy left fell from 4-15 to 1.3-2.9 times the pops' own.
+FILL_SPLIT_HZ = 2000.0
 TAIL_SHARE = 0.25              # the gap runs past the flagged samples by this share of
                                # their length, for the click's fading tail
 # After a click the music is predictable again; after a hit's noisy start it
@@ -237,10 +246,17 @@ def apply(x: np.ndarray, sr: int, p: Plan, amount: float, offset: int = 0) -> np
     a = np.asarray(x, dtype=np.float64)
     y = a[:, None].copy() if a.ndim == 1 else a.copy()
     changed = False
+    split = ss.butter(4, min(FILL_SPLIT_HZ, 0.45 * sr), btype="lowpass", fs=sr, output="sos")
     for c in range(y.shape[1]):
-        for s, e in find(y[:, c], sr, amount, offset):
-            _fill(y[:, c], s, e, sr)
-            changed = True
+        spans = find(y[:, c], sr, amount, offset)
+        if not spans:
+            continue
+        low = ss.sosfiltfilt(split, y[:, c])
+        high = y[:, c] - low
+        for s, e in spans:
+            _fill(high, s, e, sr)
+            y[s:e, c] = low[s:e] + high[s:e]     # only the gap's samples change
+        changed = True
     if not changed:
         return x
     return y if a.ndim == 2 else y[:, 0]

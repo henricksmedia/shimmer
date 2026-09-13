@@ -443,11 +443,79 @@ redesign rather than more tuning:
   bass and mids, which a short model cannot carry through a gap, as they
   are.
 
-The de-click as committed is the last measured version (above): on the
-harness's louder pops it removes 46 % / 41 % at 0.017 sones on average,
-leaves clean music and drum hits alone, and misses moderate pops in dense
-music. Its tests record both: what it does, and, as known failures, what
-it must do before it can pass.
+The de-click as committed in 6d3f9e6 was the last measured version (above):
+on the harness's louder pops it removed 46 % / 41 % at 0.017 sones on
+average, left clean music and drum hits alone, and missed moderate pops in
+dense music.
+
+### The fill above 2 kHz only (2026-09-13)
+
+The second redesign idea, tried first as a prototype outside the repo:
+clicks are still found on the whole band, but inside each gap only the band
+above 2 kHz is filled; the bass and mids there are kept as they were, and
+every sample outside a gap is untouched.
+
+| | Whole-band fill | Fill above 2 kHz |
+|---|---|---|
+| Synthetic song's 5 pops, each | -13 to +8 dB (three made worse) | +9 to +16 dB (all better) |
+| "Hey", pop energy left, 6 stretches | 4-15 x the pops' own | 1.3-2.9 x |
+| Drum hits and clean music | left alone | left alone |
+
+Splitting at 1 kHz filled less well; at 4 kHz about the same as 2 kHz.
+Finding clicks in the top band as well picked up drum hits (6-7 false
+alarms per channel on the drum test), so finding stays on the whole band.
+
+On the harness (5 real songs, the pop and crackle models, Amount 100 %):
+
+| Measure | Whole-band fill | Fill above 2 kHz |
+|---|---|---|
+| Pop energy left | 0.31 | 0.29 |
+| Crackle removed, 2.0 / 0.5 sones | 14 % / -20 % | 41 % / 57 % |
+| Pops removed by the hearing model, 2.0 / 0.5 sones | 46 % / 41 % | -54 % / 14 % |
+| Music taken from clean songs, mean / worst | 0.017 / 0.072 | 0.015 / 0.063 |
+| False alarms per 8 s, clean songs | 3 | 3 |
+
+The measures disagree. By plain energy the new fill removes as much of the
+pops as before, and it is far better on crackle, faint crackle included,
+which the old fill made worse. By the hearing model, loud pops came out
+worse on three songs (Falling For You -183 %, Leave The World Behind -54 %,
+We Were Meant For The Stars -91 %; Alive Again +45 %, Hey +16 %). One
+likely cause: the part of each pop below 2 kHz is left in place beside a
+filled top. The hearing model also blurs events as short as a click (its
+frames are longer than the click), which is why the harness reports pop
+energy beside it. The top-band fill is kept for its gains on energy,
+crackle and the tests; which of the two measures the ear agrees with is a
+listening question, and the card stays off until finding pops in dense
+music is solved.
+
+The fill test now passes. **Still failing:** in dense music it finds only
+0-2 of 4 moderate pops per channel, so on "Hey" the energy left stays above
+1 (the pops it misses are left as they are), and on one clean stretch of
+"Hey" it flags one spot. Finding those pops is the de-click's next step.
+
+### Finding quieter pops: a burst finder, tried and dropped (2026-09-13)
+
+A prototype outside the repo looked for bursts in the two predictions'
+combined error (over 0.5 ms) against its usual level over the surrounding
+40 ms, then kept the hit and "alone" checks:
+
+| Burst threshold | Pops found in "Hey" (of 4 per channel) | False alarms, clean 6 s stretch | Pop energy left | Test song: false alarms |
+|---|---|---|---|---|
+| Committed finder | 0-2 | 0-1 | 1.3-2.9 | 0 |
+| 8 x usual | 3-4 | 5-14 | 27-178 | 7 per channel |
+| 16 x usual | 1-4 | 3-10 | 22-192 | 7 |
+| 32 x usual | 0-2 | 0-5 | 1.1-107 | 7 |
+
+It finds more of the pops, but it flags far more of the music, and its
+finds run long, so even the top-band fill leaves many times the pops'
+energy. Every finder tried so far trades found pops for false alarms on
+dense music.
+
+**What would move this forward:** real clicks. No click from an AI render
+has been captured in the corpus yet (`shimmer/artifacts.py`); the pop model
+follows the complaint, not a recording. A few songs where the author hears
+clicks, with rough times, would let the finder be built and tested on the
+real thing.
 
 ## Shimmer
 

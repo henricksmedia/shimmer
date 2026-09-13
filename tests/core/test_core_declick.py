@@ -70,16 +70,15 @@ def test_it_finds_the_pops():
 
 
 NOT_PASSING = pytest.mark.xfail(
-    strict=True, reason="The de-click does not pass yet: it misses most pops in dense "
-                        "music and fills long gaps badly (docs/STEP6-FIXES.md).")
+    strict=True, reason="The de-click does not pass yet: it misses most moderate pops in "
+                        "dense music (docs/STEP6-FIXES.md).")
 
 
-@NOT_PASSING
 def test_it_fills_them_from_both_sides():
-    """Each pop is replaced by a fill from the music on both sides: the pops
-    must lose at least 3 dB overall, most of them 5 dB or more, and none may
-    come out louder. Steady chords over a strong bass are the hardest case
-    for a fill."""
+    """Each pop's top band is replaced by a fill from the music on both
+    sides: the pops must lose at least 3 dB overall, most of them 5 dB or
+    more, and none may come out louder. Steady chords over a strong bass are
+    the hardest case for a fill; filling only above 2 kHz keeps the bass."""
     x = _music()
     p = _pops(x)
     y = DC.apply(x + p, SR, DC.plan(x + p, SR), 1.0)

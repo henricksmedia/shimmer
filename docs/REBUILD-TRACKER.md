@@ -328,7 +328,7 @@ the music" (`GOALS.md`):*
 | Card | Tool | Status |
 |---|---|---|
 | Fixed tones | Notch filter (port) | Built: ported and nulled against 1.1.1 (Step 3) |
-| Clicks and crackle | De-click, rebuilt | Built and measured 2026-09-13; does not pass yet (misses moderate pops in dense music, long gaps fill badly); redesign next |
+| Clicks and crackle | De-click, rebuilt | Built and measured 2026-09-13; fills only above 2 kHz (fixes the bad fills); does not pass yet: misses moderate pops in dense music |
 | Sibilance | De-esser | Built and measured 2026-09-13; blind round built, waiting for the author |
 | Low-mid build-up | Dynamic EQ, 200–500 Hz | Built and measured 2026-09-13; blind round built, waiting for the author |
 | Harshness | Dynamic EQ, 2–5 kHz | Built and measured 2026-09-13; blind round built, waiting for the author |
