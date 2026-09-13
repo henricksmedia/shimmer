@@ -556,6 +556,50 @@ tried against them. If none does, the cause is something this codec does
 not do, and the next step is to measure Suno's own renders against their
 stems or a clean re-record.
 
+### The learned mask, ported (2026-09-13)
+
+The one Shimmer fix already trained is the mask network from the evidence
+branch (`scripts/hash_learn`, model 3; HANDOFF-CHECKLIST item 15). It is
+now `shimmer/core/repair/hash_remover.py`, in numpy, so nothing new is
+installed. It is registered in render so the harness measures it through
+the engine. The card still says "No fix yet" on screen, and only the
+command line (`--fix shimmer`) can run it, listed there as "built, not
+passed yet".
+
+- **Same result as torch:** its gains are within 1.3e-6 of the network
+  run in torch, on a real song's spectrogram
+  (`tests/core/test_core_hash_remover.py`).
+- **What changed from the training script:**
+  - The level the network sees is set by the whole song, not by each
+    excerpt. So a preview window gets the same gains as the export.
+  - It works at 48 kHz, the rate it was trained at. Only what it removes
+    is resampled back, so nothing outside 1.5–16 kHz is touched.
+  - Amount is clamped, so no bin is pushed past silence.
+- **Speed:**
+
+  | Version | Time for 6 s of audio, one channel |
+  |---|---|
+  | Plain port | 7.2 s |
+  | Kept | 0.75–1.2 s |
+
+  The kept version:
+  - does all 25 taps of two rows as one matrix multiply
+  - folds the batch norm into the weights
+  - skips rows no later layer reads
+  - runs on 8 threads
+
+  That is about 9 s for 30 s of stereo, or about 50 s for a 3-minute song
+  the first time. It is still too slow for the Amount slider to feel
+  instant. If the fix passes, each song's gains are kept after the first
+  pass, so moving the slider only redoes the cheap last step.
+- **Weights:** `testing/masknet3.npz` (0.5 MB), kept out of git until the
+  author decides whether the model ships in the public repo. Without the
+  file the tool does nothing and says so, and its tests are skipped.
+- **Caveat:** it was trained on the flicker models (`hash`, `hash_wide`).
+  The codec test above found that a real codec smooths the top rather than
+  adding flicker. Removing the models' fizz may not mean removing what
+  Suno does. The codec sets are the check.
+
 ## Phasiness
 
 The `phasiness` model scrambles phase in the song's tails. A fix that

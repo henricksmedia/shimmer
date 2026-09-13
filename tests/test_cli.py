@@ -127,6 +127,12 @@ def test_list_names_every_card_and_target(capsys):
         assert c.key in said
     for t in core.catalog.LOUDNESS_TARGETS:
         assert t.key in said
+    # Each card says whether naming it changes the song.
+    state = {line.split()[0]: line for line in said.splitlines() if line.startswith("  ")}
+    assert state["sibilance"].endswith("ready")
+    assert state["shimmer"].endswith("built, not passed yet")      # runs, not on screen
+    assert state["clicks"].endswith("built, not passed yet")
+    assert state["phasiness"].endswith("no fix yet")
 
 
 def test_suggest_prints_findings(tmp_path, capsys):

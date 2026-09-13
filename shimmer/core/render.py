@@ -45,7 +45,7 @@ from .audio import eq as user_eq
 from .audio import filters, io, meters
 from .master import limiter, loudness, tone
 from .progress import Progress
-from .repair import declick, deesser, dynamic_eq, notch
+from .repair import declick, deesser, dynamic_eq, hash_remover, notch
 from .settings import EqBand, Settings
 
 LEAD_IN_S = 1.0            # filters and the limiter's release settle in this
@@ -67,6 +67,7 @@ _MASTERING_TOOLS = ("tone_target", "loudness_target")
 # when it changes nothing; and summary(plan, amount) for the report.
 _FIX_TOOLS: Tuple[Tuple[str, Any], ...] = (
     ("clicks", declick),
+    ("shimmer", hash_remover),
     ("sibilance", deesser),
     ("harshness", dynamic_eq.HARSHNESS),
     ("mud", dynamic_eq.MUD),

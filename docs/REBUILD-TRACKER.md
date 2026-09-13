@@ -465,6 +465,10 @@ stays off until it finds pops in dense music.
     `--match-amount`, `--trim-silence`, and a release-check line.
   - Lack of air and Loudness report "with mastering", not "not built yet",
     in every tab's report.
+  - `--list` says which cards are ready, which fixes are built but have
+    not passed yet, and which have no fix (2026-09-13). A built fix runs
+    when named, as Shimmer and Clicks do, though the screens do not offer
+    it.
 - [ ] Old saved settings migrate.
 - [ ] Delete the retired modules and their tests.
   - [x] `server.py`'s dead 1.x code (2026-09-12), 878 lines:

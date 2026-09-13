@@ -207,10 +207,14 @@ def settings_from_args(args: argparse.Namespace) -> core.Settings:
 
 
 def _print_list() -> None:
+    from shimmer.core.render import BUILT_CARDS
     cat = core.catalog
     print('Cards ("What do you hear?"), for --fix CARD[=AMOUNT]:\n')
     for c in cat.CARDS:
+        # A fix that is built but has not passed its tests still runs when
+        # named here; the screens do not offer it.
         state = ("ready" if c.tool in cat.TOOLS_READY
+                 else "built, not passed yet" if c.key in BUILT_CARDS
                  else "no fix yet" if c.tool is None else "not built yet")
         print(f"  {c.key:12s} {c.label:22s} {state}")
     print("\nLoudness targets, for --target:\n")
