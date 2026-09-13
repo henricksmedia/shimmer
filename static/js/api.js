@@ -22,9 +22,13 @@ export async function saveSettings(payload) {
 }
 
 export async function submitProcess(file, paramsBody, outputFormat, preserveVolume,
-                                    trimSilence, trim, saveFolder = '') {
+                                    trimSilence, trim, saveFolder = '', sessionId = '') {
     const form = new FormData();
     form.append('file', file);
+    // The song's session: the server exports from it, with anything loaded
+    // there (a reference track). The file is the fallback when the session
+    // has expired.
+    if (sessionId) form.append('session_id', sessionId);
     form.append('params', JSON.stringify(paramsBody));
     form.append('output_format', outputFormat);
     form.append('preserve_volume', preserveVolume ? 'true' : 'false');

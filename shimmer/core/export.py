@@ -136,17 +136,19 @@ def estimate_sizes(audio: np.ndarray, sr: int) -> Dict[str, Dict[str, Any]]:
     return {f.key: estimate_size(audio, sr, f.key) for f in catalog.FORMATS}
 
 
-def estimate_sizes_for(source: Source, settings: Settings) -> Dict[str, Dict[str, Any]]:
+def estimate_sizes_for(source: Source, settings: Settings,
+                       reference: Optional[Source] = None) -> Dict[str, Dict[str, Any]]:
     """Every format's size for this song with these settings, before the
     run: three 10-second windows are rendered exactly as the export will be
-    (render() on a window), and the whole song is scaled from them."""
+    (render() on a window, with the reference track if one is used), and
+    the whole song is scaled from them."""
     dur = source.duration_s
     half = _EST_SLICE_S / 2.0
     if dur <= _EST_SLICE_S * _EST_SLICES:
         windows = [(0.0, dur)]
     else:
         windows = [(dur * f - half, dur * f + half) for f in (0.2, 0.5, 0.8)]
-    parts = [render(source, settings, w) for w in windows]
+    parts = [render(source, settings, w, reference=reference) for w in windows]
     sample = np.concatenate([p.audio for p in parts])
     return {f.key: estimate_size(sample, parts[0].sr, f.key, seconds=dur)
             for f in catalog.FORMATS}

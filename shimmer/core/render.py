@@ -37,6 +37,8 @@ import numpy as np
 
 from . import catalog
 from .analyze import tone_plan as _planner
+from .analyze.percussion import percussive_share
+from .analyze.track import REF_FREQS
 from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
 from .audio import eq as user_eq
 from .audio import filters, io, meters
@@ -275,6 +277,52 @@ def tone_plan(source: Source, settings: Optional[Settings] = None, *,
         cleaner=(lambda ex: _fix(ex, sr, plan)) if plan else None)
     out["mastering_on"] = s.mastering
     return out
+
+
+# A reference this many times more (or less) percussive than the song gets a
+# warning. The sources say to warn when the drums differ "a lot" and give
+# no number (MASTERING-SOURCES.md §4): a first guess, to judge on the bench.
+PERC_RATIO_WARN = 1.5
+
+
+def reference_view(source: Source, reference: Source,
+                   settings: Optional[Settings] = None) -> Dict[str, Any]:
+    """What matching `reference` will do to this song, for the screen:
+
+    song_db, reference_db  both tone shapes, level-matched (1/3-octave bands)
+    curve_db               the EQ the match applies: the same call render()
+                           makes, at these settings' Amount and Tilt
+    matched_up_to_hz       above this the reference has nothing to match
+                           (its top-end cutoff), or None
+    percussive             each song's share of hits, and "more" / "less"
+                           when the reference differs a lot, else None
+
+    Measures only."""
+    s = settings if settings is not None else Settings()
+    sr = int(catalog.output_format(s.format).sr or source.sr)
+    x = source.at_rate(sr)
+    ref_shape, ref_cut = _reference(reference)
+    cut = estimate_cutoff_hz(x, sr).get("cutoff_hz")
+    curve = tone.match_curve(x, sr, ref_shape, amount=s.match_amount, tilt=s.tilt,
+                             cutoff_hz=cut, ref_cutoff_hz=ref_cut)
+    song_p = source._remember(("percussive",), lambda: percussive_share(source.audio, source.sr))
+    ref_p = reference._remember(("percussive",), lambda: percussive_share(reference.audio, reference.sr))
+    ratio = ref_p / max(song_p, 1e-6)
+    differs = ("more" if ratio >= PERC_RATIO_WARN
+               else "less" if ratio <= 1.0 / PERC_RATIO_WARN else None)
+    return {
+        "freqs_hz": [float(f) for f in REF_FREQS],
+        "song_db": [round(float(v), 2) for v in tone.reference_shape(x, sr)],
+        "reference_db": [round(float(v), 2) for v in ref_shape],
+        "curve_db": [round(float(v), 2) for v in curve],
+        "match_amount": s.match_amount,
+        "tilt": s.tilt,
+        "limit_db": tone.MATCH_LIMIT_DB,
+        "song_cutoff_hz": cut,
+        "reference_cutoff_hz": ref_cut,
+        "matched_up_to_hz": 0.9 * float(ref_cut) if ref_cut else None,
+        "percussive": {"song": round(song_p, 3), "reference": round(ref_p, 3), "differs": differs},
+    }
 
 
 def render(source: Source, settings: Optional[Settings] = None,

@@ -75,12 +75,27 @@ def settings_from_request(params: Optional[Dict[str, Any]], *, output_format: Op
         changes["fixes"] = p["fixes"]
     if "auto" in p:
         changes["auto"] = bool(p["auto"])
+    master = p.get("mastering") if isinstance(p.get("mastering"), dict) else {}
+    if "match_amount" in master:
+        try:
+            changes["match_amount"] = float(master["match_amount"])
+        except (TypeError, ValueError):
+            pass
     repair = p.get("repair")
     if isinstance(repair, dict) and repair.get("enabled") is False:
         # 1.x "static repair off": no Fixed tones, found or chosen.
         changes["auto"] = False
         changes["fixes"] = {k: v for k, v in changes.get("fixes", s.fixes).items() if k != "tones"}
     return s.replace(**changes)
+
+
+def reference_for(params: Optional[Dict[str, Any]], sess: Any) -> Optional[core.Source]:
+    """The session's reference track, when the request's mastering block
+    sets the tone target to it."""
+    m = (params or {}).get("mastering")
+    if isinstance(m, dict) and m.get("tone_target") == "reference" and sess is not None:
+        return getattr(sess, "reference", None)
+    return None
 
 
 def explicit_notches(params: Optional[Dict[str, Any]], sr: int) -> Optional[List[core.Notch]]:
@@ -244,8 +259,9 @@ def _build_tags(source_path: str, tags_req: Optional[Dict[str, Any]],
 def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
                 notches: Optional[List[core.Notch]], trim_in_s: float,
                 trim_out_s: Optional[float], tags_req: Optional[Dict[str, Any]],
-                save_folder: str) -> None:
-    """The worker: runs in a thread. Every stage checks for cancel."""
+                save_folder: str, reference: Optional[core.Source] = None) -> None:
+    """The worker: runs in a thread. Every stage checks for cancel.
+    `reference`: a reference track the tone moves toward, or None."""
     prog = job.run
     prog.stage("load", "Reading the file")
     x, sr = core.load_audio(source_path)
@@ -256,7 +272,8 @@ def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
     x, edge_trim = core.apply_trim(x, sr, trim_in_s, trim_out_s)
     src = core.Source.from_array(x, sr, path=source_path)
 
-    rendered = core.render(src, s, progress=prog, with_removed=True, notches=notches)
+    rendered = core.render(src, s, progress=prog, with_removed=True, notches=notches,
+                           reference=reference)
     y, out_sr = rendered.audio, rendered.sr
     x_at = src.at_rate(out_sr)
     fmt = core.catalog.output_format(s.format)
@@ -312,6 +329,7 @@ def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
         mastering.update({
             "target_lufs": m["target_lufs"], "ceiling_dbtp": m["ceiling_dbtp"],
             "gain_db": m["gain_db"], "intensity": s.intensity, "tilt": s.tilt,
+            "tone_target": m.get("tone_target"), "match_amount": m.get("match_amount"),
             "eq_bands_db": m.get("tone_curve_db", []),
             "before": before, "after": after,
             "limiter": {"max_gain_reduction_db": m["limiter_gain_reduction_db"]},
@@ -509,7 +527,7 @@ async def process(background: BackgroundTasks,
     asyncio.create_task(_run_export_async(
         job, source_path, s, explicit_notches(p, 48000 if sess is None else sess.sr),
         trim_in_s, trim_out_s, p.get("tags") if isinstance(p.get("tags"), dict) else None,
-        folder))
+        folder, reference_for(p, sess)))
     jobs_mod.JOB_STORE.sweep()
     return JSONResponse({"job_id": job.id})
 
@@ -593,9 +611,11 @@ async def preview(payload: Dict[str, Any]) -> Response:
     notches = explicit_notches(payload, sess.sr)
     if notches is None:
         notches = core.plan_from_lines(sess.repair_lines, sess.sr).notches
+    ref = reference_for(payload, sess)
 
     def work() -> Tuple[core.Rendered, np.ndarray]:
-        r = core.render(sess.source, s, window=(start_s, end_s), with_removed=True, notches=notches)
+        r = core.render(sess.source, s, window=(start_s, end_s), with_removed=True, notches=notches,
+                        reference=ref)
         a, b = round(start_s * r.sr), round(end_s * r.sr)
         return r, sess.source.at_rate(r.sr)[a:b]
 
@@ -634,7 +654,25 @@ async def size(payload: Dict[str, Any]) -> JSONResponse:
                               preserve_volume=bool(payload.get("preserve_volume", True)))
     loop = asyncio.get_running_loop()
     try:
-        sizes = await loop.run_in_executor(None, core.estimate_sizes_for, sess.source, s)
+        sizes = await loop.run_in_executor(None, core.estimate_sizes_for, sess.source, s,
+                                           reference_for(payload, sess))
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, f"Size estimate failed: {e}")
     return JSONResponse({"duration_s": sess.duration_s, "sizes": sizes})
+
+
+@router.post("/api/reference/view")
+async def reference_view(payload: Dict[str, Any]) -> JSONResponse:
+    """What matching the loaded reference track will do to the song, for the
+    Mastering section's chart: both tone shapes, the EQ the match applies at
+    this Amount and Tilt, where the top is not matched, and whether the two
+    songs' drums differ a lot. The body is the preview's."""
+    sess = sessions.SESSIONS.get(payload.get("session_id") or "")
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+    if sess.reference is None:
+        raise HTTPException(409, "No reference track loaded")
+    s = settings_from_request(payload, output_format=payload.get("output_format") or "wav")
+    loop = asyncio.get_running_loop()
+    view = await loop.run_in_executor(None, core.reference_view, sess.source, sess.reference, s)
+    return JSONResponse(_json_safe({**view, "reference": sess.reference_info}))

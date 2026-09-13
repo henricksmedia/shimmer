@@ -274,6 +274,25 @@ change.
 - A new format key, `flac16`: FLAC 16-bit 44.1 kHz with dither, the release
   copy as FLAC.
 
+**`POST /api/reference`** — New (2026-09-13), for reference-track matching.
+
+- **Sends:** multipart `session_id` and `file`: a released song the user
+  picks, loaded into the song's session.
+- **Returns:** `{reference: {name, duration_s, sample_rate, format,
+  cutoff_hz}}`.
+- **`DELETE /api/reference/{session_id}`** removes it.
+
+**`POST /api/reference/view`** — New. The preview's body. Returns what the
+match will do: `freqs_hz`, `song_db`, `reference_db` (both level-matched),
+`curve_db` (the EQ the render applies, a test holds them equal),
+`match_amount`, `tilt`, `limit_db`, `matched_up_to_hz`, `percussive{song,
+reference, differs}`, and `reference`.
+
+A render request uses the reference when its mastering block has
+`tone_target: "reference"`, with `match_amount` (0-1). Preview, size and
+process all use it; the export's metrics carry `mastering.tone_target` and
+`mastering.match_amount`.
+
 **`POST /api/remix/render`** — Keep. The render moves onto `render()`.
 
 - **Sends:** `{session_id, stems, output_format, mastering,

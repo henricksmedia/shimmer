@@ -18,6 +18,7 @@ import { initFaultPicker } from './fault-picker.js';
 import { loadRules, loudnessLufs, stagePhases } from './rules.js';
 import { NAMES as SIZE_NAMES, downloadBlock, fitsSub, judge, mb as fmtMB, mmss,
          renderSizeLine, verdictTitle } from './size-limit.js';
+import { initReferenceMatch } from './reference-match.js';
 
 // The progress window's colours for the engine's stages (the stage list
 // itself comes from /api/rules). Signal order runs around the colour wheel.
@@ -69,6 +70,9 @@ export async function initSingleTab() {
     // compares the result with the limit. Asked again when settings change;
     // a format change only re-judges, since every format comes back at once.
     const sizeState = { timer: null, key: '', sizes: null, durationS: 0, judged: null };
+    // Tone target (built-in or a reference track), set up with the cards
+    // below; null until then, so early calls see "built-in".
+    let refMatch = null;
     function sizeLimit() {
         const n = Math.round(Number(sizeLimitMb && sizeLimitMb.value));
         return { enabled: !!(sizeLimitOn && sizeLimitOn.checked), mb: n >= 1 ? n : 50 };
@@ -656,6 +660,19 @@ export async function initSingleTab() {
         },
     });
 
+    // Tone target: built-in or a reference track. The view asks the engine
+    // what the match will do, with the preview's settings.
+    refMatch = initReferenceMatch({
+        getSessionId: () => previewState.sessionId,
+        basePayload: () => ({
+            session_id: previewState.sessionId,
+            mastering: masteringPayload(),
+            eq: eqPanel.getPayload(),
+            ...picker.payload(),
+        }),
+        onChange: () => { pushSettings(); schedulePreviewRender(); },
+    });
+
     const {byName, defaultName} = await initPresetSelect(presetSelect, {
         descEl: presetDesc,
         onChange: (preset) => {
@@ -908,6 +925,8 @@ export async function initSingleTab() {
             target: masterTarget.value,
             intensity: masterIntensity.value,
             tilt: masterTilt.value,
+            // With a reference track: tone_target "reference" and its Amount.
+            ...(refMatch ? refMatch.payload() : {}),
         };
     }
 
@@ -974,6 +993,8 @@ export async function initSingleTab() {
     masterTilt.addEventListener('change', () => {
         pushSettings();
         schedulePreviewRender();
+        // Tilt adds to the reference match too, so the chart changes.
+        if (refMatch) refMatch.refresh();
     });
     abLoudnessMatch.addEventListener('change', () => {
         applyLoudnessMatch();
@@ -2023,7 +2044,8 @@ export async function initSingleTab() {
                 const short = t.includes('(') ? t.slice(t.indexOf('(') + 1, t.indexOf(')')) : t;
                 const iOpt = masterIntensity.options[masterIntensity.selectedIndex];
                 const intensity = iOpt ? iOpt.text.split(' ')[0] : '';
-                stateEls.master.textContent = `${short} · match ${intensity.toLowerCase()}`;
+                stateEls.master.textContent = (refMatch && refMatch.isOn())
+                    ? `${short} · reference` : `${short} · match ${intensity.toLowerCase()}`;
             }
         }
         if (stateEls.output) {
@@ -2689,6 +2711,7 @@ export async function initSingleTab() {
             const sid = previewState.sessionId;
             previewState.sessionId = null;
             forgetSizes();
+            if (refMatch) refMatch.reset();
             dropSession(sid);  // fire-and-forget
         }
         previewState.durationS = 0;
@@ -2740,6 +2763,8 @@ export async function initSingleTab() {
             previewState.sessionId = r.session_id;
             forgetSizes();
             scheduleSizeCheck(0);
+            // A reference track lived in the last song's session.
+            if (refMatch) refMatch.reset();
             previewState.durationS = r.duration_s;
             // The recents list keys its "stems ready" badge on the digest.
             document.dispatchEvent(new CustomEvent('shimmer:uploaded', { detail: {
@@ -3209,6 +3234,7 @@ export async function initSingleTab() {
                 wantTrim,
                 edit,
                 saveTo,
+                previewState.sessionId || '',
             );
 
             await new Promise((resolve, reject) => {

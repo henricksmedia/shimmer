@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,400,0,0&display=block">
 <link rel="stylesheet" href="/static/css/fault-picker.css">
 <link rel="stylesheet" href="/static/css/size-limit.css">
+<link rel="stylesheet" href="/static/css/reference-match.css">
 </head>
 <body>
 <div class="app">
@@ -369,7 +370,29 @@
                                                 <!-- Choices come from /api/rules (loudness-cards.js). -->
                                                 <select id="master-target" class="select"></select>
                                             </div>
-                                            <div>
+                                            <!-- Tone target: built-in or a reference track (reference-match.js). -->
+                                            <div class="master-grid-span" id="tone-target-field">
+                                                <div class="label" id="tone-target-label">Tone target <span class="rm-sub">what the tone moves toward</span></div>
+                                                <div class="rm-tt" role="radiogroup" aria-labelledby="tone-target-label">
+                                                    <button type="button" class="loud-card on" role="radio" aria-checked="true" id="tt-builtin" title="The tone shape measured from finished masters. Tone match sets how far to move toward it."><span class="t">Built-in<span class="def">DEFAULT</span></span>
+                                                        <span class="d">Measured from finished masters</span></button>
+                                                    <button type="button" class="loud-card" role="radio" aria-checked="false" id="tt-reference" title="Match the tone of a released song you pick. Loudness does not change."><span class="t">Reference track</span>
+                                                        <span class="d">A released song you pick</span></button>
+                                                </div>
+                                                <input type="file" id="ref-file-input" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a" hidden>
+                                                <div class="rm-ref" id="ref-box" hidden>
+                                                    <div class="rm-file">
+                                                        <span class="ms" aria-hidden="true">album</span>
+                                                        <div class="rm-file-txt"><b id="ref-name"></b><span id="ref-meta"></span></div>
+                                                        <button type="button" class="btn btn-ghost btn-sm" id="ref-remove" title="Remove the reference. Tone target goes back to Built-in.">Remove</button>
+                                                    </div>
+                                                    <div id="ref-msgs"></div>
+                                                    <div class="rm-verdict" id="ref-verdict"></div>
+                                                    <svg class="rm-chart" id="ref-chart" viewBox="0 0 280 174" role="img" aria-label="Tone chart, 31.5 Hz to 20 kHz: your song, the reference, and the EQ Shimmer applies"></svg>
+                                                    <div class="rm-legend"><span><i class="song"></i>Your song</span><span><i class="ref"></i>Reference</span><span><i class="eq"></i>EQ Shimmer applies</span></div>
+                                                </div>
+                                            </div>
+                                            <div id="tone-match-field">
                                                 <label class="label" for="master-intensity">Tone match</label>
                                                 <select id="master-intensity" class="select"
                                                         title="How far Shimmer moves this track's tone toward the tone target — the shape measured from finished masters. It shapes tone only. It does not change loudness.">
@@ -377,6 +400,11 @@
                                                     <option value="med" selected>Medium</option>
                                                     <option value="high">High — more correction</option>
                                                 </select>
+                                            </div>
+                                            <div class="master-grid-span" id="ref-amount-field" hidden>
+                                                <label class="label" for="ref-amount">Amount <span class="rm-sub">how far toward the reference</span></label>
+                                                <div class="fx-ctl"><input id="ref-amount" type="range" min="0" max="100" step="1" value="50"><span class="fx-val" id="ref-amount-val">50%</span></div>
+                                                <div class="fx-note rm-hint" id="ref-amount-hint">Keep it at 50% or lower. More can sound forced.</div>
                                             </div>
                                             <div class="master-grid-span">
                                                 <label class="label" for="master-tilt">Tilt</label>
@@ -390,6 +418,7 @@
                                                 </select>
                                             </div>
                                         </div>
+                                        <div class="rm-limits" id="ref-limits" hidden><b>Limits.</b> Both songs are level-matched before they are compared. The EQ is smoothed over about an octave, and no band moves more than ±3 dB. Boosts in 5–12 kHz, where AI fizz lives, stop at +2 dB. Loudness still follows the Loudness target.</div>
                                         <div class="mastering-readout" id="mastering-readout" hidden></div>
                                     </div>
                                 </div>

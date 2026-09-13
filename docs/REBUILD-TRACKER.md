@@ -263,11 +263,24 @@ is signed off. **Done 2026-09-12.**
     - an empty top in an MP3 reference never cuts the song's real top
     - Tilt still applies. The preview matches the export, and every
       loudness choice still lands. 20 contract tests.
-  - [ ] Upload route and screen: mockup (2026-09-13, local)
-        `static/tmp/shimmer-reference-match-mockup.html`, waiting for
-        sign-off.
-  - [ ] A warning when the reference's tempo or percussion differs a lot
-        (the sources' last rule).
+  - [x] Upload route and screen (2026-09-13), from the signed-off mockup
+        `static/tmp/shimmer-reference-match-mockup.html`:
+    - Tone target cards in Mastering; Reference track opens a file picker.
+    - The reference lives in the song's session (`POST /api/reference`).
+    - The chart and the three verdict lines come from
+      `POST /api/reference/view`: the same EQ curve the render applies (a
+      test holds them equal).
+    - Amount replaces Tone match while a reference is on; Tilt still
+      applies. The preview, the size estimate and the export all use it.
+    - Checked in the browser: "Crosscut" matched to "Particle", whose top
+      stops at 18 kHz, so "Top not matched above 16.6 kHz" came up by
+      itself.
+  - [x] A warning when the drums differ a lot (2026-09-13): a median-filter
+        split of hits from held notes (Fitzgerald, DAFx 2010). It warns when
+        one song has 1.5 times the other's share of hits. The 1.5 is a first
+        guess, to judge on the bench. Tempo is not checked.
+  - [ ] A reference kept across songs, for an album: today it goes with the
+        song.
   - [ ] Judge on the bench.
 - [ ] Genre targets.
 - [x] Low-end mono and width checks (2026-09-12), as checks, not a process.

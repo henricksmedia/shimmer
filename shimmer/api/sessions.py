@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
 from .. import core
@@ -64,6 +64,10 @@ class Session:
     digest: str = ""
     stems: Optional[Dict[str, np.ndarray]] = None
     stems_info: Dict[str, Any] = field(default_factory=dict)
+    # A reference track for tone matching (Master tab), when one is loaded.
+    # It lives and dies with the song's session.
+    reference: Optional[core.Source] = None
+    reference_info: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def samples(self) -> np.ndarray:
@@ -240,4 +244,52 @@ async def envelope(session_id: str, start_s: float = 0.0, end_s: float = 1.0,
 @router.delete("/api/upload/{session_id}")
 async def drop(session_id: str) -> JSONResponse:
     SESSIONS.drop(session_id)
+    return JSONResponse({"ok": True})
+
+
+@router.post("/api/reference")
+async def reference_upload(session_id: str = Form(...),
+                           file: UploadFile = File(...)) -> JSONResponse:
+    """Load a reference track (a released song the user picks) into the
+    song's session, for tone matching. The match itself runs in render()
+    when a request's mastering block says tone_target "reference"."""
+    sess = SESSIONS.get(session_id)
+    if sess is None:
+        raise HTTPException(404, "Session expired; send the song again")
+    name = Path(file.filename or "reference").name
+    path = os.path.join(sess.workdir, "reference_" + name)
+    with open(path, "wb") as f:
+        while True:
+            chunk = await file.read(1 << 20)
+            if not chunk:
+                break
+            f.write(chunk)
+    loop = asyncio.get_running_loop()
+    try:
+        x, sr = await loop.run_in_executor(None, core.load_audio, path)
+    except Exception as e:  # noqa: BLE001
+        os.unlink(path)
+        raise HTTPException(400, f"Could not decode '{name}': {e}")
+    x = clamp_samples_for_preview(x, sr)
+    cut = await loop.run_in_executor(None, core.estimate_cutoff_hz, x, sr)
+    sess.reference = core.Source.from_array(x, sr, path=path)
+    sess.reference_info = {
+        "name": name,
+        "duration_s": float(x.shape[0] / sr),
+        "sample_rate": sr,
+        "format": Path(name).suffix.lstrip(".").upper() or "?",
+        "cutoff_hz": cut.get("cutoff_hz"),
+    }
+    return JSONResponse(_json_safe({"session_id": sess.id, "reference": sess.reference_info}))
+
+
+@router.delete("/api/reference/{session_id}")
+async def reference_drop(session_id: str) -> JSONResponse:
+    sess = SESSIONS.get(session_id)
+    if sess is not None and sess.reference is not None:
+        path = sess.reference.path
+        sess.reference = None
+        sess.reference_info = {}
+        if path and os.path.isfile(path):
+            os.unlink(path)
     return JSONResponse({"ok": True})
