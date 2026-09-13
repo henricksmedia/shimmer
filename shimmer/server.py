@@ -81,7 +81,7 @@ from .presets import (
     get_preset, describe_preset, label_for, is_visible,
 )
 from .report import plr_db, spectra_report, stereo_correlation
-from .autoeq import family_list, moves_to_eq_payload, normalize_family, plan_tone
+from .core import family_list, moves_to_eq_payload, normalize_family
 from .mastering import compute_tone_curve, resolve_eq_strength
 from .tags import (
     build_tags, read_tags, shimmer_note, strip_shimmer_suffix, title_from_stem,
@@ -237,56 +237,26 @@ def _eq_params_from_request(data: Dict[str, Any]) -> EqParams:
     return eq_params_from_json(data.get("eq") or {})
 
 
-def _tone_plan_for(x: np.ndarray, sr: int, analysis: Dict[str, Any],
-                   preset_name: str, strength: float, family: str,
-                   mp: Optional[MasterParams],
-                   repair_dict: Optional[Dict[str, Any]] = None,
-                   overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """The Tone plan (autoeq.plan_tone) judged the way the chain will run:
-    the loudest excerpt is cleaned with the chosen preset first, and the
-    mastering tone curve (when mastering is on) is subtracted, so the
-    plan never corrects what cleaning or mastering already handles."""
-    import copy
-    try:
-        p = get_preset(preset_name or "generic")
-    except KeyError:
-        p = get_preset("generic")
-    if abs(float(strength) - 1.0) > 1e-6:
-        apply_preset_strength(p, float(strength))
-    for key, value in (overrides or {}).items():
-        if hasattr(p, key) and isinstance(value, (int, float)):
-            setattr(p, key, float(value))
-    cutoff = analysis.get("cutoff_hz")
-    p.cutoff_hz = float(cutoff or 0.0)
-    repair = None
+def _tone_plan_for(x: np.ndarray, sr: int, family: str, s: Any,
+                   repair_dict: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Suggested EQ on the new engine (core.tone_plan): judged after the
+    fixes and, with mastering on, after the mastering tone curve, the way
+    render() runs, so the plan never corrects what those already handle.
+    `repair_dict` is the screen's notch list, when it sent one."""
+    from . import core as _c
     notches = None
     if isinstance(repair_dict, dict) and isinstance(repair_dict.get("notches"), list):
-        repair = NotchPlan.from_dict(repair_dict, sr)
-        notches = [{"hz": n.hz} for n in repair.notches]
-    tone_curve = None
-    if mp is not None and mp.enabled:
-        tone_curve = compute_tone_curve(
-            x, sr, strength=resolve_eq_strength(mp),
-            raw_spectrum=analysis.get("spectrum"), tilt=mp.tilt,
-            cutoff_hz=cutoff)
-    p_clean = copy.deepcopy(p)
-    p_clean.pad = False
-    p_clean.fade_ms = 0.0
+        notches = _c.NotchPlan.from_dict(repair_dict, sr).notches
+    return _c.tone_plan(_c.Source.from_array(x, sr), s, family=normalize_family(family),
+                        notches=notches)
 
-    def cleaner(ex: np.ndarray) -> np.ndarray:
-        y, _removed, _rep = clean_and_master(
-            ex, sr, copy.deepcopy(p_clean), master_params=None,
-            raw_analysis=analysis, repair=repair)
-        return y
 
-    plan = plan_tone(x, sr, family=normalize_family(family),
-                     cutoff_hz=cutoff, tone_curve_db=tone_curve,
-                     notches=notches, cleaner=cleaner)
-    plan["preset"] = preset_name
-    plan["preset_label"] = label_for(preset_name) if preset_name in PRESET_NAMES else preset_name
-    plan["preset_strength"] = float(strength)
-    plan["mastering_on"] = bool(mp is not None and mp.enabled)
-    return plan
+def _tone_settings(preset: Optional[str], mastering_json: Dict[str, Any]) -> Any:
+    """The settings a tone plan is judged with: the card an old preset turns
+    on, and mastering only when the screen sent a mastering block that is
+    on (1.x's rule: no block, no mastering)."""
+    return _api_render.settings_from_request(
+        {"preset": preset, "mastering": mastering_json or {"enabled": False}})
 
 
 def _download_name(job: Job, kind: str, ext: Optional[str] = None) -> str:
@@ -1116,14 +1086,11 @@ async def api_suggest(file: UploadFile = File(...),
         result["source_tags"] = await loop.run_in_executor(None, read_tags, tmp_path)
         result["metrics"] = {"sample_rate": sr, "elapsed_ms": int((time.time() - t0) * 1000)}
         if tone:
-            mp = _parse_master_form(mastering)
-            ov = _parse_json_form(overrides)
+            s_tone = _tone_settings(None, _parse_json_form(mastering))
             try:
                 result["tone_plan"] = await loop.run_in_executor(
-                    None, _tone_plan_for, x, sr, analysis,
-                    result.get("preset") or "generic",
-                    float(result.get("strength") or 1.0),
-                    tone_family, mp, result.get("repair_plan"), ov)
+                    None, _tone_plan_for, x, sr, tone_family, s_tone,
+                    result.get("repair_plan"))
             except Exception as e:  # noqa: BLE001
                 result["tone_plan"] = {"error": str(e)}
     finally:
@@ -1174,9 +1141,13 @@ async def api_tone(file: UploadFile = File(...),
                    mastering: str = Form(""),
                    repair: str = Form(""),
                    overrides: str = Form("")) -> JSONResponse:
-    """Re-plan the Tone step for a file with the current preset, strength,
-    family and mastering settings (family picker, pass 2 of a two-pass run)."""
+    """Re-plan Suggested EQ for a file with the current family and mastering
+    settings (family picker, pass 2 of a two-pass run), on the new engine.
+    `preset` turns on its card (the transition rule); `preset_strength` and
+    `overrides` tuned 1.x's cleaning and are ignored."""
     import tempfile
+
+    from . import core as _core
     with tempfile.NamedTemporaryFile(
             suffix=Path(file.filename or "x.wav").suffix,
             delete=False) as tmp:
@@ -1188,18 +1159,14 @@ async def api_tone(file: UploadFile = File(...),
         tmp_path = tmp.name
     try:
         loop = asyncio.get_running_loop()
-        x, sr = await loop.run_in_executor(None, load_audio, tmp_path)
-        analysis = await loop.run_in_executor(None, analyze_track, x, sr)
+        x, sr = await loop.run_in_executor(None, _core.load_audio, tmp_path)
+        analysis = await loop.run_in_executor(None, _core.analyze_track, x, sr)
         source_tags = await loop.run_in_executor(None, read_tags, tmp_path)
-        repair_dict = _parse_json_form(repair) or None
-        if repair_dict is None:
-            plan_obj = await loop.run_in_executor(
-                None, lambda: plan_from_lines(scan_fixed_lines(x, sr), sr))
-            repair_dict = plan_obj.as_dict()
+        # No notch list from the screen: the engine scans for fixed tones.
         plan = await loop.run_in_executor(
-            None, _tone_plan_for, x, sr, analysis, preset,
-            float(preset_strength), tone_family, _parse_master_form(mastering),
-            repair_dict, _parse_json_form(overrides))
+            None, _tone_plan_for, x, sr, tone_family,
+            _tone_settings(preset, _parse_json_form(mastering)),
+            _parse_json_form(repair) or None)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(400, f"Tone plan failed: {e}")
     finally:
@@ -1252,7 +1219,6 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
         trim_silence=bool(payload.get("trim_silence", False)))
     auto_eq = bool(payload.get("auto_eq", False))
     tone_family = normalize_family(payload.get("tone_family"))
-    mp = master_params_from_json(payload.get("mastering") or {})
     tags_req = payload.get("tags") if isinstance(payload.get("tags"), dict) else None
     # Album mode: one gain for the whole folder. Only meaningful with
     # mastering on.
@@ -1305,7 +1271,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
                                   "index": i, "name": name})
                 try:
                     s_file, eq_info = await loop.run_in_executor(
-                        None, _batch_settings_for, src, s, auto_eq, tone_family, mp)
+                        None, _batch_settings_for, src, s, auto_eq, tone_family)
                     info = await loop.run_in_executor(None, _api_render.measure_file, src, s_file)
                     info.update(eq_info)
                     info.update({"index": i, "name": name, "src": src, "settings": s_file})
@@ -1376,7 +1342,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
             yield _sse_event({"type": "file_start", "index": i, "name": name})
             try:
                 s_file, eq_info = await loop.run_in_executor(
-                    None, _batch_settings_for, src, s, auto_eq, tone_family, mp)
+                    None, _batch_settings_for, src, s, auto_eq, tone_family)
                 r = await loop.run_in_executor(None, _partial(
                     _api_render.export_file, src, s_file, dst_for(name), tags_req=tags_req))
                 yield _sse_event({
@@ -1405,17 +1371,15 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
     return StreamingResponse(stream(), media_type="text/event-stream")
 
 
-def _batch_settings_for(src: str, s: Any, auto_eq: bool, tone_family: str,
-                        mp: MasterParams) -> Tuple[Any, Dict[str, Any]]:
-    """One file's settings. With Suggested EQ on, 1.x's tone planner adds
-    its moves after the user's EQ bands, judged on this file. The planner
-    moves into the engine with Step 5's tone work; until then it judges the
-    file as the Generic preset would clean it."""
+def _batch_settings_for(src: str, s: Any, auto_eq: bool,
+                        tone_family: str) -> Tuple[Any, Dict[str, Any]]:
+    """One file's settings. With Suggested EQ on, the engine's tone plan
+    for this file (judged after its fixes and the mastering tone curve)
+    adds its moves after the user's EQ bands."""
     if not auto_eq:
         return s, {}
-    x, sr = load_audio(src)
-    analysis = analyze_track(x, sr)
-    plan = _tone_plan_for(x, sr, analysis, "generic", 1.0, tone_family, mp)
+    x, sr = _core.load_audio(src)
+    plan = _tone_plan_for(x, sr, tone_family, s)
     moves = plan.get("moves") or []
     info = {"tone_moves": len(moves), "tone_summary": plan.get("summary", "")}
     if moves:

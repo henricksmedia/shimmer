@@ -191,10 +191,17 @@ is signed off. **Done 2026-09-12.**
     - The Analysis card shows the approved verdict-first rows.
     - The Suggested EQ still comes from 1.x's planner, until the Step 5
       rewrite.
-  - [ ] Tone (`/api/tone`) and the chain view (`/api/chain`) still run on
-        1.x, until Step 5's tone planner. The stage list is now served by
-        `/api/rules`. The chain view draws 1.x's stages, so moving it means
-        redrawing the Signal Chain view: a mockup first.
+  - [x] Suggested EQ and `/api/tone` run on the new engine (2026-09-12).
+    - 1.x's tone planner, ported and nulled: identical plans on 12 test
+      tracks. Only the check's true peak reads differently (per channel at
+      8x).
+    - `core.tone_plan()` judges each song the way `render()` runs it:
+      after the fixes and, with mastering on, after the tone curve.
+    - Analyze, `/api/tone` and Batch use it; `shimmer/autoeq.py` points to
+      it.
+  - [ ] The chain view (`/api/chain`) still runs on 1.x. It draws 1.x's
+        stages, so moving it means redrawing the Signal Chain view: a
+        mockup first.
 
 ## Step 5 — Mastering (the main complaint)
 
@@ -368,8 +375,7 @@ the music" (`GOALS.md`):*
     with it (`render(..., gain_db=)`). Nothing is parked on disk, and a
     long album is never all in memory.
   - The preset trial is gone; each file's findings are logged instead.
-  - "Suggested EQ" still asks 1.x's tone planner, judged as Generic would
-    clean, until Step 5 moves the planner into the engine.
+  - "Suggested EQ" uses the engine's tone plan for each file.
   - Not yet: a cancel button (batch is not on the job runner), and the
     Batch screen's preset menu becoming the cards.
 - [ ] Remix:
@@ -382,9 +388,12 @@ the music" (`GOALS.md`):*
       which cards are not built yet.
     - It writes tags (from the original upload's, with the provenance
       note) and runs the release check, like every other tab.
-  - [ ] Its preview on `render()`: waiting for sign-off (see Proposals).
-        Until then it is 1.x's: the loop's own mix, mastered at a level
-        guessed from the original.
+  - [ ] Its preview on `render()`: Option A, chosen by the author
+        2026-09-12. The loop plays at once from its own mix; the full mix is
+        worked out in the background after each edit, and until it lands
+        the status line says the level is approximate. Then the preview is
+        the export on a window. The note lives in the existing status line,
+        so no new screen element is needed.
   - [ ] its cleanup menu becomes the cards
   - [ ] saved projects migrated
   - [ ] the doubler drift and the silent formant tail fixed

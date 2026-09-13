@@ -1757,7 +1757,7 @@ export async function initSingleTab() {
         }
         const basis = [];
         if (plan.analysis && plan.analysis.cleaning_applied) {
-            basis.push(`judged after ${plan.preset_label || 'the preset'} cleaning on the loudest part`);
+            basis.push('judged after the fixes on the loudest part');
         }
         if (plan.mastering_on) basis.push('mastering tone match taken into account');
         if (basis.length) foot.appendChild(mkEl('div', 'tone-basis', basis.join(' · ')));

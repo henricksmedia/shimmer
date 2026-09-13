@@ -36,7 +36,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 from . import catalog
+from .analyze import tone_plan as _planner
 from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
+from .audio import eq as user_eq
 from .audio import filters, io, meters
 from .master import limiter, loudness, tone
 from .progress import Progress
@@ -55,10 +57,6 @@ _PRESERVE_MAX_SCALE = 4.0
 
 # Cards whose fix is part of mastering, not a cleaning tool.
 _MASTERING_TOOLS = ("tone_target", "loudness_target")
-
-_EQ_KIND = {"bell": "bell", "low_shelf": "low_shelf", "high_shelf": "high_shelf",
-            "highpass": "high_pass", "lowpass": "low_pass", "notch": "notch"}
-_GAIN_KINDS = {"bell", "low_shelf", "high_shelf"}
 
 
 @dataclass(eq=False)
@@ -114,22 +112,6 @@ class Rendered:
 def _stage(progress: Optional[Progress], key: str, label: str, detail: str = "") -> None:
     if progress is not None:
         progress.stage(key, label, detail)
-
-
-def _eq_designs(bands: Tuple[EqBand, ...], sr: int):
-    out = []
-    for b in bands:
-        if not b.enabled or b.freq_hz >= 0.49 * sr:
-            continue
-        kind = _EQ_KIND[b.type]
-        if kind in _GAIN_KINDS:
-            if abs(b.gain_db) < 0.05:
-                continue
-            gain = b.gain_db
-        else:
-            gain = float("-inf") if kind == "notch" else 0.0
-        out.append(filters.design(kind, b.freq_hz, sr, gain_db=gain, q=b.q))
-    return out
 
 
 def _tones_plan(source: Source, sr: int, s: Settings,
@@ -204,7 +186,7 @@ def _toned(x: np.ndarray, sr: int, curve: List[float]) -> np.ndarray:
 def _premaster(x: np.ndarray, sr: int, s: Settings) -> np.ndarray:
     """EQ and the mastering low-cut. Returns x itself when nothing applies,
     so a bypass render is bit-exact."""
-    stages = _eq_designs(s.eq_bands, sr) if s.eq_enabled else []
+    stages = user_eq.designs(s.eq_bands, sr) if s.eq_enabled else []
     if s.mastering:
         stages.append(filters.design("high_pass", LOW_CUT_HZ, sr))
     if not stages:
@@ -268,6 +250,31 @@ def premaster_levels(source: Source, settings: Optional[Settings] = None, *,
     lufs = meters.loudness(y, sr)
     source._remember(_whole_key(s, sr, plan, "premaster_lufs", reference), lambda: lufs)
     return {"lufs_i": lufs, "true_peak_dbtp": meters.true_peak_db(y, sr)}
+
+
+def tone_plan(source: Source, settings: Optional[Settings] = None, *,
+              family: str = "neutral", notches: Optional[Sequence[notch.Notch]] = None,
+              reference: Optional[Source] = None) -> Dict[str, Any]:
+    """Suggested EQ for this song (analyze.tone_plan), judged the way
+    render() will run: at the output rate, after the fixes (the Fixed tones
+    notches) and, with mastering on, after the mastering tone curve, so
+    nothing is corrected twice. `notches` is the screen's own list, as for
+    render(). Measures only."""
+    s = settings if settings is not None else Settings()
+    sr = int(catalog.output_format(s.format).sr or source.sr)
+    x = source.at_rate(sr)
+    plan = _tones_plan(source, sr, s, notches)
+    curve = None
+    if s.mastering:
+        curve = _tone_curve(source, sr, s, reference) or [0.0] * len(tone.REF_DB)
+    out = _planner.plan_tone(
+        x, sr, family=family,
+        cutoff_hz=estimate_cutoff_hz(x, sr).get("cutoff_hz"),
+        tone_curve_db=curve,
+        notches=[{"hz": n.hz} for n in plan],
+        cleaner=(lambda ex: _fix(ex, sr, plan)) if plan else None)
+    out["mastering_on"] = s.mastering
+    return out
 
 
 def render(source: Source, settings: Optional[Settings] = None,
@@ -352,7 +359,7 @@ def render(source: Source, settings: Optional[Settings] = None,
     toned = _toned(fixed, sr, curve)
 
     # 3. The user EQ, and the mastering low-cut.
-    if s.eq_enabled and _eq_designs(s.eq_bands, sr):
+    if s.eq_enabled and user_eq.designs(s.eq_bands, sr):
         _stage(progress, "eq", "EQ")
     y = _premaster(toned, sr, s)
 

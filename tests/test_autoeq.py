@@ -87,7 +87,12 @@ def test_ringing_tone_is_found_and_cut_gently():
     assert -autoeq.RES_MAX_CUT_DB <= m["gain_db"] < 0
     assert 4.0 <= m["q"] <= 10.0
     assert m["layer"] == "fix" and m["type"] == "bell"
-    assert plan["verify"]["limiter_safe"] is True
+    # A cut raises the peak-to-loudness ratio a little. Read per channel at
+    # 8x (the engine's meter) it is about 1.1 dB here, where 1.1.1's mono 4x
+    # meter read 0.7 dB. The plan is cuts only, so nothing is scaled.
+    v = plan["verify"]
+    assert v["plr_shift_db"] is not None and v["plr_shift_db"] < 2.0
+    assert not v["boosts_scaled"] and not v["boosts_dropped"]
 
 
 def test_played_note_with_harmonics_is_not_a_resonance():

@@ -20,6 +20,7 @@ from . import catalog, tags
 from .analyze.edges import apply_trim, detect_edge_artifacts
 from .analyze.findings import Finding, findings
 from .analyze.report import plr_db, spectra_report, stereo_correlation
+from .analyze.tone_plan import family_list, moves_to_eq_payload, normalize_family
 from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
 from .analyze.track import activity_timeline, analyze_track, loudness_range
 from .audio import meters
@@ -29,11 +30,12 @@ from .audio.trim import trim_silence
 from .export import export
 from .master.release import add_check, release_check, tags_check
 from .progress import Cancelled, Progress
-from .render import Rendered, Source, premaster_levels, render
+from .render import Rendered, Source, premaster_levels, render, tone_plan
 from .repair.notch import Notch, NotchPlan, plan_from_lines
 from .settings import EqBand, Settings, migrate
 
 __all__ = ["catalog", "tags", "export", "render", "premaster_levels", "Rendered", "Source",
+           "tone_plan", "family_list", "normalize_family", "moves_to_eq_payload",
            "Settings", "EqBand", "migrate", "Progress", "Cancelled",
            "analyze_track", "detect_edge_artifacts", "apply_trim", "findings", "Finding",
            "scan_fixed_lines", "estimate_cutoff_hz", "plan_from_lines", "Notch", "NotchPlan",
