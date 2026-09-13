@@ -14,6 +14,8 @@ The order, each stage at its place in the chain:
      notch). Step 6 adds the rest.
   2b. With mastering on, the tone curve (1.1.1's, ported bit-exact): worked
      out once from the whole raw song, applied after the notch as 1.1.1 did.
+     With a reference track, the curve moves the song toward the reference
+     instead (tone.match_curve).
   3. The user EQ.
   4. Level: with mastering on, a 25 Hz low-cut, one static loudness gain,
      the peak shaper and the true-peak limiter; with it off and "preserve
@@ -149,18 +151,46 @@ def _fix(x: np.ndarray, sr: int, plan: List[notch.Notch]) -> np.ndarray:
     return notch.apply(x, sr, plan) if plan else x
 
 
-def _tone_curve(source: Source, sr: int, s: Settings) -> List[float]:
+def _reference(reference: Optional[Source]) -> Optional[Tuple[Tuple[float, ...], Optional[float]]]:
+    """A reference track's tone shape and bandwidth cutoff, worked out once
+    and kept with it. Plain values, so they can be part of a cache key."""
+    if reference is None:
+        return None
+
+    def make():
+        x = reference.audio
+        return (tuple(float(v) for v in tone.reference_shape(x, reference.sr)),
+                estimate_cutoff_hz(x, reference.sr).get("cutoff_hz"))
+    return reference._remember(("reference_shape",), make)
+
+
+def _tone_key(s: Settings, reference: Optional[Source]) -> Tuple:
+    """What the tone curve depends on besides the song."""
+    ref = _reference(reference)
+    if ref is None:
+        return (s.intensity, s.tilt)
+    return ("match", s.match_amount, s.tilt, ref)
+
+
+def _tone_curve(source: Source, sr: int, s: Settings,
+                reference: Optional[Source] = None) -> List[float]:
     """The mastering tone curve for this song, from the whole raw song, or
-    [] when mastering is off or the curve is flat."""
+    [] when mastering is off or the curve is flat. With a reference track,
+    the curve moves toward it; without one, toward 1.1.1's target."""
     if not s.mastering:
         return []
+    ref = _reference(reference)
 
     def make() -> List[float]:
         x = source.at_rate(sr)
+        cutoff = estimate_cutoff_hz(x, sr).get("cutoff_hz")
+        if ref is not None:
+            return tone.match_curve(x, sr, ref[0], amount=s.match_amount, tilt=s.tilt,
+                                    cutoff_hz=cutoff, ref_cutoff_hz=ref[1])
         return tone.compute_tone_curve(
             x, sr, strength=tone.intensity_to_strength(s.intensity), tilt=s.tilt,
-            cutoff_hz=estimate_cutoff_hz(x, sr).get("cutoff_hz"))
-    curve = source._remember(("tone_curve", sr, s.intensity, s.tilt), make)
+            cutoff_hz=cutoff)
+    curve = source._remember(("tone_curve", sr) + _tone_key(s, reference), make)
     return curve if max(abs(v) for v in curve) >= 1e-3 else []
 
 
@@ -182,21 +212,24 @@ def _premaster(x: np.ndarray, sr: int, s: Settings) -> np.ndarray:
     return y
 
 
-def _whole_key(s: Settings, sr: int, plan: List[notch.Notch], what: str) -> Tuple:
-    return (what, sr, s.eq_enabled, s.eq_bands, s.mastering, s.intensity, s.tilt,
-            tuple((n.hz, n.depth_db, n.bw_hz) for n in plan))
+def _whole_key(s: Settings, sr: int, plan: List[notch.Notch], what: str,
+               reference: Optional[Source] = None) -> Tuple:
+    return (what, sr, s.eq_enabled, s.eq_bands, s.mastering) + _tone_key(s, reference) + (
+        tuple((n.hz, n.depth_db, n.bw_hz) for n in plan),)
 
 
-def _whole_premaster(source: Source, sr: int, s: Settings, plan: List[notch.Notch]) -> np.ndarray:
+def _whole_premaster(source: Source, sr: int, s: Settings, plan: List[notch.Notch],
+                     reference: Optional[Source] = None) -> np.ndarray:
     x = source.at_rate(sr)
-    return _premaster(_toned(_fix(x, sr, plan), sr, _tone_curve(source, sr, s)), sr, s)
+    return _premaster(_toned(_fix(x, sr, plan), sr, _tone_curve(source, sr, s, reference)), sr, s)
 
 
-def _whole_song_gain(source: Source, sr: int, s: Settings,
-                     plan: List[notch.Notch]) -> Tuple[float, float]:
+def _whole_song_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch],
+                     reference: Optional[Source] = None) -> Tuple[float, float]:
     """(loudness before mastering, gain to the target), for the whole song."""
-    lufs = source._remember(_whole_key(s, sr, plan, "premaster_lufs"),
-                            lambda: meters.loudness(_whole_premaster(source, sr, s, plan), sr))
+    lufs = source._remember(
+        _whole_key(s, sr, plan, "premaster_lufs", reference),
+        lambda: meters.loudness(_whole_premaster(source, sr, s, plan, reference), sr))
     target = catalog.loudness_target(s.loudness_target).lufs
     return lufs, loudness.gain_to_target(lufs, target)
 
@@ -204,7 +237,8 @@ def _whole_song_gain(source: Source, sr: int, s: Settings,
 def _preserve_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch]) -> float:
     """The one gain that puts the processed song back at the source's level:
     its RMS, never past a 0.999 peak, within 4x either way (1.1.1's rule,
-    worked out from the whole song rather than each preview window)."""
+    worked out from the whole song rather than each preview window). Only
+    used with mastering off, so no tone curve and no reference."""
     def make() -> float:
         x = np.asarray(source.at_rate(sr), dtype=np.float64)
         y = np.asarray(_whole_premaster(source, sr, s, plan), dtype=np.float64)
@@ -220,7 +254,8 @@ def _preserve_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch]
 def render(source: Source, settings: Optional[Settings] = None,
            window: Optional[Tuple[float, float]] = None, *,
            progress: Optional[Progress] = None, with_removed: bool = False,
-           notches: Optional[Sequence[notch.Notch]] = None) -> Rendered:
+           notches: Optional[Sequence[notch.Notch]] = None,
+           reference: Optional[Source] = None) -> Rendered:
     """Render the song, or the span `window` = (start_s, end_s) of it.
 
     A window covers samples round(start_s * sr) up to round(end_s * sr) at
@@ -229,6 +264,9 @@ def render(source: Source, settings: Optional[Settings] = None,
     progress      reports each stage and stops the run if it is cancelled
     with_removed  also return what the fixes took out (Rendered.removed)
     notches       the Fixed tones notches to use instead of scanning
+    reference     a reference track: with mastering on, the tone curve moves
+                  toward it by Settings.match_amount instead of toward
+                  1.1.1's target
     """
     s = settings if settings is not None else Settings()
     fmt = catalog.output_format(s.format)
@@ -271,9 +309,16 @@ def render(source: Source, settings: Optional[Settings] = None,
             report["fixes"][key] = "not built yet"
 
     # 2b. The mastering tone curve.
-    curve = _tone_curve(source, sr, s)
+    curve = _tone_curve(source, sr, s, reference)
+    matched = s.mastering and reference is not None
+    if s.mastering:
+        report["mastering"]["tone_target"] = "reference" if matched else "shimmer"
+        if matched:
+            report["mastering"]["match_amount"] = s.match_amount
     if curve:
-        _stage(progress, "tone", "Tone", f"{s.intensity}, {s.tilt}")
+        _stage(progress, "tone", "Tone",
+               f"matching the reference, {s.match_amount:.0%}, {s.tilt}" if matched
+               else f"{s.intensity}, {s.tilt}")
         report["mastering"]["tone_curve_db"] = [round(v, 2) for v in curve]
     toned = _toned(fixed, sr, curve)
 
@@ -287,7 +332,7 @@ def render(source: Source, settings: Optional[Settings] = None,
         _stage(progress, "master", "Loudness and peaks",
                f"{catalog.loudness_target(s.loudness_target).lufs:g} LUFS, "
                f"{fmt.ceiling_dbtp:g} dBTP ceiling")
-        before, gain_db = _whole_song_gain(source, sr, s, plan)
+        before, gain_db = _whole_song_gain(source, sr, s, plan, reference)
         y = np.asarray(y, dtype=np.float64) * 10.0 ** (gain_db / 20.0)
         y, shaper = limiter.soft_peak_shaper(y, fmt.ceiling_dbtp)
         y, lim = limiter.true_peak_limiter(y, sr, fmt.ceiling_dbtp)

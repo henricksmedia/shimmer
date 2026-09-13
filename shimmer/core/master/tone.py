@@ -20,6 +20,10 @@ apply_tone_curve stays 1.1.1's overlap-add. Measured 2026-09-12
 
 A linear-phase FIR would match windows exactly, but would change the sound
 by a difference 39.5 dB below the song, for no gain the rules need.
+
+Step 5 makes the target an input to compute_tone_curve (1.1.1's by default,
+bit for bit), adds an optional deadband, and adds match_curve: the move
+toward a reference track the user picks (docs/MASTERING-SOURCES.md §4).
 """
 from __future__ import annotations
 
@@ -28,6 +32,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
+from .. import catalog
 from ..analyze.track import REF_FREQS, analyze_spectrum, relative_band_levels
 
 
@@ -99,6 +104,16 @@ TILT_POSITIONS: Dict[str, float] = {
 INTENSITY_STRENGTH: Dict[str, float] = {"low": 0.25, "med": 0.55, "high": 0.85}
 
 
+def _per_band(v, name: str) -> np.ndarray:
+    """One value for every band, or one per band on REF_FREQS."""
+    a = np.asarray(v, dtype=np.float64)
+    if a.ndim == 0:
+        return np.full(REF_FREQS.size, float(a))
+    if a.shape != REF_FREQS.shape:
+        raise ValueError(f"{name} needs one value per band ({REF_FREQS.size}), got {a.shape}")
+    return a
+
+
 def intensity_to_strength(intensity: str) -> float:
     return INTENSITY_STRENGTH.get(str(intensity).lower(), 0.55)
 
@@ -120,7 +135,8 @@ def tilt_offsets_db(tilt: str) -> np.ndarray:
 def compute_tone_curve(x_raw: np.ndarray, sr: int, strength: float = 1.0,
                        raw_spectrum: Optional[Dict[str, Any]] = None,
                        tilt: str = "neutral",
-                       cutoff_hz: Optional[float] = None) -> List[float]:
+                       cutoff_hz: Optional[float] = None,
+                       target_db=None, deadband_db=None) -> List[float]:
     """Compute the bounded static tone curve from the RAW input analysis.
 
     Must be called on the unprocessed input, before any artifact cleaning:
@@ -135,8 +151,17 @@ def compute_tone_curve(x_raw: np.ndarray, sr: int, strength: float = 1.0,
     Bounds: boost <= +2.0 dB, cut <= -3.0 dB, 1/3-octave smoothing, no
     boost above the source's bandwidth cutoff.
 
+    target_db    the tone target, one level per band on REF_FREQS, on the
+                 same scale as REF_DB. None is 1.1.1's target (REF_DB).
+    deadband_db  differences smaller than this are left alone: one value,
+                 or one per band (REF_TOL_DB is the candidate). None is
+                 1.1.1's rule, which has none. Off until the bench judges it
+                 (MASTERING-SOURCES.md §6).
+
     Returns per-band correction in dB aligned with REF_FREQS.
     """
+    target = REF_DB if target_db is None else _per_band(target_db, "target_db")
+    tol = None if deadband_db is None else np.abs(_per_band(deadband_db, "deadband_db"))
     strength = float(np.clip(strength, 0.0, 1.0))
     tilt_delta = tilt_offsets_db(tilt)
     has_tilt = float(np.max(np.abs(tilt_delta))) > 1e-9
@@ -156,7 +181,10 @@ def compute_tone_curve(x_raw: np.ndarray, sr: int, strength: float = 1.0,
                 np.array(spec["band_db"], dtype=np.float64) + 10.0 * np.log10(bw))
         # Shape against shape: positive correction = boost where the track
         # sits under the reference, negative = cut where it sits over.
-        delta = (REF_DB - measured) * strength + tilt_delta
+        diff = target - measured
+        if tol is not None:
+            diff = np.sign(diff) * np.maximum(0.0, np.abs(diff) - tol)
+        delta = diff * strength + tilt_delta
     delta = np.clip(delta, -_MAX_EQ_CUT_DB, _MAX_EQ_BOOST_DB)
     delta = gaussian_filter1d(delta, sigma=1.0)  # ~1/3-octave smoothing
 
@@ -170,6 +198,72 @@ def compute_tone_curve(x_raw: np.ndarray, sr: int, strength: float = 1.0,
         delta[above] = np.minimum(delta[above], 0.0)
     # Re-clip after smoothing so bounds are hard guarantees.
     delta = np.clip(delta, -_MAX_EQ_CUT_DB, _MAX_EQ_BOOST_DB)
+    return delta.tolist()
+
+
+# ── Reference-track matching (docs/MASTERING-SOURCES.md §4) ─────────────
+
+# How much of the difference to take by default (catalog.MATCH_AMOUNT, 50 %).
+MATCH_AMOUNT = catalog.MATCH_AMOUNT
+# Sound On Sound (Bazil, 2017): keep the curve "within ±3dB, and probably
+# less". A hard limit, whatever the amount.
+MATCH_LIMIT_DB = 3.0
+# About an octave of smoothing: a Gaussian whose half-height width is three
+# 1/3-octave bands. A matched curve with no smoothing gives "extreme,
+# unnatural EQs" (iZotope).
+MATCH_SMOOTH_SIGMA = 3.0 / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+
+
+def reference_shape(x_ref: np.ndarray, sr: int) -> np.ndarray:
+    """A reference track's tone shape: its 1/3-octave band levels on
+    REF_FREQS, relative to its own 200 Hz - 2 kHz median. Measured that
+    way, the reference and the song are level-matched before they are
+    compared, as the sources ask."""
+    return np.array(analyze_spectrum(x_ref, sr)["rel_db"], dtype=np.float64)
+
+
+def match_curve(x_raw: np.ndarray, sr: int, reference_db, amount: float = MATCH_AMOUNT,
+                tilt: str = "neutral", cutoff_hz: Optional[float] = None,
+                ref_cutoff_hz: Optional[float] = None,
+                raw_spectrum: Optional[Dict[str, Any]] = None) -> List[float]:
+    """The tone curve that moves the song toward a reference track.
+
+    reference_db   reference_shape() of the reference
+    amount         how much of the difference to take, 0-1 (default 50 %)
+    tilt           the warm-bright tilt, added on top as with the target
+    cutoff_hz      the song's bandwidth cutoff: nothing above 90 % of it is
+                   boosted, and it is not matched there
+    ref_cutoff_hz  the reference's cutoff (an MP3 often stops at 16 kHz):
+                   bands above 90 % of it are not matched, so an empty top
+                   in the reference never cuts the song's real one
+
+    Like compute_tone_curve, it is worked out from the raw song. Bounds:
+    about an octave of smoothing, ±3 dB, and 1.1.1's +2 dB limit on boosts
+    in the 5-12 kHz band where AI fizz lives.
+    """
+    amount = float(np.clip(amount, 0.0, 1.0))
+    ref = _per_band(reference_db, "reference_db")
+    spec = raw_spectrum if raw_spectrum is not None else analyze_spectrum(x_raw, sr)
+    measured = np.array(spec["rel_db"], dtype=np.float64)
+
+    # Bands above either cutoff hold nothing to compare.
+    empty = np.zeros(REF_FREQS.size, dtype=bool)
+    for cut in (cutoff_hz, ref_cutoff_hz):
+        if cut is not None and cut > 0:
+            empty |= REF_FREQS >= 0.9 * float(cut)
+    diff = ref - measured
+    diff[empty] = 0.0
+    # "mirror" counts the end bands (31.5 Hz, 20 kHz) once each. They are the
+    # least reliable, and "nearest" would weigh them several times over.
+    diff = gaussian_filter1d(diff, sigma=MATCH_SMOOTH_SIGMA, mode="mirror")
+    diff[empty] = 0.0
+
+    delta = np.clip(diff * amount + tilt_offsets_db(tilt), -MATCH_LIMIT_DB, MATCH_LIMIT_DB)
+    harsh = (REF_FREQS >= _HARSH_LO_HZ) & (REF_FREQS <= _HARSH_HI_HZ)
+    delta[harsh] = np.minimum(delta[harsh], _HARSH_MAX_BOOST_DB)
+    if cutoff_hz is not None and cutoff_hz > 0:
+        above = REF_FREQS >= 0.9 * float(cutoff_hz)
+        delta[above] = np.minimum(delta[above], 0.0)
     return delta.tolist()
 
 

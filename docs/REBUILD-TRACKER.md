@@ -235,8 +235,29 @@ is signed off. **Done 2026-09-12.**
 - [x] Commercial (-9 LUFS) is the default. Decided 2026-09-12.
 - [x] New loudness names as three cards: mockup approved and built
       2026-09-12.
-- [ ] Tone target as a replaceable input, with a deadband.
+- [x] Tone target as a replaceable input, with a deadband (engine,
+      2026-09-12).
+  - `compute_tone_curve` takes the target and a deadband. With neither,
+    it gives 1.1.1's curve bit for bit, tested against 1.1.1's own
+    function.
+  - The deadband (`REF_TOL_DB`, or one value) is built but off: its
+    midrange is tighter than any published guide, so the bench decides.
 - [ ] Reference-track matching.
+  - [x] Engine (2026-09-12): `render(..., reference=song)` moves the tone
+        toward the reference instead of the built-in target, following
+        MASTERING-SOURCES.md §4:
+    - 50 % of the difference by default (`Settings.match_amount`)
+    - about an octave of smoothing
+    - level-matched first
+    - never more than ±3 dB
+    - 1.1.1's +2 dB limit on boosts where fizz lives (5-12 kHz)
+    - an empty top in an MP3 reference never cuts the song's real top
+    - Tilt still applies. The preview matches the export, and every
+      loudness choice still lands. 20 contract tests.
+  - [ ] Upload route and screen: a mockup first, then sign-off.
+  - [ ] A warning when the reference's tempo or percussion differs a lot
+        (the sources' last rule).
+  - [ ] Judge on the bench.
 - [ ] Genre targets.
 - [x] Low-end mono and width checks (2026-09-12), as checks, not a process.
   - New release-check row, "Bass in mono": how far everything below

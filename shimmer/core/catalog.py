@@ -182,6 +182,11 @@ STAGES = (
 TONE_INTENSITIES = ("low", "med", "high")
 TONE_TILTS = ("warmer", "warm", "neutral", "bright", "brightest")
 
+# Matching a reference track: how much of the difference to take by
+# default. iZotope's Match EQ manual advises "under 50%"; Sound On Sound
+# (Bazil, 2017) keeps the result within ±3 dB (docs/MASTERING-SOURCES.md §4).
+MATCH_AMOUNT = 0.5
+
 
 # ── User EQ ─────────────────────────────────────────────────────────────
 

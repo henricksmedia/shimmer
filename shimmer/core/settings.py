@@ -66,6 +66,9 @@ class Settings:
     intensity        mastering tone: how much of the corrective move to make
                      (catalog.TONE_INTENSITIES)
     tilt             mastering tone: warm to bright (catalog.TONE_TILTS)
+    match_amount     mastering tone with a reference track: how much of the
+                     difference to take, 0-1 (catalog.MATCH_AMOUNT); used in
+                     place of intensity when render() is given a reference
     """
     fixes: Dict[str, float] = field(default_factory=dict)
     auto: bool = True
@@ -78,6 +81,7 @@ class Settings:
     preserve_volume: bool = True
     intensity: str = "med"
     tilt: str = "neutral"
+    match_amount: float = catalog.MATCH_AMOUNT
 
     def __post_init__(self) -> None:
         # Unknown cards are dropped and amounts kept to 0-1, so a bad value
@@ -101,6 +105,10 @@ class Settings:
         self.tilt = str(self.tilt or "").lower()
         if self.tilt not in catalog.TONE_TILTS:
             self.tilt = "neutral"
+        try:
+            self.match_amount = _clamp(float(self.match_amount), 0.0, 1.0)
+        except (TypeError, ValueError):
+            self.match_amount = catalog.MATCH_AMOUNT
 
     @classmethod
     def bypass(cls) -> "Settings":
@@ -124,6 +132,7 @@ class Settings:
             "preserve_volume": self.preserve_volume,
             "intensity": self.intensity,
             "tilt": self.tilt,
+            "match_amount": self.match_amount,
         }
 
     @classmethod
@@ -143,6 +152,7 @@ class Settings:
             preserve_volume=d.get("preserve_volume", True),
             intensity=d.get("intensity", "med"),
             tilt=d.get("tilt", "neutral"),
+            match_amount=d.get("match_amount", catalog.MATCH_AMOUNT),
         )
 
 
