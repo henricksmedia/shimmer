@@ -9,6 +9,7 @@ import { initPalette } from './palette.js';
 import { initPresetBrowser } from './preset-browser.js';
 import { initMasterView } from './master-view.js';
 import { initRecents } from './recents.js';
+import { initLoudnessCards } from './loudness-cards.js';
 
 const VIEW_TITLES = {
     single: ['Master', 'clean AI artifacts · master for release'],
@@ -63,6 +64,9 @@ async function boot() {
         });
         initMasterView();
         initRecents();
+        // The Loudness target as three cards, in every tab that has one.
+        await Promise.all(['master-target', 'remix-master-target', 'batch-master-target']
+            .map((id) => initLoudnessCards(document.getElementById(id))));
 
         // First visit: open the quick-start guide once.
         try {

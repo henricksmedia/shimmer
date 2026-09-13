@@ -224,7 +224,8 @@ is signed off. **Done 2026-09-12.**
 - [x] 1.1.1's tone curve, ported bit-exact and wired into `render()`: the
       target, Intensity and Tilt, with mastering on.
 - [x] Commercial (-9 LUFS) is the default. Decided 2026-09-12.
-- [ ] New loudness names as three cards: mockup and sign-off first.
+- [x] New loudness names as three cards: mockup approved and built
+      2026-09-12.
 - [ ] Tone target as a replaceable input, with a deadband.
 - [ ] Reference-track matching.
 - [ ] Genre targets.
@@ -284,8 +285,9 @@ the music" (`GOALS.md`):*
   - The old preset card is hidden, not deleted, until Step 7.
 - [x] Loudness menus (Master, Remix, Batch): the decided names, Commercial
       (-9 LUFS) as the default, and no "distortion risk" warning.
-- [ ] Loudness as three cards: [mockup](../static/tmp/shimmer-loudness-cards-mockup.html)
-      (local only) is waiting for sign-off.
+- [x] Loudness as three cards in Master, Remix and Batch (mockup approved
+      2026-09-12). The choices come from `/api/rules`. The old menu stays in
+      the page, hidden, as the value the other scripts read and set.
 - [ ] The icon font loads from Google Fonts, like the app's other fonts:
       offline, icons show as words. Bundling it needs a download (ask
       first).

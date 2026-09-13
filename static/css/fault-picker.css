@@ -60,3 +60,21 @@
 .an-act.ask{color:var(--cyan);border:1px solid rgba(56,189,248,.45)}
 .an-foot{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg-2)}
 .an-foot b{color:var(--fg-1)}
+
+/* Loudness target as three cards, as approved in
+   static/tmp/shimmer-loudness-cards-mockup.html (2026-09-12): the same tile
+   language as "What do you hear?". */
+.loud-cards{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.loud-card{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:2px 8px;
+  padding:8px 10px;text-align:left;font:inherit;color:var(--fg-1);cursor:pointer;
+  background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-s);
+  transition:background 100ms ease,border-color 100ms ease}
+.loud-card:hover{background:var(--bg-3);border-color:var(--line-2)}
+.loud-card:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+.loud-card .t{font-size:12.5px;font-weight:600;color:var(--fg-0);line-height:1.25}
+.loud-card .v{font-family:var(--font-mono);font-size:11px;color:var(--fg-1)}
+.loud-card .d{grid-column:1 / -1;font-size:10.5px;color:var(--fg-2);line-height:1.35}
+.loud-card .def{margin-left:6px;padding:1px 5px;border-radius:4px;font-size:8.5px;font-weight:700;
+  letter-spacing:.08em;color:var(--fg-2);border:1px solid var(--line-2);vertical-align:1px}
+.loud-card.on{background:var(--amber-soft);border-color:rgba(245,165,36,.5)}
+.loud-card.on .v{color:var(--amber)}
