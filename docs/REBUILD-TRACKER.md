@@ -269,6 +269,26 @@ the music" (`GOALS.md`):*
 
 **All cards:**
 
+- [x] "What do you hear?" is in the Master tab, where the preset list was
+      (started 2026-09-12, at the author's request; approved mockup).
+  - It reads its cards from `/api/rules`, and its findings from the upload
+    and Analyze.
+  - It sends the picks as `fixes` and `auto`.
+  - Checked in the browser on "Alive Again": Fixed tones on with
+    "Found · 3.51 kHz" (the tone the census found), Loudness
+    "Found · 2.3 dB under", and no console errors.
+  - Cards whose tool is not built show "Not built yet". Cards with no tool
+    show "No fix yet" and can only be noted.
+  - The mockup's "Solo band" button is left out until the player can solo a
+    band.
+  - The old preset card is hidden, not deleted, until Step 7.
+- [x] Loudness menus (Master, Remix, Batch): the decided names, Commercial
+      (-9 LUFS) as the default, and no "distortion risk" warning.
+- [ ] Loudness as three cards: [mockup](../static/tmp/shimmer-loudness-cards-mockup.html)
+      (local only) is waiting for sign-off.
+- [ ] The icon font loads from Google Fonts, like the app's other fonts:
+      offline, icons show as words. Bundling it needs a download (ask
+      first).
 - [ ] The cards and their Amount sliders are wired into the existing panels,
       with sign-off.
 - [ ] Everything on at full, on clean music, passes the same checks.

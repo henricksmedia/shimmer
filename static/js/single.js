@@ -14,6 +14,7 @@ import { PHASES as CHAIN_PHASES } from './chain.js';
 import { processModal } from './progress-chain.js';
 import { initTrim } from './trim.js';
 import { initReport } from './report.js';
+import { initFaultPicker } from './fault-picker.js';
 
 
 const PREVIEW_DEBOUNCE_MS = 250;
@@ -555,6 +556,26 @@ export async function initSingleTab() {
     }
     renderStrengthBadge();
 
+    // "What do you hear?": its picks go to the engine as fixes/auto. The
+    // cards that live in Mastering (Loudness, Lack of air) set its controls.
+    const picker = await initFaultPicker({
+        onChange: () => { pushSettings(); schedulePreviewRender(); },
+        onMasterCard: (key, on) => {
+            if (!on && key === 'loudness') return;
+            if (on && !masterEnabled.checked) {
+                masterEnabled.checked = true;
+                masterEnabled.dispatchEvent(new Event('change'));
+            }
+            if (key === 'loudness') {
+                masterTarget.value = 'cd';
+                masterTarget.dispatchEvent(new Event('change'));
+            } else if (key === 'air') {
+                masterTilt.value = on ? 'bright' : 'neutral';
+                masterTilt.dispatchEvent(new Event('change'));
+            }
+        },
+    });
+
     const {byName, defaultName} = await initPresetSelect(presetSelect, {
         descEl: presetDesc,
         onChange: (preset) => {
@@ -930,6 +951,7 @@ export async function initSingleTab() {
         setAnalyzeDock('idle');
         syncDockStatus();
         setWizardStep(0);
+        picker.reset();
         lastAnalysis = null;
         lastTimeline = null;
         fullMatchDb = null;
@@ -2302,6 +2324,7 @@ export async function initSingleTab() {
             const r = await runAutoDetect(currentFile, analyzeExtras());
             lastFollowUp = (r.follow_up && r.follow_up.name) ? r.follow_up : null;
             if (r.repair_plan) setRepairPlan(r.repair_plan);
+            if (r.findings) picker.setFindings(r.findings);
             applyDetectedPreset(r.preset, r.strength);
             renderAutoDetect(r);
             const pct = Math.round((Number(r.strength) || 1) * 100);
@@ -2565,6 +2588,7 @@ export async function initSingleTab() {
             } }));
             lastEdges = r.edges || null;
             if (r.repair && r.repair.plan) setRepairPlan(r.repair.plan);
+            picker.setFindings(r.findings || []);
             if (r.analysis) {
                 lastAnalysis = r.analysis;
                 renderAnalysisReadout(r.analysis);
@@ -2642,13 +2666,14 @@ export async function initSingleTab() {
             mastering: masteringPayload(),
             eq: eqPanel.getPayload(),
             repair: repairPayload(),
+            ...picker.payload(),
         };
 
         // Decoded-render cache: same window + same params = instant swap.
         const cacheKey = JSON.stringify([
             start, end, payload.preset, payload.preset_strength,
             overrides, payload.preserve_volume, payload.mastering, payload.repair,
-            payload.eq,
+            payload.eq, payload.fixes, payload.auto,
         ]);
         const hit = previewCache.get(cacheKey);
         if (hit) {
@@ -2965,6 +2990,7 @@ export async function initSingleTab() {
                 eq: eqPanel.getPayload(),
                 repair: repairPayload(),
                 tags: tagsPayload(),
+                ...picker.payload(),
             };
             if (lastAnalysis) paramsBody.mastering_analysis = lastAnalysis;
 

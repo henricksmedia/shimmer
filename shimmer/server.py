@@ -1096,6 +1096,13 @@ async def api_suggest(file: UploadFile = File(...),
         analysis = await loop.run_in_executor(None, analyze_track, x, sr)
         result["analysis"] = analysis
         result["source_tags"] = await loop.run_in_executor(None, read_tags, tmp_path)
+        # The new engine's findings, for the "What do you hear?" card; the
+        # preset fields above stay until that screen replaces them
+        # (docs/API.md §0).
+        import dataclasses as _dc
+        from . import core as _core
+        found = await loop.run_in_executor(None, _core.findings, _core.Source.from_array(x, sr))
+        result["findings"] = [_dc.asdict(f) for f in found]
         if tone:
             mp = _parse_master_form(mastering)
             ov = _parse_json_form(overrides)

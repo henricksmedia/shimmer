@@ -51,6 +51,10 @@ def test_upload_returns_what_the_screens_read(client):
     assert len(d["analysis"]["spectrum"]["freqs_hz"]) == len(d["analysis"]["spectrum"]["band_db"])
     for key in ("source_tags", "stems_tiers", "project", "sample_rate", "channels"):
         assert key in d
+    # The "What do you hear?" card reads these: a 440 Hz tone is music, not
+    # a fixed-tone artifact, and it is quieter than Commercial.
+    cards = {f["card"] for f in d["findings"]}
+    assert "tones" not in cards and "loudness" in cards
     client.delete(f"/api/upload/{d['session_id']}")
 
 

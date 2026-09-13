@@ -13,6 +13,8 @@
 <link rel="stylesheet" href="/static/css/components.css">
 <link rel="stylesheet" href="/static/css/help.css">
 <link rel="stylesheet" href="/static/css/chrome.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,400,0,0&display=block">
+<link rel="stylesheet" href="/static/css/fault-picker.css">
 </head>
 <body>
 <div class="app">
@@ -101,7 +103,26 @@
 
                 <div class="mcol" id="master-col-left">
                     <div id="dropzone-slot"></div>
-                    <div class="card">
+                    <!-- "What do you hear?" replaces the preset list
+                         (approved mockup, docs/ARCHITECTURE.md §19.3). -->
+                    <div class="card hear-card" id="hear-card">
+                        <div class="card-head">
+                            <span class="title">What do you hear?</span><span class="gloss">pick any</span>
+                            <span class="spacer"></span>
+                            <button type="button" class="help-icon" title="Pick what you hear. Each card turns on the tool that fixes it." aria-label="Help: what do you hear?">?</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="hear-verdict" id="hear-verdict"></div>
+                            <div class="pb-group"><div class="g-label">Artifacts</div></div>
+                            <div class="hear-grid" id="hear-g1"></div>
+                            <div class="pb-group"><div class="g-label">Tone and level</div></div>
+                            <div class="hear-grid" id="hear-g2"></div>
+                            <div class="pb-effect hear-fixes" id="hear-fixes"></div>
+                        </div>
+                    </div>
+                    <!-- The 1.x preset card, hidden: its controls stay in the page
+                         until the script that reads them is retired (Step 7). -->
+                    <div class="card" id="preset-card" hidden>
                         <div class="card-head">
                             <span class="title">Artifact Preset</span><span class="gloss">what to remove</span>
                             <span class="spacer"></span>
@@ -345,9 +366,9 @@
                                             <div>
                                                 <label class="label" for="master-target">Loudness target</label>
                                                 <select id="master-target" class="select">
-                                                    <option value="streaming" selected>Streaming (−14 LUFS)</option>
-                                                    <option value="loud">Loud (−11 LUFS)</option>
-                                                    <option value="cd" title="Very loud master — heavy limiting can add audible distortion. Streaming platforms will turn it back down anyway.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
+                                                    <option value="cd" selected title="As loud as most released songs">Commercial (−9 LUFS)</option>
+                                                    <option value="loud" title="A little quieter, with more punch left in">Balanced (−11 LUFS)</option>
+                                                    <option value="streaming" title="The level streaming apps play songs at; sounds quiet in other players">Streaming standard (−14 LUFS)</option>
                                                 </select>
                                             </div>
                                             <div>
@@ -615,9 +636,9 @@
                                         <div>
                                             <label class="label" for="remix-master-target">Loudness target</label>
                                             <select id="remix-master-target" class="select">
-                                                <option value="streaming" selected>Streaming (−14 LUFS)</option>
-                                                <option value="loud">Loud (−11 LUFS)</option>
-                                                <option value="cd" title="Very loud master — heavy limiting can add audible distortion. Streaming platforms will turn it back down anyway.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
+                                                <option value="cd" selected title="As loud as most released songs">Commercial (−9 LUFS)</option>
+                                                <option value="loud" title="A little quieter, with more punch left in">Balanced (−11 LUFS)</option>
+                                                <option value="streaming" title="The level streaming apps play songs at; sounds quiet in other players">Streaming standard (−14 LUFS)</option>
                                             </select>
                                         </div>
                                         <div>
@@ -809,9 +830,9 @@
                             </label>
                             <label class="label" for="batch-master-target">Loudness target</label>
                             <select id="batch-master-target" class="select">
-                                <option value="streaming" selected>Streaming (−14 LUFS)</option>
-                                <option value="loud">Loud (−11 LUFS)</option>
-                                <option value="cd" title="Very loud master — heavy limiting can add audible distortion.">CD / Club (−9 LUFS) ⚠ distortion risk</option>
+                                <option value="cd" selected title="As loud as most released songs">Commercial (−9 LUFS)</option>
+                                <option value="loud" title="A little quieter, with more punch left in">Balanced (−11 LUFS)</option>
+                                <option value="streaming" title="The level streaming apps play songs at; sounds quiet in other players">Streaming standard (−14 LUFS)</option>
                             </select>
                             <label class="label" for="batch-master-intensity">Tone match</label>
                             <select id="batch-master-intensity" class="select">

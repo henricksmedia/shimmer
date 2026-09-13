@@ -24,6 +24,8 @@ def rules() -> Dict[str, Any]:
         "default_format": catalog.DEFAULT_FORMAT,
         "cards": [dataclasses.asdict(c) for c in catalog.CARDS],
         "tools": list(catalog.TOOLS),
+        "tool_labels": dict(catalog.TOOL_LABELS),
+        "tools_ready": list(catalog.TOOLS_READY),
         "default_amount": catalog.DEFAULT_AMOUNT,
         "eq_limits": dict(catalog.EQ_LIMITS),
         "eq_types": list(catalog.EQ_TYPES),

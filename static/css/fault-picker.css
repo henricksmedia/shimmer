@@ -1,0 +1,62 @@
+/* fault-picker.css — the "What do you hear?" card and the Analysis rows,
+   exactly as approved in static/tmp/shimmer-what-do-you-hear-mockup.html
+   (2026-09-12). The layout classes it shares with the old preset browser
+   (.pb-group, .g-label, .pb-effect, .pb-effect-label) stay in chrome.css. */
+
+.ms{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;line-height:1;
+  letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;
+  font-feature-settings:'liga';-webkit-font-feature-settings:'liga';
+  font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20;font-size:20px}
+.hear-verdict{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;
+  color:var(--cyan);margin:0 0 2px}
+.hear-verdict .ms{font-size:17px}
+.hear-card .pb-group > .g-label{padding:10px 2px 6px}
+.hear-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.hear-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  min-height:88px;padding:8px 9px;text-align:left;font:inherit;color:var(--fg-1);cursor:pointer;
+  background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-s);
+  transition:background 100ms ease,border-color 100ms ease}
+.hear-tile:hover{background:var(--bg-3);border-color:var(--line-2)}
+.hear-tile:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+.hear-tile .ms{color:var(--fg-2);margin-bottom:3px}
+.hear-tile .t{font-size:12.5px;font-weight:600;color:var(--fg-0);line-height:1.25}
+.hear-tile .d{font-size:10.5px;color:var(--fg-2);line-height:1.35}
+.hear-tile .st{margin-top:auto;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase}
+.hear-tile .st.found{color:var(--cyan);border:1px solid rgba(56,189,248,.45);background:rgba(56,189,248,.08)}
+.hear-tile .st.nofix{color:var(--fg-3);border:1px dashed var(--line-2)}
+.hear-tile.on{background:var(--amber-soft);border-color:rgba(245,165,36,.5)}
+.hear-tile.on .ms{color:var(--amber)}
+.hear-tile.on::after,.hear-tile.noted::after{position:absolute;top:7px;right:7px;padding:1px 5px;
+  border-radius:4px;font-size:8.5px;font-weight:700;letter-spacing:.08em}
+.hear-tile.on::after{content:"ON";color:var(--amber);border:1px solid rgba(245,165,36,.5)}
+.hear-tile.noted{border-color:var(--line-2)}
+.hear-tile.noted::after{content:"NOTED";color:var(--fg-2);border:1px solid var(--line-2)}
+.hear-fixes{display:block;margin-top:12px}
+.fx-row{display:flex;flex-direction:column;gap:5px;padding:8px 0;border-top:1px solid var(--line)}
+.pb-effect-label + .fx-row{border-top:none;padding-top:2px}
+.fx-head{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--fg-0)}
+.fx-head .ms{font-size:17px;color:var(--amber)}
+.fx-head.muted,.fx-head.muted .ms{color:var(--fg-2)}
+.fx-for{font-weight:400;color:var(--fg-2)}
+.fx-src{margin-left:auto;font-size:10px;font-weight:500;color:var(--fg-3)}
+.fx-ctl{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--fg-2)}
+.fx-ctl input[type=range]{flex:1;min-width:0}
+.fx-val{min-width:34px;text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--fg-1)}
+.solo-btn{align-self:flex-start;display:inline-flex;align-items:center;gap:5px}
+.solo-btn .ms{font-size:15px}
+.solo-btn.is-on{color:var(--cyan);border-color:rgba(56,189,248,.55)}
+.fx-note{font-size:10.5px;color:var(--fg-2);line-height:1.45}
+.an-verdict{font-size:13px;font-weight:600;color:var(--fg-0);margin-bottom:8px}
+.an-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:10px;
+  padding:8px 0;border-top:1px solid var(--line)}
+.an-row .ms{color:var(--cyan)}
+.an-what b{display:block;font-size:12.5px;color:var(--fg-0);font-weight:600}
+.an-what span{font-size:11.5px;color:var(--fg-2)}
+.an-act{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 7px;border-radius:4px;white-space:nowrap}
+.an-act.on{color:var(--amber);border:1px solid rgba(245,165,36,.5);background:var(--amber-soft)}
+.an-act.nofix{color:var(--fg-3);border:1px dashed var(--line-2)}
+.an-act.ask{color:var(--cyan);border:1px solid rgba(56,189,248,.45)}
+.an-foot{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg-2)}
+.an-foot b{color:var(--fg-1)}

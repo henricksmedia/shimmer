@@ -22,6 +22,14 @@ from typing import Optional, Tuple
 
 TOOLS = ("notch", "declick", "deesser", "dynamic_eq", "tone_target", "loudness_target")
 
+# The name each tool shows on screen, and which tools are built. A card whose
+# tool is not built yet says so plainly, rather than seem to do something
+# (docs/ARCHITECTURE.md §19.2 D3).
+TOOL_LABELS = {"notch": "Notch filter", "declick": "De-click", "deesser": "De-esser",
+               "dynamic_eq": "Dynamic EQ", "tone_target": "Tone target",
+               "loudness_target": "Loudness target"}
+TOOLS_READY = ("notch", "tone_target", "loudness_target")
+
 
 @dataclass(frozen=True)
 class Card:

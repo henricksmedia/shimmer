@@ -19,6 +19,7 @@ Fixes against 1.1.1:
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import math
 import os
 import shutil
@@ -184,6 +185,8 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
     sess.track_analysis = analysis
     sess.digest = digest
     sess.repair_lines = lines
+    # What the "What do you hear?" card shows as found, from the first drop.
+    found = await loop.run_in_executor(None, core.findings, sess.source)
     SESSIONS.sweep()
     return JSONResponse(_json_safe({
         "session_id": sess.id,
@@ -196,6 +199,7 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
         "analysis": analysis,
         "edges": edges,
         "repair": {"lines": lines, "plan": core.plan_from_lines(lines, sr).as_dict()},
+        "findings": [dataclasses.asdict(f) for f in found],
         "digest": digest,
         # Any tier with a finished stem set for this exact file: the Remix
         # tab separates instantly on those.
