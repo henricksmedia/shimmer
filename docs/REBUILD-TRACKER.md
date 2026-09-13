@@ -192,7 +192,8 @@ is signed off. **Done 2026-09-12.**
     - The Suggested EQ still comes from 1.x's planner, until the Step 5
       rewrite.
   - [ ] Tone (`/api/tone`) and the chain view (`/api/chain`) still run on
-        1.x, until Step 5's tone planner and Step 6's stage list.
+        1.x, until Step 5's tone planner. The stage list is now served by
+        `/api/rules`.
 
 ## Step 5 — Mastering (the main complaint)
 
@@ -302,10 +303,18 @@ the music" (`GOALS.md`):*
 - [ ] The cards and their Amount sliders are wired into the existing panels,
       with sign-off.
 - [ ] Everything on at full, on clean music, passes the same checks.
-- [ ] The screens read `/api/rules`, and the Step 6 test mark comes off.
-- [ ] The progress chain reads its stages from the server. It still shows
-      1.x's stage names (Repair, Pre, Split and so on), while the new
-      engine reports its own: rate, fixes, eq, master, export and report.
+- [x] The screens read `/api/rules`, and the Step 6 test mark comes off
+      (2026-09-12).
+  - The three loudness menus are filled from the rules; no screen keeps its
+    own copy of the choices or their LUFS numbers.
+  - The player's target line takes its level from the chosen card.
+  - The "no copies" test now passes for real.
+- [x] The progress chain reads its stages from the server (2026-09-12).
+  - Its names are the engine's: Read, Trim, Sample rate, Fixes, Tone, EQ,
+    Master, Export, Report.
+  - Stages the settings do not use show as skipped.
+  - Checked in the browser on "Alive Again": Trim, Sample rate and EQ
+    skipped, the rest ran, no console errors.
 
 ## Step 7 — Finish, switch over, release
 

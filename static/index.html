@@ -365,11 +365,8 @@
                                         <div class="master-grid-fields">
                                             <div class="master-grid-span">
                                                 <label class="label" for="master-target">Loudness target</label>
-                                                <select id="master-target" class="select">
-                                                    <option value="cd" selected title="As loud as most released songs">Commercial (−9 LUFS)</option>
-                                                    <option value="loud" title="A little quieter, with more punch left in">Balanced (−11 LUFS)</option>
-                                                    <option value="streaming" title="The level streaming apps play songs at; sounds quiet in other players">Streaming standard (−14 LUFS)</option>
-                                                </select>
+                                                <!-- Choices come from /api/rules (loudness-cards.js). -->
+                                                <select id="master-target" class="select"></select>
                                             </div>
                                             <div>
                                                 <label class="label" for="master-intensity">Tone match</label>
@@ -635,11 +632,8 @@
                                     <div class="master-grid-fields" id="remix-master-options">
                                         <div class="master-grid-span">
                                             <label class="label" for="remix-master-target">Loudness target</label>
-                                            <select id="remix-master-target" class="select">
-                                                <option value="cd" selected title="As loud as most released songs">Commercial (−9 LUFS)</option>
-                                                <option value="loud" title="A little quieter, with more punch left in">Balanced (−11 LUFS)</option>
-                                                <option value="streaming" title="The level streaming apps play songs at; sounds quiet in other players">Streaming standard (−14 LUFS)</option>
-                                            </select>
+                                            <!-- Choices come from /api/rules (loudness-cards.js). -->
+                                            <select id="remix-master-target" class="select"></select>
                                         </div>
                                         <div>
                                             <label class="label" for="remix-master-intensity">Tone match</label>
@@ -829,11 +823,8 @@
                                 <span><b>Master for release</b></span>
                             </label>
                             <label class="label" for="batch-master-target">Loudness target</label>
-                            <select id="batch-master-target" class="select">
-                                <option value="cd" selected title="As loud as most released songs">Commercial (−9 LUFS)</option>
-                                <option value="loud" title="A little quieter, with more punch left in">Balanced (−11 LUFS)</option>
-                                <option value="streaming" title="The level streaming apps play songs at; sounds quiet in other players">Streaming standard (−14 LUFS)</option>
-                            </select>
+                            <!-- Choices come from /api/rules (loudness-cards.js). -->
+                            <select id="batch-master-target" class="select"></select>
                             <label class="label" for="batch-master-intensity">Tone match</label>
                             <select id="batch-master-intensity" class="select">
                                 <option value="low">Low</option>

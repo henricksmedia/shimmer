@@ -128,8 +128,6 @@ COPIES = [
 ]
 
 
-@pytest.mark.xfail(reason="the screens are re-wired to /api/rules in Step 6; remove this mark then",
-                   raises=AssertionError, strict=True)
 def test_the_screens_do_not_copy_the_loudness_choices():
     static = ROOT / "static"
     files = sorted((static / "js").rglob("*.js")) + [static / "index.html"]

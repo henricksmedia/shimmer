@@ -52,6 +52,10 @@ async function boot() {
     document.getElementById('wordmark-home')?.addEventListener('click', () =>
         document.querySelector('.tab[data-tab="single"]')?.click());
     try {
+        // The Loudness target as three cards, in every tab that has one.
+        // First, so each menu has its choices before a tab restores into it.
+        await Promise.all(['master-target', 'remix-master-target', 'batch-master-target']
+            .map((id) => initLoudnessCards(document.getElementById(id))));
         await initSingleTab();
         await initBatchTab();
         await initRemixTab();
@@ -64,9 +68,6 @@ async function boot() {
         });
         initMasterView();
         initRecents();
-        // The Loudness target as three cards, in every tab that has one.
-        await Promise.all(['master-target', 'remix-master-target', 'batch-master-target']
-            .map((id) => initLoudnessCards(document.getElementById(id))));
 
         // First visit: open the quick-start guide once.
         try {

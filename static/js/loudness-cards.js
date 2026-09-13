@@ -7,18 +7,29 @@
 // the "What do you hear?" Loudness card). The cards only show it and
 // change it.
 
-let rulesPromise = null;
+import { loadRules } from './rules.js';
 
-function loadRules() {
-    if (!rulesPromise) rulesPromise = fetch('/api/rules').then((r) => r.json());
-    return rulesPromise;
+/** Fill `select` with the Loudness choices, the default selected. */
+function fillOptions(select, rules) {
+    if (select.options.length) return;
+    rules.loudness_targets.forEach((t) => {
+        const o = document.createElement('option');
+        o.value = t.key;
+        o.textContent = `${t.label} (${String(t.lufs).replace('-', '−')} LUFS)`;
+        o.title = t.sublabel;
+        o.selected = !!t.default;
+        select.appendChild(o);
+    });
 }
 
-/** Put the cards in front of `select` (a Loudness target <select>). */
+/** Put the cards in front of `select` (a Loudness target <select>). Call
+ *  it before the tab's own script starts, so the menu has its options when
+ *  saved settings are restored into it. */
 export async function initLoudnessCards(select) {
     if (!select || select.dataset.cards) return;
     select.dataset.cards = '1';
     const rules = await loadRules();
+    fillOptions(select, rules);
     const box = document.createElement('div');
     box.className = 'loud-cards';
     box.setAttribute('role', 'radiogroup');

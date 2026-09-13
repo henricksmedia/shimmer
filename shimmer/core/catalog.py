@@ -166,6 +166,17 @@ def output_format(key: str) -> Format:
     raise KeyError(key)
 
 
+# ── The stages a render and export report, in signal order ──────────────
+# The progress window lights these by key as the server reports them
+# (shimmer.core.render, shimmer.api.render).
+
+STAGES = (
+    ("load", "Read"), ("edit", "Trim"), ("rate", "Sample rate"), ("fixes", "Fixes"),
+    ("tone", "Tone"), ("eq", "EQ"), ("master", "Master"), ("export", "Export"),
+    ("report", "Report"),
+)
+
+
 # ── Mastering tone (1.1.1's controls, kept) ─────────────────────────────
 
 TONE_INTENSITIES = ("low", "med", "high")

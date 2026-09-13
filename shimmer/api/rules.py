@@ -29,6 +29,7 @@ def rules() -> Dict[str, Any]:
         "default_amount": catalog.DEFAULT_AMOUNT,
         "eq_limits": dict(catalog.EQ_LIMITS),
         "eq_types": list(catalog.EQ_TYPES),
+        "stages": [{"key": k, "label": label} for k, label in catalog.STAGES],
         "tone_intensities": list(catalog.TONE_INTENSITIES),
         "tone_tilts": list(catalog.TONE_TILTS),
     }

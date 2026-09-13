@@ -15,6 +15,14 @@ import { processModal } from './progress-chain.js';
 import { initTrim } from './trim.js';
 import { initReport } from './report.js';
 import { initFaultPicker } from './fault-picker.js';
+import { loadRules, loudnessLufs } from './rules.js';
+
+// The progress window's colours for the engine's stages (the stage list
+// itself comes from /api/rules). Signal order runs around the colour wheel.
+const STAGE_COLOURS = {
+    load: '#2dd4bf', edit: '#22d3ee', rate: '#38bdf8', fixes: '#60a5fa', tone: '#a78bfa',
+    eq: '#c084fc', master: '#f5a524', export: '#fbbf24', report: '#f472b6',
+};
 
 
 const PREVIEW_DEBOUNCE_MS = 250;
@@ -23,6 +31,7 @@ const PREVIEW_CACHE_MAX = 20;
 
 export async function initSingleTab() {
     const $ = (id) => document.getElementById(id);
+    const RULES = await loadRules();
 
     const dropzone     = $('dropzone');
     const fileInput    = $('file-input');
@@ -662,6 +671,7 @@ export async function initSingleTab() {
         },
     });
     player.attachKeyboard();
+    player.setTargetLufs(loudnessLufs(RULES, masterTarget.value));
 
     // Transport buttons and scrubber.
     const SKIP_S = 5;
@@ -771,6 +781,7 @@ export async function initSingleTab() {
                 masterEnabled.checked = saved.mastering.enabled;
             }
             if (saved.mastering.target) masterTarget.value = saved.mastering.target;
+            player.setTargetLufs(loudnessLufs(RULES, masterTarget.value));
             if (saved.mastering.intensity) masterIntensity.value = saved.mastering.intensity;
             if (saved.mastering.tilt) masterTilt.value = saved.mastering.tilt;
         }
@@ -876,8 +887,7 @@ export async function initSingleTab() {
         schedulePreviewRender();
     });
     masterTarget.addEventListener('change', () => {
-        player.setTargetLufs(
-            { streaming: -14, loud: -11, cd: -9 }[masterTarget.value] || -14);
+        if (player) player.setTargetLufs(loudnessLufs(RULES, masterTarget.value));
         pushSettings();
         schedulePreviewRender();
     });
@@ -2864,17 +2874,24 @@ export async function initSingleTab() {
     // ── The processing window: the chain, live ─────────────────────────
     // Shared with the Remix tab (progress-chain.js). This tab hands it the
     // Signal Chain's phases and which of them this run will use.
+    // The stages this run will report (the others draw as skipped).
     function plannedPhases() {
         const st = window.shimmerChainState ? window.shimmerChainState() : null;
         const masterOn = masterEnabled.checked;
-        const set = new Set(['repair', 'split', 'fine', 'engine', 'recombine', 'post', 'export']);
+        const set = new Set(['load', 'export', 'report']);
         if (st && st.trim_armed) set.add('edit');
-        if (masterOn) { set.add('pre'); set.add('master'); }
-        else if (preserveVol.checked) set.add('level');
+        if (outputFormat.value === 'wav16') set.add('rate');
+        const p = picker.payload();
+        if (Object.values(p.fixes).some((v) => v > 0)
+            || (lastRepair && lastRepair.notches.some((n) => n.on !== false))) set.add('fixes');
+        const eq = eqPanel.getPayload();
+        if (eq && eq.enabled && (eq.bands || []).some((b) => b.enabled !== false)) set.add('eq');
+        if (masterOn) { set.add('tone'); set.add('master'); }
         return set;
     }
+    // The engine's stages, from /api/rules, in the progress window's shape.
     function chainPhases() {
-        return CHAIN_PHASES.map(([k, l, c]) => [k, l === 'Fine pass' ? 'Fine' : l, c]);
+        return RULES.stages.map((s) => [s.key, s.label, STAGE_COLOURS[s.key] || '#94a3b8']);
     }
     function openProcessModal() {
         // The title must say what this run actually does, and where it

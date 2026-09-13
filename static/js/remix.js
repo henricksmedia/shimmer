@@ -460,7 +460,9 @@ export async function initRemixTab() {
     }
 
     function syncInspectorStates() {
-        const target = { streaming: '−14 LUFS', loud: '−11 LUFS', cd: '−9 LUFS' }[masterTarget.value] || masterTarget.value;
+        // The level, read from the menu's own label (filled from /api/rules).
+        const opt = masterTarget.selectedOptions[0];
+        const target = ((opt && opt.textContent.match(/[−-]\d+(?:\.\d+)? LUFS/)) || [masterTarget.value])[0];
         if (stateMaster) stateMaster.textContent = masterEnabled.checked
             ? `${target} · match ${masterIntensity.value}` : 'off';
         if (stateOutput) {

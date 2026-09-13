@@ -290,7 +290,7 @@ export function createUnifiedPlayer({
         available: { original: false, processed: false, removed: false },
         matchEnabled: false,
         gainDb: { original: 0, processed: 0, removed: 0 },
-        targetLufs: -14,
+        targetLufs: null,       // set from the chosen Loudness target (/api/rules)
         rafId: null,
     };
 
@@ -1111,15 +1111,19 @@ export function createUnifiedPlayer({
         const span = LUFS_STRIP_MAX - LUFS_STRIP_MIN;
         const pct = Math.max(0, Math.min(100, ((lufs - LUFS_STRIP_MIN) / span) * 100));
         lufsFillEl.style.width = `${pct}%`;
+        const hasTarget = Number.isFinite(state.targetLufs);
         if (lufsTargetEl) {
-            const tPct = Math.max(0, Math.min(100,
-                ((state.targetLufs - LUFS_STRIP_MIN) / span) * 100));
-            lufsTargetEl.style.left = `${tPct}%`;
+            lufsTargetEl.hidden = !hasTarget;
+            if (hasTarget) {
+                const tPct = Math.max(0, Math.min(100,
+                    ((state.targetLufs - LUFS_STRIP_MIN) / span) * 100));
+                lufsTargetEl.style.left = `${tPct}%`;
+            }
         }
         const host = lufsFillEl.parentElement;
         if (host && Number.isFinite(lufs) && lufs > LUFS_STRIP_MIN - 20) {
-            host.title = `Momentary loudness ${lufs.toFixed(1)} LUFS · ` +
-                `white line = target ${state.targetLufs} LUFS`;
+            host.title = `Momentary loudness ${lufs.toFixed(1)} LUFS`
+                + (hasTarget ? ` · white line = target ${state.targetLufs} LUFS` : '');
         }
     }
 

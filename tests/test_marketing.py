@@ -46,11 +46,14 @@ class TestMarketingKit:
         assert f"all {n} cleanup presets" in posts, f"post 6 does not say {n} presets"
 
     def test_loudness_targets_match_the_app(self):
-        app = read(ROOT, "static", "index.html")
+        # The screens fill their menus from /api/rules, so the engine's
+        # catalog is where the app's choices live.
+        from shimmer.core import catalog
+        offered = {f"−{abs(t.lufs):g}" for t in catalog.LOUDNESS_TARGETS}
         page = read(MARKETING, "index.html")
         posts = read(MARKETING, "posts.html")
         for target in ("−14", "−11", "−9"):
-            assert target in app, f"the app no longer offers {target} LUFS"
+            assert target in offered, f"the app no longer offers {target} LUFS"
             assert target in page, f"the message page is missing {target}"
         # Post 7 quotes all three.
         assert "−14 LUFS" in posts and "−11" in posts and "−9" in posts
