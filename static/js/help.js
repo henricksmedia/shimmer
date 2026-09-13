@@ -1,190 +1,179 @@
-// help.js — Help modal: tabs, preset decision tree, and controls reference.
+// help.js — Help modal: tabs, the "What do you hear?" card guide and quiz,
+// the Remix / Batch preset table, and the controls reference.
 // Public API:
-//   initHelp({ presetSelect })          — wire the modal to the page
+//   initHelp({ presetSelect })          — wire the modal to the page.
+//                                          presetSelect is still accepted,
+//                                          but the Master tab no longer
+//                                          reads the preset menu: the quiz
+//                                          points at a card instead.
 //   openHelp(tabId, anchorId?)          — open modal on a tab, optionally
-//                                          scroll to a control's help card
+//                                          scroll to a help card
+//                                          (#help-control-<anchorId>)
+//   closeHelp()                         — close it
+//
+// The cards, the fix each one runs and which fixes are built come from
+// GET /api/rules (shimmer/core/catalog.py), so this file keeps no copy of
+// them. It keeps only the words that explain each card, and the 1.x
+// preset-to-card table (LEGACY_PRESETS in shimmer/core/settings.py).
 
 import { CONTROL_SPEC, GROUP_INTROS } from './controls.js';
+import { loadRules } from './rules.js';
 
 let _modal, _tabs, _panels, _lastFocus;
-let _presetSelectEl = null;
 
 // ──────────────────────────────────────────────────────────────────────
-// Preset decision tree
+// The 1.x presets, and the card each one turns on
 // ──────────────────────────────────────────────────────────────────────
 
-// Each entry: `key` is the preset id sent to the server; `label` is what we
-// show the user in the UI; `why` is shown after the quiz picks this preset
-// and should tell the user the ROOT CAUSE the preset targets so they
-// understand whether the recommendation matches what they hear.
-// Keys map 1:1 to the visible PRESETS dict in presets.py.
+// `key` is the 1.x preset id; `label` is its name in the Remix and Batch
+// menus (/api/presets); `card` is the card it turns on in 2.0, from
+// LEGACY_PRESETS in shimmer/core/settings.py (null: no card); `why` says
+// what the problem sounds like, so the user can check the answer against
+// what they hear. Grouped by card, in the order the table shows them.
 const PRESET_RESULTS = {
-    // ── Suno-specific (most common modern cases) ──────────────────────
-    vocal_glaze_plus: {
-        key: 'vocal_glaze_plus', label: 'Vocal Glaze + Top End',
-        why: 'Fixes two problems in one pass: the glassy sheen baked into ' +
-             'the vocal (2-8 kHz), plus the fizzy sizzle above it ' +
-             '(4.5-12 kHz). These are the two most common complaints about ' +
-             'Suno tracks, and most modern generations have both. Start ' +
-             'here if you are not sure.',
-    },
+    // ── Shimmer card ──────────────────────────────────────────────────
     suno_hash: {
-        key: 'suno_hash', label: 'Suno Hash',
-        why: 'The classic Suno sizzle — a flickering hiss between 5 and ' +
-             '12 kHz that sounds like cymbals that never quite stop ' +
-             'ringing. This preset uses the one tool that can tell that ' +
-             'flicker apart from real cymbals and vocal air, so your highs ' +
-             'stay intact. Use it when the vocals sound fine but the top ' +
-             'end sizzles.',
+        key: 'suno_hash', label: 'Suno Hash (5-12 kHz Flicker)', card: 'shimmer',
+        why: 'A flickering, fizzy hiss between about 5 and 12 kHz. It ' +
+             'sounds like cymbals that never quite stop ringing, and it ' +
+             'rides on the vocals too.',
     },
-    vocal_glaze: {
-        key: 'vocal_glaze', label: 'Vocal Glaze',
-        why: 'The shimmer is ON the vocal, not around it — the voice ' +
-             'itself sounds glassy and plastic. That happens when the ' +
-             'model renders the vocal\'s overtones too bright, so regular ' +
-             'noise removal cannot separate the two. This preset uses the ' +
-             'clean, low part of the voice (300-1500 Hz) as a reference for ' +
-             'what should stay.',
-    },
-    echo_sheen: {
-        key: 'echo_sheen', label: 'Echo Sheen',
-        why: 'Shimmer that shadows the music — it swells with every note ' +
-             'and disappears the moment the music stops. It is not ' +
-             'constant, so noise removal misses it. This is the only ' +
-             'preset that reaches into the space right after each note to ' +
-             'catch the lingering tail.',
-    },
-    presence_haze: {
-        key: 'presence_haze', label: 'Presence Haze',
-        why: 'A smooth, airy wash sitting in the 3-8 kHz presence range — ' +
-             'the band where vocals and guitars cut through. It shows up ' +
-             'with the music and vanishes in the gaps. This preset tracks ' +
-             'the noise floor fast enough to catch a wash that only exists ' +
-             'while the music is playing.',
-    },
-    phantom_cymbal: {
-        key: 'phantom_cymbal', label: 'Phantom Cymbal',
-        why: 'A washy, metallic "shhhh" between 4 and 10 kHz that sounds ' +
-             'like a cymbal layer nobody played sitting behind the mix. ' +
-             'Two tools work together here, both set to keep working even ' +
-             'during busy, dense parts of the song.',
-    },
-    harsh_veil: {
-        key: 'harsh_veil', label: 'Harsh Veil',
-        why: 'A gritty, harsh texture across the upper mids (4-12 kHz) ' +
-             'that makes the track tiring to listen to. This is the ' +
-             'aggressive option: heavy harshness control plus fast noise ' +
-             'removal.',
-    },
-    deep_scrub: {
-        key: 'deep_scrub', label: 'Deep Scrub',
-        why: 'Everything on, full strength, across 3-18 kHz, run twice. ' +
-             'Use this when nothing else worked. Fair warning: you will ' +
-             'lose some top-end air. It is a trade.',
-    },
-
-    // ── Tonal / narrow / shape-specific ───────────────────────────────
-    cymbal_sheen: {
-        key: 'cymbal_sheen', label: 'Cymbal Sheen',
-        why: 'A steady high tone that never fades — a hi-hat or ride that ' +
-             'rings forever, or a narrow sheen around 8-12 kHz. This ' +
-             'preset hunts steady tones and ringing, and leaves the rest ' +
-             'of your mix alone.',
-    },
-    laser_whistle: {
-        key: 'laser_whistle', label: 'Laser Whistle',
-        why: 'A thin digital whistle up in the 9-15 kHz range that comes ' +
-             'and goes. It sounds almost like a laser or a mosquito. This ' +
-             'preset notches out steady tones surgically, without touching ' +
-             'the music around them.',
-    },
-    air_brittle: {
-        key: 'air_brittle', label: 'Brittle Air',
-        why: 'The very top of your track (above 12 kHz) sounds glassy and ' +
-             'brittle, but your mids are clean. This one works only above ' +
-             '12 kHz, so nothing below the air band is affected.',
-    },
-    sibilance_rattle: {
-        key: 'sibilance_rattle', label: 'Sibilance Rattle',
-        why: 'Harsh "sss" and "tss" bursts on vocals in the 6-10 kHz ' +
-             'range that rattle apart from the word itself. It is classic ' +
-             'sibilance, but the AI version — rougher and more electronic.',
-    },
-    cymbal_chatter: {
-        key: 'cymbal_chatter', label: 'Cymbal Chatter',
-        why: 'A repeating "ta-ta-ta" rattle on hi-hats or percussion. It ' +
-             'is the model\'s internal timing grid leaking into your ' +
-             'audio as a rhythm you never played.',
+    vocal_glaze_plus: {
+        key: 'vocal_glaze_plus', label: 'Vocal Glaze + Top End', card: 'shimmer',
+        why: 'Two problems together: the voice sounds glassy, and there is ' +
+             'fizzy sizzle up top. The Shimmer card goes after the fizz. If ' +
+             'the voice still sounds glassy, try the Sibilance card as well.',
     },
     broadband_fizz: {
-        key: 'broadband_fizz', label: 'Broadband Fizz',
-        why: 'A constant fuzzy haze across the whole top end (8-18 kHz). ' +
-             'Not a tone, not a rhythm — just fuzz everywhere, all the ' +
-             'time. Strong shimmer removal plus noise removal across the ' +
-             'entire top.',
+        key: 'broadband_fizz', label: 'Broadband Fizz', card: 'shimmer',
+        why: 'A steady, fuzzy haze across the whole top end. Not a tone and ' +
+             'not a rhythm: just fuzz everywhere, all the time.',
+    },
+    presence_haze: {
+        key: 'presence_haze', label: 'Presence Haze', card: 'shimmer',
+        why: 'A smooth, airy wash in the 3-8 kHz range, where vocals and ' +
+             'guitars cut through. It comes with the music and goes in the ' +
+             'gaps.',
+    },
+    echo_sheen: {
+        key: 'echo_sheen', label: 'Echo Sheen', card: 'shimmer',
+        why: 'Fizz that swells with every note and stops the moment the ' +
+             'music stops.',
+    },
+    cymbal_chatter: {
+        key: 'cymbal_chatter', label: 'Cymbal Chatter', card: 'shimmer',
+        why: 'A repeating "ta-ta-ta" rattle on hi-hats or percussion, like ' +
+             'a rhythm nobody played.',
+    },
+    phantom_cymbal: {
+        key: 'phantom_cymbal', label: 'Phantom Cymbal', card: 'shimmer',
+        why: 'A washy, metallic "shhh" between about 4 and 10 kHz, like a ' +
+             'cymbal layer nobody played behind the mix.',
+    },
+    deep_scrub: {
+        key: 'deep_scrub', label: 'Deep Scrub', card: 'shimmer',
+        why: 'In 1.x this ran every tool at full strength, twice. 2.0 has no ' +
+             'such option: this preset turns on the Shimmer card only.',
+    },
+
+    // ── Fixed tones card ──────────────────────────────────────────────
+    cymbal_sheen: {
+        key: 'cymbal_sheen', label: 'Cymbal Sheen', card: 'tones',
+        why: 'A steady high tone that never fades, like a hi-hat or ride ' +
+             'that rings forever.',
+    },
+    laser_whistle: {
+        key: 'laser_whistle', label: 'Laser Whistle', card: 'tones',
+        why: 'A thin, high digital whistle, almost like a mosquito.',
+    },
+    air_brittle: {
+        key: 'air_brittle', label: 'Brittle Air', card: 'tones',
+        why: 'The very top of the track, above about 12 kHz, sounds glassy ' +
+             'and brittle, but the mids are clean.',
     },
     checkerboard_grid: {
-        key: 'checkerboard_grid', label: 'Checkerboard Grid',
-        why: 'Faint, evenly spaced ringing across the frequency range. ' +
-             'Most people cannot name this one until it is gone — then the ' +
-             'difference is obvious. It comes from the way the model ' +
-             'builds audio, and it leaves a comb-like pattern behind.',
+        key: 'checkerboard_grid', label: 'Checkerboard Grid', card: 'tones',
+        why: 'Faint, evenly spaced ringing that is hard to name until it is ' +
+             'gone.',
+    },
+
+    // ── Sibilance card ────────────────────────────────────────────────
+    sibilance_rattle: {
+        key: 'sibilance_rattle', label: 'Sibilance Rattle', card: 'sibilance',
+        why: 'Harsh "s" and "t" bursts on the vocals that rattle and hiss.',
+    },
+    vocal_glaze: {
+        key: 'vocal_glaze', label: 'Vocal Glaze', card: 'sibilance',
+        why: 'The voice itself sounds glassy or plastic, as if its ' +
+             'overtones are too bright.',
+    },
+
+    // ── Other cards ───────────────────────────────────────────────────
+    harsh_veil: {
+        key: 'harsh_veil', label: 'Harsh Veil', card: 'harshness',
+        why: 'A gritty, piercing sound in the upper mids that makes the ' +
+             'song tiring to hear.',
+    },
+    muddy_boxy: {
+        key: 'muddy_boxy', label: 'Muddy / Boxy (De-Mud)', card: 'mud',
+        why: 'Too much energy in the low mids, so the mix sounds thick and ' +
+             'boxy and the words are hard to hear.',
+    },
+    dark_mix_rescue: {
+        key: 'dark_mix_rescue', label: 'Dark Mix Rescue (Brighten)', card: 'air',
+        why: 'The whole mix sounds dull, like a blanket over the speakers.',
     },
     reverb_flutter: {
-        key: 'reverb_flutter', label: 'Reverb Flutter',
-        why: 'Reverb tails that turn grainy instead of fading smoothly. ' +
-             'When the drums or vocals stop, the tail wobbles and stutters ' +
-             'instead of dying cleanly.',
+        key: 'reverb_flutter', label: 'Reverb Flutter', card: 'phasiness',
+        why: 'Reverb tails that turn grainy or watery instead of fading ' +
+             'smoothly.',
     },
     generic: {
-        key: 'generic', label: 'Generic',
-        why: 'Safe, balanced settings. A good starting point when you ' +
-             'cannot identify the artifact yet — listen to the Removed ' +
-             'track and adjust from there.',
+        key: 'generic', label: 'Generic', card: null,
+        why: 'The safe starting point in 1.x. In 2.0 it turns on no card.',
     },
 };
 
-// Quiz tree: nested questions narrow the user from "where do you hear it?"
-// down to a specific preset, so all 16 visible presets are reachable
-// without a 16-option flat list. Each step is either:
-//   { type: 'question', prompt, options: [{label, next}] }
-// Or `next` may point at a PRESET_RESULTS key (leaf) or another QUIZ key.
+// Quiz tree: questions narrow the user from "where do you hear it?" down to
+// a preset, and the result names the card that preset turns on. Each step
+// is { type: 'question', prompt, options: [{label, next}] }, where `next`
+// is a PRESET_RESULTS key (a result) or another QUIZ key.
 const QUIZ = {
     start: {
         type: 'question',
-        prompt: 'Where do you hear the artifact most?',
+        prompt: 'Where do you hear the problem most?',
         options: [
-            { label: 'On vocals (most common with Suno)',          next: 'vocals' },
-            { label: 'On cymbals, hi-hats, or percussion',         next: 'percussion' },
-            { label: 'In the very top end (above ~10 kHz)',        next: 'top' },
-            { label: 'A wash across the upper-mids (4-10 kHz)',    next: 'wash' },
-            { label: 'Reverb tails sound grainy instead of smooth', next: 'reverb_flutter' },
-            { label: 'I tried specific presets and nothing worked', next: 'deep_scrub' },
-            { label: 'I\'m not sure',                              next: 'unsure' },
+            { label: 'On the vocals',                                   next: 'vocals' },
+            { label: 'On cymbals, hi-hats or other percussion',         next: 'percussion' },
+            { label: 'In the very top end, above about 10 kHz',         next: 'top' },
+            { label: 'In the upper mids, about 2 to 10 kHz',            next: 'wash' },
+            { label: 'Reverb tails sound grainy or watery',             next: 'reverb_flutter' },
+            { label: 'The whole mix sounds muddy or dull',              next: 'tone' },
+            { label: 'I\'m not sure',                                   next: 'unsure' },
         ],
     },
 
     vocals: {
         type: 'question',
-        prompt: 'What does the artifact sound like ON the vocals?',
+        prompt: 'What does it sound like on the vocals?',
         options: [
-            { label: 'Shimmer sits ON TOP of the vocal itself (vocal IS the shimmer)', next: 'vocal_glaze' },
-            { label: 'Vocal shimmer PLUS top-end sizzle (most modern Suno tracks)',    next: 'vocal_glaze_plus' },
-            { label: 'A flickering metallic hiss that rides with the voice',           next: 'suno_hash' },
-            { label: 'Harsh "sss" / "tss" bursts',                                     next: 'sibilance_rattle' },
-            { label: 'A halo of shimmer that follows every note and dies in silence',  next: 'echo_sheen' },
+            { label: 'The voice itself sounds glassy or plastic',                  next: 'vocal_glaze' },
+            { label: 'A glassy voice plus fizzy sizzle up top (common with Suno)', next: 'vocal_glaze_plus' },
+            { label: 'A flickering, metallic hiss that follows the voice',         next: 'suno_hash' },
+            { label: 'Harsh, spitty "s" and "sh" sounds',                          next: 'sibilance_rattle' },
+            { label: 'Fizz that follows every note and stops in silence',          next: 'echo_sheen' },
         ],
     },
 
     percussion: {
         type: 'question',
-        prompt: 'What kind of cymbal / percussion artifact?',
+        prompt: 'What does it sound like on the percussion?',
         options: [
-            { label: 'A constant high tone that rings forever',          next: 'cymbal_sheen' },
-            { label: 'Repetitive ta-ta-ta rattle',                       next: 'cymbal_chatter' },
-            { label: 'A thin digital whistle that comes and goes',       next: 'laser_whistle' },
-            { label: 'A washy metallic ring behind the cymbals',         next: 'phantom_cymbal' },
-            { label: 'Flickering hiss on top of cymbals (Suno)',         next: 'suno_hash' },
+            { label: 'A steady high tone that rings forever',        next: 'cymbal_sheen' },
+            { label: 'A repeating ta-ta-ta rattle',                  next: 'cymbal_chatter' },
+            { label: 'A thin, high digital whistle',                 next: 'laser_whistle' },
+            { label: 'A washy, metallic ring behind the cymbals',    next: 'phantom_cymbal' },
+            { label: 'A flickering hiss on top of the cymbals',      next: 'suno_hash' },
         ],
     },
 
@@ -192,21 +181,30 @@ const QUIZ = {
         type: 'question',
         prompt: 'What does the very top end sound like?',
         options: [
-            { label: 'Glassy / brittle, but the mids sound fine',        next: 'air_brittle' },
-            { label: 'A constant fuzzy haze across the whole top',       next: 'broadband_fizz' },
-            { label: 'Faint comb or grid texture, hard to place',        next: 'checkerboard_grid' },
-            { label: 'A thin chirp or whistle',                          next: 'laser_whistle' },
+            { label: 'Glassy or brittle, but the mids sound fine',   next: 'air_brittle' },
+            { label: 'A steady, fuzzy haze across the whole top',    next: 'broadband_fizz' },
+            { label: 'A faint comb or grid texture, hard to place',  next: 'checkerboard_grid' },
+            { label: 'A thin chirp or whistle',                      next: 'laser_whistle' },
         ],
     },
 
     wash: {
         type: 'question',
-        prompt: 'What does the wash sound like in the upper-mids?',
+        prompt: 'What does it sound like in the upper mids?',
         options: [
-            { label: 'Smooth airy wash, vanishes in silence',            next: 'presence_haze' },
-            { label: 'Shimmer that shadows the music and dies in gaps',  next: 'echo_sheen' },
-            { label: 'Washy, metallic, cymbal-like ring',                next: 'phantom_cymbal' },
-            { label: 'Harsh, gritty texture',                            next: 'harsh_veil' },
+            { label: 'A smooth, airy wash that stops in silence',    next: 'presence_haze' },
+            { label: 'Fizz that follows the music and stops in gaps', next: 'echo_sheen' },
+            { label: 'A washy, metallic, cymbal-like ring',          next: 'phantom_cymbal' },
+            { label: 'A harsh, gritty, piercing sound',              next: 'harsh_veil' },
+        ],
+    },
+
+    tone: {
+        type: 'question',
+        prompt: 'How does the whole mix sound?',
+        options: [
+            { label: 'Muddy or boxy; the words are hard to hear',    next: 'muddy_boxy' },
+            { label: 'Dull, with no sparkle',                        next: 'dark_mix_rescue' },
         ],
     },
 
@@ -216,12 +214,258 @@ const QUIZ = {
 };
 
 // ──────────────────────────────────────────────────────────────────────
+// Card help: the words that explain each "What do you hear?" card
+// ──────────────────────────────────────────────────────────────────────
+
+// What each fix is, by tool key (catalog.TOOLS). The industry term first,
+// then what it does in plain words.
+const TOOL_HELP = {
+    notch: 'A notch filter cuts a very narrow band at each steady tone, so ' +
+           'the music on either side is kept.',
+    declick: 'A de-click finds short pops and crackle and fills them in.',
+    deesser: 'A de-esser turns down harsh "s", "t" and "ch" sounds only ' +
+             'while they stick out.',
+    dynamic_eq: 'A dynamic EQ cuts one band only while it rings out above ' +
+                'the rest of the mix.',
+    spectral_denoise: 'Spectral de-noise turns down fizzy, flickering hiss, ' +
+                      'band by band, only where a trained model hears it.',
+    tone_target: 'The tone target is part of mastering. Tone match and Tilt ' +
+                 'shape the tone of the whole song.',
+    loudness_target: 'The loudness target is part of mastering. It sets how ' +
+                     'loud the song plays.',
+};
+
+// When to move each card's Amount, and anything else worth knowing, by
+// card key (catalog.CARDS). `notReady` shows only while the card's fix is
+// not built; `noFix` only while the card has no fix at all.
+const CARD_HELP = {
+    shimmer: {
+        up: 'The fizz on cymbals and vocals is still there, and the Removed ' +
+            'track holds only hiss.',
+        down: 'Cymbals or the air on the vocals sound dull, the top end ' +
+              'sounds watery, or you hear music in the Removed track.',
+        note: 'The spectral de-noise uses a small trained model that runs on ' +
+              'your own computer. The first time this card is on for a song, ' +
+              'it reads the whole song once. That takes about 50 seconds for ' +
+              'a 3-minute song. The preview status line at the bottom shows ' +
+              'how far it has got. After that, the preview is quick.',
+    },
+    tones: {
+        up: 'You can still hear the whistle or whine.',
+        down: 'A held note that belongs in the song sounds thin.',
+        note: 'Analyze finds steady tones and turns this card on by itself. ' +
+              'If you turn it off, it stays off for this song. It only cuts ' +
+              'tones that hold one pitch.',
+    },
+    sibilance: {
+        up: '"S", "sh" and "t" still spit or hiss.',
+        down: 'The singer starts to lisp, or the hi-hats lose their snap.',
+    },
+    clicks: {
+        up: 'You still hear pops, ticks or crackle.',
+        down: 'Consonants or hi-hat ticks sound soft.',
+        notReady: 'The de-click stays off in this version, because it does ' +
+                  'not yet find pops in busy music well enough.',
+    },
+    harshness: {
+        up: 'Vocals or guitars still sound piercing.',
+        down: 'The mix loses its bite, or the vocal sounds pulled back.',
+    },
+    phasiness: {
+        noFix: 'Shimmer has no tested fix for grainy or watery reverb yet.',
+    },
+    mud: {
+        up: 'The mix still sounds thick, and the words are hard to hear.',
+        down: 'The mix sounds thin, or the bass and the low voice lose body.',
+    },
+    air: {
+        note: 'This card works in Mastering and has no Amount slider. ' +
+              'Turning it on turns mastering on and sets Tilt to Bright. ' +
+              'Turning it off sets Tilt back to Neutral.',
+    },
+    loudness: {
+        note: 'Analyze marks this card when the song plays quieter than ' +
+              'released music. It works in Mastering and has no Amount ' +
+              'slider. Turning it on turns mastering on and sets the ' +
+              'Loudness target to Commercial.',
+    },
+};
+
+const CARD_GROUPS = { artifacts: 'Artifacts', tone_level: 'Tone and level' };
+const NOTED = 'You can still pick the card. Shimmer notes your pick on this ' +
+              'computer to help test new fixes, but the sound does not change.';
+
+function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+}
+
+// "Dynamic EQ" -> "dynamic EQ", "De-esser" -> "de-esser" (as chain.py).
+function lowerFirst(s) {
+    return s.length > 1 && s[1] === s[1].toLowerCase()
+        ? s[0].toLowerCase() + s.slice(1) : s;
+}
+
+function bandText(band) {
+    const [lo, hi] = band;
+    const f = (hz) => (hz >= 1000 ? `${+(hz / 1000).toFixed(1)} kHz` : `${Math.round(hz)} Hz`);
+    return hi == null ? `above ${f(lo)}` : `${f(lo)}–${f(hi)}`.replace(' kHz–', '–');
+}
+
+// One card from /api/rules, with its fix's name and whether it is built.
+function cardInfo(rules, key) {
+    const card = (rules.cards || []).find((c) => c.key === key);
+    if (!card) return null;
+    const ready = new Set(rules.tools_ready || []);
+    return {
+        card,
+        toolLabel: card.tool ? ((rules.tool_labels || {})[card.tool] || card.tool) : null,
+        ready: !!card.tool && ready.has(card.tool),
+        master: card.tool === 'tone_target' || card.tool === 'loudness_target',
+    };
+}
+
+function fixStatus(info) {
+    if (!info.card.tool) return 'No fix yet';
+    if (!info.ready) return `${info.toolLabel}: Not built yet`;
+    return info.toolLabel;
+}
+
+function listItem(head, text) {
+    const li = el('li');
+    li.append(el('b', null, head), ` ${text}`);
+    return li;
+}
+
+function renderCardsHelp(host, rules) {
+    if (!host) return;
+    host.innerHTML = '';
+    const groups = new Map();
+    for (const c of rules.cards || []) {
+        if (!groups.has(c.group)) groups.set(c.group, []);
+        groups.get(c.group).push(c);
+    }
+    for (const [group, cards] of groups) {
+        const groupEl = el('div', 'help-group');
+        groupEl.appendChild(el('div', 'help-group-title', CARD_GROUPS[group] || group));
+        for (const c of cards) {
+            const info = cardInfo(rules, c.key);
+            const words = CARD_HELP[c.key] || {};
+            const card = el('div', 'help-card');
+            card.id = `help-control-card-${c.key}`;
+
+            const h = el('h4', null, c.label);
+            h.appendChild(el('span', 'help-card-gloss', c.descriptor));
+            card.appendChild(h);
+            card.appendChild(el('p', 'help-card-short', c.tip));
+
+            const facts = el('div', 'help-card-typical');
+            facts.append('Fix:', el('span', null, fixStatus(info)));
+            if (c.band_hz) facts.append(' Band:', el('span', null, bandText(c.band_hz)));
+            card.appendChild(facts);
+
+            const list = el('ul', 'help-card-list');
+            if (!c.tool) {
+                list.appendChild(listItem('No fix yet:', `${words.noFix || ''} ${NOTED}`.trim()));
+            } else if (!info.ready) {
+                const why = words.notReady ||
+                    `The ${lowerFirst(info.toolLabel)} is not built yet.`;
+                list.appendChild(listItem('Not built yet:', `${why} ${NOTED}`));
+            } else {
+                if (TOOL_HELP[c.tool]) list.appendChild(listItem('What it runs:', TOOL_HELP[c.tool]));
+                if (!info.master && words.up) list.appendChild(listItem('Turn the Amount up when:', words.up));
+                if (!info.master && words.down) list.appendChild(listItem('Turn the Amount down when:', words.down));
+            }
+            if (words.note && (info.ready || !c.tool)) list.appendChild(listItem('Good to know:', words.note));
+            card.appendChild(list);
+            groupEl.appendChild(card);
+        }
+        host.appendChild(groupEl);
+    }
+}
+
+// The Remix / Batch preset menus: each preset and the card it turns on.
+function renderPresetTable(host, rules) {
+    if (!host) return;
+    host.innerHTML = '';
+    const table = el('table', 'help-table');
+    const head = el('thead');
+    const hr = el('tr');
+    ['Preset', 'Card it turns on', 'Fix'].forEach((t) => hr.appendChild(el('th', null, t)));
+    head.appendChild(hr);
+    table.appendChild(head);
+    const body = el('tbody');
+    for (const r of Object.values(PRESET_RESULTS)) {
+        const info = r.card ? cardInfo(rules, r.card) : null;
+        const tr = el('tr');
+        tr.append(el('td', null, r.label),
+                  el('td', null, info ? info.card.label : 'None'),
+                  el('td', null, info ? fixStatus(info) : 'Fixed tones only, when found'));
+        body.appendChild(tr);
+    }
+    table.appendChild(body);
+    host.appendChild(table);
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Going to the card on the Master tab
+// ──────────────────────────────────────────────────────────────────────
+
+function songLoaded() {
+    const work = document.getElementById('master-work');
+    return !!work && !work.hidden;
+}
+
+function findTile(label) {
+    return [...document.querySelectorAll('#hear-card .hear-tile')]
+        .find((b) => (b.querySelector('.t')?.textContent || '') === label) || null;
+}
+
+// Close Help, show the Master tab and scroll to What do you hear?. With a
+// label, turn that card on first (a click, as if the user made it).
+function goToCards(turnOnLabel = null) {
+    closeHelp();
+    document.querySelector('.tab[data-tab="single"]')?.click();
+    if (turnOnLabel) {
+        const tile = findTile(turnOnLabel);
+        if (tile && !tile.classList.contains('on')) tile.click();
+    }
+    const target = songLoaded() ? document.getElementById('hear-card') : null;
+    if (target) target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+
+function goButton(info) {
+    const b = el('button', 'btn btn-primary');
+    b.type = 'button';
+    const label = info ? info.card.label : null;
+    const tile = label && songLoaded() ? findTile(label) : null;
+    const canTurnOn = !!tile && info.ready && !tile.classList.contains('on');
+    b.textContent = canTurnOn ? `Turn on ${label}`
+        : (songLoaded() ? 'Go to What do you hear?' : 'Go to the Master tab');
+    b.addEventListener('click', () => goToCards(canTurnOn ? label : null));
+    return b;
+}
+
+// ──────────────────────────────────────────────────────────────────────
 // Quiz renderer
 // ──────────────────────────────────────────────────────────────────────
 
 function renderQuiz(host) {
+    if (!host) return;
     host.innerHTML = '';
     const state = { stepId: 'start' };
+
+    const restartButton = () => {
+        const restart = el('button', 'btn btn-ghost', 'Start over');
+        restart.type = 'button';
+        restart.addEventListener('click', () => {
+            state.stepId = 'start';
+            renderStep();
+        });
+        return restart;
+    };
 
     const renderStep = () => {
         host.innerHTML = '';
@@ -230,21 +474,13 @@ function renderQuiz(host) {
         if (typeof step === 'undefined') return;
 
         if (step.type === 'question') {
-            const card = document.createElement('div');
-            card.className = 'quiz-card';
+            const card = el('div', 'quiz-card');
+            card.appendChild(el('div', 'quiz-prompt', step.prompt));
 
-            const q = document.createElement('div');
-            q.className = 'quiz-prompt';
-            q.textContent = step.prompt;
-            card.appendChild(q);
-
-            const opts = document.createElement('div');
-            opts.className = 'quiz-options';
+            const opts = el('div', 'quiz-options');
             for (const opt of step.options) {
-                const b = document.createElement('button');
+                const b = el('button', 'quiz-option', opt.label);
                 b.type = 'button';
-                b.className = 'quiz-option';
-                b.textContent = opt.label;
                 b.addEventListener('click', () => {
                     if (PRESET_RESULTS[opt.next]) {
                         renderResult(opt.next);
@@ -261,99 +497,74 @@ function renderQuiz(host) {
         }
 
         if (step.type === 'unsure') {
-            const card = document.createElement('div');
-            card.className = 'quiz-card';
+            const card = el('div', 'quiz-card');
             card.innerHTML = `
-                <div class="quiz-prompt">No problem — let Shimmer decide.</div>
+                <div class="quiz-prompt">No problem. Let Analyze look first.</div>
                 <p class="quiz-body">
-                    Drop your track on the <b>Master</b> screen and click
-                    <b>Analyze</b>. Shimmer measures your song's loudness,
-                    tone and fixed tones, and marks what it found on the
-                    <b>What do you hear?</b> cards.
-                    If you have not loaded a track yet, start with
-                    <b>Generic</b> &mdash; it is a safe default that works on
-                    most material.
+                    Load your track on the <b>Master</b> tab and click
+                    <b>Analyze</b>. It measures fixed tones and loudness,
+                    marks what it finds on the <b>What do you hear?</b>
+                    cards, and turns on <b>Fixed tones</b> when it finds
+                    steady tones. The other cards are up to your ears: turn
+                    on <b>Live</b>, listen, and pick what you hear.
                 </p>
             `;
-
-            const row = document.createElement('div');
-            row.className = 'quiz-actions';
-
-            const useGeneric = document.createElement('button');
-            useGeneric.type = 'button';
-            useGeneric.className = 'btn btn-primary';
-            useGeneric.textContent = 'Use generic preset';
-            useGeneric.addEventListener('click', () => applyPreset('generic'));
-            row.appendChild(useGeneric);
-
-            const restart = document.createElement('button');
-            restart.type = 'button';
-            restart.className = 'btn btn-ghost';
-            restart.textContent = 'Start over';
-            restart.addEventListener('click', () => {
-                state.stepId = 'start';
-                renderStep();
-            });
-            row.appendChild(restart);
-
+            const row = el('div', 'quiz-actions');
+            row.append(goButton(null), restartButton());
             card.appendChild(row);
             host.appendChild(card);
-            return;
         }
     };
 
-    const renderResult = (presetKey) => {
-        host.innerHTML = '';
+    const renderResult = async (presetKey) => {
         const r = PRESET_RESULTS[presetKey];
+        let rules = null;
+        try { rules = await loadRules(); } catch (_) { /* words only */ }
+        host.innerHTML = '';
+        const info = r.card && rules ? cardInfo(rules, r.card) : null;
+        const name = info ? info.card.label : 'No card';
 
-        const card = document.createElement('div');
-        card.className = 'quiz-card quiz-result';
+        const card = el('div', 'quiz-card quiz-result');
 
-        const head = document.createElement('div');
-        head.className = 'quiz-result-head';
-        head.innerHTML = `<span class="quiz-result-label">We suggest</span> <b class="quiz-result-name">${r.label}</b>`;
+        const head = el('div', 'quiz-result-head');
+        head.append(el('span', 'quiz-result-label', info && !info.ready ? 'This is' : 'Turn on'),
+                    ' ', el('b', 'quiz-result-name', name));
         card.appendChild(head);
 
-        const why = document.createElement('p');
-        why.className = 'quiz-body';
-        why.textContent = r.why;
-        card.appendChild(why);
+        card.appendChild(el('p', 'quiz-body', r.why));
 
-        const row = document.createElement('div');
-        row.className = 'quiz-actions';
+        let master;
+        if (!info) {
+            master = 'No card matches this preset. Click Analyze on the Master ' +
+                     'tab, then pick the cards that match what you hear.';
+        } else if (!info.card.tool) {
+            master = `The ${name} card has no fix yet. ${NOTED}`;
+        } else if (!info.ready) {
+            master = `The ${name} card's fix, the ${lowerFirst(info.toolLabel)}, ` +
+                     `is not built yet. ${NOTED}`;
+        } else if (info.master) {
+            master = `On the Master tab, turn on the ${name} card under What ` +
+                     `do you hear? ${(CARD_HELP[info.card.key] || {}).note || ''}`.trim();
+        } else {
+            master = `On the Master tab, turn on the ${name} card under What ` +
+                     `do you hear? It runs the ${lowerFirst(info.toolLabel)}. ` +
+                     'Set its Amount by ear, and check the Removed track (key 3).';
+        }
+        card.appendChild(el('p', 'quiz-body', master));
 
-        const use = document.createElement('button');
-        use.type = 'button';
-        use.className = 'btn btn-primary';
-        use.textContent = `Use ${r.label}`;
-        use.addEventListener('click', () => applyPreset(r.key));
-        row.appendChild(use);
+        const inRemix = info
+            ? `In Remix or Batch, the ${r.label} preset turns on the same card.` +
+              (info.ready ? '' : ' For now, that does not change the sound.')
+            : `In Remix or Batch, the ${r.label} preset turns on no card.`;
+        card.appendChild(el('p', 'quiz-body', inRemix));
 
-        const restart = document.createElement('button');
-        restart.type = 'button';
-        restart.className = 'btn btn-ghost';
-        restart.textContent = 'Start over';
-        restart.addEventListener('click', () => {
-            state.stepId = 'start';
-            renderStep();
-        });
-        row.appendChild(restart);
-
+        const row = el('div', 'quiz-actions');
+        row.append(goButton(info), restartButton());
         card.appendChild(row);
         host.appendChild(card);
     };
 
     renderStep();
-}
-
-function applyPreset(name) {
-    if (!_presetSelectEl) return;
-    if (![...(_presetSelectEl.options || [])].some(o => o.value === name)) {
-        return;
-    }
-    _presetSelectEl.value = name;
-    _presetSelectEl.dispatchEvent(new Event('change'));
-    closeHelp();
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -513,10 +724,12 @@ function onKeyDown(e) {
 // Init
 // ──────────────────────────────────────────────────────────────────────
 
+// `presetSelect` is accepted so older callers keep working; nothing reads
+// it now (the quiz points at a card, not the hidden preset menu).
+// eslint-disable-next-line no-unused-vars
 export function initHelp({ presetSelect } = {}) {
     _modal = document.getElementById('help-modal');
     if (!_modal) return;
-    _presetSelectEl = presetSelect || document.getElementById('preset-select');
 
     _tabs = Array.from(_modal.querySelectorAll('.help-tab'));
     _panels = Array.from(_modal.querySelectorAll('.help-panel'));
@@ -539,6 +752,17 @@ export function initHelp({ presetSelect } = {}) {
     // Build content.
     renderQuiz(document.getElementById('preset-quiz'));
     renderControlsHelp(document.getElementById('controls-help-list'));
+    // The card guide and the preset table read the cards from the engine.
+    loadRules().then((rules) => {
+        renderCardsHelp(document.getElementById('cards-help-list'), rules);
+        renderPresetTable(document.getElementById('preset-map-help'), rules);
+    }).catch(() => {
+        const host = document.getElementById('cards-help-list');
+        if (host) {
+            host.textContent = 'The card list could not load. Restart Shimmer ' +
+                               'and open Help again.';
+        }
+    });
 
     // Wire any element on the page that asks for help via `data-help-tab`.
     document.querySelectorAll('[data-help-tab]').forEach(el => {

@@ -6,5 +6,5 @@ pulls in scipy/numpy. `_winfix` must come first; see its docstring.
 
 from . import _winfix  # noqa: F401  # must precede any scipy/numpy import
 
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 __all__ = ["__version__"]

@@ -1,115 +1,173 @@
 # Shimmer — technical overview
 
-Offline, local, deterministic removal of AI-generation artifacts, followed by
-a mastering chain. Built for tracks from Suno and similar diffusion-based
-music models.
+Shimmer cleans and masters AI-generated music (Suno and similar tools). It
+runs offline, on your own computer. Version 2.0.0 is a rebuild of 1.1.1:
+the screens stayed, and the engine behind them is new.
 
 For the user-facing introduction, see the [root README](../README.md).
-For the exhaustive parameter and API reference, see [FEATURES.md](FEATURES.md).
-For remote access / hosting options (and why Cloudflare Pages isn't a fit),
-see [DEPLOYMENT.md](DEPLOYMENT.md). For a research-backed review of every
-preset against the causes of AI-music artifacts, see
-[PRESET_REVIEW.md](PRESET_REVIEW.md), for the presets / stems /
-signal-chain roadmap that follows from it, see [PLAN.md](PLAN.md), and
-for the stems-engine model shortlist with licences, see
-[STEMS_MODELS.md](STEMS_MODELS.md).
 
-## Architecture
+## Docs index
+
+| Doc | What it holds |
+|---|---|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | How 1.x worked, why it was rebuilt, and the plan (§15), the file-by-file fates (§16), the new layout (§18.3), the review rules (§19) and the cards (§19.3) |
+| [REBUILD-TRACKER.md](REBUILD-TRACKER.md) | Where each step of the rebuild stands, and what is still open |
+| [SOUND-CHANGES.md](SOUND-CHANGES.md) | Every change that alters an export against 1.1.1, with numbers |
+| [STEP6-FIXES.md](STEP6-FIXES.md) | How each card's fix was measured, and the numbers behind each Amount slider |
+| [API.md](API.md) | Every HTTP route the screens call, what it sends and what it reads back |
+| [FEATURES.md](FEATURES.md) | The 1.1.1 feature and parameter reference. Not yet rewritten for 2.0 |
+
+Background and rules:
+
+- [GOALS.md](GOALS.md) — what Shimmer is for, and the decision rule every fix
+  must pass ("Never damage the music").
+- [PITFALLS.md](PITFALLS.md) — wrong turns already taken, and the rule each
+  one left behind.
+- [STYLE.md](STYLE.md) — house rules for code and docs.
+- [MASTERING-SOURCES.md](MASTERING-SOURCES.md) — the sources behind the
+  mastering choices.
+- [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md) — research on the shimmer
+  artifact and what could reduce it.
+- [STEMS_MODELS.md](STEMS_MODELS.md) — the stem-separation model shortlist,
+  with licences.
+- [DEPLOYMENT.md](DEPLOYMENT.md) — remote access and hosting options, and
+  why Cloudflare Pages isn't a fit.
+
+History (1.x, kept for the record): [PLAN.md](PLAN.md),
+[PRESET_REVIEW.md](PRESET_REVIEW.md),
+[HANDOFF-CHECKLIST.md](HANDOFF-CHECKLIST.md),
+[BRIGHTNESS-ASSESSMENT.md](BRIGHTNESS-ASSESSMENT.md),
+[IMPLEMENTATION.md](IMPLEMENTATION.md).
+
+## The sound path
+
+Every tab calls one function, `render(source, settings, window=None)` in
+`shimmer/core/render.py`: the Master tab's preview and export, Batch, album
+mode, the Remix export, and the command line. Every file is written by one
+function, `export()` in `shimmer/core/export.py`.
 
 ```
-Input → [trim] → de-click → static repair (fixed-line notches)
-      → [tone curve] → linear-phase crossover @ 4.5 kHz (preset-dependent)
-                              ├── low band ─────────────── (bypassed)
-                              └── high band → M/S split
-                                     ├── mid  (0.2× strength)
-                                     └── side (1.0× strength)
-                                            ├── fine pass 1024/256
-                                            │   (flicker tamer, spectral de-esser)
-                                            └── 9-stage STFT engine 4096/1024
-        → side-width compensation → recombine → wet/dry mix
-        → post filters → user EQ → mastering → export
+Read → Trim → Sample rate → Fixes → Tone → EQ → Master → Export → Report
+
+Fixes, in order:   de-click*  →  notch (Fixed tones)  →  spectral de-noise (Shimmer)
+                   →  de-esser (Sibilance)  →  dynamic EQ (Harshness, Low-mid build-up)
+Tone:              mastering on only; the built-in target or a reference track
+Master:            25 Hz low-cut → one loudness gain (whole song) → peak shaper
+                   → true-peak limiter (8× oversampled)
+                   mastering off + Preserve volume: one gain back to the song's own level
+Export:            16-bit TPDF dither → encode → lossy check → tags → release check
+
+* built, but its card is not offered in the app yet (see "Cards and fixes")
 ```
 
-**Deterministic repairs** (`repair.py`) run first, before anything
-adaptive: a high-band de-clicker (linear-prediction detection, isolated
-short runs only, AR re-synthesis) and static zero-phase notches on the
-generator's fixed tonal lines and comb teeth found by a whole-file scan
-(`detect.scan_fixed_lines`). The notches apply to L and R at full depth:
-a fixed 17.7 kHz line gets none of the Mid protection the engine gives
-vocals. The source's bandwidth cutoff is measured too; shelves and the
-tone curve never boost above it.
+These nine stages are `catalog.STAGES`. The progress window and the Signal
+Chain view both read them.
 
-**Cleaning engine** (`engine.py`, STFT domain, 4096-pt FFT / 1024 hop). Nine
-stages run in registry order: Expander → Denoise → De-resonator → Shimmer
-suppressor → De-harsh → Flicker tamer → De-checker → Narrow-tone kill →
-Noise resynth. Two shared gates ride alongside every stage: a
-spectral-flatness gate and a transient-hold gate (~70 ms hold).
+**The preview is the export on a window.** A window renders only its span,
+plus a 1.0 s lead-in and a 0.5 s tail, so the filters, notches and limiter
+settle as they do in a full render. Everything that depends on the whole
+song is worked out once and kept on the `Source`: the audio at other rates,
+the fixed tones found, each fix's plan, the tone curve, and the loudness
+before mastering. `tests/core/test_core_render_export.py` holds a window to
+the same span of a full render: the difference must be at least 60 dB under
+the signal, with no fixes and with all four fixes on at full.
 
-**Mastering chain** (`mastering.py`): high-pass at 25 Hz → single static LUFS
-gain → cubic soft clip → 4× oversampled true-peak limiter. Loudness targets
-are −14 / −11 / −9 LUFS; export ceilings are −1.0 dBTP for lossless and
-−1.5 dBTP for lossy formats. The corrective tone curve is computed from the
-raw file and applied *before* cleaning, bounded to +2.0 / −3.0 dB with
-5–12 kHz boosts capped at +0.5 dB.
+**Rules the code keeps:**
 
-No machine learning in the cleanup path — the same inputs always produce the
-same output.
+- Each stage runs at its place in the chain. Analysis measures; it never
+  changes sound.
+- A bypass render (nothing on) returns the input bit for bit.
+- No filter smears a hit: zero-phase only where its pre-echo stays inside
+  20 ms, and a contract test holds every filter to −60 dB beyond 20 ms.
+  Low-cuts and high-cuts run one way.
+- `shimmer/core` never imports the web layer or the 1.x engine.
+  `tests/api/test_api_contract.py` enforces this.
 
-## Presets
+## Cards and fixes
 
-19 visible artifact-shape presets (`presets.py`), each targeting a distinct
-artifact signature rather than a model version:
+`shimmer/core/catalog.py` holds the rules the screens show, stated once.
+`GET /api/rules` serves it, and the screens read it instead of keeping their
+own copies.
 
-`generic` · `suno_hash` · `cymbal_sheen` · `laser_whistle` · `air_brittle` ·
-`sibilance_rattle` · `cymbal_chatter` · `broadband_fizz` ·
-`checkerboard_grid` · `reverb_flutter` · `vocal_glaze` · `vocal_glaze_plus` ·
-`echo_sheen` · `presence_haze` · `phantom_cymbal` · `harsh_veil` ·
-`deep_scrub` · `muddy_boxy` · `dark_mix_rescue`
+- `CARDS` — the nine "What do you hear?" cards: label, descriptor, icon,
+  group, the tool that fixes it, its band, and where its Amount starts.
+- `TOOL_LABELS` — the name each tool shows on screen.
+- `TOOLS_READY` — the tools the screens offer. The notch, the tone target
+  and the loudness target are proven. The de-esser, the dynamic EQ and the
+  spectral de-noise are on to try, before their blind rounds. The de-click is
+  not in the list: it misses moderate pops in dense music
+  ([STEP6-FIXES.md](STEP6-FIXES.md)).
+- `LOUDNESS_TARGETS` — Commercial −9 LUFS (the default), Balanced −11,
+  Streaming standard −14. The keys (`cd`, `loud`, `streaming`) are 1.x's, so
+  saved settings keep working.
+- `FORMATS` — each export format and its true-peak ceiling: −1.0 dBTP for
+  WAV and FLAC (24-bit, and the 16-bit 44.1 kHz release copies), −2.0 dBTP
+  for MP3 320, OGG Vorbis and M4A.
+- `EQ_LIMITS`, `EQ_TYPES`, `TONE_INTENSITIES`, `TONE_TILTS`, `MATCH_AMOUNT`.
 
-Legacy model-version keys (`suno_v3`, `suno_v4.5`, …) still resolve as hidden
-aliases so saved settings keep working, but they are not shown in the UI.
+Each fix is one module in `shimmer/core/repair/`. `render.py` lists them in
+`_FIX_TOOLS`, in chain order. Each module has:
 
-`preset_strength` (0–200%) rescales amount-style keys only — band edges,
-time constants, and detection thresholds are never scaled. The whitelist in
-`params.apply_preset_strength` is mirrored in the frontend so visible sliders
-track the hidden keys.
+- `plan(audio, sr)` — worked out once from the whole song, and kept.
+- `apply(x, sr, plan, amount, offset)` — returns `x` itself when it changes
+  nothing, so a bypass stays bit-exact.
+- `summary(plan, amount)` — for the report.
 
-## Features
+A module with `SLOW_PLAN = True` reports how far it has got under Fixes.
+Today that is the spectral de-noise, which reads the whole song once (about
+50 s for a 3-minute song). `prepare()` does that work ahead of a preview, as
+its own cancellable job (`POST /api/prepare`). Its weights are
+`shimmer/core/repair/hash_remover.npz`; without the file the tool does
+nothing and says so.
 
-- **Auto-detect** (`detect.py`, `probe.suggest_preset`) — scans the whole
-  file for calibrated artifact evidence, then *verifies* every artifact
-  preset by running it through the real cleaning pipeline on the hottest
-  window and measuring what it removed (artifact-like vs. protected
-  material). Returns up to 6 ranked matches, each with a recommended
-  preset strength, an optional second-pass suggestion, and a per-second
-  intensity timeline used to anchor the preview loop.
-- **Live preview** — loops a 5–20 s window, re-rendered server-side on every
-  parameter change with an LRU cache; A/B is gapless via Web Audio gain
-  crossfades. Slices are mastered with the whole-file static gain so the
-  loop sits at the level the export will have.
-- **Parametric EQ** (`eq.py`) — up to 12 bands, RBJ biquads, applied
-  zero-phase (`sosfiltfilt`) after cleaning and before mastering.
-- **Remix** (`stems.py`, `stem_effects.py`) — Demucs `htdemucs` 4-stem
-  separation in an isolated side venv, GPU-accelerated when CUDA is
-  available, cached by SHA-1 content hash. Per-stem formant shift,
-  saturation, doubler, and reverb. Projects autosave per track.
-- **Batch** — folder in / folder out, fixed preset or per-file auto-detect,
-  streamed progress over SSE.
-- **Multi-format I/O** — WAV, FLAC, OGG natively; MP3 / M4A / AAC via ffmpeg.
-  Input and output formats are independent.
-- **Settings persistence** — last-used preset, sliders, mastering, and EQ
-  restore on launch when "Remember settings" is enabled.
-- **Signal Chain** (`chain.py`, `POST /api/chain`) — the chain view is
-  generated from the same Params / MasterParams / options a run would
-  use, in pipeline order, with live badges and active/inactive state per
-  module, so it cannot drift from the sound path.
+Cards whose fix is part of mastering (Lack of air, Loudness) report "with
+mastering" or "needs mastering". A card with no ready fix reports "not built
+yet" and changes nothing.
+
+**Analyze** (`core.findings`) reports only what it can measure well today:
+the fixed tones (the whole-file scan the notch uses) and how far the song is
+under the loudness target. `core.tone_plan()` plans the Suggested EQ, judged
+after the fixes and the tone curve, the way the song will render.
+
+**Old saved settings** migrate through `core.settings.migrate()`. The
+`LEGACY_PRESETS` table maps each 1.x preset to the card it became;
+`LEGACY_ALIASES` maps the version-named keys (`suno_v5_pro` and the rest).
+`settings_store.migrate_saved()` uses the same tables for `settings.json`.
+
+## Mastering
+
+With mastering on, `render()` applies, in order: the tone curve (1.1.1's,
+ported bit-exact, or `tone.match_curve` toward a reference track), the user
+EQ, a 25 Hz low-cut, one static loudness gain worked out from the whole song,
+the peak shaper, and the true-peak limiter. The limiter finds peaks at 8×,
+ramps its gain across the 2 ms lookahead, and aims 0.17 dB under the
+ceiling.
+
+Reference-track matching takes 50 % of the difference by default, smoothed
+over about an octave, at most ±3 dB, level-matched first.
+
+`export()` adds TPDF dither to 16-bit files, never overwrites the source,
+writes under a temporary name and renames into place, and measures the file
+on disk. Each lossy file is decoded after encoding; if it is over −1.0 dBTP,
+it is turned down by the excess and encoded again (`lossy_trim_db` in the
+report).
+
+**Album mode** measures each track just before mastering's gain
+(`core.premaster_levels`), picks one gain for the record
+(`master.loudness`), then renders each track again with
+`render(..., gain_db=)`. The shaper and limiter still act per song.
 
 ## Running
 
 Windows: double-click `start.bat`. macOS/Linux: `./start.sh`. Both bootstrap
 [uv](https://docs.astral.sh/uv/) (prompting first), create a local venv,
 install dependencies, and open <http://localhost:7860> once the server
-responds to an HTTP poll — not on a fixed delay.
+responds to an HTTP poll — not on a fixed delay. `SHIMMER_PORT` changes the
+port.
+
+`start.bat` also reinstalls when `requirements.txt` changes: it keeps the
+SHA-256 of the last installed file in `.venv\requirements.sha256`. `start.sh`
+only reinstalls when an import probe fails.
 
 Manual:
 
@@ -125,13 +183,15 @@ details:
 
 - `_winfix.py` patches a Windows-only WMI hang in `platform.uname()` and is a
   no-op elsewhere. It must be imported before scipy/numpy.
-- Settings and projects live in `%APPDATA%/Shimmer` on Windows and
+- Settings and projects are kept in `%APPDATA%/Shimmer` on Windows and
   `~/.config/shimmer` elsewhere (`settings_store._settings_dir`).
 - Stem separation resolves its side-venv interpreter through
   `stems._venv_python` (`Scripts/python.exe` on Windows, `bin/python` on
   POSIX). GPU offload is CUDA-only — Apple Silicon (MPS) falls back to CPU.
 - The Batch folder picker uses tkinter and degrades to manual path entry when
   Tk is unavailable.
+- The page loads its fonts, including the Material Symbols icon font, from
+  Google Fonts. Offline, icons show as their names.
 
 `start.bat` (Windows) and `start.sh` (macOS/Linux) are equivalent launchers.
 `start.sh` targets bash 3.2 so it runs on stock macOS, and is tracked with
@@ -148,9 +208,13 @@ python -m shimmer --list
 ```
 
 The command line runs the same render and export as the Master tab.
-Mastering is off unless `--master` or `--target` asks for it. 1.x's
-cleaning controls (`--denoise`, `--start-hz` and the rest) are accepted and
-ignored, with a note. Run `python -m shimmer --help` for every option.
+Mastering is off unless `--master` or `--target` asks for it. `--fix
+CARD[=AMOUNT]` turns on a card; `--preset` turns on the card a 1.x preset
+became. `--list` prints the cards (ready, built but not passed yet, or no
+fix yet), the loudness targets, the formats with their ceilings, and the
+preset-to-card table. 1.x's cleaning controls (`--denoise`, `--start-hz` and
+the rest) are accepted and ignored, with a note. Run
+`python -m shimmer --help` for every option.
 
 ## MP3 / M4A support
 
@@ -165,49 +229,104 @@ Without ffmpeg, WAV / FLAC / OGG still work.
 ## Tests
 
 ```bash
-python -m pytest tests/
+python -m pytest tests/                   # everything
+python -m pytest tests/core tests/api     # the new engine and its routes
+python -m pytest tests/core/test_core_render_export.py   # preview = export
 ```
 
-CI runs byte-compilation, an import smoke test, and the full suite on Python
-3.11 and 3.12.
+- `tests/core/` — contract tests for the engine. Their signals are synthetic
+  and seeded (`tests/core/conftest.py`), so no test needs a file outside the
+  repo.
+- `tests/api/` — route tests, and the contract that `shimmer/api` talks to
+  the engine only through `shimmer.core`.
+- `tests/test_*.py` — the older suite: the 1.x modules still present, the
+  pieces kept from 1.x, and the measuring tools.
+
+Tests that need the spectral de-noise's weights skip when
+`hash_remover.npz` is missing.
+
+CI (`.github/workflows/ci.yml`) runs on every push to `main` and `rebuild`:
+
+- Linux, Python 3.11 and 3.12, with ffmpeg: byte-compile, import the server
+  and the CLI, then the full suite.
+- Windows, Python 3.12, with ffmpeg: the full suite.
+- Updating from 1.1.1: install 1.1.1's requirements, then this version's,
+  then import the server and the CLI.
+
+The fixes are measured with `scripts/efficacy_harness.py --cards <card>`,
+which runs a card's fix through `render()` exactly as the Master tab does
+([STEP6-FIXES.md](STEP6-FIXES.md)).
 
 ## Project layout
 
 ```
-start.bat           Windows launcher (uv bootstrap + server)
-start.sh            macOS / Linux launcher (same flow)
-shimmer/            The Python package (all application code)
-  cli.py            CLI entry point — `python -m shimmer`
-  server.py         FastAPI backend (routes, SSE, job orchestration)
-  pipeline.py       clean_and_master — band split, M/S, recombine
-  engine.py         STFT loop and the nine Stage implementations
-  mastering.py      Loudness analysis, tone curve, limiter
-  params.py         Params / MasterParams dataclasses (source of truth)
-  presets.py        Artifact-shape preset factories
-  detect.py         Auto-detect: evidence scan + pipeline verification
-  repair.py         Deterministic repairs: de-click, static notches, cutoff
-  finepass.py       Fine-grid pass (1024/256): flicker tamer, spectral de-esser
-  eq.py             Parametric EQ (RBJ biquads, zero-phase)
-  bands.py          Linear-phase crossover
-  dsp.py            Primitive DSP helpers
-  trim_silence.py   Export-time silence trimming
-  edges.py          Head/tail render-glitch scan (reported, never applied)
-  report.py         Report-stage numbers: band spectra, PLR, stereo correlation
-  - `shimmer/autoeq.py` — the Tone step: a per-track suggested EQ plan (fix, shape, verify) with genre families as tolerance bands
-  - `shimmer/tags.py` — export metadata: read the source's tags, fill from defaults, one note per pass, write per format
-  audio_io.py       File I/O, measurement, format dispatch
-  stems.py          Demucs separation + cache
-  stem_effects.py   Per-stem effect chain
-  jobs.py           In-process job store
-  preview_store.py  Resident decoded sessions for live preview
-  projects_store.py Per-track remix projects (SHA-1 keyed)
-  settings_store.py UI settings persistence
-  _winfix.py        Windows WMI hang workaround (imported by __init__)
-static/             Frontend: HTML, split CSS, ES-module JS
-  js/report.js      "What changed" spectrum card (draws what report.py measures)
-scripts/            Launcher helpers (browser open-when-ready)
-tests/              pytest suite
+start.bat              Windows launcher (uv bootstrap + server)
+start.sh               macOS / Linux launcher (same flow)
+shimmer/               The Python package
+  __init__.py          version; imports _winfix first
+  __main__.py          `python -m shimmer` runs cli.main
+  cli.py               The command line, a thin layer over shimmer.core
+  server.py            FastAPI app: mounts shimmer/api, serves the page and
+                       the routes not yet moved (Remix, stems, batch, settings)
+  core/                The engine: everything that changes or measures sound
+    __init__.py        The public names the web layer may use
+    render.py          render(): the one sound path; prepare(), premaster_levels()
+    export.py          export(): the one way a file is written
+    catalog.py         Cards, tool labels, loudness targets, formats, stages, EQ limits
+    settings.py        One Settings object; migrate() for 1.x settings
+    chain.py           What each stage does for a set of settings (Signal Chain view)
+    tags.py            Read and write tags, per format
+    progress.py        Stage reports and cancel
+    audio/             io.py (load, save, resample), filters.py, eq.py (user EQ),
+                       meters.py (LUFS, per-channel true peak), trim.py (silence trim)
+    analyze/           Measures only: findings.py (Analyze), tones.py (fixed tones,
+                       cutoff), tone_plan.py (Suggested EQ), track.py, edges.py,
+                       percussion.py, report.py
+    repair/            One module per fix: notch.py, declick.py, deesser.py,
+                       dynamic_eq.py, hash_remover.py (+ hash_remover.npz weights)
+    master/            loudness.py (gain, album gain), tone.py (tone curve, reference
+                       match), limiter.py (peak shaper, true-peak limiter),
+                       release.py (release check)
+  api/                 The web layer; calls shimmer.core only
+    render.py          /api/process, progress, cancel, metrics, result, preview,
+                       prepare, size, reference/view, chain
+    sessions.py        /api/upload, envelope, reference
+    rules.py           GET /api/rules (the catalog)
+    jobs.py            One job runner: progress stream and cancel
+  stems.py             Remix: Demucs separation, quality tiers, cache
+  stems_runner.py      The separation worker (runs in the side venv)
+  stem_effects.py      Remix: per-stem effects and the stem sum
+  projects_store.py    Remix projects, keyed by the file's SHA-1
+  settings_store.py    UI settings on disk; migrate_saved() for 1.x files
+  _winfix.py           Windows WMI hang workaround (imported by __init__)
+static/                Frontend: HTML, split CSS, ES-module JS (no build step)
+  js/fault-picker.js   The "What do you hear?" cards (reads /api/rules)
+  js/reference-match.js  Tone target: built-in or a reference track
+  js/chain.js          The Signal Chain view
+  js/report.js         "What changed" spectrum card
+scripts/               Launcher helper (open-when-ready.ps1) and measurement scripts
+tests/                 pytest suite (core/, api/, and the older tests)
 ```
+
+### 1.x modules still present
+
+These are still in `shimmer/` until Step 7 deletes them
+([REBUILD-TRACKER.md](REBUILD-TRACKER.md)). Nothing in `shimmer/core`
+imports them. `shimmer/chain.py` and `shimmer/probe.py` are already gone.
+
+- **The 1.x engine, retiring:** `engine.py`, `pipeline.py`, `finepass.py`,
+  `bands.py`, `dsp.py`, `params.py`, `presets.py`, `detect.py`, `repair.py`,
+  `mastering.py`, `eq.py`, `audio_io.py`, `edges.py`, `trim_silence.py`,
+  `report.py`, `release.py`. Still used by the Remix loop's quick preview
+  (1.x `master()`), the preset list (`/api/presets`), the preset menus on the
+  Remix and Batch tabs, and the settings screens.
+- **Names that now point at the new code:** `autoeq.py`
+  (→ `core/analyze/tone_plan.py`), `jobs.py` (→ `api/jobs.py`),
+  `preview_store.py` (→ `api/sessions.py`), `tags.py` (→ `core/tags.py`).
+- **Measuring tools, kept outside the engine:** `artifacts.py` (the fault
+  models), `perceptual.py` (the hearing model), `side_effects.py`,
+  `budget.py`, `abtest.py` (the listening bench), `references.py` (the tone
+  reference builder).
 
 ## License
 

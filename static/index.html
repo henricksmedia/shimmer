@@ -112,7 +112,7 @@
                         <div class="card-head">
                             <span class="title">What do you hear?</span><span class="gloss">pick any</span>
                             <span class="spacer"></span>
-                            <button type="button" class="help-icon" title="Pick what you hear. Each card turns on the tool that fixes it." aria-label="Help: what do you hear?">?</button>
+                            <button type="button" class="help-icon" data-help-tab="presets" title="Pick what you hear. Each card turns on its fix. Click for help on every card." aria-label="Help: what do you hear?">?</button>
                         </div>
                         <div class="card-body">
                             <div class="hear-verdict" id="hear-verdict"></div>
@@ -337,7 +337,7 @@
                 <div class="mcol" id="master-col-right">
                     <div class="process-dock" id="process-dock">
                         <button type="button" class="btn analyze-dock-btn" id="analyze-dock-btn" disabled
-                                title="Listens to your track and picks the best cleanup preset. Jumps to the Analysis card.">
+                                title="Listens to your track: finds fixed tones and how far it is under the loudness target, and marks those cards. Jumps to the Analysis card.">
                             <span class="adb-step">2</span><span class="adb-text">Analyze</span>
                         </button>
                         <button type="button" class="btn btn-primary process-btn step-btn" data-step="3" id="process-btn" disabled>Clean &amp; Master</button>
@@ -348,7 +348,7 @@
                     <div class="card insp">
 
                         <details class="acc-sec" open>
-                            <summary><span class="a-title">Parametric EQ</span><span class="a-gloss">suggested moves and your own · zero-phase</span><span class="a-state" id="state-eq"></span></summary>
+                            <summary><span class="a-title">Parametric EQ</span><span class="a-gloss">suggested moves and your own</span><span class="a-state" id="state-eq"></span></summary>
                             <div class="acc-body">
                                 <!-- Suggested EQ: the Tone plan from Analyze, applied here. -->
                                 <div class="tone-strip" id="tone-strip"></div>
@@ -459,7 +459,7 @@
                                 <div class="settings-pointer">Where the finished file goes, whether it downloads by itself, and the size limit are in
                                     <button type="button" class="linklike" data-open-tab="settings">Settings</button>.</div>
                                 <label class="checkbox-row"
-                                       title="When on, preset, strength, mastering, EQ, and other Master choices come back on the next visit. When off, each page load starts from defaults.">
+                                       title="When on, your card picks, mastering, EQ, and other Master choices come back on the next visit, and your own card picks stay when you load a new song. When off, each page load starts from defaults.">
                                     <input type="checkbox" id="remember-settings">
                                     <span>Remember settings next time</span>
                                 </label>
@@ -647,7 +647,7 @@
                         </button>
                         <div class="remix-tier-row">
                             <label class="label" for="remix-tier">Quality</label>
-                            <select id="remix-tier" class="select" title="Fast: one pass of Hybrid Transformer Demucs. Best: the fine-tuned model, one specialist per stem, about 2.5× slower. 6 stems: adds guitar and piano lanes (experimental)."></select>
+                            <select id="remix-tier" class="select" title="Fast: one pass of Hybrid Transformer Demucs. Best: the fine-tuned model, one specialist per stem, about 2.5× slower. 6 stems: adds guitar and piano lanes (experimental). Ultra: three Demucs models blended, two passes each, the slowest. Studio: a RoFormer vocal model with the fine-tuned Demucs for the rest; installs its runner first (about 300 MB)."></select>
                         </div>
                         <div class="dock-status remix-tier-status" id="remix-tier-status"></div>
                         <button type="button" class="btn btn-primary process-btn step-btn" data-step="3" id="remix-render-btn" disabled
@@ -701,8 +701,8 @@
                                 <div class="inline-field">
                                     <label class="label" for="remix-cleanup">Artifact cleanup on export</label>
                                     <select id="remix-cleanup" class="select"
-                                            title="Run the finished remix through Shimmer's artifact cleaning before mastering. The separator spreads the source's AI artifacts across the lanes (most land in the residual), so the remix inherits them — Auto-detect analyzes the remix itself and picks the best preset. Adds cleaning time to the render; the loop preview stays uncleaned for speed.">
-                                        <option value="auto" selected>Auto-detect — analyze the remix, pick a preset</option>
+                                            title="Run the finished remix through Shimmer's cleanup before mastering. The separator spreads the source's AI artifacts across the lanes (most land in the residual), so the remix inherits them. Auto finds and cuts fixed tones in the remix; a preset turns on its matching card. Adds cleaning time to the render.">
+                                        <option value="auto" selected>Auto — find and cut fixed tones in the remix</option>
                                         <option value="off">Off — export the mix as-is</option>
                                     </select>
                                 </div>
@@ -737,9 +737,10 @@
 
                     <div class="card note-card">
                         <div class="card-body note-body">
-                            <b>Preview vs export:</b> the loop you hear skips cleanup for speed.
-                            The final render sums every lane (peak-protected), runs the full
-                            cleaning pipeline, then masters.
+                            <b>Preview vs export:</b> the loop plays at once from its own mix,
+                            without cleanup, marked "level approximate". A few seconds later it
+                            switches to the export's own render (every lane summed and
+                            peak-protected, cleaned, then mastered) and says "matches the export".
                         </div>
                     </div>
                 </div>
@@ -802,12 +803,12 @@
                         </div>
                         <div class="preset-strength-row batch-strength-row">
                             <label class="preset-strength-label" for="batch-strength">
-                                Preset strength
+                                Preset strength (no effect in 2.0)
                                 <span id="batch-strength-value" class="preset-strength-value">100%</span>
                             </label>
                             <input id="batch-strength" type="range"
                                    min="0" max="2" step="0.05" value="1"
-                                   title="Scale the preset's amount-style settings up or down. 100% = preset as-is. With Auto-detect, the analysis picks a strength per file and this slider multiplies it (100% = trust the analysis).">
+                                   title="No effect in 2.0: the preset turns on its matching card at that card's starting Amount. This slider goes when Batch gets the cards.">
                         </div>
                     </div>
                 </div>
@@ -1039,7 +1040,7 @@
                         <span class="track-key">2</span> Processed
                     </button>
                     <button type="button" class="track-tab" data-track="removed" aria-disabled="true"
-                            data-title-ready="Hear only what Shimmer stripped away — boosted for monitoring, never in your export. If you hear vocals, snare snap, or musical detail, reduce the Preset strength. (key: 3)"
+                            data-title-ready="Hear only what Shimmer stripped away — boosted for monitoring, never in your export. If you hear vocals, snare snap, or musical detail, turn that fix's Amount down. (key: 3)"
                             data-title-disabled="Turn on Live preview, or run Clean & Master, to hear what Shimmer removed (key: 3)"
                             title="Turn on Live preview, or run Clean & Master, to hear what Shimmer removed (key: 3)">
                         <span class="track-key">3</span> Removed <span class="hint">boosted</span>
@@ -1247,7 +1248,7 @@
 
         <nav class="help-tabs" role="tablist">
             <button type="button" class="help-tab active" role="tab" data-tab="quickstart" aria-selected="true">Quick start</button>
-            <button type="button" class="help-tab" role="tab" data-tab="presets" aria-selected="false">Pick a preset</button>
+            <button type="button" class="help-tab" role="tab" data-tab="presets" aria-selected="false">What do you hear?</button>
             <button type="button" class="help-tab" role="tab" data-tab="controls" aria-selected="false">Controls</button>
             <button type="button" class="help-tab" role="tab" data-tab="trouble" aria-selected="false">Troubleshoot</button>
             <button type="button" class="help-tab" role="tab" data-tab="setup" aria-selected="false">Setup</button>
@@ -1259,60 +1260,67 @@
                 <h3>Quick start</h3>
                 <div class="help-intro-note">
                     <b>What is shimmer?</b> It is the thin, fizzy, metallic noise
-                    that AI music tools leave in the high end of your track. You
+                    that AI music tools can leave in the high end of a track. You
                     hear it as sizzle on cymbals, a glassy sheen on vocals, or a
-                    busy hiss up top. It is not part of your music &mdash; the
-                    model added it. Shimmer finds that noise, turns it down, and
-                    leaves your song alone.
+                    busy hiss up top. The model added it; it is not part of your
+                    music. Shimmer helps you find that noise and turn it down, then
+                    masters the song for release.
                 </div>
 
                 <h4 class="help-section-head">Your first master, step by step</h4>
                 <ol class="workflow-list">
                     <li><span class="step">1</span>
-                        <b>Drop your track in.</b> WAV, MP3, FLAC, OGG, or M4A all work.</li>
+                        <b>Drop your track in.</b> WAV, MP3, FLAC, OGG and M4A all
+                        work. MP3 and M4A need a free helper called ffmpeg (see
+                        <b>Setup</b>).</li>
                     <li><span class="step">2</span>
-                        <b>Click Analyze</b> (above Clean &amp; Master, or in the
-                        Analysis card). Shimmer listens to your song, tries all 19
-                        presets on the busiest part, and picks the best match. It
-                        shows that match big with a plain reason, lists the next
-                        five under it, sets <b>Preset strength</b> for you, and parks
-                        the preview loop on the spot where the noise is worst. Click
-                        <b>Expand</b> to see it all in one workspace. If a second
-                        pass would still help, a <b>Next step</b> card says so and
-                        shows a two-pass plan. <b>Run both passes</b>
-                                        does the whole thing and stops at Download: the processing
-                                        window stays up between the passes and counts pass 2 in
-                                        with a big 3-2-1, so the hand-off never looks like the end;
-                                        or run them one at a time and listen in between. Analyze also plans a
-                                        <b>Suggested EQ</b>: a ringing tone, mud or harshness first,
-                                        then a few gentle balance moves toward the family you pick
-                                        (Neutral by default). It is checked on the loudest part and
-                                        goes into the EQ on the final pass when <b>Use on the final
-                                        pass</b> is on. Every move stays editable in the EQ card.</li>
+                        <b>Click Analyze</b> (in the Analysis card, or step 2 in the
+                        right column). Shimmer measures your song: its loudness, its
+                        tone, and any fixed tones (steady whistles at one pitch). It
+                        marks what it finds on the <b>What do you hear?</b> cards and
+                        turns on <b>Fixed tones</b> when it finds steady tones. It also
+                        moves the preview loop to where the top end is busiest, and
+                        plans a <b>Suggested EQ</b>: a ringing tone, mud or harshness
+                        first, then a few gentle balance moves. You can apply those
+                        moves in the <b>Parametric EQ</b> section, and every move stays
+                        editable. Analyze does not change your audio.</li>
                     <li><span class="step">3</span>
-                        <b>Listen.</b> A short section loops on its own. Press
-                        <b>2</b> to hear the cleaned version, <b>1</b> to hear your
-                        original. Switch back and forth &mdash; that is the only way
-                        to really judge it.</li>
+                        <b>Pick what you hear.</b> Turn on each card under <b>What do
+                        you hear?</b> that matches a problem you can hear. Each card
+                        turns on one fix, such as a de-esser or a notch filter. The fix
+                        shows under <b>Fixes on</b>, with an <b>Amount</b> slider. The
+                        <b>What do you hear?</b> tab in this Help explains every
+                        card.</li>
                     <li><span class="step">4</span>
-                        <b>Adjust if you need to.</b> Pick a different preset and you
-                        hear the change in about a second. Use <b>Preset strength</b>
-                        to dial it up or down. <b>Advanced artifact controls</b> opens
-                        every knob in chain order, with a panel that explains the one
-                        under your pointer; the <b>EQ presets</b> menu holds starting
-                        points at mastering scale, each one saying what it does.</li>
+                        <b>Listen.</b> Turn on <b>Live</b> in the Preview loop at the
+                        bottom, and a short section loops. Press <b>2</b> to hear the
+                        processed version, <b>1</b> to hear your original, and
+                        <b>3</b> to hear the Removed track. Switch back and forth
+                        &mdash; that is the only way to really judge it. The preview
+                        runs the same sound path as the export, level included, so the
+                        loop sounds like the file you will get.</li>
                     <li><span class="step">5</span>
+                        <b>Adjust if you need to.</b> Move a card's <b>Amount</b> and
+                        the loop renders again. In <b>Mastering</b>, pick a
+                        <b>Loudness target</b>: <b>Commercial</b> (the default),
+                        <b>Balanced</b> or <b>Streaming standard</b>. Each choice shows
+                        its LUFS level. <b>Tone match</b> and <b>Tilt</b> shape the
+                        tone, or you can match a <b>Reference track</b> instead. The
+                        <b>EQ presets</b> menu in the Parametric EQ holds starting
+                        points, each one saying what it does.</li>
+                    <li><span class="step">6</span>
                         <b>Click Clean &amp; Master</b> (it says <b>Clean</b> when
-                        mastering is off), then download from the green banner. That
-                        is your finished file. The processing window ends on a
-                        <b>Download</b> step of its own; in <b>Settings</b> you can have
-                        the file download by itself, or land straight in a folder of
-                        yours with a <b>Show in folder</b> button. The <b>What changed</b> chart under the
-                        player shows the spectrum before and after and what was
-                        removed, and the numbers under it give loudness, true peak,
-                        and how hard the limiter worked. The file carries its tags:
-                        title, artist and album from the <b>Tags</b> section, plus
-                        one note per pass in the comment.</li>
+                        mastering is off). The processing window ends on a
+                        <b>Download</b> step; you can also download from the green
+                        banner. In <b>Settings</b> you can have the file download by
+                        itself, or land straight in a folder of yours with a <b>Show in
+                        folder</b> button. The <b>What changed</b> chart under the
+                        player shows the spectrum before and after, and what was
+                        removed. The <b>Release check</b> card then measures the file
+                        itself (loudness, true peak, clipping, start and end, tags and
+                        more) and gives one verdict first: is it ready to upload? The
+                        file carries its tags: title, artist and album from the
+                        <b>Tags</b> section, plus a Shimmer note in the comment.</li>
                 </ol>
 
                 <h4 class="help-section-head">Remix: split the song into stems</h4>
@@ -1323,8 +1331,9 @@
                     <li><span class="step">2</span>
                         <b>Pick how many stems.</b> The mixer asks first: <b>Fast</b>
                         (4 stems, about 10 seconds on a GPU), <b>Best</b> (4 stems from
-                        the fine-tuned model, about 25 seconds) or <b>6 stems</b> (adds
-                        guitar and piano). Clicking a card separates; the window shows
+                        the fine-tuned model, about 25 seconds), <b>6 stems</b> (adds
+                        guitar and piano), or the slower <b>Ultra</b> and <b>Studio</b>
+                        blends (see Setup). Clicking a card separates; the window shows
                         the engine's real progress. Stems are kept per track and split,
                         so a card marked "cached" loads instantly, and the dock's
                         Separate button re-runs at another quality any time.</li>
@@ -1334,22 +1343,27 @@
                         saturation, doubler, reverb), plus a <b>Residual</b> lane that
                         holds whatever the separator dropped, so the untouched mix is
                         your original. Every move re-renders the loop; press <b>1</b>
-                        for the original and <b>2</b> for the remix. Quick mixes give
-                        you an instrumental, an acapella or a vocal lift in one click.</li>
+                        for the original and <b>2</b> for the remix. The <b>Quick</b>
+                        buttons make an instrumental, an acapella or a vocal lift.</li>
                     <li><span class="step">4</span>
-                        <b>Render &amp; Download</b> sums the lanes, runs artifact
-                        cleanup, masters and writes the file. <b>Stems</b> in the right
-                        column downloads the parts themselves as a ZIP of 24-bit WAVs,
-                        as separated or through your mix.</li>
+                        <b>Render &amp; Download</b> sums the lanes, runs the cleanup
+                        picked under <b>Artifact cleanup on export</b>, masters and
+                        writes the file. <b>Auto-detect</b> cuts the steady tones it
+                        finds; a preset turns on its matching card (see the <b>What do
+                        you hear?</b> tab). <b>Stems</b> in the right column downloads
+                        the parts themselves as a ZIP of 24-bit WAVs, as separated or
+                        through your mix.</li>
                 </ol>
 
                 <div class="help-tip">
                     <b>The one habit worth building:</b> press <b>3</b> and listen to
-                    the <b>Removed</b> track. That is only the noise Shimmer is taking
-                    out, turned up so you can hear it. It should sound like hiss, fizz,
-                    and sizzle &mdash; nothing else. If you hear vocals, snare hits, or
-                    melody in there, you are cutting into your music. Lower the
-                    <b>Preset strength</b> until the music disappears from it.
+                    the <b>Removed</b> track. It plays exactly what the fixes took out,
+                    and nothing else: tone match, EQ and mastering are not in it. The
+                    player turns it up so you can hear it; that boost is never in your
+                    file. It should sound like hiss, fizz, whistles or sizzle. If you
+                    hear vocals, snare hits or melody in it, a fix is cutting into your
+                    music. Lower that card's <b>Amount</b> until the music is gone from
+                    Removed.
                 </div>
 
                 <h4 class="help-section-head">Good to know</h4>
@@ -1357,41 +1371,109 @@
                     <li><b>Volume fools your ears.</b> Louder almost always sounds
                     better, even when it is not. <b>Loudness-matched A/B</b> is on by
                     default so you compare the sound, not the level.</li>
-                    <li><b>Your low end is never touched.</b> Kick, bass, and the body
-                        of your vocals bypass the cleaning completely. Most presets
-                        only work above 4 to 5 kHz; a few vocal presets reach down to
-                        about 2 kHz.</li>
+                    <li><b>Each fix works in its own band.</b> The fixes for fizz,
+                        sibilance, clicks and harshness work in the upper mids and
+                        highs, well above the bass. <b>Low-mid build-up</b> works on the
+                        low mids. With mastering on, a low-cut (high-pass filter)
+                        removes only the deep rumble below the bass.</li>
                     <li><b>The bar at the bottom is your transport.</b> Skip 5
                         seconds either way, click or drag the scrubber to move, and
                         press <b>Space</b> to play. The amber band on the scrubber is
                         the Live loop.</li>
-                    <li><b>Nothing is permanent until you export.</b> Presets, sliders,
+                    <li><b>Nothing is permanent until you export.</b> Cards, sliders
                     and EQ only change what you hear in the preview. Your original file
-                    is never modified.</li>
+                    is never changed.</li>
                 </ul>
 
                 <p class="help-lede">
                     Tip: click the <span class="help-icon-inline">?</span> next to
-                    any control for help on that one knob.
+                    a card or control for help on that one.
                 </p>
             </section>
 
             <section class="help-panel" data-panel="presets" role="tabpanel">
-                <h3>Which preset should I use?</h3>
+                <h3>What do you hear?</h3>
                 <p class="help-lede">
-                    Answer a couple of questions and we'll pick one for you.
-                    Or click <b>Auto Detect</b> on the main panel to let
-                    Shimmer listen to your file and decide.
+                    In 2.0 the Master tab has no preset list. You pick the cards
+                    under <b>What do you hear?</b> that match what you hear, and
+                    each card turns on one fix. Not sure? Answer a few questions
+                    below, or click <b>Analyze</b> and let Shimmer mark what it can
+                    measure.
+                </p>
+
+                <h4 class="help-section-head">How the cards work</h4>
+                <ul class="help-card-list">
+                    <li><b>Pick any.</b> Turn on a card for each problem you hear.
+                    Click a card again to turn it off.</li>
+                    <li><b>Found.</b> After <b>Analyze</b>, a card it measured shows
+                    <b>Found</b> and what it found, such as the pitch of a steady
+                    tone. Analyze measures fixed tones and loudness. The other cards
+                    are up to your ears.</li>
+                    <li><b>Fixes on.</b> Each card you turn on adds a row under
+                    <b>Fixes on</b>, with its fix and an <b>Amount</b> slider. Amount
+                    sets how deep the fix may cut: 0% changes nothing, and 100% is the
+                    deepest cut that fix allows. Most cards start halfway. Fixed tones
+                    starts at full depth.</li>
+                    <li><b>Removed track.</b> Press <b>3</b> to hear the Removed track.
+                    It plays exactly what the fixes took out, turned up so you can hear
+                    it. If you hear music in it, lower that card's Amount.</li>
+                    <li><b>Not built yet and No fix yet.</b> A card marked <b>Not built
+                    yet</b> has a fix that is not ready in this version. <b>No fix
+                    yet</b> means there is no tested fix at all. You can still pick
+                    these cards: Shimmer notes your pick on this computer to help test
+                    new fixes, but the sound does not change.</li>
+                    <li><b>Mastering cards.</b> <b>Lack of air</b> and <b>Loudness</b>
+                    change settings in Mastering instead of running a fix. Turning one
+                    on turns mastering on.</li>
+                </ul>
+
+                <div class="help-tip">
+                    <b>The Shimmer card takes a moment the first time.</b> Its
+                    spectral de-noise reads the whole song once, the first time the
+                    card is on for a song. That takes about 50 seconds for a
+                    3-minute song. The preview status line at the bottom shows how
+                    far it has got. After that, the preview is quick, even when you
+                    change the Amount.
+                </div>
+
+                <h4 class="help-section-head">Every card, and the fix it runs</h4>
+                <div id="cards-help-list"></div>
+
+                <h4 class="help-section-head">Not sure which card?</h4>
+                <p class="help-lede">
+                    Answer a couple of questions about what you hear, and we'll
+                    point you at a card.
                 </p>
                 <div id="preset-quiz"></div>
+
+                <h4 class="help-section-head">Presets in Remix and Batch</h4>
+                <p class="help-lede">
+                    The 1.x presets are still in two places: the <b>Artifact cleanup
+                    on export</b> menu in Remix, and the <b>Preset</b> menu in Batch.
+                    In 2.0 each preset turns on its matching card, at that card's
+                    starting Amount. <b>Preset strength</b> no longer changes the
+                    sound, and Batch's <b>Auto-detect each file</b> no longer tries
+                    presets on each file. <b>Generic</b> turns on no card. With
+                    cleanup on, Fixed tones still cuts steady tones when a song has
+                    them.
+                </p>
+                <div id="preset-map-help"></div>
+                <p class="help-lede">
+                    <b>Settings from 1.x:</b> if you used 1.x with <b>Remember
+                    settings next time</b> on, the preset you saved turns on its card
+                    in the Master tab. After that, 2.0 keeps your own card picks.
+                </p>
             </section>
 
             <section class="help-panel" data-panel="controls" role="tabpanel">
-                <h3>What each control does</h3>
+                <h3>Advanced artifact controls</h3>
                 <p class="help-lede">
-                    The preset already sets these for you. Tweak only if
-                    something sounds off. Each card tells you when to turn
-                    a knob up or down.
+                    These are the 1.x cleaning controls. They are still in the
+                    <b>Advanced artifact controls</b> drawer, but in 2.0 they do not
+                    change the sound, and neither does <b>Preset strength</b>. The
+                    Master tab's cleaning now comes from the <b>What do you hear?</b>
+                    cards and each card's <b>Amount</b>. The notes below say what
+                    each control did in 1.x.
                 </p>
                 <div id="controls-help-list"></div>
             </section>
@@ -1402,212 +1484,183 @@
                     Find the problem you can actually hear, then follow the fix.
                     Always compare against your <b>Original</b> (key <b>1</b>) and
                     listen to the <b>Removed</b> track (key <b>3</b>). If you hear
-                    real music in Removed, you are cutting too hard &mdash; that is
+                    real music in Removed, a fix is cutting too hard &mdash; that is
                     the single most useful check in the whole app.
                 </p>
 
-                <h4 class="help-section-head">I still hear the noise after cleaning</h4>
+                <h4 class="help-section-head">I still hear the problem after cleaning</h4>
 
                 <div class="help-card">
-                    <h4>A "shhhhh" that rides on both the vocals and the cymbals</h4>
-                    <p><b>What is happening:</b> you have two problems at once. There
-                    is a glassy sheen baked into the vocal (2&ndash;8 kHz), and
-                    separately there is fizz up in the top end (5&ndash;12 kHz). A
-                    preset built for one will only clean half of it. This is the most
-                    common complaint about Suno tracks.</p>
-                    <p><b>Fix:</b> use <b>Vocal Glaze + Top End</b>. If some sizzle
-                    survives, raise <b>Preset strength</b> to 150&ndash;200%. Still
-                    there? Open <b>Advanced artifact controls</b> and push
-                    <b>De-harsh</b> up past 85%, then pull <b>Air cut</b> down to
-                    about &minus;3 dB.</p>
+                    <h4>A fizzy, flickering hiss on the cymbals and vocals</h4>
+                    <p><b>What is happening:</b> this is the fizz AI music tools
+                    leave in the top end, often called Suno hash.</p>
+                    <p><b>Fix:</b> turn on the <b>Shimmer</b> card. It runs the
+                    spectral de-noise. If fizz is left, raise its <b>Amount</b> while
+                    the Removed track still holds only hiss. This fix is new in 2.0
+                    and still being tested; on some songs it takes out less than you
+                    want.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>The vocal itself sounds glassy or plastic</h4>
-                    <p><b>What is happening:</b> the shimmer is not sitting around the
-                    voice &mdash; it <i>is</i> the voice. The model rendered the
-                    vocal's overtones too bright, so ordinary noise removal cannot tell
-                    the two apart.</p>
-                    <p><b>Fix:</b> use <b>Vocal Glaze</b>. It reads the clean, low part
-                    of the voice (300&ndash;1500 Hz) to work out what should stay, then
-                    tames everything above it. If the top end is also fizzy, use
-                    <b>Vocal Glaze + Top End</b> instead.</p>
+                    <h4>A whistle or whine that never changes pitch</h4>
+                    <p><b>What is happening:</b> the generator left a steady tone at
+                    one pitch for the whole song.</p>
+                    <p><b>Fix:</b> click <b>Analyze</b>. When it finds steady tones,
+                    it turns on <b>Fixed tones</b>, and a notch filter cuts each one.
+                    Fixed tones only cuts tones that hold one pitch, so a whistle
+                    that slides up and down is not caught.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>The noise follows the music and disappears in the gaps</h4>
-                    <p><b>What is happening:</b> the shimmer swells with every note and
-                    dies the moment the music stops. It is not constant, so noise
-                    removal never gets a quiet moment to learn from. It is not
-                    rhythmic either, so flicker tools miss it.</p>
-                    <p><b>Fix:</b> use <b>Echo Sheen</b>. It is the only preset that
-                    reaches into the space right after each note to catch that
-                    lingering tail.</p>
+                    <h4>Harsh, spitty "s" and "sh" on the vocals</h4>
+                    <p><b>Fix:</b> turn on <b>Sibilance</b>. It runs a de-esser, which
+                    turns down harsh "s", "t" and "ch" only while they stick out. If
+                    the voice itself sounds glassy or plastic, try this card too.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>A smooth, airy wash in the upper mids</h4>
-                    <p><b>What is happening:</b> a haze sitting in the 3&ndash;8 kHz
-                    presence range &mdash; the band where vocals and guitars cut
-                    through a mix. It appears with the music and vanishes in silence.</p>
-                    <p><b>Fix:</b> use <b>Presence Haze</b>. It tracks the noise floor
-                    quickly enough to catch a wash that only exists while the music is
-                    playing.</p>
+                    <h4>Piercing upper mids that come and go</h4>
+                    <p><b>Fix:</b> turn on <b>Harshness</b>. It runs a dynamic EQ that
+                    cuts a narrow band in the upper mids only while it rings out
+                    above the rest of the mix.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>A washy, metallic ring behind everything</h4>
-                    <p><b>What is happening:</b> a cymbal-like "shhhh" between 4 and
-                    10 kHz that sounds like a layer nobody played. It hides in the busy
-                    parts of your track, which is exactly where most tools stop
-                    working.</p>
-                    <p><b>Fix:</b> use <b>Phantom Cymbal</b>. It keeps working during
-                    dense, loud sections instead of backing off.</p>
+                    <h4>The mix sounds thick, boxy or muddy</h4>
+                    <p><b>Fix:</b> turn on <b>Low-mid build-up</b>. It runs a dynamic
+                    EQ on the low mids, so the words come through more clearly.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>The whole track sounds harsh and tiring</h4>
-                    <p><b>What is happening:</b> a gritty, distortion-like texture
-                    across 4&ndash;12 kHz. It sounds painful rather than washy, and it
-                    wears your ears out after a minute.</p>
-                    <p><b>Fix:</b> use <b>Harsh Veil</b>. This is the aggressive
-                    option &mdash; heavy harshness control plus fast noise removal.</p>
+                    <h4>Clicks, pops or crackle</h4>
+                    <p><b>Fix:</b> turn on <b>Clicks and crackle</b>. It runs the
+                    de-click. If the card says <b>Not built yet</b>, the de-click is
+                    not ready in this version: picking the card only notes it, and
+                    the sound does not change.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>I tried a preset at 200% and it still bothers me</h4>
-                    <p><b>What is happening:</b> either it is the wrong preset for what
-                    you actually have, or your track has three or more problems
-                    stacked on top of each other.</p>
-                    <p><b>Fix, in this order:</b></p>
-                    <ol>
-                        <li>Take the <b>Pick a preset</b> quiz again with fresh ears.
-                        What you hear now may point somewhere different.</li>
-                        <li>Click <b>Analyze</b> on the Master screen. If it suggests
-                        something else, try that.</li>
-                        <li>Last resort: <b>Deep Scrub</b>. Every tool at full
-                        strength, run twice. Expect to lose some top-end air &mdash;
-                        it is a trade, and you should A/B carefully before you commit.</li>
-                    </ol>
+                    <h4>Grainy or watery reverb tails</h4>
+                    <p>This is <b>Phasiness</b>. If the card says <b>No fix yet</b>,
+                    Shimmer has no tested fix for it. Picking the card notes it on
+                    this computer to help test new fixes; it does not change the
+                    sound.</p>
                 </div>
 
                 <h4 class="help-section-head">I cut too much &mdash; now something sounds wrong</h4>
 
                 <div class="help-card">
                     <h4>The result sounds dull or lifeless</h4>
-                    <p><b>What is happening:</b> you are cutting too much out of the
-                    top end, or the cleaning is reaching higher than it needs to.</p>
-                    <p><b>Fix:</b> lower <b>Preset strength</b> first &mdash; that
-                    solves it most of the time. If you are in <b>Advanced artifact
-                    controls</b>: raise <b>Threshold</b>, lower <b>Slope</b>, drop
-                    <b>Mix</b> to 70&ndash;80%, or pull <b>End Hz</b> down a couple
-                    thousand.</p>
+                    <p><b>What is happening:</b> a fix is taking too much out of the
+                    top end.</p>
+                    <p><b>Fix:</b> lower the <b>Amount</b> on <b>Shimmer</b> or
+                    <b>Sibilance</b> first. Turn off any card for a problem you
+                    cannot hear. If the song was dull to start with, try <b>Lack of
+                    air</b>, which sets Tilt to Bright in Mastering.</p>
                 </div>
 
                 <div class="help-card">
                     <h4>Vocals sound lispy, or the "s" sounds went missing</h4>
-                    <p><b>What is happening:</b> the harshness control is eating your
-                    consonants along with the noise. The "s", "t", and "ch" sounds are
-                    short bursts of high frequency &mdash; they look a lot like
-                    artifacts to a detector.</p>
-                    <p><b>Fix:</b> turn <b>De-harsh</b> down. If you need it high for
-                    the artifact, try <b>Sibilance Rattle</b> instead, which is built
-                    to target the rattle without flattening the consonant.</p>
+                    <p><b>What is happening:</b> the "s", "t" and "ch" sounds are
+                    short bursts of high end, so a strong de-esser can take them
+                    along with the harshness.</p>
+                    <p><b>Fix:</b> lower the <b>Amount</b> on <b>Sibilance</b>.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>The bass or kick feels thin</h4>
-                    <p><b>What is happening:</b> this should be rare &mdash; the low
-                    end bypasses cleaning entirely. If it is happening, <b>Start Hz</b>
-                    has been pulled too far down into the mids, or <b>Denoise</b> and
-                    <b>De-resonator</b> are turned up high enough to bleed downward.</p>
-                    <p><b>Fix:</b> raise <b>Start Hz</b> &mdash; shimmer never lives
-                    in the bass &mdash; then turn <b>Denoise</b> and
-                    <b>De-resonator</b> back down.</p>
+                    <h4>The low end or the voice feels thin</h4>
+                    <p><b>Fix:</b> lower the <b>Amount</b> on <b>Low-mid
+                    build-up</b>, or turn it off. Then check the Parametric EQ for a
+                    low-cut or a cut you did not mean. Mastering's own low-cut only
+                    removes the deep rumble below the bass.</p>
                 </div>
 
                 <div class="help-card">
                     <h4>Cymbals lost their sparkle</h4>
-                    <p><b>What is happening:</b> the cleaning is reaching up into the
-                    air band where your cymbals live, or <b>Air cut</b> is pulling the
-                    top down too far.</p>
-                    <p><b>Fix:</b> lower <b>End Hz</b> a little, and move <b>Air cut</b>
-                    back toward 0 dB. Dropping <b>Preset strength</b> to 70&ndash;85%
-                    also works well here.</p>
+                    <p><b>What is happening:</b> cymbals share the top end with the
+                    fizz, so a deep cut can take some of their shine.</p>
+                    <p><b>Fix:</b> lower the <b>Amount</b> on <b>Shimmer</b>.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>A warble, pumping, or "underwater" sound appeared</h4>
-                    <p><b>What is happening:</b> the noise removal is working too hard
-                    or reacting too fast, so it is adding its own artifact on top of
-                    the one you were trying to remove.</p>
-                    <p><b>Fix:</b> turn <b>Denoise</b> down. This is the one control
-                    where less is almost always better &mdash; try halving it and
-                    listen again.</p>
+                    <h4>A warble, or an "underwater" sound, appeared</h4>
+                    <p><b>What is happening:</b> spectral de-noise can leave a watery
+                    sound when it cuts deep.</p>
+                    <p><b>Fix:</b> lower the <b>Amount</b> on <b>Shimmer</b>. Try
+                    halving it and listen again.</p>
                 </div>
 
                 <div class="help-card">
                     <h4>The Removed track has real music in it</h4>
-                    <p><b>What is happening:</b> the detector is too sensitive and is
-                    treating parts of your song as noise. This is the most important
-                    problem in this list, because you will not always hear the damage
-                    on the Processed track &mdash; but it is there.</p>
-                    <p><b>Fix:</b> lower <b>Preset strength</b> until Removed sounds
-                    like hiss and fizz only. In Advanced, raise <b>Threshold</b> or
-                    lower <b>Slope</b>.</p>
+                    <p><b>What is happening:</b> a fix is treating part of your song
+                    as noise. This is the most important problem in this list,
+                    because you will not always hear the damage on the Processed
+                    track &mdash; but it is there.</p>
+                    <p><b>Fix:</b> turn cards off one at a time to find which fix is
+                    taking music. Then lower its <b>Amount</b> until Removed holds
+                    only hiss, fizz or whistles.</p>
                 </div>
 
                 <h4 class="help-section-head">Common questions</h4>
 
                 <div class="help-card">
-                    <h4>I want more cleanup than 200% strength</h4>
-                    <p>Strength stops at 200% on purpose &mdash; past that, damage to
-                    your music is close to guaranteed. If you truly need more:</p>
-                    <ol>
-                        <li>Open <b>Advanced artifact controls</b> and raise the
-                        individual tools that match what you hear (for example
-                        <b>De-harsh</b> to 95%).</li>
-                        <li>Try <b>Deep Scrub</b>, which already runs everything at
-                        maximum, twice.</li>
-                        <li>Export the cleaned file, then run it through Shimmer a
-                        second time. Two gentle passes usually sound better than one
-                        brutal one.</li>
-                    </ol>
+                    <h4>The preview takes a while after I turn on Shimmer</h4>
+                    <p>That is expected. The first time the <b>Shimmer</b> card is on
+                    for a song, its spectral de-noise reads the whole song once:
+                    about 50 seconds for a 3-minute song. The preview status line at
+                    the bottom shows how far it has got. After that, the preview is
+                    quick.</p>
                 </div>
 
                 <div class="help-card">
-                    <h4>Which preset should I start with?</h4>
+                    <h4>I want more cleanup than 100%</h4>
+                    <p><b>Amount</b> stops at 100%, the deepest cut each fix allows.
+                    If that is not enough, the card may not match what you hear.
+                    Listen to Removed: if it holds the wrong sound, try a different
+                    card, or answer the questions on the <b>What do you hear?</b> tab
+                    again with fresh ears.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Which card should I start with?</h4>
                     <p>Two ways to get there:</p>
                     <ol>
-                        <li>Click <b>Analyze</b> on the Master screen. Shimmer measures
+                        <li>Click <b>Analyze</b> on the Master tab. Shimmer measures
                         your track's loudness, tone and fixed tones, and marks what it
                         found on the <b>What do you hear?</b> cards.</li>
-                        <li>Use the <b>Pick a preset</b> tab and answer a couple of
-                        questions about what you hear.</li>
+                        <li>Use the <b>What do you hear?</b> tab in this Help and
+                        answer a couple of questions about what you hear.</li>
                     </ol>
                     <p>Both are just starting points. Trust your ears over either one.</p>
                 </div>
 
                 <div class="help-card">
                     <h4>My track has two problems at once</h4>
-                    <p>That is normal. Use a preset built for it:</p>
-                    <ul>
-                        <li><b>Vocal Glaze + Top End</b> &mdash; glassy vocals plus
-                        top-end sizzle. The most common pairing by far.</li>
-                        <li><b>Deep Scrub</b> &mdash; for three or more problems
-                        stacked together.</li>
-                    </ul>
+                    <p>That is normal. Turn on a card for each one. Each card runs its
+                    own fix, in a set order. The <b>Signal Chain</b> tab shows what
+                    each fix does to your song.</p>
+                </div>
+
+                <div class="help-card">
+                    <h4>Where did the presets go?</h4>
+                    <p>The Master tab uses the <b>What do you hear?</b> cards instead.
+                    Remix and Batch still offer the 1.x presets, and each one turns
+                    on its matching card. The <b>What do you hear?</b> tab has the
+                    full list.</p>
                 </div>
 
                 <div class="help-card">
                     <h4>My export is quieter than other songs</h4>
-                    <p>That is correct behaviour, not a bug. <b>Streaming
-                    (&minus;14 LUFS)</b> is the level Spotify and Apple Music
-                    normalize to. If you master louder, they simply turn you back
-                    down &mdash; and you gave up dynamic range for nothing.</p>
-                    <p>Use <b>Loud (&minus;11)</b> only when you need punch for a
-                    playlist or a club system, and <b>CD / Club (&minus;9)</b> only if
-                    you know exactly why you need it.</p>
+                    <p>Check that <b>Master for release</b> is on, then look at the
+                    <b>Loudness target</b>. <b>Commercial</b>, the default, is as loud
+                    as most released songs. <b>Balanced</b> is a little quieter, with
+                    more punch left in. <b>Streaming standard</b> is the level
+                    streaming apps play songs at, so it sounds quiet in other players.
+                    Each choice shows its LUFS level.</p>
+                    <p>With mastering off, <b>Preserve volume</b> keeps the song at
+                    its own level, so a cleaning-only file plays as loud as the file
+                    you loaded. After export, the <b>Release check</b> shows how loud
+                    the file will play on each service.</p>
                 </div>
             </section>
 
@@ -1700,7 +1753,7 @@
                     every stem, which is whatever the separator dropped (reverb tails,
                     room, most of the AI fizz). With it in the mix, an untouched remix
                     is identical to your original; the Residual figure in the mixer
-                    header says how much lives there.</p>
+                    header says how much is in it.</p>
                 </div>
             </section>
 
@@ -1709,7 +1762,7 @@
 
                 <div class="help-intro-note">
                     <b>Shimmer by The Treq</b> &mdash; a free, offline tool that
-                    removes AI generation artifacts and masters your track for
+                    cleans up AI generation artifacts and masters your track for
                     release. Built by an AI music creator who got tired of hearing
                     that fizz on his own tracks.
                 </div>
@@ -1723,12 +1776,15 @@
                 </div>
 
                 <div class="help-card">
-                    <h4>No AI in the cleanup</h4>
-                    <p>It sounds backwards for a tool aimed at AI music, but the
-                    cleaning engine uses classic signal processing &mdash; the same
-                    kind of math behind an EQ or a compressor. That means the same
-                    settings always give you the same result. Nothing is guessed,
-                    and nothing changes between runs.</p>
+                    <h4>How the fixes work</h4>
+                    <p>Most of the fixes are classic signal processing, the same
+                    kind of math behind an EQ or a compressor: a notch filter, a
+                    de-esser and a dynamic EQ. The one exception is the
+                    <b>Shimmer</b> card's spectral de-noise. It uses a small trained
+                    model (a neural network) that runs on your own computer and
+                    turns down only what it hears as fizz. Nothing is sent anywhere,
+                    and the same song with the same settings gives the same result
+                    each time.</p>
                 </div>
 
                 <div class="help-card">

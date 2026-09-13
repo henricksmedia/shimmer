@@ -19,7 +19,7 @@ function buildActions() {
         { label: 'Open Advanced artifact controls', cat: 'action', run: () => document.getElementById('advanced-open-btn')?.click() },
         { label: 'Analyze current file', cat: 'action', run: () => document.getElementById('analyze-btn')?.click() },
         { label: 'Help: Quick start',    cat: 'help', run: () => openHelp('quickstart') },
-        { label: 'Help: Pick a preset',  cat: 'help', run: () => openHelp('presets') },
+        { label: 'Help: What do you hear?', cat: 'help', run: () => openHelp('presets') },
         { label: 'Help: Troubleshoot',   cat: 'help', run: () => openHelp('trouble') },
         { label: 'Help: Setup (ffmpeg)', cat: 'help', run: () => openHelp('setup') },
     ];

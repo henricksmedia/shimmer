@@ -143,7 +143,7 @@ export async function initBatchTab() {
                 Array.isArray(saved.eq.bands) && saved.eq.bands.length) {
                 eqPayload = saved.eq;
             } else {
-                append('No EQ bands configured on the Single File tab — EQ skipped.', 'err');
+                append('No EQ bands configured on the Master tab — EQ skipped.', 'err');
             }
         }
 
@@ -201,11 +201,10 @@ export async function initBatchTab() {
                         : `Preset: ${msg.preset}`;
                     append(`Found ${msg.total} file(s).  ${mode}`, 'head');
                     append(`Output → ${msg.output_folder}`);
-                    if (strength !== 1.0) {
-                        append(`Preset strength: ${Math.round(strength * 100)}%`);
-                    }
+                    // Preset strength is not logged: 2.0 turns on the preset's
+                    // card at its default Amount, so the old strength does nothing.
                     if (eqPayload) {
-                        append(`EQ: ${eqPayload.bands.length} band(s) from Single File tab`);
+                        append(`EQ: ${eqPayload.bands.length} band(s) from the Master tab`);
                     }
                     if (msg.album_mode) {
                         append('Album mode: one gain for the whole record; the loudest track lands on the target and the others keep their distance.');

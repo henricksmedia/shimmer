@@ -218,12 +218,18 @@ def _note(pass_label: str, rendered: core.Rendered, eq_moves: List[str]) -> str:
     """One provenance line for the comment tag, e.g.
     `Shimmer 2.0.0: pass 1, Fixed tones 2 notches, mastered -9 LUFS / -1 dBTP`."""
     parts = [pass_label]
-    tones = rendered.report.get("fixes", {}).get("tones")
+    # Every fix that ran, in chain order: Fixed tones with its notch count,
+    # then each card's fix at its Amount.
+    fixes = rendered.report.get("fixes", {})
+    ran = []
+    tones = fixes.get("tones")
     if isinstance(tones, dict) and tones.get("enabled"):
         n = int(tones.get("notches") or 0)
-        parts.append(f"Fixed tones {n} notch{'es' if n != 1 else ''}")
-    else:
-        parts.append("no fixes")
+        ran.append(f"Fixed tones {n} notch{'es' if n != 1 else ''}")
+    for card, rep in fixes.items():
+        if card != "tones" and isinstance(rep, dict) and rep.get("enabled"):
+            ran.append(f"{core.catalog.card(card).label} {round(float(rep.get('amount', 0.0)) * 100)}%")
+    parts.extend(ran or ["no fixes"])
     if eq_moves:
         parts.append("EQ " + "; ".join(eq_moves))
     m = rendered.report.get("mastering", {})

@@ -5,787 +5,368 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Added
+## [2.0.0] — 2026-09-13
 
-- **An efficacy harness that measures whether the artifact went, against
-  ground truth.** `scripts/efficacy_harness.py` adds a modelled artifact
-  (`shimmer/artifacts.py`: hash, fixed line, intermittent whistle, comb,
-  steady fizz, signal-following residue, centred sibilance) to a finished
-  master that carries none, at a level the hearing model sets, runs every
-  preset, and reports how much of the artifact's audible footprint is left
-  and how much music went, both in sones. Nothing in it consults the
-  detector. Cached result in `docs/efficacy-harness.json`; relations in
-  `tests/test_efficacy.py`. What it found: the static notch plan removes
-  96 % of a fixed line where the tone-killer presets remove a quarter;
-  Suno Hash removes 12 % of the modelled hash at any modulation rate;
-  Checkerboard Grid and Sibilance Rattle remove none of their targets while
-  costing more than most; the old harness's prior-based "fixed" figure
-  correlates 0.22 with the truth. Full table in the handoff checklist.
+Shimmer 2.0 is a rebuild of 1.1.1. The sound engine is new. Every tab now
+uses one sound path, so what you preview is what you export. The 19 presets
+are gone from the Master tab. Instead, you say what you hear, and each
+choice turns on one tool made for that problem. Each tool was measured on
+test songs before it was turned on. Masters are louder by default: the
+default loudness is now Commercial (-9 LUFS). This release also ships the
+work done since 1.1.1 that was never released, such as the Remix lane
+mixer, album mode and the release check.
 
-- **The tilt gap re-measured on one reference setting.** `scripts/tilt_gap.py`
-  pairs every MediumNeutral service master in the catalogue with a Shimmer
-  master of the same song, checks each pair is the same performance, and
-  measures the 800 Hz to 6.3 kHz tilt difference: 35 pairs, mean 6.3 dB,
-  spread 2.9, 34 of 35 duller than the reference. The earlier "11 dB" came
-  from six songs against references on mixed settings.
+**Updating from 1.1.1:**
 
-- **The export note records the run, not just the preset.** A finished file
-  said "Vocal Glaze + Top End 100%, EQ 2 bands" — enough to name the preset,
-  not enough to reproduce the master, because the sliders the user moved, the
-  EQ moves themselves and the mastering tone setting were all missing. Two
-  files with the same note could differ by several dB in the top end. The
-  note now carries the knobs moved off the preset (`params.preset_overrides`
-  diffs the run against the strength-scaled preset), the EQ as applied with
-  frequency, gain and Q, and the tone `intensity/tilt` pair. Album mode
-  carries them from pass 1, which holds the params, to pass 2, which writes
-  the tags. Untouched presets add nothing, so a stock run's note is unchanged.
-
-- **A marketing kit ships with the app.** `static/marketing/` holds three
-  pages in Shimmer's own colours, reachable from a running copy at
-  `/static/marketing/` or by opening the files: a **message reference**
-  (the approved wording, the five claims worth repeating, every number
-  quoted from the app, the words to skip and the claims never to make),
-  a **plan** (who to talk to, where, the first 30 days, what to measure,
-  what could go wrong), and **ten written posts** with per-post copy
-  buttons, live character counts against a 280 box, one-click copy of
-  all ten, and a save-to-text-file button. `tests/test_marketing.py`
-  ties the pages to the app: the preset count, the loudness targets and
-  the true-peak ceilings must match the code, no post may make a claim
-  the kit forbids, and the cleaning path must stay free of machine
-  learning imports, because the kit says it is.
-
-- **A release copy: WAV 16-bit at 44.1 kHz, dithered.** Exports were
-  24-bit at the source rate, so a Suno track came out at 48 kHz and the
-  16-bit option lived only in the CLI. Format now offers "WAV release
-  copy (16-bit · 44.1 kHz · dithered)" on the Master, Batch and Remix
-  tabs. The rate change happens before the chain runs, so cleaning,
-  mastering and the true-peak limiter all work at the delivery rate and
-  a resample afterwards cannot push peaks back over the ceiling; the
-  file is written as 16-bit with TPDF dither. The CLI gets `--release`
-  (the same thing) and `--sample-rate`. The Signal Chain's Export stage,
-  the results readout and the Release check all say what was written.
-- **A Release check after every mastered run.** The numbers under the
-  player said what the file measured; nothing said whether it was ready
-  to upload. A Release check card now gives one verdict, "Ready to
-  upload", "n things to look at" or "Not ready", with one line per
-  check, its value and one line of advice: loudness against the target
-  (within 0.5 LU passes, within 1 LU warns), true peak against the
-  ceiling, clipping already in the uploaded file, sample rate, format
-  (WAV or FLAC for a store; a lossy export warns), silence at the start
-  and the end, length under 30 seconds, DC offset, mono compatibility,
-  and the tags (title, artist, album; the ISRC is noted). Under it,
-  "How loud it plays" says how far Spotify, Apple Music, YouTube,
-  Amazon Music, Tidal and Deezer turn the file up or down. The green
-  banner carries the verdict as a chip, and every mastered file in a
-  Batch run logs its verdict with the flagged checks.
-- **Album mode in Batch.** Until now Batch normalised every track to the
-  target on its own, so a quiet ballad came out as loud as the single.
-  With Album mode on (under Master for release), the folder is mastered
-  as one record: pass 1 cleans every track with mastering held back,
-  one gain is decided from the loudest track, and pass 2 masters each
-  track with that gain, so the tracks keep their relative levels and
-  the loudest lands on the target. The limiter still runs per track,
-  so nothing passes the ceiling and no track is limited harder than it
-  would be alone. The log shows both passes, each track's cleaned
-  loudness, and an album line: the loudest track, the gain, the
-  album's overall loudness, and the spread from loudest to quietest.
-  Every mastered batch, album or not, now logs each file's output
-  loudness, true peak and limiter gain reduction next to its peaks.
-- **A Download step ends every run, and a Settings tab says where the
-  file goes.** The processing window used to close by itself once the
-  file was written, leaving the Download button in the green banner
-  under the player, easy to miss among everything else on the page.
-  Now the window goes from "Writing the file" to a Download step: the
-  file's name and size, a big Download button, Close, and Escape. The
-  new Settings tab (in the rail, under Signal Chain) holds the two
-  choices such a step needs. **Download automatically** starts the
-  download the moment the run ends, with the step kept as a backup.
-  **Download location** is the browser's Downloads folder, or a folder
-  of yours that Shimmer writes the finished file into as the run ends
-  (the same picker Batch uses), under the same name a download gets,
-  tags included; the step then leads with **Show in folder** and still
-  offers a copy to download. Both apply to the final file only: pass 1
-  of a two-pass plan is never downloaded or saved, and its window closes
-  by itself as before. The choices come back on the next visit whether
-  or not Remember settings is on, like the Tags defaults. A folder that
-  cannot be created stops the run before it starts; a copy that fails
-  at the end is reported on the step and under the banner instead of
-  losing the run. The green banner keeps its Download button, and the
-  Signal Chain's Export stage shows the folder as a badge.
-- **The Remix tab is a lane mixer, and separation has quality tiers.**
-  The tab now walks the same three stages as Master (1 Upload,
-  2 Separate, 3 Mix & Render) with the same hero dropzone, a Recent
-  sessions list that badges tracks whose stems are already done, and a
-  line saying which engine and graphics card it found. Separation runs
-  at a chosen quality: **Fast** (htdemucs, about 10 s for a four-minute
-  song on the GPU), **Best** (htdemucs_ft, the fine-tuned model with one
-  specialist per stem, about 25 s; fetches 330 MB the first time),
-  **6 stems** (adds guitar and piano), **Ultra** (the MDX23 recipe:
-  Best averaged with htdemucs and Hybrid Demucs v3, two shift passes,
-  50 % segment overlap; about 4× Best, for less bleed and fewer seams
-  when time does not matter) or **Studio**, the step past Demucs for
-  the stem that matters most: Kimberley Jensen's Mel-Band RoFormer
-  (MIT; 12.6 dB vocal SDR against htdemucs_ft's 10.8) takes the vocal
-  out first and Best splits only what is left, so its own vocal output
-  is bleed that folds back into the vocal lane. Studio installs the
-  RoFormer runner (audio-separator, MIT) into the side venv and fetches
-  the 915 MB model the first time; about 2× Best afterwards. Every
-  shipped model and its license is listed in NOTICE and the About tab;
-  models without published terms are not offered. Stems are written as 32-bit float
-  WAVs exactly as the model produced them (no clipping, rescaling or
-  16-bit truncation) and cached per track *and* model, so switching
-  tiers never re-runs what is done; the old cache layout is migrated in
-  place. The processing window shows the engine's real progress (the
-  segment loop inside Demucs, across models and shift passes) instead
-  of sitting at 30 % for a minute, and a model download or a GPU
-  out-of-memory fallback is reported as it happens.
-- **A Residual lane and a null test.** After the split, Shimmer keeps
-  `mix − stems` as a lane of its own: reverb tails, room, and most of
-  the AI fizz the separator dropped. With it in the mix an untouched
-  remix is identical to the original, and the mixer header says how
-  much lives there ("Residual −29 dB"). The Best tier's four
-  specialists leave more in it than Fast's single model; the lane makes
-  both faithful.
-- **The split is a question, not a default.** After the upload the
-  mixer asks "How many stems?" with one card per split (Fast 4, Best 4,
-  6 stems), each with its time on this machine, its model, a "cached ·
-  instant" badge when that split is already done for the track, and a
-  download note the first time. Clicking a card separates. Nothing runs
-  on its own, and a cached split never overrides the one you picked; the
-  dock's Separate button re-runs at another quality later.
-- **The mixer.** One row per lane, Original on top as the reference:
-  the lane's waveform in its own colour on a shared time ruler, a
-  mute, solo (Ctrl+click for groups), fader, pan (a balance control),
-  an FX button that opens the rack under the row (formant, saturation,
-  doubler, reverb, with the enabled effects' sliders inline), a
-  whole-file level bar with a peak tick, and the lane's share of the
-  mix. Other is labelled for what it holds (synths, keys, strings, FX).
-  Comparing is one click: the Original lane has a **Listen** button,
-  the mixer's corner has a 1 Original / 2 Remix switch, and clicking
-  any lane's name plays that side inside the loop (keys 1 and 2 do the
-  same); clicking a waveform seeks. The loop parks on the busiest section
-  (every stem playing) when the stems arrive. Quick mixes:
-  Instrumental, Acapella, Vocal lift, Reset.
-- **Stems export.** The Stems section downloads the parts themselves
-  as a ZIP of 24-bit WAVs at the track's rate: as separated (residual
-  included, so the files sum back to the original) or through the mix
-  (each lane with its fader, pan and effects; muted lanes left out).
-- **Render result like Master's.** The render ends in a green banner
-  with the key figures and a Download button that stays, plus a
-  Loudness / Cleaning / Job readout, instead of a bare list of chips.
-- New routes: `GET /api/stems/engine` (engine and tier state),
-  `GET /api/stems/library` (cached stem sets), `GET /api/stems/info/{sid}`
-  (per-stem measurements and the loop hint), `POST /api/stems/export`.
-  `POST /api/stems/separate` takes `tier`; the remix preview, render and
-  export accept any lane names, including the residual and the 6-stem
-  model's guitar and piano. Tests: `tests/test_stems.py`.
-
-### Fixed
-
-- **The Remix tab's loudness match could silence the Original.** It
-  attenuated whichever side was louder with no cap, so a muted or
-  soloed-down remix reading 100 dB quieter turned the Original monitor
-  to nothing. It is now capped at 6 dB like Master's, skipped while the
-  remix is silent, and the bar says what it is doing ("Remix −3.1 dB").
-
-- **The mastering tone match was a fixed 3 dB brightening, not a match.**
-  `compute_tone_curve` compared a reference written in relative dB with
-  the track's absolute band levels, so the "difference" was the same for
-  every track: about −3 dB everywhere below 8 kHz and nothing above it.
-  After the level gain that is a +3 dB air lift on every mastered export,
-  at every Tone match setting. The analyzer also doubled every dB (it took
-  20·log10 of a power). Both are fixed. The track is now measured as
-  1/3-octave band power relative to its own 200 Hz–2 kHz median, and the
-  reference is the same kind of number: the shape of released music
-  (the AES study by Pestana, Reiss and others: about −5 dB per octave
-  from 100 Hz to 4 kHz in the raw spectrum, flatter in recent decades),
-  which is roughly flat from 60 to 500 Hz a few dB above the mids, then
-  falling. The curve now differs per track and stays inside the same
-  ±2 / −3 dB bounds. On a bass-heavy render the lows come down a little;
-  a balanced track gets close to nothing. The EQ panel's grey silhouette
-  is drawn from the corrected numbers too.
-
-- **"Second pass" no longer runs the first preset again.** The Next
-  step card was titled "Second pass with Sibilance Rattle", but its
-  button ran this pass with whatever preset was applied, so on a file
-  that had already been through Vocal Glaze it ran Vocal Glaze again.
-  The card now names each pass and its preset: "Pass 1: Vocal Glaze +
-  Top End now · Pass 2: Sibilance Rattle", and the button reads "Run
-  pass 1: Vocal Glaze + Top End (Clean)". When pass 1 finishes, a
-  Continue button loads its result right here, applies the pass-2 preset,
-  turns mastering on, and shows the pass-2 card at once with both rows
-  green and one button, "Run pass 2: Sibilance Rattle (Clean & Master)".
-  Analyze is offered on that card as an optional check, not a required
-  step. No download and re-upload. A file that
-  is one of Shimmer's own exports is recognised by its name
-  ({stem}_{preset}_processed_{id}); the dropzone says "Shimmer output ·
-  pass 1 was Vocal Glaze + Top End", and the card becomes "Pass 2:
-  Sibilance Rattle" with a line saying the next step is not the first
-  preset again. Its state rows then ask for mastering on and Preserve
-  volume off, and its button applies the pass-2 preset and runs
-  Clean & Master. The card walks the sequence: pass 1 pending, pass 1
-  done (Continue becomes the one action, the re-run is a quiet second
-  button, the setting rows fold away), pass 2 pending, both done ("Both
-  passes are done. Download from the green banner."). The green banner
-  says "pass 1 of 2 · cleaning only" or "pass 2 of 2 · mastered". On a
-  recognised pass-1 output the master-once question is skipped, since
-  pass 2 is the last pass and should master.
-
-- The fixed-tones list under the analysis had lost its row layout (the
-  frequency, depth and kind ran together) when the results styles were
-  rewritten; its styles are back.
-- **The dock no longer shows a stale preset, and no longer uses a button
-  to show state.** After Analyze the dock button read "Analysis ready ·
-  Sibilance Rattle 125%" and kept saying so after you applied a
-  different match. A button names an action, so it now reads "View
-  analysis" (it opens the workspace), and the state moved to a plain
-  line under the two buttons that reads the live controls: "Vocal Glaze
-  + Top End · 100% · master to Streaming (−14 LUFS)" or "· cleaning
-  only". It updates on every change, including Apply. The Analysis card
-  pill follows the applied match too.
-- **Stage 3 is named by what it will do.** With mastering off, the big
-  button and the stepper's third step said "Clean & Master" while the run
-  only cleaned. Both now read "Clean" when mastering is off and "Clean &
-  Master" when it is on, and switch as you toggle mastering.
-- **"Preserve volume" could not be found.** Tips and the second-pass
-  callout told you to keep Preserve volume on, but the option was labeled
-  "Match loudness when mastering is off", sat inside the collapsed Output
-  section, and was hidden entirely whenever mastering was on, which is
-  when the tip appears. It is now called Preserve volume everywhere
-  (Master and Batch), with a one-line note under it, and it stays in view
-  while mastering is on, greyed and locked with the note saying the
-  loudness target sets the level meanwhile. The tip now says where it is.
-- **The suggested head cut no longer leaves a blip behind.** The cut
-  used to land a hair past the tick, on its decay, and the "detected"
-  box in the Trim view ended there too. The tick now ends where its slope
-  has reached the floor (the middle of the noise band), the box shows
-  that, and the suggested IN point sits 10 ms past it. The quiet floor
-  between the tick and the song is left alone: that is the job of "Trim
-  leading/trailing silence on export", which the Trim card now mirrors
-  so the two sit together. Smaller ticks after the main click, or a
-  faint one before it, count as part of the artifact, and the Trim
-  notice says "plus 2 smaller ticks" when it found them. Tails work the
-  same way, mirrored.
-- **The player no longer piles up on narrow windows.** The transport bar
-  was a flex row whose Monitor and Preview-loop zones could shrink to
-  nothing, so the pills spilled over the loop controls and "Set from
-  playhead" ran off the edge. It is now one grid with named zones that
-  re-flows against the bar's own width: side by side on desktop, the loop
-  controls on a second row below about 940 px, and every zone on its own
-  row below about 720 px, where the pills and loop controls wrap. The bar
-  keeps its 104 px height on desktop and only grows when it stacks. The
-  top bar is now hidden on purpose below 1100 px instead of by accident.
-- **Processed monitor no longer drops by half in Live preview.** Mastering
-  normalised each loop slice on its own, so a quiet section previewed at
-  the full target level even though the full run leaves it quiet. The
-  Original-vs-Processed delta ballooned, and Loudness-matched A/B turned
-  the Processed tab down by up to 6 dB with nothing on screen to say so.
-  Preview slices now receive the same static mastering gain the whole
-  file gets (Remix preview included), and the transport bar shows what the
-  match is doing, e.g. "Processed −2.2 dB". The export was never affected.
-- The progress window said "Cleaning & mastering" even with mastering off.
-  It now says "Cleaning" when that is all the run does.
-- **Trim missed the click at the start of most AI renders.** The scan
-  looked for a gap of near-silence (below −75 dBFS) between the click
-  and the music. AI renders rarely start from silence; the head sits at
-  −60 to −70 dBFS, so the click and the song read as one piece and the
-  card said "edges clean". The scan now also measures the head's own
-  quiet level and looks for a short burst standing well above it, with
-  the music starting later. Verified on a track whose 15 ms click at
-  −41 dBFS was missed before and is now found, with the cut placed
-  inside the quiet run before the music.
-- **"Download WAV" could save a JSON file.** Results live in the server's
-  memory. If the server had restarted since the run, the link answered
-  with an error message and the browser saved that message as the
-  "WAV". The button now checks the result first and shows the error in
-  the metrics strip instead ("The server was restarted since this run.
-  Run Clean & Master again.").
+- Your saved settings carry over. A 1.x preset turns on its matching card,
+  at that card's default Amount. A saved loudness choice stays as it was.
+- The old cleaning sliders (Advanced controls) and Preset strength no
+  longer do anything.
+- The command line still accepts the 84 retired 1.x flags. It ignores them
+  and prints a note that names them.
+- Scripts that call the server can still send the old fields (`preset`,
+  `preset_strength`, `overrides`, `auto_detect`, `static_repair`,
+  `cleaning.preset`). They are mapped to cards.
 
 ### Changed
 
-- **Analyze scores presets by net audible benefit, not by where the removal
-  sat.** The verified score was `benefit(energy removed) × purity`, and
-  `purity` was the share of removed energy that fell outside a mask of
-  transients and narrow partials. On finished masters that mask covers
-  84–95 % of everything above 2 kHz, so purity read ~1.0 for any top-end
-  preset whether it removed hiss or a cymbal, correlated −0.003 with
-  measured audible damage, and recommended cleaning finished commercial
-  masters at 56–69 % confidence. Each trial clean is now compared with the
-  input by the BS.1387 hearing model (`perceptual.py`): audible content
-  removed is credited in proportion to the evidence that the preset's
-  artifact is present and debited by the evidence that it is not, and tilt
-  damage is always a cost. The two full-scale points are the budget's own
-  ceilings (0.10 sones, 3.0 of tilt). Measured on the corpus: the old score
-  fired on 9 of 9 finished masters, the new one on 0 of 2 references and 2
-  of 7 mastering-service masters at ≤ 0.12, one of which still carries the
-  hash by its own flicker measure. Deep Scrub scores zero everywhere with
-  no policy. The sentence "97 % of what it removed was noise, not music" is
-  replaced by the audible loss and tone shift against those limits; the CLI
-  table shows `loss` and `tilt` instead of `purity`. The 80/20 blend with
-  the prior is gone (the prior is inside the score); unverified runs still
-  rank on the prior alone.
-
-- **The evidence priors can now say "nothing is wrong".** Their ramp edges
-  were set from 26 Suno renders with no clean control, so on finished
-  masters the presence-band presets read 0.7 to 1.0: `presence_db` sits at
-  −4.5 to −1.6 dB on clean masters while its ramp started at −14. Every
-  edge is now derived by one rule from measurements
-  (`scripts/prior_calibration.py`): the lower edge is the 84th percentile
-  of nine finished masters, the upper edge the median reading with the
-  matching modelled artifact injected at a plainly audible level. Measured
-  after: finished masters that get a recommendation 2 of 9 → 1 of 9 (the one
-  whose own hash measure reads +2.4 dB), the synthetic clean bed no longer
-  fires, and the synthetic hash picks Suno Hash itself.
-
-- **Analyze is one pass by default.** The routine second-pass check (run
-  the runner-ups on the winner's output) is off unless asked for. Measured
-  on three multi-artifact tracks it found no new artifact but raised other
-  presets' priors, which are relative measures; under the net-benefit score
-  it fired on 0 of 8 corpus files. Saves 4 of 28 pipeline runs per Analyze.
-  The "Second pass" tile in the Single File tab now always reads "Not
-  needed".
-
-- **Linear-distortion S0 corrected to the reference.** `perceptual.S0_LINDIST`
-  was 0.5, the Basic-model noise-loudness value; Kabal (2002) eq. 105–106
-  gives S0 = 1 for AvgLinDist. `lin_dist` moves by a factor of 0.88–1.01 on
-  every anchor measured; the budget's tilt ceiling and the pinned magnitude
-  test are unchanged.
-
-- **The damage model level-matches its inputs.** A pure −3 dB gain with no
-  spectral change used to score 13.6 of linear distortion, more than half
-  of what a −6 dB shelf scores, because the model's level adaptation
-  rescales the reference toward a quieter test and the tilt measure then
-  compares that rescaled reference with the raw one. `measure_damage` now
-  scales the test to the reference's RMS first (Kabal's own experiments
-  gain-align test to reference) and reports the gain it applied. The pure
-  gain now reads zero on every measure; real changes move by under 6 %.
-
-- **Golden-value tests for the hearing model.** Every standard-mandated
-  constant is pinned to its cited value, and the model's outputs on fixed
-  signals are pinned to 0.2 %, so a silent change to any stage fails a
-  test. Eight such changes had survived the suite before.
-
-- **Hearing model 6× faster.** The per-band Python loops in the spreading,
-  band-grouping and adaptation stages are now matrix operations; output is
-  identical to 3e-15 relative, and `measure_damage` on a 5 s clip takes
-  0.11 s instead of 0.70 s.
-
-- **A two-pass plan counts pass 2 in instead of going quiet.** Run both
-  passes (and Continue) used to close the processing window when pass 1
-  finished, render its result with a Download button, and open the
-  window again a few seconds later for pass 2; people took the gap for
-  the end. The window now stays up across the hand-off: "Pass 1 done"
-  over a busy bar while the cleaned file loads and the EQ is planned,
-  then a big 3-2-1 in front of the pass-2 chain (the wordmark's face in
-  the aurora gradient, an amber ring draining, Go in green) before pass 2
-  starts. Stop here, or Esc, keeps the loaded result and runs nothing.
-  Titles now carry the pass ("Cleaning · pass 1 of 2", "Cleaning &
-  mastering · pass 2 of 2"). Esc on the window no longer throws when the
-  Close button is not offered.
-- **The progress window shows the chain, live.** It used to say
-  "Cleaning AI artifacts…" for most of the run. It now draws the Signal
-  Chain as a wire with the eleven stages on it (Edit, Repair, Pre, Split,
-  Fine, Engine, Recombine, Post, Level, Master, Export): audio comes in
-  on the left as a small waveform packet, each stage lights in its own
-  colour as the server reports it, the active one pulses, stages that
-  are not in this run are dashed, and the packet leaves through Out when
-  the file is written. Under it, the stage in plain words with its
-  detail: "Fixing clicks and fixed tones · 3 fixed tones notched",
-  "Splitting the band · below 4500 Hz passes through · highs go
-  Mid/Side", "Cleaning: the 9-stage engine · Side channel", "Mastering ·
-  level to −14 LUFS · peak shaper · true-peak limiter", "Writing the
-  file · WAV · tags". The pipeline reports each stage as it starts
-  (`clean_and_master(stage_callback=...)`), the job stream carries it
-  as `{stage, status, detail}`, and an older server without stage
-  events falls back to the old wording. The card is sized for the job:
-  940 px wide on a desktop, stage names on one line, the stage in
-  19 px type, so it reads from across the room.
-
-- **The Suggested EQ card says whether it is in the EQ.** A state line under the verdict reads In the EQ, Held for pass 2 (this run is pass 1, cleaning only; the plan is made again on the cleaned file and applied by itself when pass 2 runs; use Apply to take it now), Goes into the EQ on the final pass, or Not in the EQ. The EQ strip shows the same state and its button says Apply now when the plan is held.
-
-- **The Remix tab's player lives in the bridge.** Its transport, A/B
-  and loop controls used to sit in a card that scrolled away with the
-  page while the bottom bar showed the Master tab's idle player. The
-  bar now belongs to whichever tab owns the player: on Remix it shows
-  the same transport (start, back 5 s, play, forward 5 s, a scrubber
-  with the loop window), a Monitor with 1 Original / 2 Remix, and the
-  loop controls (Live is always on there, loop length, Set from
-  playhead, the live status). The waveform stays in the page. Keyboard:
-  Space, 1, 2, and the arrow keys work on the Remix tab like on Master.
-  Fixed on the way: the remix render's report always said "Not
-  mastered" because it read the wrong level of the metrics response.
-
-- **The Remix tab uses the same live-chain window.** Stem separation
-  shows Engine setup (only on the first run), Separate and Load, with
-  the four stems as its Out; the remix render shows Mix, Analyze (when
-  the cleanup preset is Auto), the Signal Chain phases that apply, and
-  Export. The two inline bars under the buttons are gone. One module,
-  `static/js/progress-chain.js`, now draws the window for every job.
-
-- **EQ presets rebuilt at mastering scale.** The seven one-band
-  sketches are replaced by thirteen starting points a mastering engineer
-  would reach for, genre-neutral first: small broad moves (tonal 1 to
-  1.5 dB, Q 0.7 to 1.0; corrective cuts a little narrower). Corrective:
-  Rumble cut, Tighten lows, De-mud, Box cut, Smooth the top. Tonal: Tilt
-  darker, Tilt brighter, Warmth, Open mids, Presence, Air (gentle), Vocal
-  clarity. Creative: Lo-fi telephone. The old Air lift (+2 dB at 11 kHz)
-  and Presence (+2 dB, narrow, at 3.5 kHz) were too hot for a master and
-  worked against the cleaner on limited renders; Warmth no longer adds
-  low-mid weight at 200 Hz. The menu is grouped and every entry says what
-  it does; Air is greyed out when the render's top end stops under
-  12 kHz. A preset still replaces the current bands, and every band stays
-  editable.
-
-- **Advanced artifact controls is a working pane, not a drawer.** The
-  narrow side drawer with a bullet list above every group is replaced by
-  a wide sheet. Controls sit on the left in chain order, in sections
-  coloured like the Signal Chain (Repair, Band, Detection, Cleanup
-  tools, Recombine, Post), labelled with the chain's own terms and a
-  short gloss; each slider says what its two ends mean, right under the
-  track. A Focus panel on the right explains whatever is under the
-  pointer or keyboard and lights its stage on a mini chain. The tick
-  under every slider is the preset's value at the current strength;
-  anything you move is marked "changed", counted per section and in the
-  header, and Reset all brings the preset back. Double-click a slider to
-  reset it; Shift + arrow keys move ten steps. The header says whether
-  the Live loop is on, since that is how a change is heard. Three
-  amounts the presets already used but no slider reached are now
-  sliders: Flicker Tamer, Tone Notcher and Noise Resynthesis (they scale
-  with Preset strength like the others, and the Signal Chain links to
-  them). The Help tab's Controls reference uses the same entries.
-
-- **The Analysis card's help text is scannable.** The paragraph under
-  the fixed-tones list is now one lead line, three numbered items across
-  the full width (picks the preset, finds the worst spot, plans the EQ),
-  and one closing line with the time it takes. While Analyze runs, the
-  card shows one honest line and a moving bar instead of the help text.
-
-- **Right pane in chain order, with state in every summary.** The
-  Parametric EQ card now sits above Mastering, because the EQ runs
-  before the mastering stage. Each section's summary line shows its
-  state even when closed: "3 bands · suggested", "−14 LUFS · match
-  medium", "WAV 24-bit", the artist name. Mastering's "Tone" tilt select
-  is labelled "Tilt", the standard name, so only the tone match and the
-  suggested EQ share the word tone.
-
-- **The Signal Chain is drawn as a wired flow.** It was a row of
-  identical grey boxes in a horizontal scroller. Stages now flow left to
-  right and wrap like text, with one continuous wire that drops down and
-  comes back to the left edge at each row break, so the whole chain fits
-  the screen with no sideways scrolling. Colour carries meaning: each
-  phase (Edit, Repair, Pre, Split, Fine pass, Engine, Recombine, Post,
-  Level, Master, Export) has a hue, and the hues move around the wheel in
-  signal order, on the wire, the card rail, the phase label and the
-  badges. Every card shows where on the spectrum its stage works, as a
-  small log-frequency bar with a tick at the crossover. Stages that do
-  nothing for the preset are dashed with a one-line reason and a dashed
-  wire into them. The summary moved to the top: stages on, STFT size and
-  passes, the bypass point, the two gates, and a phase legend with on/
-  total counts. The detail panel sits beside the flow and stays in view;
-  it carries the phase, the stage number, a larger band bar with axis
-  labels, the full text and every value, then the Advanced-drawer link.
-  The server now sends each stage's phase and band (`chain.py`).
-- **A real transport.** The bridge had a play button and a clock. It now
-  has back-to-start, back 5 s, play/pause, forward 5 s, the clock, and a
-  scrubber that stretches between the two halves of the clock on the
-  same line: click or drag to seek, the cyan fill is the playhead, and
-  the amber band is the Live loop window. It works wherever the waveform
-  is scrolled away and on a phone. The zone now has the same skeleton as
-  Monitor and Preview loop (a small label, the main row, a sub line with
-  the key shortcuts). The bar's three zones now split the width in
-  proportion (transport 1.15, the others 1 each) instead of capping the
-  other two at 460 px and handing every leftover pixel to the transport,
-  and the monitor pills stretch across their zone. Buttons are 34 px and
-  up for touch; when the bar stacks on narrow screens the buttons centre
-  and the scrubber spans the full width, and the bar stacks below about
-  720 px so the transport and the monitor pills never collide.
-- **The workflow stepper fills its row and names the stage you are in.**
-  The three steps were small chips in a corner. They are now three equal
-  segments across the page: the current stage has a filled number badge
-  and a full underline in its own stage colour at 15 px, stages already
-  done keep an outlined badge and a faded underline, and the ones still
-  to come stay grey. Same three elements, more room.
-- **Stage numbers on every stage button, one colour per stage.** Choose
-  file carries 1, Analyze carries 2 in the card and in the dock, and Clean
-  & Master carries 3, so the buttons match the stepper. Each stage has
-  one colour everywhere it appears: 1 teal, 2 cyan, 3 amber. The stepper
-  shows state by fill and underline rather than hue (filled badge for the
-  current stage, outlined for done, grey for what is still to come), and
-  each stage button takes its stage's colour. The number stays while a
-  button reads "Analyzing…" or "Processing…". The compact dropzone's
-  Change button now spans the card, with the file name under it.
-- **Analyze results read as a verdict, not a list.** Six identical cards
-  gave no sense of what mattered, card 1 stayed highlighted by position
-  even after applying another match, and the second pass was a paragraph.
-  The applied match is now a hero block: the name at 18 px, the strength
-  as a big number, a solid amber Applied pill, the match bar and the
-  reason in full. It is whichever match is applied, so it moves when you
-  click Apply on another; the other five sit in a quiet ranked table
-  (rank, name, match bar, strength, Apply; the reason on hover). The
-  second pass is a "Next step" callout with an amber rule: the two
-  settings the pass needs shown as state rows ("Mastering off for this
-  pass: On/Off", "Preserve volume on: On/Off", amber until right, green
-  with a check once right) and one button. "Set up second pass" flips
-  both; it then reads "Run this pass: Clean" and starts the run, with a
-  line saying to upload the result and run the suggested preset next.
-  Notes are a small Details list. In the workspace, four tiles run across the top: Applied, Second
-  pass, Fixed tones, Top end. Amber now marks exactly two things: the
-  applied choice and the next action.
-- **The player gives its height to the view that earns it.** The waveform
-  is a navigation strip (seek, loop window, dynamics), so in Waveform view
-  it is now 150 px instead of 300. Spectrogram and Both keep the full
-  height, where vertical resolution shows hash as streaks in the shaded
-  band.
-- **The live analyzer is now a measuring tool.** It grew from 64 px to
-  170 px and gained a dB grid every 12 dB, labels at 100, 500, 1k, 2k,
-  5k, 10k and 20k, and a 4.5 dB per octave display tilt around 1 kHz, so
-  a normal mix reads close to flat and the top end, where the artifacts
-  live, is no longer crushed into the corner. The scale is calibrated so
-  a full-scale sine reads 0 dB. While Processed plays, the Original's
-  smoothed spectrum shows behind it as a dashed line (and the other way
-  round), so the difference is visible without flipping.
-- **The loudness strip now measures loudness.** It looks the same, but
-  the fill was plain RMS while its white marker was a LUFS target, two
-  different scales. It now fills with momentary loudness (ITU-R BS.1770
-  K-weighting, 400 ms) from the audio you are hearing, so the marker
-  means what it says. A 1 kHz sine at -20 dBFS reads -20.0 LUFS. Hover
-  the strip for the number.
-- **Analyze's noise timeline is readable and clickable.** The caption no
-  longer runs through the bars: "Noise over time" sits above the strip
-  with a colour key, and a time axis sits below. Clicking the strip jumps
-  there: with Live on it moves the loop window, otherwise it seeks the
-  player.
-- **The stat readout is grouped.** Chips now sit in three labeled rows:
-  Loudness (LUFS in to out against target, true peak, LRA, limiter gain
-  reduction, peak, RMS), Cleaning (5 to 8 kHz energy, flicker depth as a
-  percentage, narrow peaks left, clicks fixed, fixed tones notched, top-end
-  cutoff) and Job (trim, EQ, length as m:ss, rate, channels). "Limiter
-  0.0 dB max GR" now reads "Limiter: no gain reduction".
-- **The three frames now read apart.** The left rail, the page and the
-  transport bar all sat on nearly the same near-black. The page stays the
-  recessed work area; the rail is lifted one step above it and the
-  transport bar two steps, both with a cool tint, with a hairline top edge
-  and a soft shadow under the player. Rail buttons use translucent hover
-  and active layers and the session card is a darker well, so they keep
-  their contrast on the lifted deck. Cards and page controls are unchanged.
-- **The Signal Chain view is now drawn from the real settings.** It used
-  to be a fixed list: right about the order, wrong about the numbers
-  whenever a preset moved the crossover or the center-channel scale, and
-  missing Trim at the start and Preserve volume / Export at the end. The
-  server now describes the chain from the same preset, strength, sliders,
-  mastering, EQ and export choices a Clean & Master click would use.
-  Badges show live values, stages that do nothing for the current preset
-  are dashed with the reason, and the view refreshes as you change
-  settings. (Phase 0 of docs/PLAN.md.)
-- **Analyze now tests presets instead of guessing.** The old auto-detect
-  scored every preset from a few spectral rules that pass on almost any
-  music, so the same three or four presence-band presets came back for
-  every track, and cleaning a track with its own "best match" did not
-  change its score at all. Analyze now scans the whole file for calibrated
-  evidence (steady tones, flicker, comb spacing, sibilance, tilt, tail
-  residue), then runs every artifact preset through the real cleaning
-  pipeline on the hottest few seconds and measures what each one actually
-  removed — artifact-like residue versus body, transients and musical
-  partials. The ranking is what worked, not what looked plausible.
-- **Analyze sets Preset strength.** Each match now carries the strength the
-  trial found best: the gentlest setting that reaches the top net benefit
-  without adding collateral. Applying a match moves the Preset strength
-  slider; Batch auto-detect and Remix auto-clean apply it per file (the
-  batch strength slider now multiplies the detected value).
-- **Six matches instead of three.** With verified numbers behind each card,
-  the runner-ups are meaningful alternatives rather than noise.
-- **Second-pass and balance hints.** When a different preset still finds
-  residue on the winner's cleaned output, Analyze says so. Low-mid mud and
-  a dull top end are flagged with the EQ-style preset to consider.
-- **Steady tones are tested, not assumed.** Suno's fixed 16–20 kHz tones
-  are found across the whole file, re-measured after each trial clean, and
-  count toward the ranking. When the best preset still leaves a tone mostly
-  intact, Analyze names the frequency, says whether it sits in the center
-  of the mix (where cleaning runs at 20% by design) and points you to a
-  Parametric EQ notch instead of a stronger preset.
-- `shimmer --suggest` prints the verified table (score, confidence,
-  strength, residue, collateral, purity) and the reasons.
+- **One sound path.** The Master tab's preview and export, Batch, album
+  mode, the Remix export and the command line all run the same code,
+  `render()`. The preview is the export on a short window, level included,
+  and a test holds the two equal. The path runs in this order: Read, Trim,
+  Sample rate, Fixes, Tone, EQ, Master, Export, Report. No preset cleaning
+  runs anywhere.
+- **"What do you hear?" cards replace the 19 presets in the Master tab.**
+  Turn on a card for each problem you hear. Each card that is on has one
+  Amount slider.
+  - **Shimmer** (fizzy, flickering hiss up top): Spectral de-noise. A small
+    trained model that runs on your computer sets a gain for each frequency
+    in 1.5-16 kHz. The first time you use it on a song, it reads the whole
+    song once: about 50 s for a 3-minute song. The screen shows its
+    progress, and turning the card off stops it. After that, a new Amount or a preview
+    takes about 0.3 s.
+  - **Fixed tones** (a whistle or whine that never changes): Notch filter,
+    at full depth, as in 1.1.1.
+  - **Sibilance** (harsh "s" and "sh"): De-esser. While a consonant sticks
+    out, it turns 4.5-10 kHz down, by up to 7.2 dB at Amount 100 %.
+  - **Harshness** (piercing upper mids): Dynamic EQ on up to two bands in
+    2-5 kHz, by up to 5.1 dB.
+  - **Low-mid build-up** (muddy, boxy): Dynamic EQ on one band in
+    200-500 Hz, by up to 4.0 dB.
+  - **Lack of air** and **Loudness**: handled in mastering, by the tone
+    target and the loudness target.
+  - **Clicks and crackle**: the de-click is built but has not passed its
+    tests, so the card says "Not built yet" and changes nothing.
+  - **Phasiness**: the card says "No fix yet" and can only be noted.
+- **Each fix has a cap on what it may take from the music.** Sones measure
+  how loud a sound seems to the ear. The top of each Amount slider is set
+  so the fix takes at most 0.10 sones from a clean song. The Shimmer fix
+  takes at most 0.064 sones. These were measured on five clean songs,
+  through `render()` itself.
+- **Commercial (-9 LUFS) is the default loudness.** 1.1.1 started at
+  -14 LUFS, so masters sounded quiet next to released songs. The choices
+  have new names and show as three cards in Master, Remix and Batch:
+  Commercial (-9 LUFS, was CD / Club), Balanced (-11, was Loud) and
+  Streaming standard (-14, was Streaming). Saved choices keep working.
+- **Analyze is faster and names what it finds.** The 19-preset trial is
+  gone. Analyze measures loudness, tone and fixed tones, marks each card it
+  finds, and parks the preview loop with a top-end timeline. It takes 8.7 s
+  on a 3:43 song, where it took about 30 s.
+- **The song is uploaded once.** Analyze, EQ re-plans and the export reuse
+  it, so each one starts faster.
+- **Batch and album mode use the Master tab's path** for every file, with
+  tags, silence trim and the release check. The log lists each file's
+  findings in place of a preset guess. "Suggested EQ per file" uses the
+  same EQ planner. Album mode measures each track just before mastering,
+  picks one gain, then renders each track again with it. Nothing is parked
+  on disk, and a long album is never all in memory.
+- **The Remix export uses the Master tab's path.** The stems' effects and
+  sum go through `render()`. The export writes tags and runs the release
+  check. Its report says what ran, for example "Fixed
+  tones, 2 notches". "Auto" applies what the remix shows (Fixed tones
+  today).
+- **The Remix preview matches the export.** The loop plays at once from
+  its own mix, marked "level approximate". A few seconds later the whole
+  mix is built, and the preview becomes `render()` on a window of it,
+  marked "matches the export". A test holds any difference 60 dB down. The
+  export then reuses that mix, which saves about 9 s on a 4-minute song
+  with vocal effects.
+- **The command line runs on the same path.** The 1.x commands still work.
+  Mastering stays off unless you ask for it with `--master` or `--target`,
+  as in 1.x. `--preset` turns on its card. `--release`, `--write-diff`,
+  `--no-static-repair` and `--list-presets` work as before, and `--suggest`
+  prints the findings.
+- **Suggested EQ is judged the way the song renders**: after the fixes
+  and, with mastering on, after the tone curve. The planner was copied over
+  and makes the same plans on 12 test tracks. Its peak check now reads true
+  peak per channel at 8x. On a cut-only plan for a ringing tone, it now
+  says the limiter works about 1.1 dB harder (1.07 dB, where 1.1.1 read
+  0.69).
+- **Lossy ceilings are set from measurement.** MP3, OGG and M4A now use a
+  -2.0 dBTP ceiling, where 1.1.1 used -1.5 for all three. Every lossy file
+  is decoded after encoding. If it is still over -1.0 dBTP, it is turned
+  down by the excess and encoded again, and the report says by how much.
+  On drum-heavy songs an M4A can be turned down by up to about 2.5 dB. The
+  format menus take their ceilings from the engine.
+- **OGG Vorbis is written at quality 0.8** (about 270 kbps on a dense mix).
+  It decodes at -1.29 to -1.91 dBTP.
+- **The true-peak meter reads each channel at 8x.** 1.1.1 read a mono mix
+  at 4x, so it read low whenever the channels differed. On the test render
+  the upload analysis now reads -5.47 dBTP, where 1.1.1 read -5.92
+  (0.45 dB low). The report's peak-to-loudness ratio (PLR) moves with it:
+  12.43 dB, where 1.1.1 read 11.98.
+- **Low-cut (high-pass) filters run one way.** The 25 Hz low-cut no longer
+  rings ahead of a kick. In 1.1.1 its pre-echo started 32 ms before the hit
+  at -25 dB. It is now -3 dB at 25 Hz, where it was -6 dB. It also removes
+  DC offset, so a preview window needs nothing from the rest of the song.
+  The user EQ's low-cut and high-cut work the same way: -3 dB at the set
+  frequency, no pre-echo, and Q still sets the resonance.
+- **A filter runs zero-phase only where it cannot smear a hit**, that is,
+  where its pre-echo stays inside 20 ms. A test holds every filter to
+  -60 dB beyond 20 ms before a hit.
+- **16-bit dither at the textbook level.** TPDF dither is now ±1 LSB in
+  total. 1.1.1 used twice the usual noise. On silence, 25 % of samples are
+  now non-zero, where 1.1.1 had 56.5 %. A -100 dBFS tone still comes
+  through, at -99.9 dBFS.
+- **The Signal Chain view shows the new engine**: nine stage cards, drawn
+  from the same rules `render()` follows. Stages your settings skip are
+  dashed, with the reason. Cards that are on show in the Fixes stage, and
+  cards with no working fix show under Noted. Once the preview has worked
+  it out, Master shows the gain it adds.
+- **The progress window reads its stages from the server**, with the
+  engine's nine names. Stages a run skips show as skipped.
+- **Download names drop the preset**: `{song}_{processed|removed|trimmed}_{id}`.
+  A 1.x export processed again still loses its old suffix.
+- **The tone target can be swapped.** Reference matching uses this. With no
+  reference, the tone curve is 1.1.1's, bit for bit. A deadband (a range
+  left alone) is built but stays off until it is judged by ear.
+- **Parts that already worked were copied over unchanged** and checked
+  against 1.1.1 (identical or bit-exact): the peak shaper and true-peak
+  limiter (before the fixes below), silence trim, the edge-glitch scan and
+  in/out trim, the fixed-tone scan and notch, the bandwidth cutoff and
+  spectrum, the file fingerprint (so Remix projects and the stem cache
+  still match), the report spectra and the release check.
+- **Screens.** The bottom bar has a full transport (back to start, back and
+  forward 5 s, and a scrubber that shows the loop), shared with the Remix
+  tab. The live analyzer has a dB grid and frequency labels. The loudness
+  strip shows momentary LUFS (BS.1770, 400 ms). The readout is grouped into
+  Loudness, Cleaning and Job rows. The EQ has 13 starting points at
+  mastering scale, in place of 1.1.1's 7. "Preserve volume" has the same
+  name everywhere and stays in view.
 
 ### Added
 
-- **Suggested EQ (the Tone step).** Analyze now plans a short corrective
-  EQ for the track, the way a mastering engineer would: fix first, shape
-  second, cuts before boosts, nothing big. It looks only at the loud parts
-  (windows within 6 dB of the loudest tenth), and judges the balance
-  after the chosen preset's cleaning on the loudest 20 seconds and after
-  the mastering tone match when mastering is on, so nothing gets
-  corrected twice. Fix moves: a ringing tone (a narrow peak 8 dB above
-  its neighbours in most loud windows, with no harmonic partner, not
-  already a fixed-tone notch; never under 120 Hz), a mud stack (200–500 Hz
-  more than 2 dB over the low-end trend), a harsh band (2–5 kHz more than
-  2.5 dB over the top-end trend, cut at most 1.5 dB). Shape moves: at
-  most three broad moves of 2 dB or less, only where a region sits
-  outside the family's range; sub and bass moving the same way share one
-  low shelf. Boosts stay at +1.5 dB (+1 dB from 5 kHz up, none at or
-  above the render's cutoff). Every plan is checked on the loudest
-  20 seconds: if peaks rise more than loudness, the limiter would work
-  harder, so boosts are halved, then dropped. Four moves at most.
-  - **Genre families are a tolerance, not a target.** Neutral (default),
-    Pop, Hip-hop / Trap, EDM / Dance, Rock / Metal, R&B / Soul, Acoustic /
-    Folk, Lo-fi / Ambient, Cinematic / Orchestral. A family says how far
-    from neutral each region may sit before a move is worth making. No
-    reference track, and no guessing the genre: the family is the user's
-    pick.
-  - **Where it shows.** The Analysis card gets a Suggested EQ block:
-    the verdict ("2 moves suggested" or "Sits inside the Neutral
-    range"), six region bars (sub, bass, low mids, mids, presence, air:
-    the family range and where the track sits, before and after), the
-    moves with their reasons, an amount slider, Apply to EQ, and the
-    check on the loudest part. A tile in the workspace says the same
-    in four words. The EQ card gets a strip with the same verdict, Apply
-    or Remove, the family, and "Use on the final pass"; a See why button
-    jumps to the block. Bands that came from the plan are marked S in
-    the EQ chips and stay editable like any band.
-  - **In the flow.** With "Use on the final pass" on (the default), the
-    plan goes into the EQ by itself when Analyze finds one pass is
-    enough. In a two-pass plan, pass 1 stays EQ-free, and pass 2 plans
-    its own EQ on the cleaned file (Continue and Run both passes do
-    this before pass 2 starts). The Passes card shows the step and its
-    state. Changing the family re-plans in a few seconds; changing the
-    preset, strength or mastering marks the plan stale with a Re-plan
-    button.
-  - **Batch:** "Suggested EQ per file" plans and applies an EQ for each
-    file on its own (judged after that file's cleaning), added to any EQ
-    from the Master tab, with a family picker. The log line says how
-    many moves each file got.
-  - New module `shimmer/autoeq.py`; `POST /api/suggest` returns
-    `tone_plan` and takes `tone_family`, `mastering` and `overrides`
-    form fields; new `POST /api/tone` re-plans a file; `GET
-    /api/tone/families` lists the families. Tests in
-    `tests/test_autoeq.py`.
+- **Reference-track matching.** Under Mastering, pick Tone target, then
+  Reference track, and load a released song. The tone moves toward it: 50 %
+  of the difference by default, smoothed to about an octave, at most
+  ±3 dB, level-matched first. An Amount slider sets how much. Shimmer warns
+  when the two songs' drums differ a lot (one has 1.5 times the other's
+  share of hits). It also says where matching stops when the reference's
+  top end stops early.
+- **WAV release copy: 16-bit, 44.1 kHz, with TPDF dither**, on the Master,
+  Batch and Remix tabs, and `--release` on the command line. The sample
+  rate changes before the chain runs, so the true-peak limiter works at the
+  rate you deliver.
+- **FLAC release copy: 16-bit, 44.1 kHz, with TPDF dither.** The same audio
+  as the WAV release copy at about half the size ("Crosscut": 33 MB against
+  48 MB).
+- **Release check.** Every mastered run ends with one verdict: "Ready to
+  upload", "n things to look at" or "Not ready". Each check shows its value
+  and one line of advice: loudness against the target, true peak against
+  the ceiling, clipping in the source, sample rate, format, silence at the
+  ends, length, DC offset, mono compatibility and tags. A "Bass in mono"
+  row says how far everything below 100 Hz drops in mono, and warns past
+  -3 dB. "How loud it plays" says how far each of six streaming services
+  turns the file up or down. Only two of them turn quiet tracks up.
+- **Album mode in Batch.** It masters a folder as one record. One gain,
+  set from the loudest track, goes on every track, so the tracks keep their
+  relative levels and the loudest lands on the target. The limiter still
+  runs per track. The log shows each track's level and an album line.
+- **A Download step ends every run**, with the file's name and size. A new
+  Settings tab holds **Download automatically** and **Download location**
+  (the browser's Downloads folder, or a folder of yours).
+- **A file size warning.** In Settings, "Warn when a file is over [50] MB".
+  The size under Format is worked out before export, within 2 % of the
+  written file on two songs. A file over the limit is offered the lossless
+  formats that fit.
+- **Remix lane mixer.** The Remix tab has three steps: Upload, Separate,
+  and Mix & Render. Separation has quality tiers: Fast, Best, 6 stems
+  (adds guitar and piano), Ultra and Studio. Stems are cached per track and
+  per model. Each lane has its waveform, mute, solo, fader, pan and an
+  effects rack (formant, saturation, doubler, reverb). Keys 1 and 2 switch
+  between Original and Remix.
+- **Residual lane.** What the separator leaves out (`mix − stems`: reverb
+  tails, room) is kept as its own lane, so an untouched remix is identical
+  to the original.
+- **Stems export**: a ZIP of 24-bit WAVs, as separated or through the mix.
+- **Trim finds the glitch at the start and end of a render**, usually
+  15-35 ms of noise before the music. A dB view shows it, with a suggested
+  cut. Nothing changes until you say so.
+- **Suggested EQ.** Analyze plans a short corrective EQ: fixes first, cuts
+  before boosts, four moves at most, boosts no more than +1.5 dB. A genre
+  family (Neutral by default) sets how far each region may stray before a
+  move is worth making. Every plan is checked on the loudest 20 s, so the
+  limiter does not work harder.
+- **Tags on every export.** The source's tags are read and kept. The blanks
+  are filled from the Tags section: title, artist, album artist, album,
+  genre, year, track, copyright and ISRC. A note in the comment tag records
+  the run: the pass, every fix that ran (Fixed tones with its notch count,
+  each card's fix at its Amount), each EQ move with its frequency, gain and
+  Q, and the loudness target and ceiling.
+- **"What changed"**: a before-and-after spectrum after every run,
+  level-matched on 100 Hz-2 kHz, with a one-line verdict. The Loudness row
+  adds peak-to-loudness ratio and stereo correlation, in and out.
+- **Cancel, on the server.** `POST /api/cancel/{job_id}` stops a Master or
+  Remix export between stages. The screens have no Cancel button yet.
+- **Remember settings keeps your card picks.** With it on, the Master tab
+  restores your cards, and your own picks stay when a new song loads. What
+  Analyze found does not carry over.
+- **New command-line flags**: `--fix CARD[=AMOUNT]`, `--no-auto`,
+  `--reference FILE`, `--match-amount` and `--trim-silence`. A release
+  check line prints after each file. `--list` shows which cards are ready,
+  which fixes are built but have not passed, and which have no fix.
+- **New server routes**: `GET /api/rules` (the cards, loudness choices,
+  formats and EQ limits, stated once so no screen keeps its own copy),
+  `POST /api/prepare` (the Shimmer fix's whole-song pass, with progress and
+  cancel), `POST /api/cancel/{job_id}`, `POST /api/size`,
+  `POST /api/reference`, `DELETE /api/reference/{session_id}` and
+  `POST /api/reference/view`. For Remix: `GET /api/stems/engine`,
+  `GET /api/stems/library`, `GET /api/stems/info/{session_id}` and
+  `POST /api/stems/export`. `/api/process`, `/api/suggest` and `/api/tone`
+  take a `session_id` in place of the file. `POST /api/settings` saves
+  `fixes`, your card picks. A result that is not finished answers 409,
+  not 202.
 
-- **Tags on every export.** A finished file now says what it is. The
-  source's own tags are read (RIFF INFO and ID3 in WAV, Vorbis comments
-  in FLAC and OGG, ID3 in MP3, iTunes atoms in M4A), carried through,
-  and the blanks are filled from the new Tags section on the Master tab:
-  Title (from the file's tags, else a cleaned-up filename, and editable
-  per track), Artist, Album artist, Album, Genre, Year, Track number,
-  Copyright (filled in as "© year artist" when empty) and ISRC. One
-  note per pass goes into the comment ("Shimmer 1.1.1: pass 2, Sibilance
-  Rattle 75%, EQ 1 band, mastered −14 LUFS / −1 dBTP"), so a file
-  carries its own history; the pass number comes from the notes already
-  in the source. WAV exports get both a RIFF INFO chunk (DAWs, libsndfile
-  tools) and an ID3v2.3 chunk (Windows Explorer, most players); MP3 gets
-  ID3v2.3 in UTF-16, the version everything reads. "Keep the file's own
-  tags" (default) fills only the blanks; off, the fields replace them.
-  Batch writes the same tags to every file. New module `shimmer/tags.py`
-  (mutagen is a new dependency); tests in `tests/test_tags.py`.
+### Fixed
 
-- **Export names no longer chain.** A pass-2 file used to be named
-  `song_glaze_processed_ab12cd34_rattle_processed_9f8e7d6c.wav`. The
-  suffix is stripped before a new one is added, so every export reads
-  `{original stem}_{preset}_processed_{id}`; the pass history lives in
-  the tags instead.
+- **Limiter: peaks are found at 8x, not 4x.** Read at 16x, the output now
+  reaches -0.98 dBTP (dense mix) and -0.93 to -0.94 (sparse mix) against a
+  -1.0 ceiling. 1.1.1 reached -0.91 and -0.77 to -0.78.
+- **Limiter: no clicks when it acts.** The gain now ramps across the 2 ms
+  lookahead: at most 0.01 dB per sample (dense mix) and 0.04-0.06 dB
+  (sparse mix). 1.1.1 dropped the gain within one sample, by up to 0.84 dB
+  and 3.27-3.84 dB per sample. Loudness is unchanged.
+- **Limiter: peaks stay under the ceiling.** It now aims 0.17 dB under the
+  ceiling, the most a peak can hide between 8x readings. Read at 16x, peaks
+  land at -1.09 to -1.15 dBTP against -1.0. 1.1.1 let -0.96 to -0.77
+  through. This costs 0.01-0.04 dB of loudness.
+- **The mastering tone match was a fixed 3 dB lift.** A units mix-up gave
+  every track the same curve: about +3 dB of air on every mastered export,
+  at every Tone match setting. The curve now differs per track and stays
+  inside +2 / -3 dB. A bass-heavy song's lows come down a little. A
+  balanced song gets close to nothing.
+- **Shelf and bell filters land on their setting.** 1.1.1's preset shelves
+  and bells ran forward and backward, so each landed at twice its setting:
+  -3 dB became -6 dB. Bells now land within 0.1 dB and shelves within
+  0.2 dB.
+- **OGG export works.** In 1.1.1 every OGG export stopped with an error
+  ("Invalid combination of format, subtype and endian"). OGG is now written
+  a block at a time. At the old default quality it also went past full
+  scale when decoded (+0.26 dBTP).
+- **Lossy files no longer clip when played.** Decoded, 1.1.1's M4A reached
+  +1.24 dBTP and its MP3 -0.42. See the lossy ceilings under Changed.
+- **MP3 and M4A keep every bit.** They are encoded from 32-bit float, not
+  from a 16-bit temp file with no dither.
+- **Mono files stay mono.** Decoding no longer forces two channels.
+- **A sample rate that cannot be read is an error**, not a guess of
+  44.1 kHz.
+- **The preview plays at the export's level.** With mastering off and
+  Preserve volume on, 1.1.1 matched each preview window to its own level,
+  so a quiet verse previewed louder than it would export. Now one gain,
+  worked out from the whole song, serves the preview and the export.
+- **A silent upload no longer fails.**
+- **Every open tab gets a job's progress.** A second tab or a reconnect no
+  longer takes the events away from the first.
+- **"Download WAV" could save an error message as the file** after a
+  server restart. The button now checks first and shows the error.
+- **The Remix loudness match could silence the Original.** It is now
+  capped at 6 dB, like Master's.
+- **"Show in folder" works.** It failed on every real call, because the
+  server never imported `sys`.
+- **The comment tag names every fix that ran.** Its note named only Fixed
+  tones, so an export with only the de-esser on said "no fixes".
 
-- **A two-pass plan that runs itself.** When Analyze suggests a second
-  pass, the Next step card becomes a plan: three numbered steps, Pass 1
-  with its preset and "clean only", Pass 2 with its preset and the master
-  target, and Download, each with a live status (next, running, done
-  with its LUFS). One button, "Run both passes", sets the settings,
-  cleans, loads pass 1's result in place, applies the pass-2 preset,
-  masters, and stops at Download. Per-pass buttons remain for listening
-  in between: "Run pass 1 only", "Continue: run pass 2", "Load the
-  result, don't run yet", "Analyze this result first". "Stop after this
-  pass" halts the automation between passes. Each state shows only what
-  applies to it; the finished state shows a Download button and nothing
-  about setting up.
-- **"What changed": a spectrum comparison after every run.** A new card
-  above the stat readout shows the whole-file spectrum before and after
-  the pass, the removed signal, and a level-matched "after minus before"
-  strip (cuts in cyan, additions in amber), on a 1/6-octave grid with the
-  same display tilt as the live analyzer. One sentence on top gives the
-  verdict: the deepest cut and where, how much the region below 2 kHz
-  moved, and the overall level change. Hover for the numbers at any
-  frequency. The level match uses the 100 Hz to 2 kHz region, where the
-  cleaning does not act, so a top-end cut reads as a cut, not as a level
-  change. Measured in `shimmer/report.py`, drawn by `static/js/report.js`.
-- **Two release-check numbers in the Loudness row.** Peak-to-loudness
-  ratio (true peak minus integrated LUFS) in and out, and stereo
-  correlation in and out, energy-weighted over the file.
-- **The Job row says what the download is.** "Export 24-bit WAV · no
-  dither needed", "Export MP3 320 kbps", and so on.
-- **Analyze in the dock, and an Analysis workspace.** Step 2 now has a
-  cyan Analyze button above Clean & Master, so the next action is always
-  in view. It runs Analyze and jumps to the Analysis card with a brief
-  ring. When the analysis is done it becomes "View analysis", a cyan
-  outline with a check in its badge, and the card header shows a "Ready"
-  pill naming the applied match. Clicking it then, or the card's Expand
-  button, slides the analysis
-  up over the page as a workspace: the noise timeline across the top,
-  ranked matches on the left, second pass, notes and fixed tones on the
-  right, with "Loop the worst part" and Close in its header. The
-  transport stays visible under it. Escape closes it, and a new upload
-  closes it too.
-- **Fixed tones are cut first, on both channels, at full depth.** AI
-  generators leave thin fixed-pitch lines (16–20 kHz on Suno, sometimes
-  comb-spaced teeth) that never move for the whole song. Shimmer scans
-  the whole file for them once and removes them with narrow zero-phase
-  notches before the tone curve and the crossover, so the center-channel
-  protection that limited them to a 20–25% cut no longer applies.
-  Analyze and the upload list the lines with checkboxes; Batch, Remix and
-  the CLI apply the scan automatically (`--no-static-repair` to skip).
-  (Phase 1 of docs/PLAN.md.)
-- **De-click / de-crackle, first in the chain.** Clicks and crackle on
-  the high end (the v5.5 consonant complaint) are found with a
-  linear-prediction detector that only accepts short, isolated runs, so
-  drum hits and consonant onsets are left alone, and are re-synthesised
-  from their neighbours. On in Sibilance Rattle and Deep Scrub; a
-  De-click slider in Advanced and `--declick` expose it everywhere.
-- **Bandwidth-aware boosts.** Many renders end at 12–15 kHz. Analyze now
-  reports where the top end stops, the tone curve never boosts above it,
-  and a lifting shelf (Dark Mix Rescue, Reverb Flutter) is capped there
-  so it cannot lift pure residue.
-- **The Flicker Tamer can finally see the flicker.** AI hash flickers at
-  10–50 times a second. The cleaning engine works on 93 ms frames, so
-  anything faster than about 23 flickers a second averaged out inside a
-  frame and the tamer did little. It now runs in a fine pass on a short
-  23 ms window, on the high band, before the main engine, where it
-  sees the whole range. (Phase 2 of docs/PLAN.md.)
-- **A real de-esser.** A new spectral de-esser in the same fine pass
-  turns down sharp "s", "sh" and "t" bursts per frequency, so the rest
-  of the band keeps its brightness. It is not held back on transients,
-  which is exactly where the old de-harsh went quiet. On in Sibilance
-  Rattle, Deep Scrub and Vocal Glaze + Top End; a De-esser slider in
-  Advanced.
-- **De-harsh cuts the peaks, not the whole band.** Its cut is now
-  weighted per frequency: glazed overtones take more of it, the band
-  around them takes less, so a vocal keeps its air.
-- **A reminder to master once.** When Analyze suggests a second pass and
-  mastering is still on, the second-pass card says so in plain words, and
-  Clean & Master asks before it runs. The dialog is built around the
-  decision: a "Decision needed" kicker, the finding in one line, the
-  state that matters ("Mastering is on for this pass") as a state row, a
-  two-line why, then the recommended action full width ("Turn mastering
-  off for this pass", noting it keeps Preserve volume on) with Cancel and
-  "Master anyway" as quieter choices under it. Cleaning a mastered file and mastering it again
-  hurts the sound, so master on the last pass only.
-- **Trim — see and fix the blip at the start of a track.** Every file you
-  load is now checked at both ends for the short glitch AI generators leave
-  behind: usually 15–35 ms of noise at the very top of the render, before
-  the music starts. Shimmer tells you when it finds one — how long it is,
-  how loud, and how much silence follows it — and offers a suggested cut.
-  Nothing is changed until you say so.
-- **A view that actually shows the glitch.** The Trim view draws level in
-  decibels instead of a normal waveform. These blips are quiet enough to be
-  a flat line on a waveform, which is why they are so easy to miss. Zoom in
-  to 250 ms, drag the marker, nudge it a millisecond at a time with the
-  arrow keys, and hit Audition to hear the track as it will export.
-- **You always know the scan happened.** A track with nothing wrong says
-  "edges clean" in green. A track with a pending cut shows it in the card
-  header, and the finished download says what was removed —
-  "Trimmed 40 ms head".
+### Removed
 
-### Why this is separate from "Trim leading/trailing silence"
+- **The 19 presets, the nine-stage cleaner and Analyze's preset trial.**
+  1.x preset cleaning no longer runs anywhere. The Remix and Batch tabs
+  still show the preset menu (see Known issues).
+- **Advanced controls and Preset strength no longer apply.** Each card has
+  one Amount slider instead.
+- **Four unused server routes**: `POST /api/analyze` (an alias of
+  `/api/suggest`), `GET /api/stems/status/{session_id}`, `GET /api/projects`
+  and `GET /api/project/{digest}` (the project comes back with
+  `/api/upload`). `?kind=original` on `/api/result` is gone too.
+- **The old Signal Chain module** (`shimmer/chain.py`, 560 lines) and the
+  **dead diagnostics module** (`shimmer/probe.py`, 274 lines), with the old
+  chain view's tests. The new chain view is `shimmer/core/chain.py`.
+- **Old server code**: 878 lines of dead 1.x code in `server.py`, including
+  8 handlers the new routes answer first and 1.x's job pipeline.
+- **84 command-line flags** (cleaning controls, custom ceilings and sample
+  rates) no longer do anything. They still parse, with a note.
 
-The existing silence trim cuts everything below −60 dBFS. These glitches
-are louder than that — around −50 dBFS — so the silence trim reads them as
-the start of the song and leaves them alone. That is why they survived
-until now, and why fixing one used to mean a trip to Suno Studio.
+### Known issues
+
+These are planned for later releases.
+
+- The Remix and Batch tabs still show the old preset menu. A preset picked
+  there turns on its matching card.
+- Clicks and crackle has no working fix. The de-click is built, but in
+  dense music it finds only 0-2 of 4 moderate pops, so the card says "Not
+  built yet". Phasiness has no fix yet.
+- With all four fixes (Shimmer, Sibilance, Harshness, Low-mid build-up) on
+  at full, two of the five test songs lost a little more than one fix may
+  take: 0.138 and 0.128 sones, against the 0.10 limit. Each fix still
+  removes about as much as it does alone, and the preview still matches the
+  export.
+- The Sibilance, Harshness, Low-mid build-up and Shimmer fixes are on so
+  they can be tried on real songs. Their blind listening rounds are still
+  to come. The Shimmer fix passes on one of its four test models: at
+  Amount 100 % it removes 61 % of the faint flicker it was trained on, but
+  not steady fizz.
+- Offline, icons show as words. The icon font loads from Google Fonts.
+- No screen has a Cancel button yet, though the server can stop a Master
+  or Remix export. Turning the Shimmer card off during a preview stops its
+  first read.
+- Batch has no cancel button. Its "Preset strength" slider and its
+  "Auto-detect each file" choice do nothing in 2.0: the preset picked turns
+  on its card either way.
+- Remix ignores the Settings tab's download folder and size limit, and a
+  remix of a song longer than 30 minutes stops at 30 minutes.
+- In Remix, the doubler can drift out of time, and a formant shift can leave
+  a silent tail.
+- A reference track is not kept when you load the next song.
+- Sound tuning is planned for 2.0.1.
+
+### Developer tools
+
+- **Efficacy harness** (`scripts/efficacy_harness.py`). It plants a known
+  problem (`shimmer/artifacts.py`) in a clean song, runs a card's fix
+  through `render()` as the Master tab does (`--cards <card>`), and reports
+  how much of the problem went and how much music went, both in sones. It
+  never asks the detector. On the 1.x presets it showed that only the notch
+  clearly worked (96 % of a fixed line removed). Results are in
+  `docs/efficacy-core.json` and `docs/efficacy-harness.json`; tests are in
+  `tests/test_efficacy.py`.
+- **Side-effect checks** (`shimmer/side_effects.py`): width, hits and
+  pumping, on a clean song.
+- **Blind rounds** (`scripts/make_fix_round.py`): level-matched, shuffled
+  sets for each card, from the songs where it acts most.
+- **Codec test case** (`scripts/make_codec_case.py`): clean masters through
+  the EnCodec codec at 3, 6 and 12 kbps. Test material only; it never
+  ships.
+- **Tilt gap** (`scripts/tilt_gap.py`): 35 pairs of a mastering service's
+  master and a Shimmer master of the same song. The Shimmer master was
+  duller on 34 of 35, by 6.3 dB on average (800 Hz to 6.3 kHz tilt,
+  spread 2.9). The earlier "11 dB" came from six songs on mixed settings.
+- **Hearing model** (`shimmer/perceptual.py`). The linear-distortion
+  constant S0 is corrected to 1 (Kabal 2002). Inputs are level-matched
+  first, so a pure -3 dB gain reads zero instead of 13.6. Golden-value
+  tests pin its outputs to 0.2 %. It is 6x faster: 0.11 s for a 5 s clip,
+  where it took 0.70 s.
+- **Contract tests** in `tests/core` and `tests/api`. CI runs on Windows
+  and Linux with ffmpeg. `start.bat` reinstalls when `requirements.txt`
+  changes. `SHIMMER_CONFIG_DIR` gives a copy its own settings folder.
 
 ## [1.1.1] — 2026-07-23
 
@@ -929,6 +510,7 @@ First public release.
 - The Batch tab's folder picker needs Tk; without it, type the path
   manually.
 
+[2.0.0]: https://github.com/henricksmedia/shimmer/releases/tag/v2.0.0
 [1.1.1]: https://github.com/henricksmedia/shimmer/releases/tag/v1.1.1
 [1.1.0]: https://github.com/henricksmedia/shimmer/releases/tag/v1.1.0
 [1.0.2]: https://github.com/henricksmedia/shimmer/releases/tag/v1.0.2

@@ -32,6 +32,7 @@ import json
 import math
 import os
 import struct
+import sys
 import zipfile
 import tempfile
 import time

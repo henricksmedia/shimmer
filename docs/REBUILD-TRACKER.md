@@ -26,21 +26,22 @@ decision or on another step).
 
 ## Where we are
 
-- **Branch** `rebuild`, in the folder `.claude/worktrees/rebuild`. Run it
-  with `testing\start-rebuild.bat` (local only), which uses port 7870 and its
-  own settings folder. Not on GitHub yet: ask first.
-- **Now:** Step 5, mastering. Step 4 is done, apart from pushing the branch
-  to GitHub (ask first).
+- **Branch** `rebuild`, on GitHub, in the folder `.claude/worktrees/rebuild`.
+  It becomes `main` as 2.0.0 on 2026-09-13, at the author's call: the sound
+  is good enough to ship, and what is still open is listed in the
+  changelog's Known issues.
+- **Next:** 2.0.1, the sound work: the blind rounds, the bench, and tuning
+  the fixes (the author's call, 2026-09-13).
 
 | Step | What | Status |
 |---|---|---|
 | 1 | Decide | Done 2026-09-12 |
 | 2 | Settle the evidence | Done, with two optional listening rounds left |
 | 3 | Contracts and the route map | Done 2026-09-12 |
-| 4 | The new core | Done 2026-09-12 (push to GitHub waiting) |
-| 5 | Mastering | In progress |
-| 6 | Cleaning, one module at a time | Not started (Shimmer research done) |
-| 7 | Finish, switch over, release 2.0.0 | Not started |
+| 4 | The new core | Done 2026-09-12 |
+| 5 | Mastering | Built; judging on the bench moves to 2.0.1 |
+| 6 | Cleaning, one module at a time | Sibilance, Harshness, Low-mid build-up and Shimmer built and on to try; Clicks not passed; Phasiness has no fix. Blind rounds move to 2.0.1 |
+| 7 | Finish, switch over, release 2.0.0 | Switched over 2026-09-13; open items below |
 
 ## Step 1 — Decide
 
@@ -382,7 +383,8 @@ de-click stays off until it finds pops in dense music.
       with sign-off.
 - [x] A fix that reads the whole song first (Shimmer) does it once per
       song, as its own job with its progress in the preview's status line,
-      and can be cancelled (`POST /api/prepare`, 2026-09-13). A preview and
+      and stops when the card is turned off (`POST /api/prepare`,
+      2026-09-13). The screens have no Cancel button yet. A preview and
       an export that ask at once share the work.
 - [ ] Everything on at full, on clean music, passes the same checks.
       *Measured 2026-09-13 ([STEP6-FIXES.md](STEP6-FIXES.md)):*

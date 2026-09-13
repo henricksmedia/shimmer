@@ -108,11 +108,35 @@ if [ ! -x "$PY" ]; then
 fi
 
 # ── Step 3: dependencies ──────────────────────────────────────────────
+# Reinstall whenever requirements.txt changes, not only when an import
+# fails: an update from GitHub can add a library that the import probe
+# below does not name (start.bat does the same). The hash of the
+# requirements.txt last installed is kept in .venv. Without shasum or
+# sha256sum the hash stays empty and the import probe alone decides.
+req_hash() {
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 requirements.txt 2>/dev/null | cut -d' ' -f1
+    elif command -v sha256sum >/dev/null 2>&1; then
+        sha256sum requirements.txt 2>/dev/null | cut -d' ' -f1
+    fi
+}
+REQHASH="$(req_hash)"
+OLDHASH=""
+if [ -f ".venv/requirements.sha256" ]; then
+    OLDHASH="$(cat .venv/requirements.sha256)"
+fi
+NEED_INSTALL=0
+if [ -n "$REQHASH" ] && [ "$REQHASH" != "$OLDHASH" ]; then
+    NEED_INSTALL=1
 # Probe imports rather than trusting a sentinel file — a real import test
 # is the only way to know the venv actually has what we need.
-if ! "$PY" -c "import fastapi, uvicorn, numpy, scipy, soundfile, pyloudnorm" >/dev/null 2>&1; then
+elif ! "$PY" -c "import fastapi, uvicorn, numpy, scipy, soundfile, pyloudnorm" >/dev/null 2>&1; then
+    NEED_INSTALL=1
+fi
+
+if [ "$NEED_INSTALL" = 1 ]; then
     echo " Installing audio libraries..."
-    echo " (first run only - about 200 MB, a few minutes)"
+    echo " (first run or after an update - up to 200 MB, a few minutes)"
     echo
     # --python targets this project's venv explicitly; without it uv has to
     # infer the environment and can pick the wrong one.
@@ -136,6 +160,9 @@ if ! "$PY" -c "import fastapi, uvicorn, numpy, scipy, soundfile, pyloudnorm" >/d
         echo "     https://github.com/henricksmedia/shimmer/issues"
         echo
         exit 1
+    fi
+    if [ -n "$REQHASH" ]; then
+        echo "$REQHASH" > .venv/requirements.sha256
     fi
     echo
     echo " Setup complete. Future launches start in seconds."

@@ -37,22 +37,44 @@ music, so they compress it, brighten it, and make it **louder**.
 
 Shimmer does two jobs, in the right order:
 
-1. **Finds and removes the artifacts** — it listens to your track, works out
-   which kind of AI noise you have, and strips it out while leaving the music
-   alone.
-2. **Masters the cleaned track** — loudness targeting, tone shaping, and
-   true-peak limiting, so your song is ready to upload.
+1. **Fixes what you hear.** You pick what bothers you from a set of cards
+   under **What do you hear?** Each card turns on one tool made for that
+   problem: a notch filter for a steady whistle, a de-esser for harsh "s"
+   sounds, and so on. You set how hard each one works.
+2. **Masters the result.** A loudness target, tone shaping, and true-peak
+   limiting, so your song is ready to upload.
 
-That order matters. Clean first, master second. If you master first, you
+That order matters. Fix first, master second. If you master first, you
 just make the fizz louder.
 
-<div align="center">
-  <img src="assets/screenshots/shimmer-home.png"
-       alt="The Shimmer Master screen: preset browser on the left, waveform and analysis in the centre, mastering and EQ on the right, with the transport bridge along the bottom"
-       width="900">
-  <br>
-  <sub>The Master screen — pick what to remove, hear it instantly, then master and export.</sub>
-</div>
+## New in 2.0
+
+Shimmer 2.0.0 is a rebuild of 1.1.1. The screens look much the same. The
+engine behind them is new.
+
+- **Cards instead of presets.** The 19 presets and the nine-stage cleaner
+  are gone. You pick what you hear, and each card turns on one tool that
+  was tested on its own.
+- **One sound path.** The preview, the export, Batch, album mode, the Remix
+  export, and the command line all use the same function, `render()`. What
+  you hear in the preview is what the file will be.
+- **Louder by default.** The default loudness target is now Commercial
+  (−9 LUFS). In 1.1.1 it was Streaming (−14 LUFS), so masters came out
+  quiet next to released songs.
+- **A tighter limiter.** It finds peaks at 8× oversampling (1.1.1 used 4×)
+  and aims just under the ceiling, so peaks no longer slip past it.
+- **Safer MP3, OGG and M4A files.** 1.1.1 used −1.5 dBTP for every lossy
+  format, and a decoded M4A could reach +1.24 dBTP. Now lossy formats get
+  −2.0 dBTP, and every lossy file is decoded and checked after encoding.
+- **Filters land on their setting.** In 1.1.1, preset shelves and bells
+  landed at twice their setting: −3 dB became −6 dB.
+- **OGG export works.** In 1.1.1 every OGG export failed.
+- **Your old settings carry over.** A saved 1.x preset turns on the card it
+  became.
+
+Every change that alters the sound, with its numbers, is in
+[docs/SOUND-CHANGES.md](docs/SOUND-CHANGES.md). What 2.0 does not do yet is
+listed under [Known limits](#known-limits).
 
 ---
 
@@ -66,12 +88,13 @@ between them instantly with the `1` `2` `3` keys while the song plays:
 | Key | Track | What you hear |
 |:---:|-------|---------------|
 | `1` | **Original** | Your untouched upload |
-| `2` | **Processed** | Cleaned and mastered |
-| `3` | **Removed** | *Only what Shimmer took out* — turned up so you can hear it clearly |
+| `2` | **Processed** | Fixed and mastered |
+| `3` | **Removed** | *Only what the fixes took out* — turned up so you can hear it clearly |
 
 That third one is your safety check. The **Removed** track should sound like
-hiss, fizz, and sizzle — nothing else. If you hear vocals, snare hits, or
-melody in there, you're cutting too hard. Back the strength off.
+the problem you picked: hiss, fizz, a whistle, harsh "s" sounds. If you hear
+vocals, snare hits, or melody in there, a fix is working too hard. Turn its
+**Amount** down.
 
 Because volume fools your ears, **Loudness-matched A/B** is on by default. It
 evens out the levels between versions, so you judge the *sound* instead of
@@ -100,15 +123,18 @@ scrubber is the Live loop window.
 [uv](https://docs.astral.sh/uv/) to install itself. If you don't have it,
 `start.bat` offers to install it for you — just press Enter. It then builds
 its own private Python environment and downloads the audio libraries
-(about 200 MB).
+(up to 200 MB). After an update, it installs again if the list of
+libraries changed.
 
 Budget **5–10 minutes for the first run**. After that, Shimmer starts in a
-few seconds. Nothing is installed system-wide — it all lives in a `.venv`
-folder next to the app, and deleting the folder removes everything.
+few seconds. Nothing is installed system-wide. The app's libraries go in a
+`.venv` folder next to the app, and deleting the Shimmer folder removes
+them. Your saved settings are kept in their own small folder
+(`%APPDATA%\Shimmer` on Windows).
 
 > Windows may warn you about running a downloaded file. Click **More info →
 > Run anyway**. You can read every line of `start.bat` in a text editor
-> first — it's short and plain.
+> first — it's plain text with a comment on each step.
 
 ### macOS / Linux
 
@@ -127,8 +153,8 @@ private environment, installs the audio libraries, then opens your browser
 once the server is actually ready.
 
 Same expectation as Windows — **5–10 minutes the first time**, seconds after
-that. Everything lives in a `.venv` folder next to the app; delete the folder
-to uninstall.
+that. The libraries go in a `.venv` folder next to the app; delete the
+Shimmer folder to uninstall. Saved settings are in `~/.config/shimmer`.
 
 <details>
 <summary>Prefer to do it by hand?</summary>
@@ -157,6 +183,23 @@ on. If you hit a macOS or Linux issue,
 [please open an issue](https://github.com/henricksmedia/shimmer/issues) — bug
 reports from other platforms are genuinely useful.
 
+### Updating from 1.1.1
+
+Get 2.0.0 the same way you got 1.1.1 (a new release zip, or `git pull` in
+your clone), then launch it as before.
+
+- **The libraries update themselves.** `start.bat` (Windows) and `start.sh`
+  (macOS and Linux) see that the library list changed and install what 2.0
+  needs, such as mutagen for tags, before they start.
+
+- **Your saved settings carry over.** A 1.x preset turns on the card it
+  became. For example, Suno Hash turns on **Shimmer**, and Muddy / Boxy
+  turns on **Low-mid build-up**. `python -m shimmer --list` prints the whole
+  table.
+- **Stems you already split are kept**, as long as they are in the same
+  Shimmer folder. A song's fingerprint did not change, so the stem cache and
+  saved Remix projects still match.
+
 ### One optional extra
 
 WAV, FLAC, and OGG work right away. MP3 and M4A also need
@@ -184,151 +227,189 @@ WAV, FLAC, and OGG work right away. MP3 and M4A also need
 
 ---
 
-## Your first clean master, in 3 steps
+## Your first master, in 3 steps
 
 **1. Drop your track in.** WAV, MP3, FLAC, OGG, or M4A.
 
-**2. Click Analyze.** Shimmer scans your whole song for the tell-tale signs
-of AI noise, then *tries* every cleanup preset on the busiest few seconds
-and measures what each one really took out: noise, or your music. It shows
-the best fit big, with its strength and a plain reason, and the next five
-in a list under it; click **Apply** on any of them to switch. It sets the
-**Preset strength** to the gentlest setting that did the job and points Live
-preview at the spot where the noise is worst. It takes about ten seconds.
-Click **Expand** to open the results as a full workspace over the page. If
-a second pass with another preset would still help, Analyze says so.
+**2. Click Analyze, then pick what you hear.** Analyze measures your song.
+It looks for fixed tones and turns on the **Fixed tones** card if it finds
+any. It tells you how far the song is under your loudness target. It moves
+the Live loop to where the top end is busiest, and it plans a short
+**Suggested EQ**. It takes about 10 seconds for a four-minute song, and it
+never changes your audio.
 
-**3. Click Clean & Master.** A progress window shows each step, then closes
-when your finished file is ready — along with a **What changed** chart (the
-spectrum before and after, what was removed, and where) and the numbers
-behind it: loudness before and after, true peak, peak-to-loudness ratio,
-stereo correlation, and how hard the limiter worked. A **Release check**
-card gives one verdict on the file, "Ready to upload" or what to look at:
-loudness on target, true peak under the ceiling, clipping in the upload,
-sample rate and format, silence at the start and end, length, DC offset,
-mono compatibility and tags, then how loud it will play on Spotify, Apple
-Music, YouTube and the rest. The window ends on a **Download** step; in
-**Settings** you can have the file download by itself, or land straight in
-a folder of yours with a **Show in folder** button.
+Analyze only reports what it can measure well today. For the other cards,
+your ears decide. Listen, then turn on the cards that match what you hear.
+Each card you turn on gets an **Amount** slider. Start where it starts,
+check the **Removed** track, and adjust.
 
-Want to hear your edits instantly? Turn on **Live** in the bottom bar. It
-loops a short section of your song and re-renders it in about a second, so
-picking a different preset or nudging a slider is audible right away — no
-waiting for a full render to compare options.
+**3. Click Clean & Master.** A progress window lights up each stage as it
+runs, then closes when your finished file is ready — along with a **What
+changed** chart (the spectrum before and after, and what was removed) and
+the numbers behind it: loudness before and after, true peak,
+peak-to-loudness ratio, stereo correlation, and how hard the limiter worked.
+A **Release check** card gives one verdict on the file, "Ready to upload" or
+what to look at: loudness on target, true peak under the ceiling, clipping
+in the upload, sample rate and format, silence at the start and end, length,
+DC offset, mono compatibility, the bass in mono, and tags. Then it shows how
+loud the song will play on Spotify, Apple Music, YouTube and the rest. The
+window ends on a **Download** step. In **Settings** you can have the file
+download by itself, or land straight in a folder of yours with a **Show in
+folder** button.
+
+Want to hear your edits right away? Turn on **Live** in the bottom bar. It
+loops a short part of your song and renders it again after each change. The
+loop is the same render as the export, cut to the loop's length, so what you
+hear is what the file will be. A test holds the two together: the difference
+between them must be at least 60 dB quieter than the song.
 
 ---
 
 ## What's inside
 
-### Fixed tones and clicks are fixed first
+### "What do you hear?" — nine cards, one tool each
 
-Every AI generator leaves a few thin, fixed-pitch whistles high up
-(around 16–20 kHz on Suno) that never move for the whole song. Shimmer now
-finds them once across the whole file and cuts them out with narrow,
-zero-phase notches before any other stage runs, on both channels, at full
-depth. Analyze lists them; untick any you want kept. A de-click stage runs
-first too, on the high end only, for crackle on "s" sounds and cymbals. And
-if a render's top end simply stops at 13 kHz, nothing will boost above it.
+Pick the cards that match what you hear. Each one turns on the tool made for
+that problem.
 
-### Fast noise gets a fast pass
+| Card | What it sounds like | Tool | Status in 2.0.0 |
+|---|---|---|---|
+| **Shimmer** | Fizzy, flickering hiss up top | Spectral de-noise | On, to try |
+| **Fixed tones** | A whistle or whine that never changes | Notch filter | Ready; Analyze turns it on |
+| **Sibilance** | Harsh, spitty "s" and "sh" | De-esser | On, to try |
+| **Clicks and crackle** | Short pops, ticks or static | De-click | Not built yet |
+| **Harshness** | Piercing, painful upper mids | Dynamic EQ (2–5 kHz) | On, to try |
+| **Phasiness** | Grainy or watery reverb tails | — | No fix yet |
+| **Low-mid build-up** | Muddy, boxy, words hard to hear | Dynamic EQ (200–500 Hz) | On, to try |
+| **Lack of air** | Dull, no sparkle | Tone target (in Mastering) | Ready |
+| **Loudness** | Quieter than released music | Loudness target (in Mastering) | Ready |
 
-Some AI noise flickers 10 to 50 times a second. The main cleaning engine
-looks at the sound in 93 ms slices, which is too slow to see that. So the
-high end now gets a short fine pass first, on 23 ms slices, with two tools:
-a Flicker Tamer that pushes the flicker down toward the band's floor, and a
-real de-esser that tames sharp "s" and "t" sounds per frequency without
-dulling the rest. Drum hits are protected.
+"On, to try" means the tool passed its measurements but has not had its
+blind listening round yet. A card marked "Not built yet" or "No fix yet"
+changes nothing. You can still mark it, and Shimmer counts those picks on
+your computer to help test new fixes.
 
-### 19 artifact presets, grouped by what you hear
+Each fix has an **Amount** slider. Its top is set by measurement: at 100 %,
+a fix takes no more than a small, fixed amount from a clean song (0.10 sones
+on a hearing model). The tests behind each fix are in
+[docs/STEP6-FIXES.md](docs/STEP6-FIXES.md).
 
-You don't need to know the science. Pick the group that matches your
-complaint, or just hit **Analyze** and let Shimmer choose.
+**Shimmer — spectral de-noise.** A small trained model sets a gain for each
+frequency between 1.5 and 16 kHz. It runs on your computer, in numpy, so
+nothing extra is installed and nothing is uploaded. The first time the card
+is on for a song, it reads the whole song once: about 50 seconds for a
+3-minute song. The screen shows how far it has got, and turning the card
+off stops it.
+After that, a new Amount or a new preview takes about a third of a second.
 
-| If your track sounds like this | Try these |
-|---|---|
-| Fizzy, sparkly hash across the top end | **Suno Hash**, **Broadband Fizz**, **Checkerboard Grid** |
-| Glassy or stuttering cymbals | **Cymbal Sheen**, **Cymbal Chatter**, **Phantom Cymbal**, **Brittle Air** |
-| Steady whistles or ringing tones | **Laser Whistle**, **Echo Sheen**, **Reverb Flutter** |
-| Plastic vocals or rattly "S" sounds | **Vocal Glaze**, **Vocal Glaze + Top End**, **Sibilance Rattle**, **Presence Haze** |
-| Harsh and fatiguing all over | **Harsh Veil**, **Deep Scrub** |
-| Muddy, boxy, or just dull | **Muddy / Boxy**, **Dark Mix Rescue** |
+**Fixed tones — notch filter.** AI generators often leave a few thin,
+steady tones at one pitch for the whole song. Analyze finds them across the
+whole file and turns the card on. Narrow notch filters cut each one, on both
+channels, at full depth. On the test models the notch removes 96 % of a
+fixed tone.
 
-Every preset has a **strength** control from 0% to 200%. Analyze sets it for
-the preset it picks; if you choose your own preset, start at 100%. If a
-little sizzle survives, push it up. If your cymbals lose their sparkle, pull
-it down.
+**Sibilance — de-esser.** Turns the high band down only while an "s", "sh",
+"t" or "ch" sticks out: fully in the center, half as much in the sides. Up to
+7.2 dB at Amount 100 %.
 
-**Two passes? Master once.** When Analyze suggests a second pass, run the
-first pass with mastering off and Preserve volume on, load the result, and
-master on the last pass only. Mastering limits the sound and sets its final
-loudness, so cleaning a mastered file and mastering it again hurts it. The **Two-pass plan** card under the results lists Pass 1, Pass 2 and
-Download with live status. **Run both passes** does the whole thing: it sets
-the settings, cleans, loads the result, applies the pass-2 preset, masters,
-and stops at Download. Or run the passes one at a time and listen in between. If mastering is still on when you
-click Clean & Master, Shimmer asks first.
+**Harshness and Low-mid build-up — dynamic EQ.** Finds the band that sticks
+out most (up to two in 2–5 kHz for Harshness, one in 200–500 Hz for Low-mid
+build-up). It cuts that band only while it gets louder than usual for that
+song. Up to 5.1 dB for Harshness and 4.0 dB for Low-mid build-up at Amount
+100 %.
+
+**Lack of air and Loudness** are handled in Mastering. Loudness sets the
+loudness target to Commercial (−9 LUFS). Lack of air brightens the top end
+through the tone target.
 
 ### Mastering that respects your dynamics
 
-- **Loudness targets** — Streaming (−14 LUFS), Loud (−11), or CD/Club (−9).
-  LUFS is how streaming platforms measure loudness. Spotify and Apple Music
-  turn everything toward −14, so mastering louder than that just gets turned
-  back down.
-- **Tone match** — gently pulls your track toward the shape of released
-  music. It compares shape with shape, so a balanced track gets close to
-  nothing and a boomy one loses a little low end. Choose how strongly: Low,
-  Medium, or High.
-- **Tilt** — warmer or brighter, your call. Boosts are capped at +2 dB,
-  and the harsh 5–12 kHz band stays limited, so the fizz can't sneak back in.
-- **True-peak limiter** — 4× oversampled, so your track won't clip or
-  distort after it's converted to MP3 or AAC. Lossless files get −1.0 dBTP of
-  headroom; lossy formats get −1.5 dBTP.
+- **Loudness targets.** LUFS is how streaming platforms measure loudness.
 
-Loudness is set with **one steady gain move**, not multiband compression. The
-dynamics you generated are the dynamics you keep.
+  | Target | LUFS | What it means |
+  |---|---|---|
+  | **Commercial** (default) | −9 | As loud as most released songs |
+  | **Balanced** | −11 | A little quieter, with more punch left in |
+  | **Streaming standard** | −14 | The level streaming apps play songs at; sounds quiet in other players |
+
+- **One steady gain.** Loudness is set with one gain, worked out from the
+  whole song. There is no multiband compression. A 25 Hz low-cut (high-pass
+  filter) comes first. It runs one way, so it adds no pre-echo before a kick.
+- **Peak shaper and true-peak limiter.** The shaper rounds off the top
+  couple of dB. Then the limiter holds the ceiling. It finds peaks at 8×
+  oversampling and eases the gain down across a 2 ms lookahead, so it does
+  not click.
+- **Tone target.** With mastering on, Shimmer moves your song's tone toward a
+  target: its built-in one, or a reference track you pick. **Tone match**
+  (Low, Medium, High) sets how much. **Tone** (warmer to brightest) tilts
+  it. The built-in curve boosts at most +2 dB and cuts at most −3 dB, and it
+  never boosts above the point where your render's top end stops.
+- **Reference-track matching.** Pick a released song you like as the tone
+  target. Shimmer compares the two tone shapes, level-matched, and moves
+  your song part of the way: 50 % of the difference by default, smoothed
+  over about an octave, and never more than ±3 dB. The Master tab shows both
+  shapes and the curve it will apply. It warns you when the reference has
+  far more or far fewer drum hits than your song.
+
+### Export formats
+
+| Format | Details | True-peak ceiling |
+|---|---|---|
+| WAV 24-bit (default) | Your song's own sample rate | −1.0 dBTP |
+| WAV 16-bit 44.1 kHz | The release copy, with TPDF dither | −1.0 dBTP |
+| FLAC | 24-bit | −1.0 dBTP |
+| FLAC 16-bit 44.1 kHz | The same audio as the WAV release copy, about half the size | −1.0 dBTP |
+| MP3 | 320 kbps | −2.0 dBTP |
+| OGG Vorbis | Quality 0.8 | −2.0 dBTP |
+| M4A (AAC) | 256 kbps | −2.0 dBTP |
+
+16-bit files get TPDF dither: a very quiet, even noise, one step either way,
+so quiet fades do not turn grainy. Codecs push peaks up when they encode, so
+every MP3, OGG and M4A is decoded after encoding. If one would go over
+−1.0 dBTP, it is turned down by the excess and encoded again, and the report
+says by how much.
 
 ### A real EQ, when you want one
 
-A 12-band parametric EQ with a curve you can drag. Bells, shelves,
-high-pass, low-pass, and notch filters. Drag a point to move it, scroll on it
-to change the Q (how wide or narrow the move is), double-click to add or
-delete.
+A 12-band parametric EQ with a curve you can drag: bells, low and high
+shelves, high-pass, low-pass, and notch filters. Drag a point to move it,
+scroll on it to change the Q (how wide or narrow the move is), double-click
+to add or delete.
 
-It runs **zero-phase**, which means it shapes tone without smearing your
-transients. Thirteen starting points are built in, at mastering scale
-(small, broad moves): corrective ones like Tighten Lows, De-Mud, Box Cut
-and Smooth The Top; tonal ones like Tilt Darker, Tilt Brighter, Warmth,
-Open Mids, Presence, a gentle Air lift, and Vocal Clarity; and Lo-Fi
-Telephone for when you want an effect. Each one says what it does right in
-the menu, and every band it loads stays editable.
+Bells and shelves land exactly on their setting. The high-pass and low-pass
+run one way, so they add no pre-echo. Thirteen starting points are built in,
+at mastering scale (small, broad moves): corrective ones like Rumble cut,
+Tighten lows, De-mud, Box cut and Smooth the top; tonal ones like Tilt
+darker, Tilt brighter, Warmth, Open mids, Presence, a gentle Air lift, and
+Vocal clarity; and Lo-fi telephone for when you want an effect. Every band
+a starting point loads stays editable.
 
 ### Suggested EQ: the moves a mastering engineer would make
 
 Analyze also plans a short EQ for the track, the way a pro works: fix
 first, shape second, cuts before boosts, nothing big. It listens to the
-loud parts only, and judges the balance after your preset's cleaning, so
-it never fights the cleanup. It looks for a ringing tone, a mud stack in
-the low mids, and a harsh band in the presence range, then makes at most
-three gentle balance moves toward a **family** range — Neutral, Pop,
-Hip-hop, EDM, Rock, R&B, Acoustic, Lo-fi, or Cinematic. A family is a
-tolerance, not a target: it says how far from neutral your track may sit
-before a move is worth making. No reference track, no genre guessing.
+loud parts only. It looks for a ringing tone, a build-up in the low mids,
+and a harsh band in the presence range. Then it makes at most three gentle
+balance moves toward a **family** range — Neutral, Pop, Hip-hop, EDM, Rock,
+R&B, Acoustic, Lo-fi, or Cinematic. A family is a tolerance, not a target:
+it says how far from neutral your track may be before a move is worth
+making.
 
-Every plan is checked on the loudest 20 seconds: if the peaks would rise
-more than the loudness, the limiter would work harder, so boosts are
-halved, then dropped. You see the moves and the reasons, you can turn any
-move off or scale the whole plan, and Apply puts them into the EQ as
-normal bands you can edit. With "Use on the final pass" on, it happens by
-itself: on a one-pass track right after Analyze, and in a two-pass plan
-on pass 2, planned fresh on the cleaned file.
+It judges the song the way it will render: after the fixes and, with
+mastering on, after the tone curve, so nothing is corrected twice. Every
+plan is checked on the loudest 20 seconds. If the peaks would rise more
+than the loudness, the limiter would work harder, so boosts are halved,
+then dropped. You see the moves and the reasons, you can turn any move off,
+and Apply puts them into the EQ as normal bands you can edit.
 
 ### Tags that travel with the file
 
 Exports carry proper metadata: title, artist, album, genre, year, track,
 copyright and ISRC, written the way each format expects (WAV gets both
 RIFF INFO and an ID3 chunk, so Windows Explorer shows them too). The
-file's own tags stay; Shimmer fills the blanks from your defaults and adds
-one note per pass to the comment, so a file always says what was done to
-it. Set your artist name once in the Tags section and every export has it.
+file's own tags stay. Shimmer fills the blanks from your defaults and adds
+a note to the comment, so a file always says what was done to it. Set your
+artist name once in the Tags section and every export has it.
 
 ### Remix: split the song into stems
 
@@ -343,25 +424,32 @@ row per stem with its own waveform:
 - **Reverb** — room and depth
 - A **Residual** lane holding whatever the separator dropped, so the
   untouched mix is your original, with a null-test figure that says how
-  much lives there
+  much is in it
 - Quick mixes: instrumental, acapella, vocal lift
 
-Pick a quality: **Fast** (about 10 seconds for a four-minute song on a
-GPU), **Best** (the fine-tuned model, about 25 seconds), **6 stems**, or
-**Ultra** (three models averaged with extra passes, about 4× Best).
-Loop it, render a cleaned and mastered remix, or download the stems
-themselves as a ZIP of 24-bit WAVs. Stems are kept per track and quality,
-so you only wait for a split once. Your mix saves itself automatically.
+Pick a quality: **Fast** (about 9 seconds for a 4½-minute song on an
+RTX 4070 SUPER), **Best** (the fine-tuned model, about 22 seconds),
+**6 stems**, **Ultra** (models averaged with extra passes, about 4.5× Best),
+or **Studio** (a Mel-Band RoFormer vocal model, then Best for the rest).
+Loop it, export a remix, or download the stems themselves as a ZIP of 24-bit
+WAVs. Stems are kept per track and quality, so you only wait for a split
+once. Your mix saves itself automatically.
+
+The Remix export runs through the same render and export as the Master tab.
+The loop preview plays at once from the loop's own mix. A few seconds later
+it switches to that same render, and the status line says it matches the
+export.
 
 Separation uses your GPU when you have one. The first run downloads the
 separation engine, which is a large one-time install; the Best model
 fetches another 330 MB the first time you pick it.
 
-**Models and licences.** Shimmer ships no model. Each split downloads its
-model the first time you pick it, from the author's own release, into
-`stem_cache/` next to the app, and works offline after that. A model file
-you place in `stem_cache/models/` yourself (same file name) is used as it
-is. Every model offered may be used on music you release and sell:
+**Models and licences.** Shimmer ships no separation model. Each split
+downloads its model the first time you pick it, from the author's own
+release, into `stem_cache/` next to the app, and works offline after that.
+A model file you place in `stem_cache/models/` yourself (same file name) is
+used as it is. Every model offered may be used on music you release and
+sell:
 
 | Split | Model | Author | Licence |
 |---|---|---|---|
@@ -374,68 +462,88 @@ model, author and licence.
 
 ### Batch: a whole folder at once
 
-Point Shimmer at a folder and let it work. Use one preset for everything, or
-let it auto-detect the right preset *and* strength for each track (the
-strength slider then scales what it found; 100% means trust the analysis).
-Results stream in file by file as it goes, with each file's loudness and
-true peak when mastering is on.
+Point Shimmer at a folder and let it work. Every file goes through the
+Master tab's own render and export, with tags and the release check. With
+**Auto-detect** on, each file gets what Analyze finds (Fixed tones today),
+and the log lists what it found in each file. Results stream in file by file
+as it goes, with each file's loudness and true peak when mastering is on.
 
-**Album mode** masters the folder as one record. Every track is cleaned
-first, then one gain brings the loudest track to the target and the others
-keep their distance below it, so a quiet song stays quieter than the single
-instead of every track being pushed to the same level. The log shows the
-loudest track, the gain, and the album's overall loudness.
+**Album mode** masters the folder as one record. Shimmer measures every
+track, then picks one gain that brings the loudest track to the target. The
+others keep their distance below it, so a quiet song stays quieter than the
+single instead of every track being pushed to the same level. The log shows
+the loudest track, the gain, and the album's overall loudness.
 
-Batch can also plan a **Suggested EQ** for each file on its own, judged after
-that file's cleaning, and write your **Tags** defaults onto every export.
+Batch can also plan a **Suggested EQ** for each file on its own, and write
+your **Tags** defaults onto every export.
 
-### Signal Chain: see what's actually happening
+### The Signal Chain tab
 
-A map of every stage your audio passes through, in order, in plain language,
-drawn from the preset and options you have set right now: the crossover
-point, how hard the center is cleaned, each stage's band and depth, and
-whether mastering, EQ or a Trim cut are in play. Follow the wire: the stages
-run left to right and wrap down the page, one connected line from Trim to
-Export, no sideways scrolling. Each phase of the chain has its own colour,
-and every card shows where on the spectrum that stage works. Stages that do
-nothing for the current preset are shown dashed. Click any stage to read
-what it does and jump to its controls. No black box.
+A map of every stage your audio passes through, in order, drawn from the
+settings you have right now: Read, Trim, Sample rate, Fixes, Tone, EQ,
+Master, Export, and Report. Each stage says whether it will run and, when
+it won't, why. The map is built from the same rules `render()` follows, so
+it shows what a run will actually do.
 
 ---
 
 ## How it works
 
-Shimmer treats artifact removal as a **surgical** job, not a broad filter.
+Every tab sends your song through one function, `render()`, in this order:
 
-**Your low end is never touched.** A linear-phase crossover splits the track
-at 4.5 kHz. Kick, bass, and the body of your vocals bypass the cleaning
-engine completely and rejoin untouched at the end.
+1. **Sample rate.** If the format needs a different rate (the 16-bit
+   release copies are 44.1 kHz), the song is resampled first. That way the
+   limiter's ceiling holds at the rate that is written.
+2. **Fixes.** One tool per card that is on: the notch filter first, then
+   the spectral de-noise, the de-esser, and the dynamic EQ. Each tool works
+   out its plan once from the whole song, so a preview window gets the same
+   treatment as the export.
+3. **Tone.** With mastering on, the tone curve moves the song toward the
+   built-in target or your reference track.
+4. **EQ.** Your parametric EQ.
+5. **Level.** With mastering on: the 25 Hz low-cut, one loudness gain worked
+   out from the whole song, the peak shaper, and the true-peak limiter. With
+   mastering off and **Preserve volume** on: one gain that puts the song back
+   at its own level.
+6. **Export.** Dither for 16-bit files, encoding, the lossy check and tags.
+   Then the release check reads the file that was written.
 
-**The center of your mix is protected.** Above the crossover, the audio is
-split into mid (center) and side (stereo width). Vocals and snare mostly live
-in the center, so that channel is cleaned gently — about 20% strength. Most
-AI shimmer lives in the sides, so the sides get the full treatment.
+Analyze, the Suggested EQ planner, and the Signal Chain tab only measure.
+They never change the sound.
 
-**Nine detectors run on the high band**, each hunting a different artifact
-shape: a noise-floor cleaner, a resonance notcher, the core shimmer
-suppressor, a harshness tamer, a flicker compressor, a grid-pattern remover,
-a whistle killer, and more. Two safety gates ride along with them — one backs
-off on noisy or percussive moments, and another protects your transients for
-70 ms so drums keep their snap.
+---
 
-**Then it masters:** high-pass, loudness gain, soft clip, and the true-peak
-limiter.
+## Known limits
 
-No machine learning anywhere in the cleanup path. It's classic DSP, so the
-same settings always give you the same result — every single time.
+2.0.0 is the first release of the new engine. These are known, and each is
+planned for a later version:
+
+- **The Remix and Batch tabs still show the old preset menu.** Behind the
+  scenes, each preset turns on the card it maps to. The cards come to both
+  tabs later.
+- **Clicks and crackle and Phasiness have no working fix yet.** The de-click
+  is built, but it misses moderate pops in dense music, so the card says
+  "Not built yet". Phasiness has no fix at all yet.
+- **The fixes marked "On, to try" have not had their blind listening rounds
+  yet.** The Shimmer fix removes the flicker it was trained on. On the test
+  models, it does little for the other kinds of fizz.
+- **All four fixes at full Amount can take a little too much.** With
+  Shimmer, Sibilance, Harshness and Low-mid build-up all at 100 %, two of
+  the five test songs lost a little more than one fix is allowed to take.
+  Sound tuning is planned for 2.0.1.
+- **Batch has no cancel button.**
+- **Icons show as words when you are offline.** The icon font loads from
+  Google Fonts.
 
 ---
 
 ## Your music stays on your computer
 
 Shimmer runs entirely on your machine. Your tracks are never uploaded, never
-sent to a server, and never used to train anything. There are no accounts, no
-subscriptions, and no internet connection required after setup.
+sent to a server, and never used to train anything. There are no accounts and
+no subscriptions. After setup, it works without an internet connection. The
+only things it fetches are the page's fonts (when you are online) and a stem
+model the first time you pick it.
 
 ---
 
@@ -443,20 +551,31 @@ subscriptions, and no internet connection required after setup.
 
 **Will this make my track sound dull?**
 It can if you push it too far. That's what the **Removed** track is for —
-listen to it. If you hear real music in there, lower the strength or raise
-the threshold. Start at 100% and adjust by ear.
+listen to it. If you hear real music in there, lower that card's Amount.
+Every Amount slider already stops where its fix starts to take too much from
+a clean song.
 
 **Do I need to know what LUFS or true peak means?**
-No. Pick "Streaming" and Shimmer handles it. The numbers are shown for people
-who want them.
+No. Leave the target on Commercial and Shimmer handles it. The numbers are
+shown for people who want them.
 
-**Which preset should I use?**
-Click **Analyze** and use what it picks. If you'd rather choose yourself,
-open **Help → Pick a preset** and answer a couple of questions about what you
-hear.
+**Which cards should I turn on?**
+Click **Analyze** first. It turns on Fixed tones when it finds any, and it
+tells you if the song is quieter than your target. Then listen, and turn on
+the cards that match what you hear. Check the **Removed** track after each
+one.
+
+**What happened to my preset?**
+Presets are gone in 2.0. Your saved preset turns on the card it became, at
+that card's starting Amount. `python -m shimmer --list` shows which preset
+became which card.
+
+**Does the Shimmer fix send my music anywhere?**
+No. It is a small trained model that ships with Shimmer and runs on your
+computer, in numpy. Nothing is uploaded and nothing extra is installed.
 
 **Can I use this on regular (non-AI) recordings?**
-Yes, though it's tuned for AI artifacts. The mastering chain, EQ, and stem
+Yes, though it's tuned for AI artifacts. The mastering, the EQ, and stem
 remixing work on any audio.
 
 **Is it really free?**
@@ -465,8 +584,8 @@ licence only has something to say if you want to *redistribute Shimmer itself*
 or run it as a paid service — see [License](#license--credits) below.
 
 **Can I use it on tracks I'm selling?**
-Absolutely. The licence covers the software, not your music. Anything you
-make with Shimmer is yours, with no strings and no royalties.
+Yes. The licence covers the software, not your music. Anything you make with
+Shimmer is yours, with no strings and no royalties.
 
 ---
 
@@ -477,8 +596,16 @@ Command line, for scripting and batch jobs:
 ```bash
 python -m shimmer input.wav output.wav --target cd
 python -m shimmer input.wav output.wav --fix tones=0.5 --no-auto
+python -m shimmer input.wav release.wav --master --release
+python -m shimmer --suggest input.mp3
 python -m shimmer --list
 ```
+
+The command line runs the same render and export as the Master tab.
+`--list` shows the cards, the loudness targets, the formats, and which 1.x
+preset turns on which card. Mastering stays off unless `--master` or
+`--target` asks for it, as in 1.x. The old 1.x cleaning flags are accepted
+and ignored, with a note. Run `python -m shimmer --help` for every option.
 
 Run the test suite:
 
@@ -486,19 +613,30 @@ Run the test suite:
 python -m pytest tests/
 ```
 
-Full technical reference, including every DSP parameter and the HTTP API:
-**[docs/FEATURES.md](docs/FEATURES.md)**. Version history is in
-**[CHANGELOG.md](CHANGELOG.md)**.
+Where to read more:
 
-Architecture in brief: FastAPI backend, vanilla JavaScript frontend (no build
-step), NumPy/SciPy for the DSP. Entry points are `server.py` for the web app
-and `shimmer.py` for the CLI.
+- **[docs/README.md](docs/README.md)** — the developer overview: the sound
+  path, the project layout, and the tests.
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how 1.x worked, why it
+  was rebuilt, and the plan and rules for 2.0.
+- **[docs/API.md](docs/API.md)** — every HTTP route the screens call.
+- **[docs/SOUND-CHANGES.md](docs/SOUND-CHANGES.md)** — every sound change
+  against 1.1.1, with numbers.
+- **[docs/STEP6-FIXES.md](docs/STEP6-FIXES.md)** — how each fix was measured.
+- **[docs/REBUILD-TRACKER.md](docs/REBUILD-TRACKER.md)** — where each step of
+  the rebuild stands.
+- **[CHANGELOG.md](CHANGELOG.md)** — version history.
+
+Architecture in brief: FastAPI backend, plain JavaScript frontend (no build
+step), NumPy and SciPy for the sound work. The engine is `shimmer/core/`,
+the web routes are `shimmer/api/`, `shimmer/server.py` serves the app, and
+`shimmer/cli.py` is the command line.
 
 ---
 
 ## Contributing
 
-Fixes, new artifact presets, and platform improvements are all welcome —
+Fixes, new tools for the cards, and platform improvements are all welcome —
 especially macOS and Linux bug reports, since Shimmer was built on Windows.
 Open an [issue](https://github.com/henricksmedia/shimmer/issues) or a pull
 request.
@@ -537,7 +675,8 @@ Built on excellent open-source work: [NumPy](https://numpy.org/) and
 [FastAPI](https://fastapi.tiangolo.com/) for the server,
 [pyloudnorm](https://github.com/csteinmetz1/pyloudnorm) for loudness
 measurement, [soundfile](https://github.com/bastibe/python-soundfile) for
-audio I/O, and [Demucs](https://github.com/facebookresearch/demucs) (Meta,
+audio I/O, [mutagen](https://github.com/quodlibet/mutagen) for tags, and
+[Demucs](https://github.com/facebookresearch/demucs) (Meta,
 MIT) with [audio-separator](https://github.com/nomadkaraoke/python-audio-separator)
 (MIT, carrying [RoFormer model code](https://github.com/lucidrains/BS-RoFormer)
 by lucidrains) on [PyTorch](https://pytorch.org/) for stem separation. Each

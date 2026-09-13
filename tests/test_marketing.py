@@ -87,15 +87,18 @@ class TestMarketingKit:
         assert claim.lower() not in posts.lower(), \
             f"a post makes the claim the kit forbids: {claim}"
 
-    def test_cleanup_path_really_has_no_machine_learning(self):
-        # The kit's strongest accuracy claim: the cleaning engine is plain
-        # signal processing. If that ever stops being true, the pages lie.
+    def test_cleanup_path_needs_no_machine_learning_library(self):
+        # The kit's accuracy claim: the cleaning engine is signal processing,
+        # plus one small trained model for Shimmer that runs in plain numpy
+        # on the user's computer. If a cleaning module ever pulls in an ML
+        # library, the pages lie.
         from importlib import import_module
         import shimmer.engine as engine
-        # The module, not the render() function shimmer.core exports.
+        # The modules, not the render() function shimmer.core exports.
         render = import_module("shimmer.core.render")
+        shimmer_fix = import_module("shimmer.core.repair.hash_remover")
 
-        for module in (engine, render):
+        for module in (engine, render, shimmer_fix):
             source = read(module.__file__)
             for banned in ("import torch", "from torch", "onnxruntime",
                            "tensorflow", "sklearn"):
