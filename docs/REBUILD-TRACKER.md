@@ -193,7 +193,8 @@ is signed off. **Done 2026-09-12.**
       rewrite.
   - [ ] Tone (`/api/tone`) and the chain view (`/api/chain`) still run on
         1.x, until Step 5's tone planner. The stage list is now served by
-        `/api/rules`.
+        `/api/rules`. The chain view draws 1.x's stages, so moving it means
+        redrawing the Signal Chain view: a mockup first.
 
 ## Step 5 — Mastering (the main complaint)
 
@@ -387,7 +388,20 @@ the music" (`GOALS.md`):*
   - [ ] its cleanup menu becomes the cards
   - [ ] saved projects migrated
   - [ ] the doubler drift and the silent formant tail fixed
-- [ ] The command-line tool, as a thin layer over `render()`.
+- [x] The command-line tool, as a thin layer over `render()` (2026-09-12).
+  - One file through `render()` and `export()`. A test holds its file
+    equal to the engine's render.
+  - The 1.x commands still work:
+    - mastering only with `--master` or `--target`
+    - `--preset` turns on its card
+    - `--release`, `--write-diff`, `--no-static-repair`, `--list-presets`
+    - `--suggest` prints the findings
+  - The 84 retired 1.x flags (cleaning controls, custom ceilings and
+    rates) still parse and are ignored, with a note naming them.
+  - New: `--fix CARD[=AMOUNT]`, `--no-auto`, `--reference FILE`,
+    `--match-amount`, `--trim-silence`, and a release-check line.
+  - Lack of air and Loudness report "with mastering", not "not built yet",
+    in every tab's report.
 - [ ] Old saved settings migrate.
 - [ ] Delete the retired modules and their tests.
 - [ ] README, `docs/README.md`, `FEATURES.md` and the help text rewritten; a

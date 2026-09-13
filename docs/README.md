@@ -140,14 +140,17 @@ mode `100755` so the executable bit survives cloning.
 ## Command line
 
 ```bash
-python -m shimmer input.wav output.wav
-python -m shimmer input.wav output.wav --preset cymbal_chatter
-python -m shimmer --list-presets
+python -m shimmer input.wav output.wav --target cd
+python -m shimmer input.wav output.wav --fix tones=0.5 --no-auto
+python -m shimmer input.wav release.wav --master --release
 python -m shimmer --suggest input.mp3
+python -m shimmer --list
 ```
 
-Every processing parameter can be overridden; run `python -m shimmer --help`
-for the full list.
+The command line runs the same render and export as the Master tab.
+Mastering is off unless `--master` or `--target` asks for it. 1.x's
+cleaning controls (`--denoise`, `--start-hz` and the rest) are accepted and
+ignored, with a note. Run `python -m shimmer --help` for every option.
 
 ## MP3 / M4A support
 

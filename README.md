@@ -475,9 +475,9 @@ make with Shimmer is yours, with no strings and no royalties.
 Command line, for scripting and batch jobs:
 
 ```bash
-python -m shimmer input.wav output.wav
-python -m shimmer input.wav output.wav --preset cymbal_chatter
-python -m shimmer --list-presets
+python -m shimmer input.wav output.wav --target cd
+python -m shimmer input.wav output.wav --fix tones=0.5 --no-auto
+python -m shimmer --list
 ```
 
 Run the test suite:

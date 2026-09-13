@@ -53,6 +53,9 @@ _CACHE_LIMIT = 16
 _PRESERVE_PEAK = 0.999
 _PRESERVE_MAX_SCALE = 4.0
 
+# Cards whose fix is part of mastering, not a cleaning tool.
+_MASTERING_TOOLS = ("tone_target", "loudness_target")
+
 _EQ_KIND = {"bell": "bell", "low_shelf": "low_shelf", "high_shelf": "high_shelf",
             "highpass": "high_pass", "lowpass": "low_pass", "notch": "notch"}
 _GAIN_KINDS = {"bell", "low_shelf", "high_shelf"}
@@ -326,7 +329,12 @@ def render(source: Source, settings: Optional[Settings] = None,
             "deepest_db": round(max(p.depth_db for p in plan), 1),
         }
     for key in s.fixes:
-        if key != "tones":
+        if key == "tones":
+            continue
+        if catalog.card(key).tool in _MASTERING_TOOLS:
+            # Lack of air and Loudness are the tone and loudness targets.
+            report["fixes"][key] = "with mastering" if s.mastering else "needs mastering"
+        else:
             report["fixes"][key] = "not built yet"
 
     # 2b. The mastering tone curve.

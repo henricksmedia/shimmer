@@ -7,14 +7,14 @@ Covers the Tier-1 workflow unification:
      mastering block is sent.
   2. /api/remix/render — optional artifact cleanup (full safe pipeline)
      and mastering stages, cleaning/mastering/loudness metrics.
-  3. CLI — codec-aware true-peak ceiling derived from the output extension.
+
+The CLI's ceilings moved to tests/test_cli.py with the CLI's rewrite.
 
 Run:  .venv\\Scripts\\python.exe -m pytest tests -q
 """
 
 from __future__ import annotations
 
-import argparse
 import asyncio
 import json
 import os
@@ -29,7 +29,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import shimmer.server as server
 from shimmer.jobs import JOB_STORE
 from shimmer.preview_store import PREVIEW_STORE
-from shimmer.cli import _resolve_master_params
 
 SR = 44100
 
@@ -191,30 +190,3 @@ def test_render_rejects_unknown_cleaning_preset(session_with_stems):
             "cleaning": {"preset": "definitely_not_a_preset"},
         }))
     assert exc.value.status_code == 400
-
-
-# ── 3. CLI codec-aware ceiling ───────────────────────────────────────────
-
-def _cli_args(**overrides):
-    base = dict(no_master=False, master=True, target=None, target_lufs=None,
-                ceiling=None, master_intensity=None, master_tilt=None,
-                output="out.wav")
-    base.update(overrides)
-    return argparse.Namespace(**base)
-
-
-def test_cli_ceiling_defaults_are_codec_aware():
-    assert _resolve_master_params(_cli_args(output="a.wav")).ceiling_dbtp == -1.0
-    assert _resolve_master_params(_cli_args(output="a.flac")).ceiling_dbtp == -1.0
-    assert _resolve_master_params(_cli_args(output="a.mp3")).ceiling_dbtp == -1.5
-    assert _resolve_master_params(_cli_args(output="a.m4a")).ceiling_dbtp == -1.5
-    assert _resolve_master_params(_cli_args(output="a.ogg")).ceiling_dbtp == -1.5
-
-
-def test_cli_explicit_ceiling_wins():
-    mp = _resolve_master_params(_cli_args(output="a.mp3", ceiling=-2.0))
-    assert mp.ceiling_dbtp == -2.0
-
-
-def test_cli_no_master_returns_none():
-    assert _resolve_master_params(_cli_args(no_master=True)) is None

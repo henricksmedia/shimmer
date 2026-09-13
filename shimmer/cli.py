@@ -1,508 +1,337 @@
 #!/usr/bin/env python3
-"""
-shimmer.py — CLI entry point for the Shimmer de-artifact pipeline.
+"""shimmer: the command-line tool, a thin layer over shimmer.core.
 
-Orchestrates: presets -> params -> engine -> I/O.
-This module owns argparse and user-facing output. No DSP math lives here.
-"""
+    python -m shimmer input.wav output.wav [options]
 
+One file goes through render() and export(), the same path as the app's
+Master tab (docs/ARCHITECTURE.md §18). The 1.x commands keep working:
+
+- Mastering stays off unless --master or --target asks for it, as in 1.x.
+- --preset still works: the old preset turns on its "What do you hear?"
+  card (shimmer.core.migrate).
+- 1.x's cleaning controls (--denoise, --start-hz and the rest) went with the
+  chain they tuned. They are still accepted and ignored, and the run says
+  which, so an old script still runs.
+"""
 from __future__ import annotations
 
 from . import _winfix  # noqa: F401  # must precede scipy/numpy import on Windows
 
 import argparse
-import json
 import sys
 import time
 from pathlib import Path
+from typing import Dict, List, Optional
 
-from .dsp import band_from_center
-from .mastering import get_export_ceiling_dbtp
-from .params import Params, MasterParams, LOUDNESS_TARGETS
-from .presets import get_preset, list_presets, PRESET_NAMES
-from .audio_io import process_file
+from . import __version__, core
+from .core.settings import LEGACY_ALIASES, LEGACY_PRESETS
+
+# 1.x controls that tuned the retired cleaning chain, or output choices the
+# new formats settle (each format has its own measured ceiling and rate).
+# Accepted so old scripts run; ignored, with a note.
+RETIRED_VALUE_FLAGS = (
+    "--start-hz", "--end-hz", "--center-hz", "--width-cents", "--edge-hz",
+    "--n-fft", "--hop",
+    "--freq-med-bins", "--thr-db", "--slope", "--density-lo", "--density-hi",
+    "--flat-start", "--flat-end", "--flux-thr-db", "--flux-range-db",
+    "--noise-resynth", "--mix", "--declick",
+    "--denoise", "--dn-start-hz", "--dn-end-hz", "--dn-edge-hz", "--dn-floor-db",
+    "--dn-psd-smooth-ms", "--dn-minwin-ms", "--dn-up-db-per-s", "--dn-attack-ms",
+    "--dn-release-ms", "--dn-freq-smooth-bins",
+    "--deharsh", "--dh-start-hz", "--dh-end-hz", "--dh-edge-hz", "--dh-ref-start-hz",
+    "--dh-ref-end-hz", "--dh-thr-db", "--dh-slope", "--dh-max-att-db", "--dh-attack-ms",
+    "--dh-release-ms",
+    "--decheck", "--cb-start-hz", "--cb-end-hz", "--cb-min-spacing-hz", "--cb-max-spacing-hz",
+    "--cb-peak-thr-db", "--cb-max-att-db", "--cb-persist-ms",
+    "--deres", "--deq-start-hz", "--deq-end-hz", "--deq-edge-hz", "--deq-freq-med-bins",
+    "--deq-thr-db", "--deq-slope", "--deq-max-att-db", "--deq-density-lo", "--deq-density-hi",
+    "--deq-persist-ms", "--deq-persist-thr-db", "--deq-freq-smooth-bins", "--deq-tonal-boost-db",
+    "--exp-start-hz", "--exp-end-hz", "--exp-threshold-db", "--exp-ratio", "--exp-attack-ms",
+    "--exp-release-ms",
+    "--high-shelf-hz", "--high-shelf-db", "--subsonic-hz", "--presence-hz", "--presence-db",
+    "--fade-ms", "--seed", "--target-lufs", "--ceiling", "--subtype", "--sample-rate",
+)
+RETIRED_SWITCHES = ("--expander", "--no-pad", "--debug", "--legacy-engine")
+
+
+def _dest(flag: str) -> str:
+    return "retired_" + flag.lstrip("-").replace("-", "_")
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    targets = ", ".join(f"{t.key} ({t.lufs:g} LUFS)" for t in core.catalog.LOUDNESS_TARGETS)
     ap = argparse.ArgumentParser(
         prog="shimmer",
         description=(
-            "Remove AI shimmer artifacts from audio files.\n\n"
-            "Targets narrowband flickering high-frequency artifacts (5.1-7.2 kHz default)\n"
-            "produced by diffusion models, VAE/neural vocoders, and phase reconstruction errors.\n"
-            "Ships with artifact-shape presets (cymbal_chatter, broadband_fizz, etc.)."
+            "Clean and master one audio file with the Shimmer engine: the same\n"
+            "render and export as the app's Master tab."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "examples:\n"
-            "  shimmer input.wav output.wav\n"
-            "  shimmer input.wav output.wav --preset cymbal_chatter\n"
-            "  shimmer input.wav output.wav --preset air_brittle --debug\n"
-            "  shimmer input.wav output.wav --start-hz 4500 --end-hz 8000 --slope 0.8\n"
-            "  shimmer --list-presets\n"
-            "  # legacy version-named aliases (suno_v3 .. suno_v5.5) still work\n"
+            "  python -m shimmer input.wav output.wav\n"
+            "  python -m shimmer input.wav output.wav --target cd\n"
+            "  python -m shimmer input.wav output.wav --fix tones=0.5 --no-auto\n"
+            "  python -m shimmer input.wav release.wav --master --release\n"
+            "  python -m shimmer --suggest input.mp3\n"
+            "  python -m shimmer --list\n"
         ),
     )
-
-    ap.add_argument("input", nargs="?",
-                    help="Input audio file (WAV/MP3/FLAC/OGG/M4A)")
+    ap.add_argument("input", nargs="?", help="Input audio file (WAV/MP3/FLAC/OGG/M4A)")
     ap.add_argument("output", nargs="?",
-                    help="Output audio file (format inferred from extension)")
+                    help="Output file; the format follows its extension "
+                         "(.wav .flac .mp3 .ogg .m4a)")
 
-    # --- Preset ---
-    preset_group = ap.add_argument_group("preset selection")
-    preset_group.add_argument(
-        "--preset", type=str, default=None,
-        choices=PRESET_NAMES,
-        help="Suno version preset (overridden by explicit flags)")
-    preset_group.add_argument(
-        "--list-presets", action="store_true",
-        help="List available presets and exit")
-    preset_group.add_argument(
-        "--suggest", type=str, default=None, metavar="INPUT",
-        help="Analyse INPUT and print the recommended preset, then exit")
+    fix = ap.add_argument_group("fixes (the \"What do you hear?\" cards)")
+    fix.add_argument("--fix", action="append", default=[], metavar="CARD[=AMOUNT]",
+                     help="Turn on a card, at an amount from 0 to 1 (see --list). "
+                          "Repeat for more than one")
+    fix.add_argument("--no-auto", action="store_true",
+                     help="Only the cards you name; do not also fix what the "
+                          "analysis finds (Fixed tones today)")
+    fix.add_argument("--no-static-repair", action="store_true",
+                     help="No Fixed tones at all, found or named (1.x's name)")
+    fix.add_argument("--preset", type=str, default=None,
+                     help="A 1.x preset name: turns on the card it became")
+    fix.add_argument("--list", "--list-presets", dest="list", action="store_true",
+                     help="List the cards, loudness targets and formats, then exit")
+    fix.add_argument("--suggest", type=str, default=None, metavar="INPUT",
+                     help="Analyze INPUT and print what it finds, then exit")
 
-    # --- Shimmer band ---
-    band = ap.add_argument_group("shimmer band")
-    band.add_argument("--start-hz", type=float, default=None)
-    band.add_argument("--end-hz", type=float, default=None)
-    band.add_argument("--center-hz", type=float, default=None,
-                      help="Alternative: center frequency")
-    band.add_argument("--width-cents", type=float, default=None,
-                      help="Alternative: bandwidth in cents")
-    band.add_argument("--edge-hz", type=float, default=None)
-
-    # --- STFT ---
-    stft = ap.add_argument_group("STFT")
-    stft.add_argument("--n-fft", type=int, default=None)
-    stft.add_argument("--hop", type=int, default=None)
-
-    # --- Shimmer detection ---
-    detect = ap.add_argument_group("shimmer detection")
-    detect.add_argument("--freq-med-bins", type=int, default=None)
-    detect.add_argument("--thr-db", type=float, default=None)
-    detect.add_argument("--slope", type=float, default=None)
-    detect.add_argument("--density-lo", type=float, default=None)
-    detect.add_argument("--density-hi", type=float, default=None)
-
-    # --- Gates ---
-    gates = ap.add_argument_group("gating")
-    gates.add_argument("--flat-start", type=float, default=None)
-    gates.add_argument("--flat-end", type=float, default=None)
-    gates.add_argument("--flux-thr-db", type=float, default=None)
-    gates.add_argument("--flux-range-db", type=float, default=None)
-
-    # --- Creative ---
-    creative = ap.add_argument_group("creative controls")
-    creative.add_argument("--noise-resynth", type=float, default=None,
-                          help="0..1 random-phase blend (de-crystallize)")
-    creative.add_argument("--mix", type=float, default=None,
-                          help="0..1 wet/dry (1.0 = full processing)")
-
-    # --- Deterministic repairs (run first in the chain) ---
-    rp = ap.add_argument_group("repairs (run first)")
-    rp.add_argument("--declick", type=float, default=None,
-                    help="0..1 de-click / de-crackle on the high band "
-                         "(0 = off; presets set their own)")
-    rp.add_argument("--no-static-repair", action="store_true",
-                    help="Skip the whole-file scan that notches the "
-                         "generator's fixed tonal lines first")
-
-    # --- Denoise ---
-    dn = ap.add_argument_group("spectral denoise")
-    dn.add_argument("--denoise", type=float, default=None,
-                    help="0..1 spectral noise floor reduction")
-    dn.add_argument("--dn-start-hz", type=float, default=None)
-    dn.add_argument("--dn-end-hz", type=float, default=None)
-    dn.add_argument("--dn-edge-hz", type=float, default=None)
-    dn.add_argument("--dn-floor-db", type=float, default=None)
-    dn.add_argument("--dn-psd-smooth-ms", type=float, default=None)
-    dn.add_argument("--dn-minwin-ms", type=float, default=None)
-    dn.add_argument("--dn-up-db-per-s", type=float, default=None)
-    dn.add_argument("--dn-attack-ms", type=float, default=None)
-    dn.add_argument("--dn-release-ms", type=float, default=None)
-    dn.add_argument("--dn-freq-smooth-bins", type=int, default=None)
-
-    # --- De-harsh (dynamic 5-9 kHz tamer) ---
-    dh = ap.add_argument_group("de-harsh (5-9 kHz fizz tamer)")
-    dh.add_argument("--deharsh", type=float, default=None,
-                    help="0..1 de-harsh strength (default 0 = off)")
-    dh.add_argument("--dh-start-hz", type=float, default=None)
-    dh.add_argument("--dh-end-hz", type=float, default=None)
-    dh.add_argument("--dh-edge-hz", type=float, default=None)
-    dh.add_argument("--dh-ref-start-hz", type=float, default=None)
-    dh.add_argument("--dh-ref-end-hz", type=float, default=None)
-    dh.add_argument("--dh-thr-db", type=float, default=None)
-    dh.add_argument("--dh-slope", type=float, default=None)
-    dh.add_argument("--dh-max-att-db", type=float, default=None)
-    dh.add_argument("--dh-attack-ms", type=float, default=None)
-    dh.add_argument("--dh-release-ms", type=float, default=None)
-
-    # --- De-checkerboard (periodic deconv-grid suppressor) ---
-    cb = ap.add_argument_group("de-checkerboard (deconv-grid suppressor)")
-    cb.add_argument("--decheck", type=float, default=None,
-                    help="0..1 de-checkerboard strength (default 0 = off)")
-    cb.add_argument("--cb-start-hz", type=float, default=None)
-    cb.add_argument("--cb-end-hz", type=float, default=None)
-    cb.add_argument("--cb-min-spacing-hz", type=float, default=None)
-    cb.add_argument("--cb-max-spacing-hz", type=float, default=None)
-    cb.add_argument("--cb-peak-thr-db", type=float, default=None)
-    cb.add_argument("--cb-max-att-db", type=float, default=None)
-    cb.add_argument("--cb-persist-ms", type=float, default=None)
-
-    # --- De-resonator ---
-    deq = ap.add_argument_group("de-resonator")
-    deq.add_argument("--deres", type=float, default=None,
-                     help="0..1 de-resonator strength")
-    deq.add_argument("--deq-start-hz", type=float, default=None)
-    deq.add_argument("--deq-end-hz", type=float, default=None)
-    deq.add_argument("--deq-edge-hz", type=float, default=None)
-    deq.add_argument("--deq-freq-med-bins", type=int, default=None)
-    deq.add_argument("--deq-thr-db", type=float, default=None)
-    deq.add_argument("--deq-slope", type=float, default=None)
-    deq.add_argument("--deq-max-att-db", type=float, default=None)
-    deq.add_argument("--deq-density-lo", type=float, default=None)
-    deq.add_argument("--deq-density-hi", type=float, default=None)
-    deq.add_argument("--deq-persist-ms", type=float, default=None)
-    deq.add_argument("--deq-persist-thr-db", type=float, default=None)
-    deq.add_argument("--deq-freq-smooth-bins", type=int, default=None)
-    deq.add_argument("--deq-tonal-boost-db", type=float, default=None)
-
-    # --- Expander ---
-    exp = ap.add_argument_group("downward expander")
-    exp.add_argument("--expander", action="store_true", default=None)
-    exp.add_argument("--exp-start-hz", type=float, default=None)
-    exp.add_argument("--exp-end-hz", type=float, default=None)
-    exp.add_argument("--exp-threshold-db", type=float, default=None)
-    exp.add_argument("--exp-ratio", type=float, default=None)
-    exp.add_argument("--exp-attack-ms", type=float, default=None)
-    exp.add_argument("--exp-release-ms", type=float, default=None)
-
-    # --- Post filters ---
-    post = ap.add_argument_group("post-STFT filters")
-    post.add_argument("--high-shelf-hz", type=float, default=None)
-    post.add_argument("--high-shelf-db", type=float, default=None)
-    post.add_argument("--subsonic-hz", type=float, default=None)
-    post.add_argument("--presence-hz", type=float, default=None)
-    post.add_argument("--presence-db", type=float, default=None)
-
-    # --- Mastering ---
     mst = ap.add_argument_group("mastering")
     mst.add_argument("--master", action="store_true",
-                     help="Enable true mastering (LUFS target + limiter + EQ)")
-    mst.add_argument("--no-master", action="store_true",
-                     help="Disable mastering when using defaults")
+                     help="Master to the default loudness target "
+                          f"({core.catalog.loudness_target(core.catalog.DEFAULT_LOUDNESS).label})")
+    mst.add_argument("--no-master", action="store_true", help="No mastering")
     mst.add_argument("--target", type=str, default=None,
-                     choices=list(LOUDNESS_TARGETS.keys()),
-                     help="Loudness target preset: streaming (-14), loud (-11), cd (-9)")
-    mst.add_argument("--target-lufs", type=float, default=None,
-                     help="Custom integrated LUFS target")
-    mst.add_argument("--ceiling", type=float, default=None,
-                     help="True-peak ceiling in dBTP (default -1.0)")
-    mst.add_argument("--master-intensity", type=str, default=None,
-                     choices=["low", "med", "high"],
-                     help="Mastering EQ intensity")
-    mst.add_argument("--master-tilt", type=str, default=None,
-                     choices=["brightest", "bright", "neutral", "warm", "warmer"],
-                     help="Tone tilt: warm boosts lows / rolls off air, "
-                          "bright does the opposite (default neutral)")
+                     choices=[t.key for t in core.catalog.LOUDNESS_TARGETS],
+                     help=f"Master to this loudness target: {targets}")
+    mst.add_argument("--intensity", "--master-intensity", dest="intensity", type=str,
+                     default=None, choices=list(core.catalog.TONE_INTENSITIES),
+                     help="How much of the tone correction to make")
+    mst.add_argument("--tilt", "--master-tilt", dest="tilt", type=str, default=None,
+                     choices=list(core.catalog.TONE_TILTS), help="Warm to bright")
+    mst.add_argument("--reference", type=str, default=None, metavar="FILE",
+                     help="Move the tone toward this reference track instead of "
+                          "the built-in target (mastering only)")
+    mst.add_argument("--match-amount", type=float, default=None, metavar="0-1",
+                     help=f"How much of the reference's difference to take "
+                          f"(default {core.catalog.MATCH_AMOUNT:g}; at most ±3 dB either way)")
 
-    # --- Output ---
     out = ap.add_argument_group("output")
-    out.add_argument("--no-pad", action="store_true")
-    out.add_argument("--fade-ms", type=float, default=None)
-    out.add_argument("--no-preserve-volume", action="store_true",
-                     help="Don't match output peak to input peak")
-    out.add_argument("--subtype", type=str, default="PCM_24",
-                     help="SoundFile subtype: PCM_16, PCM_24, FLOAT")
-    out.add_argument("--sample-rate", type=int, default=None,
-                     help="Resample to this rate before processing (e.g. 44100), "
-                          "so the limiter works at the delivery rate")
     out.add_argument("--release", action="store_true",
-                     help="Release copy: 16-bit at 44.1 kHz with TPDF dither "
-                          "(same as --subtype PCM_16 --sample-rate 44100)")
-    out.add_argument("--write-diff", type=str, default=None,
-                     help="Write the removed signal to this file")
+                     help="Release copy: WAV 16-bit at 44.1 kHz with dither")
+    out.add_argument("--trim-silence", action="store_true",
+                     help="Cut silence from the start and end")
+    out.add_argument("--no-preserve-volume", action="store_true",
+                     help="With mastering off, do not put the result back at "
+                          "the input's level")
+    out.add_argument("--write-diff", type=str, default=None, metavar="FILE",
+                     help="Also write what the fixes took out to FILE")
 
-    # --- Misc ---
-    misc = ap.add_argument_group("misc")
-    misc.add_argument("--seed", type=int, default=None)
-    misc.add_argument("--debug", action="store_true")
-    misc.add_argument("--legacy-engine", action="store_true",
-                      help="Use the old full-mix STFT engine instead of the "
-                           "safe band-split/M-S pipeline")
-
+    for flag in RETIRED_VALUE_FLAGS:
+        ap.add_argument(flag, dest=_dest(flag), default=None, help=argparse.SUPPRESS)
+    for flag in RETIRED_SWITCHES:
+        ap.add_argument(flag, dest=_dest(flag), action="store_true", default=None,
+                        help=argparse.SUPPRESS)
     return ap
 
 
-def _resolve_params(args) -> Params:
-    """Build Params from preset + CLI overrides."""
-    if args.preset:
-        p = get_preset(args.preset)
-    else:
-        p = Params()
-
-    # Handle center/width -> start/end conversion
-    if args.center_hz is not None and args.width_cents is not None:
-        lo, hi = band_from_center(args.center_hz, args.width_cents)
-        p.start_hz = lo
-        p.end_hz = hi
-
-    # Map CLI arg names (with hyphens) to Params field names (with underscores)
-    _OVERRIDES = {
-        "start_hz": "start_hz",
-        "end_hz": "end_hz",
-        "edge_hz": "edge_hz",
-        "n_fft": "n_fft",
-        "hop": "hop",
-        "flat_start": "flat_start",
-        "flat_end": "flat_end",
-        "freq_med_bins": "freq_med_bins",
-        "thr_db": "thr_db",
-        "slope": "slope",
-        "density_lo": "density_lo",
-        "density_hi": "density_hi",
-        "flux_thr_db": "flux_thr_db",
-        "flux_range_db": "flux_range_db",
-        "noise_resynth": "noise_resynth",
-        "mix": "mix",
-        "fade_ms": "fade_ms",
-        "declick": "declick",
-        "denoise": "denoise",
-        "dn_start_hz": "dn_start_hz",
-        "dn_end_hz": "dn_end_hz",
-        "dn_edge_hz": "dn_edge_hz",
-        "dn_floor_db": "dn_floor_db",
-        "dn_psd_smooth_ms": "dn_psd_smooth_ms",
-        "dn_minwin_ms": "dn_minwin_ms",
-        "dn_up_db_per_s": "dn_up_db_per_s",
-        "dn_attack_ms": "dn_attack_ms",
-        "dn_release_ms": "dn_release_ms",
-        "dn_freq_smooth_bins": "dn_freq_smooth_bins",
-        "deres": "deres",
-        "deq_start_hz": "deq_start_hz",
-        "deq_end_hz": "deq_end_hz",
-        "deq_edge_hz": "deq_edge_hz",
-        "deq_freq_med_bins": "deq_freq_med_bins",
-        "deq_thr_db": "deq_thr_db",
-        "deq_slope": "deq_slope",
-        "deq_max_att_db": "deq_max_att_db",
-        "deq_density_lo": "deq_density_lo",
-        "deq_density_hi": "deq_density_hi",
-        "deq_persist_ms": "deq_persist_ms",
-        "deq_persist_thr_db": "deq_persist_thr_db",
-        "deq_freq_smooth_bins": "deq_freq_smooth_bins",
-        "deq_tonal_boost_db": "deq_tonal_boost_db",
-        "deharsh": "deharsh",
-        "dh_start_hz": "dh_start_hz",
-        "dh_end_hz": "dh_end_hz",
-        "dh_edge_hz": "dh_edge_hz",
-        "dh_ref_start_hz": "dh_ref_start_hz",
-        "dh_ref_end_hz": "dh_ref_end_hz",
-        "dh_thr_db": "dh_thr_db",
-        "dh_slope": "dh_slope",
-        "dh_max_att_db": "dh_max_att_db",
-        "dh_attack_ms": "dh_attack_ms",
-        "dh_release_ms": "dh_release_ms",
-        "decheck": "decheck",
-        "cb_start_hz": "cb_start_hz",
-        "cb_end_hz": "cb_end_hz",
-        "cb_min_spacing_hz": "cb_min_spacing_hz",
-        "cb_max_spacing_hz": "cb_max_spacing_hz",
-        "cb_peak_thr_db": "cb_peak_thr_db",
-        "cb_max_att_db": "cb_max_att_db",
-        "cb_persist_ms": "cb_persist_ms",
-        "expander": "expander",
-        "exp_start_hz": "exp_start_hz",
-        "exp_end_hz": "exp_end_hz",
-        "exp_threshold_db": "exp_threshold_db",
-        "exp_ratio": "exp_ratio",
-        "exp_attack_ms": "exp_attack_ms",
-        "exp_release_ms": "exp_release_ms",
-        "high_shelf_hz": "high_shelf_hz",
-        "high_shelf_db": "high_shelf_db",
-        "subsonic_hz": "subsonic_hz",
-        "presence_hz": "presence_hz",
-        "presence_db": "presence_db",
-        "seed": "seed",
-    }
-
-    for arg_name, param_name in _OVERRIDES.items():
-        val = getattr(args, arg_name, None)
-        if val is not None:
-            setattr(p, param_name, val)
-
-    if args.no_pad:
-        p.pad = False
-    if args.debug:
-        p.debug = True
-
-    return p
+def retired_flags_given(args: argparse.Namespace) -> List[str]:
+    return [f for f in RETIRED_VALUE_FLAGS + RETIRED_SWITCHES
+            if getattr(args, _dest(f), None) is not None]
 
 
-def _resolve_master_params(args) -> MasterParams | None:
-    """Build MasterParams from CLI flags. None = mastering off."""
-    if args.no_master:
-        return None
-    if not args.master and args.target is None and args.target_lufs is None:
-        return None
-    mp = MasterParams(enabled=True)
+def output_format(path: str, release: bool) -> core.catalog.Format:
+    """The format an output file's extension names."""
+    ext = Path(path).suffix.lower()
+    if release:
+        if ext != ".wav":
+            raise ValueError("--release writes WAV 16-bit 44.1 kHz: name the output .wav")
+        return core.catalog.output_format("wav16")
+    for f in core.catalog.FORMATS:
+        if f.ext == ext and f.key != "wav16":
+            return f
+    raise ValueError(f"unsupported output extension {ext or '(none)'}: "
+                     "use .wav, .flac, .mp3, .ogg or .m4a")
+
+
+def _fixes(entries: List[str]) -> Dict[str, float]:
+    out: Dict[str, float] = {}
+    for e in entries:
+        key, _, amount = e.partition("=")
+        key = key.strip().lower()
+        if key not in core.catalog.CARD_KEYS:
+            raise ValueError(f"unknown card {key!r}; see --list")
+        try:
+            out[key] = float(amount) if amount else core.catalog.card(key).default_amount
+        except ValueError:
+            raise ValueError(f"--fix {e}: the amount must be a number from 0 to 1")
+    return out
+
+
+def settings_from_args(args: argparse.Namespace) -> core.Settings:
+    """The Settings a command line asks for."""
+    preset = (args.preset or "").strip().lower()
+    if preset and LEGACY_ALIASES.get(preset, preset) not in LEGACY_PRESETS:
+        raise ValueError(f"unknown preset {args.preset!r}; see --list")
+    fmt = output_format(args.output, args.release)
+    mastering = (args.master or args.target is not None) and not args.no_master
+    master = {"enabled": mastering}
     if args.target:
-        mp.target_lufs = LOUDNESS_TARGETS[args.target]
-    if args.target_lufs is not None:
-        mp.target_lufs = float(args.target_lufs)
-    if args.ceiling is not None:
-        mp.ceiling_dbtp = float(args.ceiling)
-    else:
-        # Codec-aware default, matching the web/batch paths: lossy
-        # formats get −1.5 dBTP so the encoder can't clip on decode.
-        ext = Path(args.output).suffix if args.output else ""
-        mp.ceiling_dbtp = get_export_ceiling_dbtp(ext)
-    if args.master_intensity:
-        mp.intensity = args.master_intensity
-    if args.master_tilt:
-        mp.tilt = args.master_tilt
-    return mp
+        master["target"] = args.target
+    for key in ("intensity", "tilt"):
+        if getattr(args, key):
+            master[key] = getattr(args, key)
+    s = core.migrate({"preset": preset or None, "mastering": master, "output_format": fmt.key,
+                      "trim_silence": bool(args.trim_silence),
+                      "preserve_volume": not args.no_preserve_volume})
+    fixes = dict(s.fixes)
+    fixes.update(_fixes(args.fix))
+    auto = not (args.no_auto or args.no_static_repair)
+    if args.no_static_repair:
+        fixes.pop("tones", None)
+    changes = {"fixes": fixes, "auto": auto}
+    # Lack of air and Loudness are fixed by mastering (the tone and loudness
+    # targets): naming one turns mastering on, unless --no-master says no.
+    by_mastering = [k for k in fixes
+                    if core.catalog.card(k).tool in ("tone_target", "loudness_target")]
+    if by_mastering and not args.no_master:
+        changes["mastering"] = True
+    if args.match_amount is not None:
+        changes["match_amount"] = args.match_amount
+    return s.replace(**changes)
 
 
-def _progress_bar(fraction: float):
-    """Simple inline progress bar."""
-    width = 40
-    filled = int(width * fraction)
-    bar = "█" * filled + "░" * (width - filled)
-    pct = fraction * 100
-    print(f"\r  [{bar}] {pct:5.1f}%", end="", flush=True)
-    if fraction >= 1.0:
-        print()
+def _print_list() -> None:
+    cat = core.catalog
+    print('Cards ("What do you hear?"), for --fix CARD[=AMOUNT]:\n')
+    for c in cat.CARDS:
+        state = ("ready" if c.tool in cat.TOOLS_READY
+                 else "no fix yet" if c.tool is None else "not built yet")
+        print(f"  {c.key:12s} {c.label:22s} {state}")
+    print("\nLoudness targets, for --target:\n")
+    for t in cat.LOUDNESS_TARGETS:
+        note = "  (the default with --master)" if t.key == cat.DEFAULT_LOUDNESS else ""
+        print(f"  {t.key:12s} {t.label:22s} {t.lufs:g} LUFS{note}")
+    print("\nFormats, from the output's extension (--release for the 16-bit copy):\n")
+    for f in cat.FORMATS:
+        print(f"  {f.ext:6s} {f.label:22s} true peak at most {f.ceiling_dbtp:g} dBTP")
+    print("\n1.x presets, for --preset, turn on a card:\n")
+    for name, card in LEGACY_PRESETS.items():
+        print(f"  {name:20s} -> {card or 'none'}")
 
 
-def main() -> int:
+def _print_suggest(path: str) -> int:
+    src = core.Source.load(path)
+    found = core.findings(src)
+    labels = {c.key: c.label for c in core.catalog.CARDS}
+    print(f"Analyzed: {path}\n")
+    if not found:
+        print("  Nothing measurable to fix. Listen, and turn on a card for what you hear.")
+    for f in found:
+        print(f"  {labels.get(f.card, f.card)}: {f.detail}")
+    return 0
+
+
+def _mastering_lines(rendered: core.Rendered, source: core.Source, exp: Dict) -> List[str]:
+    m = rendered.report.get("mastering", {})
+    if not m.get("enabled"):
+        return []
+    before = core.meters.loudness(source.at_rate(rendered.sr), rendered.sr)
+    target = "a reference track" if m.get("tone_target") == "reference" else "the built-in target"
+    return [f"  Loudness:  {before:.1f} -> {exp['lufs']:.1f} LUFS (target {m['target_lufs']:g})",
+            f"  True peak: {exp['true_peak_dbtp']:.1f} dBTP (ceiling {m['ceiling_dbtp']:g})",
+            f"  Tone:      toward {target}"]
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        # The Windows console cannot print every character a report uses.
+        sys.stdout.reconfigure(errors="replace")
     ap = _build_parser()
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
-    if args.list_presets:
-        presets = list_presets()
-        print("Available presets:\n")
-        for name, desc in presets.items():
-            lines = desc.split("\n")
-            header = lines[0] if lines else name
-            detail = " ".join(l.strip() for l in lines[1:] if l.strip())
-            print(f"  {name:16s}  {header}")
-            if detail:
-                print(f"  {'':<16s}  {detail}")
-            print()
+    if args.list:
+        _print_list()
         return 0
-
-    if args.suggest:
-        from .probe import suggest_preset
-        result = suggest_preset(args.suggest)
-        m = result["metrics"]
-        print(f"Suggested preset:   {result['preset']} "
-              f"at {result.get('strength', 1.0) * 100:.0f}% strength\n")
-        print("Ranked matches (verified through the cleaning pipeline):")
-        print(f"  {'preset':18s} {'score':>5s} {'conf':>5s} {'str':>5s} "
-              f"{'residue':>8s} {'collat':>7s} {'loss':>6s} {'tilt':>6s}")
-        for e in result["ranked"]:
-            art = e.get("artifact_db")
-            col = e.get("collateral_db")
-            mis = e.get("missing")
-            lin = e.get("lin_dist")
-            print(f"  {e['name']:18s} {e['score']:5.2f} {e['confidence']:5.2f} "
-                  f"{e.get('strength', 1.0) * 100:4.0f}% "
-                  f"{(f'{art:7.1f}dB' if art is not None else '      -'):>8s} "
-                  f"{(f'{col:6.1f}dB' if col is not None else '     -'):>7s} "
-                  f"{(f'{mis:6.3f}' if mis is not None else '     -'):>6s} "
-                  f"{(f'{lin:6.2f}' if lin is not None else '     -'):>6s}")
-            print(f"    {e.get('reason', '')}")
-        fu = result.get("follow_up")
-        if fu:
-            print(f"\nSecond pass worth trying: {fu['name']} — {fu['reason']}")
-        for note in result.get("notes") or []:
-            print(f"\nNote: {note}")
-        print(f"\nCheckerboard score: {result['checkerboard_score']:.4f}")
-        print(f"Analyzed:           {m['analyzed_seconds']:.1f} s "
-              f"@ {m['sample_rate']} Hz; verified on "
-              f"{m.get('window_s', 0):.0f} s window at "
-              f"{m.get('window_start_s', 0):.0f} s "
-              f"({m.get('verify_runs', 0)} pipeline runs, "
-              f"{m.get('elapsed_ms', 0) / 1000:.1f} s)")
-        return 0
-
-    if not args.input or not args.output:
-        ap.error("input and output are required (use --list-presets to see presets)")
+    try:
+        if args.suggest:
+            return _print_suggest(args.suggest)
+        if not args.input or not args.output:
+            ap.error("input and output are required (use --list to see the cards)")
+        s = settings_from_args(args)
+    except ValueError as e:
+        ap.error(str(e))
+    except core.AudioIOError as e:
+        print(f"shimmer: {e}", file=sys.stderr)
         return 1
 
-    params = _resolve_params(args)
-    master_params = _resolve_master_params(args)
-
-    preset_label = args.preset or "generic"
-    print(f"Shimmer removal: {args.input}")
-    print(f"  Preset:  {preset_label}")
-    print(f"  Band:    {params.start_hz:.0f} – {params.end_hz:.0f} Hz")
-    if master_params and master_params.enabled:
-        print(f"  Master:  {master_params.target_lufs:.1f} LUFS, "
-              f"ceiling {master_params.ceiling_dbtp:.1f} dBTP")
-
-    if params.denoise > 0:
-        print(f"  Denoise: {params.denoise:.0%}")
-    if params.deres > 0:
-        print(f"  De-res:  {params.deres:.0%}")
-    if params.deharsh > 0:
-        print(f"  De-harsh:{params.deharsh:.0%} ({params.dh_start_hz:.0f}-{params.dh_end_hz:.0f} Hz)")
-    if params.decheck > 0:
-        print(f"  De-check:{params.decheck:.0%} ({params.cb_start_hz:.0f}-{params.cb_end_hz:.0f} Hz)")
-    if params.high_shelf_db != 0 and params.high_shelf_hz > 0:
-        print(f"  HShelf:  {params.high_shelf_db:+.1f} dB @ {params.high_shelf_hz:.0f} Hz")
-    if params.subsonic_hz > 0:
-        print(f"  HP:      {params.subsonic_hz:.0f} Hz")
-    if params.presence_db != 0 and params.presence_hz > 0:
-        print(f"  Presence: {params.presence_db:+.1f} dB @ {params.presence_hz:.0f} Hz")
-
+    retired = retired_flags_given(args)
+    print(f"Shimmer {__version__}: {args.input}")
+    if retired:
+        print(f"  Ignored (1.x controls, gone in 2.0): {', '.join(retired)}")
+    on = [f"{k} {v:g}" for k, v in s.fixes.items()]
+    print(f"  Fixes:     {', '.join(on) if on else 'none named'}"
+          + ("; plus what the analysis finds" if s.auto else ""))
+    if s.mastering:
+        t = core.catalog.loudness_target(s.loudness_target)
+        print(f"  Master:    {t.label}, {t.lufs:g} LUFS")
     print()
 
-    t_start = time.time()
-
-    result = process_file(
-        input_path=args.input,
-        output_path=args.output,
-        params=params,
-        write_diff=args.write_diff,
-        do_preserve_volume=not args.no_preserve_volume,
-        subtype="PCM_16" if args.release else args.subtype,
-        target_sr=44100 if args.release else args.sample_rate,
-        progress_callback=_progress_bar,
-        master_params=master_params,
-        use_pipeline=not args.legacy_engine,
-        static_repair=not args.no_static_repair,
-    )
-
-    elapsed = time.time() - t_start
-    rep = result.get("repair") or {}
-    if rep.get("enabled"):
-        print(f"  Repair:    {rep.get('notches', 0)} fixed line(s) notched, "
-              f"deepest {rep.get('deepest_db', 0):.0f} dB")
-    dc = result.get("declick") or {}
-    if dc.get("enabled"):
-        print(f"  De-click:  {dc.get('clicks', 0)} click(s) repaired")
-    if result.get("cutoff_hz"):
-        print(f"  Cutoff:    top end stops at {result['cutoff_hz'] / 1000:.1f} kHz "
-              f"(no boosts above it)")
-
-    print(f"\n  Duration:  {result['duration_s']:.1f}s @ {result['sr']} Hz, {result['channels']}ch")
-    print(f"  Input:     peak {result['input']['peak_dbfs']:.1f} dBFS, rms {result['input']['rms_dbfs']:.1f} dBFS")
-    print(f"  Output:    peak {result['output']['peak_dbfs']:.1f} dBFS, rms {result['output']['rms_dbfs']:.1f} dBFS")
-    if result.get("mastering", {}).get("enabled"):
-        m = result["mastering"]
-        b, a = m.get("before", {}), m.get("after", {})
-        print(f"  LUFS:      {b.get('lufs_i', '?'):.1f} -> {a.get('lufs_i', '?'):.1f} "
-              f"(target {m.get('target_lufs', '?'):.1f})")
-        print(f"  True peak: {b.get('true_peak_dbtp', '?'):.1f} -> {a.get('true_peak_dbtp', '?'):.1f} dBTP")
-    print(f"  Processed in {elapsed:.1f}s")
-    print(f"  Written:   {args.output}")
-
+    t0 = time.time()
+    try:
+        src = core.Source.load(args.input)
+        ref = core.Source.load(args.reference) if args.reference else None
+    except core.AudioIOError as e:
+        print(f"shimmer: {e}", file=sys.stderr)
+        return 1
+    prog = core.Progress(on_stage=lambda key, label, detail:
+                         print(f"  {label}" + (f": {detail}" if detail else "")))
+    rendered = core.render(src, s, progress=prog, with_removed=bool(args.write_diff),
+                           reference=ref)
+    y, sr = rendered.audio, rendered.sr
+    trimmed = ""
+    if s.trim_silence:
+        y, head, tail = core.trim_silence(y, sr)
+        trimmed = f"  Trimmed:   {head:.2f} s at the start, {tail:.2f} s at the end"
+    print(f"  Writing the file: {core.catalog.output_format(s.format).label}")
+    exp = core.export(core.Rendered(y, sr, rendered.report, s, src.path), args.output,
+                      source_path=args.input)
     if args.write_diff:
-        print(f"  Diff:      {args.write_diff}")
+        diff_fmt = output_format(args.write_diff, release=False)
+        core.export(core.Rendered(rendered.removed, sr, {}, s.replace(format=diff_fmt.key), src.path),
+                    args.write_diff, source_path=args.input)
 
+    print()
+    fixes = rendered.report.get("fixes", {})
+    tones = fixes.get("tones")
+    if isinstance(tones, dict):
+        print(f"  Fixed tones: {tones['notches']} notched, deepest {tones['deepest_db']:.0f} dB")
+    waiting = [k for k, v in fixes.items() if v == "not built yet"]
+    if waiting:
+        print(f"  Not built yet, so not applied: {', '.join(waiting)}")
+    for line in _mastering_lines(rendered, src, exp):
+        print(line)
+    if trimmed:
+        print(trimmed)
+    m = rendered.report.get("mastering", {})
+    if m.get("enabled"):
+        fmt = core.catalog.output_format(s.format)
+        rel = core.release_check(
+            y, sr, x_in=src.at_rate(sr),
+            mastering={"enabled": True, "target_lufs": m["target_lufs"],
+                       "ceiling_dbtp": m["ceiling_dbtp"],
+                       "after": {"lufs_i": exp["lufs"], "true_peak_dbtp": exp["true_peak_dbtp"]}},
+            export={"format": fmt.ext.lstrip("."), "bit_depth": fmt.bits},
+            correlation=core.stereo_correlation(y), duration_s=float(y.shape[0] / sr))
+        flags = [c["label"] for c in rel["checks"] if c["status"] in ("warn", "fail")]
+        verdict = {"pass": "ready to upload", "warn": "things to look at",
+                   "fail": "not ready"}[rel["status"]]
+        print(f"  Release check: {verdict}" + (f" ({', '.join(flags)})" if flags else ""))
+    print(f"  Written:   {args.output} ({time.time() - t0:.1f} s)")
+    if args.write_diff:
+        print(f"  Removed:   {args.write_diff}")
     return 0
 
 
