@@ -48,13 +48,15 @@ MAX_MS = 3.0                   # longer than this is not a click
 PAD = 6                        # samples added either side of a found click (its tail)
 ONSET_MS = 5.0                 # the stretch compared before and after
 ONSET_RATIO = 4.0              # louder after than before by this power ratio: a hit
-CONTEXT = 8 * ORDER            # at least this many samples either side for the filling model
-FILL_CONTEXT_MS = 20.0         # ... and up to 20 ms either side
-FILL_ORDER = 48                # the filling model looks further back than the finder, so
-                               # a slow bass or chord carries through the gap. On chords
-                               # over a bass, a 20-sample gap came back within -33 dB
-                               # (median), a 40-sample gap -23 dB, 60 samples only -12
-                               # dB: short gaps are what make the fill clean.
+# The fill: a model of the music (FILL_ORDER samples back) fitted on CONTEXT
+# samples either side of the gap, by the autocorrelation method. Chosen on
+# five real songs (docs/STEP6-FIXES.md): it took out about 70 % of the pops'
+# energy (0.31 left) and 46 % / 41 % of their audible share at 2.0 / 0.5
+# sones. Longer models fitted on 10-20 ms filled steady synthetic chords
+# better but misfired on the real songs' denser sound (up to 10x the pop's
+# energy left on one song).
+FILL_ORDER = ORDER
+CONTEXT = 4 * ORDER
 TAIL_SHARE = 0.25              # the gap runs past the flagged samples by this share of
                                # their length, for the click's fading tail
 # After a click the music is predictable again; after a hit's noisy start it
@@ -87,12 +89,12 @@ def plan(audio: np.ndarray, sr: int) -> Plan:
     return Plan()
 
 
-def _ar(r: np.ndarray, p: int) -> np.ndarray:
+def _ar(r: np.ndarray, p: int, noise: float = 1e-6) -> np.ndarray:
     """AR coefficients [1, a1..ap] from autocorrelation r[0..p]."""
     r = np.asarray(r, dtype=np.float64).copy()
     if r[0] <= 1e-20:
         return np.concatenate([[1.0], np.zeros(p)])
-    r[0] *= 1.0 + 1e-6                      # a little white noise keeps it stable
+    r[0] *= 1.0 + noise                     # a little white noise keeps it stable
     return np.concatenate([[1.0], solve_toeplitz(r[:p], -r[1:p + 1])])
 
 
@@ -181,37 +183,16 @@ def _is_click(x: np.ndarray, sr: int, s: int, e: int) -> bool:
     return pa < ONSET_RATIO * pb
 
 
-def _ar_ls(parts: List[np.ndarray], p: int) -> np.ndarray:
-    """AR coefficients [1, a1..ap] by least squares over the given stretches,
-    each sample predicted from the p before it in its own stretch (the
-    covariance method: no window, so steady tones are modelled sharply)."""
-    rows, target = [], []
-    for seg in parts:
-        seg = np.asarray(seg, dtype=np.float64)
-        if seg.size <= p:
-            continue
-        idx = np.arange(p, seg.size)
-        rows.append(np.stack([seg[idx - k] for k in range(1, p + 1)], axis=1))
-        target.append(-seg[idx])
-    if not rows:
-        return np.concatenate([[1.0], np.zeros(p)])
-    M, y = np.vstack(rows), np.concatenate(target)
-    G = M.T @ M
-    G += (1e-9 * float(np.trace(G)) / p + 1e-20) * np.eye(p)     # a little ridge keeps it stable
-    return np.concatenate([[1.0], np.linalg.solve(G, M.T @ y)])
-
-
 def _fill(x: np.ndarray, s: int, e: int, sr: int = 48000) -> None:
     """Least-squares AR interpolation of x[s:e], in place, from a model of
     the music fitted on the stretches either side."""
     p = FILL_ORDER
-    ctx = max(CONTEXT, 4 * p, int(round(FILL_CONTEXT_MS * 1e-3 * sr)))
-    pre = x[max(0, s - ctx):s]
-    post = x[e:min(x.size, e + ctx)]
-    parts = [seg for seg in (pre, post) if seg.size > 2 * p]
+    pre = x[max(0, s - CONTEXT):s]
+    post = x[e:min(x.size, e + CONTEXT)]
+    parts = [seg for seg in (pre, post) if seg.size > p]
     if not parts:
         return
-    a = _ar_ls(parts, p)
+    a = _ar(sum(_autocorr(seg, p) for seg in parts) / len(parts), p)
     r0, r1 = max(0, s - p), min(x.size, e + p)
     region = x[r0:r1].astype(np.float64)
     m = region.size
@@ -233,7 +214,7 @@ def find(x: np.ndarray, sr: int, amount: float, offset: int = 0) -> List[Tuple[i
     a = float(np.clip(amount, 0.0, 1.0))
     k = THRESHOLD_BOTTOM + (THRESHOLD_TOP - THRESHOLD_BOTTOM) * a
     ef, eb, sf, sb = _residuals(x, sr, offset)
-    out = []
+    out: List[Tuple[int, int]] = []
     for s, e in _runs((ef > k * sf) & (eb > k * sb)):
         if not _is_click(x, sr, s, e):
             continue

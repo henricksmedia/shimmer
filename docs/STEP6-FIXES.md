@@ -391,13 +391,63 @@ the export; the Removed track holds the pops; bypass is bit-exact.
 Width, hits and pumping unchanged. No Amount cap needed: the worst song
 takes 0.070 at the top.
 
-**Open problem, being fixed:** the pop energy left is over 1. By the
-hearing model about half of each planted pop is gone, but by plain energy
-the fills leave more error behind than the pops had. With the first,
-shorter fill it was 0.30-0.42. The longer fill was tuned on steady chords
-over a bass, and on the real songs' denser sound it misfires. The fill is
-being chosen again on the real songs; the card stays off in the Master tab
-until that is settled and the blind round passes.
+**The fill, chosen again on the real songs** (same detection, 5 songs,
+Amount 100 %):
+
+| Fill | Pops 2.0 / 0.5 | Pop energy left | Crackle 2.0 / 0.5 |
+|---|---|---|---|
+| 48-sample model, 20 ms either side, tail margin | 49 % / 11 % | 2.44 (Alive Again 9.9) | 42 % / -34 % |
+| 32-sample model, 10 ms, tail margin | 28 % / 40 % | 0.40 | 28 % / -47 % |
+| **24-sample model, 96 samples, tail margin** | **46 % / 41 %** | **0.31** | **14 % / -20 %** |
+| 24-sample model, 96 samples, no margin | 41 % / 38 % | 0.27 | 14 % / -19 % |
+
+The longer models filled steady synthetic chords better but misfired on the
+real songs' denser sound, so the short one is back.
+
+**The de-click does not pass yet.** A check on "Hey" with the same pop
+model planted at 15-30 % of the song's peak (clearly audible, but quieter
+than the harness's "plainly there" level), three 6 s stretches with 4 pops
+each, found only 0-2 of the 4 pops per channel, and the energy left was
+4-15 times the pops' own: the few gaps it filled were long and filled
+badly. Why it misses them: the pop model's clicks, with the ringing its
+200 Hz high-pass leaves, last 6-7.5 ms, past the 3 ms the de-click accepts;
+and where only a sample or two of a pop was flagged, the isolation check
+compared it with the rest of the same pop and threw it out. On steady pure
+chords over a heavy bass, a loud pop can come out louder after filling. The
+harness's encouraging numbers came from louder pops, which are easier to
+find. What passes today: a click-length gap (20 samples) in a steady tone
+comes back within -63 dB, and clean music and drum hits are left alone.
+The card stays off in the Master tab; its blind sets are built
+(Dawn Through Smoke, Algorithm's Lure, Crosscut, Crossthread) but should
+not be judged until it finds and fills pops in dense music.
+
+**Tried and undone (2026-09-13):** judging each click's whole body instead
+of its core (growing the flagged stretch while either prediction still
+missed, accepting clicks up to 5 ms, and a looser core rule), with the fill
+held in bounds (a steadier model, a held-back solve, and a cap at 1.5x the
+loudest sample next to the gap). It found a few more pops in "Hey" (1-2 of
+4) but raised false alarms on clean music, and its fills were 14-28 dB
+worse than the pops they replaced: the grown gaps ran to 5 ms, and filling
+that much real music from a guess replaces the music with something
+unrelated. The cap cannot help, since the guess stays within normal level
+and is simply wrong.
+
+**What this shows, and the next step:** filling a gap from the sound
+either side works only for gaps under about a millisecond. The pop model's
+clicks, with their ringing, run longer. They need a different repair, a
+redesign rather than more tuning:
+
+- estimate the click itself (what the music's model cannot explain) and
+  subtract only that, so the music under it stays; or
+- repair only the band above about 2 kHz, where pops live, and leave the
+  bass and mids, which a short model cannot carry through a gap, as they
+  are.
+
+The de-click as committed is the last measured version (above): on the
+harness's louder pops it removes 46 % / 41 % at 0.017 sones on average,
+leaves clean music and drum hits alone, and misses moderate pops in dense
+music. Its tests record both: what it does, and, as known failures, what
+it must do before it can pass.
 
 ## Shimmer
 

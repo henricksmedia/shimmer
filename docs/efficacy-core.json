@@ -24069,6 +24069,1706 @@
    "host": "distrokid-alive-again",
    "host_flicker_excess_db": -0.6,
    "artifact": "clicks",
+   "level": 2.0,
+   "injected_added": 2.0007,
+   "injected_missing": 0.2965,
+   "injected_lin_dist": 0.054,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.052,
+    "flat_3_8": 0.449,
+    "flat_4_12": 0.328,
+    "flat_8_18": 0.166,
+    "presence_db": -6.142,
+    "ring_4_10": 0.051,
+    "comb": 0.233,
+    "sib_burst": 0.022,
+    "tail_contrast": 0.004,
+    "period_excess": 0.0,
+    "echo_corr": -0.009,
+    "umid_db": -11.927,
+    "top_tilt_db": -19.109,
+    "tone_8_12": {
+     "hz": 10600.4,
+     "excess_db": 4.66,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 13799.6,
+     "excess_db": 4.87,
+     "duty": 0.376
+    },
+    "tone_12_20": {
+     "hz": 16600.4,
+     "excess_db": 8.03,
+     "duty": 0.452
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9762,
+   "efficacy": 0.012,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.003,
+   "cost_missing_raw": 0.2964,
+   "cost_lin_dist_raw": 0.057,
+   "cost_added": 1.9762,
+   "notches": 6,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "crackle",
+   "level": 0.5,
+   "injected_added": 0.5006,
+   "injected_missing": 0.0308,
+   "injected_lin_dist": 0.007,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.882,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.326,
+    "flat_8_18": 0.184,
+    "presence_db": -6.282,
+    "ring_4_10": 0.051,
+    "comb": 0.227,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.001,
+    "period_excess": 0.0,
+    "echo_corr": 0.02,
+    "umid_db": -12.095,
+    "top_tilt_db": -18.607,
+    "tone_8_12": {
+     "hz": 10601.4,
+     "excess_db": 4.28,
+     "duty": 0.258
+    },
+    "tone_9_15": {
+     "hz": 13797.4,
+     "excess_db": 5.0,
+     "duty": 0.247
+    },
+    "tone_12_20": {
+     "hz": 16599.0,
+     "excess_db": 7.28,
+     "duty": 0.344
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5004,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.001,
+   "cost_missing_raw": 0.0308,
+   "cost_lin_dist_raw": 0.008,
+   "cost_added": 0.5004,
+   "notches": 5,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "crackle",
+   "level": 2.0,
+   "injected_added": 2.0007,
+   "injected_missing": 0.0965,
+   "injected_lin_dist": 0.028,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.03,
+    "flat_3_8": 0.443,
+    "flat_4_12": 0.34,
+    "flat_8_18": 0.234,
+    "presence_db": -6.225,
+    "ring_4_10": 0.045,
+    "comb": 0.22,
+    "sib_burst": 0.004,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.012,
+    "umid_db": -11.874,
+    "top_tilt_db": -18.323,
+    "tone_8_12": {
+     "hz": 10601.5,
+     "excess_db": 4.02,
+     "duty": 0.226
+    },
+    "tone_9_15": {
+     "hz": 13797.8,
+     "excess_db": 4.54,
+     "duty": 0.194
+    },
+    "tone_12_20": {
+     "hz": 16599.1,
+     "excess_db": 6.53,
+     "duty": 0.301
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9985,
+   "efficacy": 0.001,
+   "cost_missing": 0.0001,
+   "cost_lin_dist": 0.001,
+   "cost_missing_raw": 0.0966,
+   "cost_lin_dist_raw": 0.028,
+   "cost_added": 1.9985,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "clicks",
+   "level": 0.5,
+   "injected_added": 0.5003,
+   "injected_missing": 0.1672,
+   "injected_lin_dist": 0.059,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.602,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.291,
+    "presence_db": -2.774,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.113,
+    "tail_contrast": 0.005,
+    "period_excess": 0.171,
+    "echo_corr": -0.249,
+    "umid_db": -6.032,
+    "top_tilt_db": -14.374,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14086.3,
+     "excess_db": 3.94,
+     "duty": 0.204
+    },
+    "tone_12_20": {
+     "hz": 14086.3,
+     "excess_db": 3.94,
+     "duty": 0.204
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5048,
+   "efficacy": -0.009,
+   "cost_missing": 0.0063,
+   "cost_lin_dist": 0.509,
+   "cost_missing_raw": 0.1735,
+   "cost_lin_dist_raw": 0.567,
+   "cost_added": 0.5048,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "clicks",
+   "level": 2.0,
+   "injected_added": 1.0218,
+   "injected_missing": 2.3445,
+   "injected_lin_dist": 0.453,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.549,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.291,
+    "presence_db": -2.774,
+    "ring_4_10": 0.262,
+    "comb": 0.117,
+    "sib_burst": 0.121,
+    "tail_contrast": 0.005,
+    "period_excess": 0.086,
+    "echo_corr": -0.158,
+    "umid_db": -6.018,
+    "top_tilt_db": -14.374,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14086.3,
+     "excess_db": 3.97,
+     "duty": 0.204
+    },
+    "tone_12_20": {
+     "hz": 14086.3,
+     "excess_db": 3.97,
+     "duty": 0.204
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.0176,
+   "efficacy": 0.004,
+   "cost_missing": 0.0063,
+   "cost_lin_dist": 0.558,
+   "cost_missing_raw": 2.3508,
+   "cost_lin_dist_raw": 1.011,
+   "cost_added": 1.0176,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "crackle",
+   "level": 0.5,
+   "injected_added": 0.4995,
+   "injected_missing": 0.0772,
+   "injected_lin_dist": 0.042,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.689,
+    "flat_3_8": 0.44,
+    "flat_4_12": 0.38,
+    "flat_8_18": 0.376,
+    "presence_db": -2.882,
+    "ring_4_10": 0.258,
+    "comb": 0.116,
+    "sib_burst": 0.095,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.256,
+    "umid_db": -6.154,
+    "top_tilt_db": -13.751,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14089.2,
+     "excess_db": 3.17,
+     "duty": 0.172
+    },
+    "tone_12_20": {
+     "hz": 14089.2,
+     "excess_db": 3.17,
+     "duty": 0.172
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5125,
+   "efficacy": -0.026,
+   "cost_missing": 0.0185,
+   "cost_lin_dist": 0.472,
+   "cost_missing_raw": 0.0957,
+   "cost_lin_dist_raw": 0.514,
+   "cost_added": 0.5125,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-falling-for-you",
+   "host_flicker_excess_db": 0.31,
+   "artifact": "crackle",
+   "level": 2.0,
+   "injected_added": 1.895,
+   "injected_missing": 0.3421,
+   "injected_lin_dist": 0.335,
+   "evidence_host": {
+    "flicker_excess_db": 0.614,
+    "flat_3_8": 0.436,
+    "flat_4_12": 0.373,
+    "flat_8_18": 0.287,
+    "presence_db": -2.927,
+    "ring_4_10": 0.266,
+    "comb": 0.117,
+    "sib_burst": 0.104,
+    "tail_contrast": 0.005,
+    "period_excess": 0.186,
+    "echo_corr": -0.255,
+    "umid_db": -6.162,
+    "top_tilt_db": -14.671,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    },
+    "tone_12_20": {
+     "hz": 14085.6,
+     "excess_db": 4.28,
+     "duty": 0.237
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.912,
+    "flat_3_8": 0.485,
+    "flat_4_12": 0.452,
+    "flat_8_18": 0.545,
+    "presence_db": -2.742,
+    "ring_4_10": 0.201,
+    "comb": 0.133,
+    "sib_burst": 0.052,
+    "tail_contrast": 0.01,
+    "period_excess": 0.131,
+    "echo_corr": -0.242,
+    "umid_db": -6.005,
+    "top_tilt_db": -10.406,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 19935.9,
+     "excess_db": 3.01,
+     "duty": 0.054
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.8923,
+   "efficacy": 0.001,
+   "cost_missing": 0.0078,
+   "cost_lin_dist": 0.392,
+   "cost_missing_raw": 0.3499,
+   "cost_lin_dist_raw": 0.727,
+   "cost_added": 1.8923,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "clicks",
+   "level": 0.5,
+   "injected_added": 0.4992,
+   "injected_missing": 0.0661,
+   "injected_lin_dist": 0.015,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.276,
+    "flat_3_8": 0.513,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.214,
+    "presence_db": -3.204,
+    "ring_4_10": 0.039,
+    "comb": 0.086,
+    "sib_burst": 0.022,
+    "tail_contrast": 0.009,
+    "period_excess": 0.05,
+    "echo_corr": 0.026,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.241,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.24,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 14540.8,
+     "excess_db": 3.34,
+     "duty": 0.194
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.29,
+     "duty": 0.183
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4893,
+   "efficacy": 0.02,
+   "cost_missing": 0.009,
+   "cost_lin_dist": 0.299,
+   "cost_missing_raw": 0.0751,
+   "cost_lin_dist_raw": 0.314,
+   "cost_added": 0.4893,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "clicks",
+   "level": 2.0,
+   "injected_added": 1.9996,
+   "injected_missing": 2.7088,
+   "injected_lin_dist": 0.23,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.464,
+    "flat_3_8": 0.517,
+    "flat_4_12": 0.544,
+    "flat_8_18": 0.212,
+    "presence_db": -3.169,
+    "ring_4_10": 0.016,
+    "comb": 0.088,
+    "sib_burst": 0.03,
+    "tail_contrast": 0.01,
+    "period_excess": 0.014,
+    "echo_corr": 0.052,
+    "umid_db": -5.676,
+    "top_tilt_db": -8.034,
+    "tone_8_12": {
+     "hz": 9467.7,
+     "excess_db": 3.23,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9467.7,
+     "excess_db": 3.23,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15491.9,
+     "excess_db": 4.29,
+     "duty": 0.183
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9318,
+   "efficacy": 0.034,
+   "cost_missing": 0.0118,
+   "cost_lin_dist": 0.309,
+   "cost_missing_raw": 2.7206,
+   "cost_lin_dist_raw": 0.539,
+   "cost_added": 1.9318,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "crackle",
+   "level": 0.5,
+   "injected_added": 0.5003,
+   "injected_missing": 0.0988,
+   "injected_lin_dist": 0.038,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.275,
+    "flat_3_8": 0.513,
+    "flat_4_12": 0.542,
+    "flat_8_18": 0.29,
+    "presence_db": -3.23,
+    "ring_4_10": 0.037,
+    "comb": 0.087,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.008,
+    "period_excess": 0.039,
+    "echo_corr": 0.041,
+    "umid_db": -5.702,
+    "top_tilt_db": -7.992,
+    "tone_8_12": {
+     "hz": 9467.9,
+     "excess_db": 3.24,
+     "duty": 0.118
+    },
+    "tone_9_15": {
+     "hz": 9467.9,
+     "excess_db": 3.24,
+     "duty": 0.118
+    },
+    "tone_12_20": {
+     "hz": 15565.4,
+     "excess_db": 3.34,
+     "duty": 0.151
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4949,
+   "efficacy": 0.011,
+   "cost_missing": 0.0119,
+   "cost_lin_dist": 0.251,
+   "cost_missing_raw": 0.1107,
+   "cost_lin_dist_raw": 0.288,
+   "cost_added": 0.4949,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-leave-the-world-behind",
+   "host_flicker_excess_db": 0.3,
+   "artifact": "crackle",
+   "level": 2.0,
+   "injected_added": 2.0012,
+   "injected_missing": 0.3391,
+   "injected_lin_dist": 0.119,
+   "evidence_host": {
+    "flicker_excess_db": 0.296,
+    "flat_3_8": 0.509,
+    "flat_4_12": 0.537,
+    "flat_8_18": 0.21,
+    "presence_db": -3.284,
+    "ring_4_10": 0.037,
+    "comb": 0.086,
+    "sib_burst": 0.017,
+    "tail_contrast": 0.01,
+    "period_excess": 0.034,
+    "echo_corr": 0.032,
+    "umid_db": -5.689,
+    "top_tilt_db": -8.35,
+    "tone_8_12": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_9_15": {
+     "hz": 9468.1,
+     "excess_db": 3.31,
+     "duty": 0.14
+    },
+    "tone_12_20": {
+     "hz": 15492.0,
+     "excess_db": 4.18,
+     "duty": 0.194
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.398,
+    "flat_3_8": 0.533,
+    "flat_4_12": 0.566,
+    "flat_8_18": 0.41,
+    "presence_db": -3.141,
+    "ring_4_10": 0.023,
+    "comb": 0.092,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.006,
+    "period_excess": 0.01,
+    "echo_corr": 0.07,
+    "umid_db": -5.582,
+    "top_tilt_db": -7.101,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9561,
+   "efficacy": 0.023,
+   "cost_missing": 0.0133,
+   "cost_lin_dist": 0.191,
+   "cost_missing_raw": 0.3524,
+   "cost_lin_dist_raw": 0.31,
+   "cost_added": 1.9561,
+   "notches": 1,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "clicks",
+   "level": 0.5,
+   "injected_added": 0.4997,
+   "injected_missing": 0.1094,
+   "injected_lin_dist": 0.013,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.244,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.391,
+    "flat_8_18": 0.189,
+    "presence_db": -3.536,
+    "ring_4_10": 0.189,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.064,
+    "echo_corr": -0.033,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.416,
+    "tone_8_12": {
+     "hz": 9001.9,
+     "excess_db": 4.31,
+     "duty": 0.194
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.99,
+     "duty": 0.323
+    },
+    "tone_12_20": {
+     "hz": 15999.9,
+     "excess_db": 6.77,
+     "duty": 0.527
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4965,
+   "efficacy": 0.006,
+   "cost_missing": 0.0011,
+   "cost_lin_dist": 0.064,
+   "cost_missing_raw": 0.1104,
+   "cost_lin_dist_raw": 0.078,
+   "cost_added": 0.4965,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "clicks",
+   "level": 2.0,
+   "injected_added": 2.0009,
+   "injected_missing": 3.8804,
+   "injected_lin_dist": 0.467,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.197,
+    "flat_3_8": 0.472,
+    "flat_4_12": 0.404,
+    "flat_8_18": 0.192,
+    "presence_db": -3.502,
+    "ring_4_10": 0.174,
+    "comb": 0.107,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.009,
+    "period_excess": 0.004,
+    "echo_corr": 0.022,
+    "umid_db": -5.69,
+    "top_tilt_db": -13.416,
+    "tone_8_12": {
+     "hz": 9001.9,
+     "excess_db": 4.08,
+     "duty": 0.183
+    },
+    "tone_9_15": {
+     "hz": 14800.2,
+     "excess_db": 6.09,
+     "duty": 0.323
+    },
+    "tone_12_20": {
+     "hz": 16000.1,
+     "excess_db": 6.77,
+     "duty": 0.527
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 1.9927,
+   "efficacy": 0.004,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.07,
+   "cost_missing_raw": 3.8778,
+   "cost_lin_dist_raw": 0.537,
+   "cost_added": 1.9927,
+   "notches": 5,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "crackle",
+   "level": 0.5,
+   "injected_added": 0.5008,
+   "injected_missing": 0.0962,
+   "injected_lin_dist": 0.04,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.167,
+    "flat_3_8": 0.472,
+    "flat_4_12": 0.406,
+    "flat_8_18": 0.265,
+    "presence_db": -3.536,
+    "ring_4_10": 0.182,
+    "comb": 0.103,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.003,
+    "period_excess": 0.061,
+    "echo_corr": -0.024,
+    "umid_db": -5.782,
+    "top_tilt_db": -12.603,
+    "tone_8_12": {
+     "hz": 9002.5,
+     "excess_db": 4.67,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.9,
+     "excess_db": 5.15,
+     "duty": 0.215
+    },
+    "tone_12_20": {
+     "hz": 15999.3,
+     "excess_db": 6.13,
+     "duty": 0.473
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.5073,
+   "efficacy": -0.013,
+   "cost_missing": 0.0036,
+   "cost_lin_dist": 0.041,
+   "cost_missing_raw": 0.0998,
+   "cost_lin_dist_raw": 0.081,
+   "cost_added": 0.5073,
+   "notches": 2,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-we-were-meant-for-the-stars",
+   "host_flicker_excess_db": 0.34,
+   "artifact": "crackle",
+   "level": 2.0,
+   "injected_added": 2.0022,
+   "injected_missing": 0.3356,
+   "injected_lin_dist": 0.217,
+   "evidence_host": {
+    "flicker_excess_db": 1.191,
+    "flat_3_8": 0.463,
+    "flat_4_12": 0.389,
+    "flat_8_18": 0.186,
+    "presence_db": -3.536,
+    "ring_4_10": 0.199,
+    "comb": 0.104,
+    "sib_burst": 0.091,
+    "tail_contrast": 0.007,
+    "period_excess": 0.069,
+    "echo_corr": -0.032,
+    "umid_db": -5.771,
+    "top_tilt_db": -13.448,
+    "tone_8_12": {
+     "hz": 9002.0,
+     "excess_db": 4.48,
+     "duty": 0.204
+    },
+    "tone_9_15": {
+     "hz": 14800.3,
+     "excess_db": 5.87,
+     "duty": 0.355
+    },
+    "tone_12_20": {
+     "hz": 15999.6,
+     "excess_db": 7.24,
+     "duty": 0.559
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 1.158,
+    "flat_3_8": 0.494,
+    "flat_4_12": 0.448,
+    "flat_8_18": 0.391,
+    "presence_db": -3.506,
+    "ring_4_10": 0.133,
+    "comb": 0.111,
+    "sib_burst": 0.069,
+    "tail_contrast": 0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.035,
+    "umid_db": -5.466,
+    "top_tilt_db": -10.932,
+    "tone_8_12": {
+     "hz": 9002.2,
+     "excess_db": 3.47,
+     "duty": 0.215
+    },
+    "tone_9_15": {
+     "hz": 14800.0,
+     "excess_db": 4.15,
+     "duty": 0.161
+    },
+    "tone_12_20": {
+     "hz": 15997.4,
+     "excess_db": 7.24,
+     "duty": 0.29
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0254,
+   "efficacy": -0.012,
+   "cost_missing": 0.0031,
+   "cost_lin_dist": 0.026,
+   "cost_missing_raw": 0.3387,
+   "cost_lin_dist_raw": 0.244,
+   "cost_added": 2.0254,
+   "notches": 2,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "clicks",
+   "level": 0.5,
+   "injected_added": 0.4997,
+   "injected_missing": 0.024,
+   "injected_lin_dist": 0.006,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.286,
+    "flat_3_8": 0.613,
+    "flat_4_12": 0.521,
+    "flat_8_18": 0.233,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.091,
+    "sib_burst": 0.126,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.129,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.524,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 18116.9,
+     "excess_db": 3.44,
+     "duty": 0.108
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4997,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.024,
+   "cost_lin_dist_raw": 0.006,
+   "cost_added": 0.4997,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "clicks",
+   "level": 2.0,
+   "injected_added": 2.0004,
+   "injected_missing": 0.0574,
+   "injected_lin_dist": 0.019,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.226,
+    "flat_3_8": 0.613,
+    "flat_4_12": 0.521,
+    "flat_8_18": 0.233,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.091,
+    "sib_burst": 0.121,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.127,
+    "umid_db": -1.492,
+    "top_tilt_db": -11.524,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 18116.9,
+     "excess_db": 3.44,
+     "duty": 0.108
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0004,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.0574,
+   "cost_lin_dist_raw": 0.019,
+   "cost_added": 2.0004,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "crackle",
+   "level": 0.5,
+   "injected_added": 0.4997,
+   "injected_missing": 0.0474,
+   "injected_lin_dist": 0.016,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.241,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.521,
+    "flat_8_18": 0.264,
+    "presence_db": 0.725,
+    "ring_4_10": 0.012,
+    "comb": 0.09,
+    "sib_burst": 0.126,
+    "tail_contrast": -0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.513,
+    "top_tilt_db": -11.498,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 15398.6,
+     "excess_db": 3.68,
+     "duty": 0.161
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.4997,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.0474,
+   "cost_lin_dist_raw": 0.016,
+   "cost_added": 0.4997,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "reference-hey",
+   "host_flicker_excess_db": -0.2,
+   "artifact": "crackle",
+   "level": 2.0,
+   "injected_added": 2.0012,
+   "injected_missing": 0.1146,
+   "injected_lin_dist": 0.042,
+   "evidence_host": {
+    "flicker_excess_db": -1.283,
+    "flat_3_8": 0.612,
+    "flat_4_12": 0.52,
+    "flat_8_18": 0.229,
+    "presence_db": 0.726,
+    "ring_4_10": 0.016,
+    "comb": 0.09,
+    "sib_burst": 0.13,
+    "tail_contrast": -0.0,
+    "period_excess": 0.0,
+    "echo_corr": 0.13,
+    "umid_db": -1.522,
+    "top_tilt_db": -11.713,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 17202.9,
+     "excess_db": 3.37,
+     "duty": 0.204
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": -1.264,
+    "flat_3_8": 0.613,
+    "flat_4_12": 0.523,
+    "flat_8_18": 0.3,
+    "presence_db": 0.702,
+    "ring_4_10": 0.016,
+    "comb": 0.091,
+    "sib_burst": 0.117,
+    "tail_contrast": -0.003,
+    "period_excess": 0.0,
+    "echo_corr": 0.131,
+    "umid_db": -1.559,
+    "top_tilt_db": -11.077,
+    "tone_8_12": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_9_15": {
+     "hz": 0.0,
+     "excess_db": 0.0,
+     "duty": 0.0
+    },
+    "tone_12_20": {
+     "hz": 15398.9,
+     "excess_db": 3.34,
+     "duty": 0.161
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 2.0012,
+   "efficacy": 0.0,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.1146,
+   "cost_lin_dist_raw": 0.042,
+   "cost_added": 2.0012,
+   "notches": 0,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "clicks",
+   "level": 0.5,
+   "injected_added": 0.4993,
+   "injected_missing": 0.0292,
+   "injected_lin_dist": 0.002,
+   "evidence_host": {
+    "flicker_excess_db": 0.898,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.161,
+    "presence_db": -6.29,
+    "ring_4_10": 0.049,
+    "comb": 0.233,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.002,
+    "period_excess": 0.0,
+    "echo_corr": 0.021,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.292,
+    "tone_8_12": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.7,
+     "excess_db": 4.93,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.2,
+     "excess_db": 7.99,
+     "duty": 0.462
+    }
+   },
+   "evidence_render": {
+    "flicker_excess_db": 0.932,
+    "flat_3_8": 0.439,
+    "flat_4_12": 0.325,
+    "flat_8_18": 0.165,
+    "presence_db": -6.23,
+    "ring_4_10": 0.051,
+    "comb": 0.231,
+    "sib_burst": 0.004,
+    "tail_contrast": 0.004,
+    "period_excess": 0.0,
+    "echo_corr": 0.02,
+    "umid_db": -12.124,
+    "top_tilt_db": -19.166,
+    "tone_8_12": {
+     "hz": 10600.4,
+     "excess_db": 4.85,
+     "duty": 0.28
+    },
+    "tone_9_15": {
+     "hz": 10600.4,
+     "excess_db": 4.85,
+     "duty": 0.28
+    },
+    "tone_12_20": {
+     "hz": 16600.4,
+     "excess_db": 7.91,
+     "duty": 0.452
+    }
+   },
+   "preset": "static_repair",
+   "strength": 1.0,
+   "residue_added": 0.498,
+   "efficacy": 0.003,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.004,
+   "cost_missing_raw": 0.0291,
+   "cost_lin_dist_raw": 0.006,
+   "cost_added": 0.498,
+   "notches": 4,
+   "control": {
+    "missing": 0.0,
+    "lin_dist": 0.0,
+    "added": 0.0
+   },
+   "targeted": false
+  },
+  {
+   "host": "distrokid-alive-again",
+   "host_flicker_excess_db": -0.6,
+   "artifact": "clicks",
    "level": 0.5,
    "injected_added": 0.4993,
    "injected_missing": 0.0292,
@@ -24135,22 +25835,22 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.3712,
-   "efficacy": 0.256,
-   "cost_missing": 0.0506,
-   "cost_lin_dist": 0.201,
-   "cost_missing_raw": 0.0798,
-   "cost_lin_dist_raw": 0.204,
-   "cost_added": 0.4577,
+   "residue_added": 0.3396,
+   "efficacy": 0.32,
+   "cost_missing": 0.0203,
+   "cost_lin_dist": 0.188,
+   "cost_missing_raw": 0.0495,
+   "cost_lin_dist_raw": 0.19,
+   "cost_added": 0.4523,
    "control": {
-    "missing": 0.0368,
-    "lin_dist": 0.196,
-    "added": 0.2538,
+    "missing": 0.0403,
+    "lin_dist": 0.188,
+    "added": 0.2868,
     "width_db": 0.002,
     "attack_db": 0.0,
-    "pumping_db": 0.0
+    "pumping_db": 0.001
    },
-   "energy_left": 11.7669,
+   "energy_left": 2.4143,
    "targeted": true
   },
   {
@@ -24223,22 +25923,22 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.3977,
-   "efficacy": 0.203,
-   "cost_missing": 0.1407,
+   "residue_added": 0.3351,
+   "efficacy": 0.329,
+   "cost_missing": 0.0478,
    "cost_lin_dist": 0.353,
-   "cost_missing_raw": 0.1698,
-   "cost_lin_dist_raw": 0.356,
-   "cost_added": 0.5585,
+   "cost_missing_raw": 0.077,
+   "cost_lin_dist_raw": 0.355,
+   "cost_added": 0.4956,
    "control": {
-    "missing": 0.0696,
-    "lin_dist": 0.341,
-    "added": 0.3354,
-    "width_db": 0.003,
+    "missing": 0.0716,
+    "lin_dist": 0.353,
+    "added": 0.354,
+    "width_db": 0.004,
     "attack_db": 0.0,
-    "pumping_db": 0.001
+    "pumping_db": 0.017
    },
-   "energy_left": 28.6646,
+   "energy_left": 2.6519,
    "targeted": true
   },
   {
@@ -24396,22 +26096,22 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 1.2404,
-   "efficacy": 0.38,
-   "cost_missing": 1.3552,
-   "cost_lin_dist": 0.264,
-   "cost_missing_raw": 1.6516,
-   "cost_lin_dist_raw": 0.318,
-   "cost_added": 1.2825,
+   "residue_added": 1.1479,
+   "efficacy": 0.426,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.166,
+   "cost_missing_raw": 0.2141,
+   "cost_lin_dist_raw": 0.219,
+   "cost_added": 1.1945,
    "control": {
-    "missing": 0.0368,
-    "lin_dist": 0.196,
-    "added": 0.2538,
+    "missing": 0.0403,
+    "lin_dist": 0.188,
+    "added": 0.2868,
     "width_db": 0.002,
     "attack_db": 0.0,
-    "pumping_db": 0.0
+    "pumping_db": 0.001
    },
-   "energy_left": 7.6004,
+   "energy_left": 1.0392,
    "targeted": true
   },
   {
@@ -24484,22 +26184,22 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 1.1952,
-   "efficacy": 0.403,
-   "cost_missing": 1.7666,
-   "cost_lin_dist": 0.506,
-   "cost_missing_raw": 2.0631,
-   "cost_lin_dist_raw": 0.559,
-   "cost_added": 1.2786,
+   "residue_added": 1.0823,
+   "efficacy": 0.459,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.319,
+   "cost_missing_raw": 0.2126,
+   "cost_lin_dist_raw": 0.372,
+   "cost_added": 1.1414,
    "control": {
-    "missing": 0.0696,
-    "lin_dist": 0.341,
-    "added": 0.3354,
-    "width_db": 0.003,
+    "missing": 0.0716,
+    "lin_dist": 0.353,
+    "added": 0.354,
+    "width_db": 0.004,
     "attack_db": 0.0,
-    "pumping_db": 0.001
+    "pumping_db": 0.017
    },
-   "energy_left": 9.9293,
+   "energy_left": 0.5167,
    "targeted": true
   },
   {
@@ -24657,22 +26357,22 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.2276,
-   "efficacy": 0.545,
-   "cost_missing": 0.0409,
-   "cost_lin_dist": 0.098,
-   "cost_missing_raw": 0.0718,
-   "cost_lin_dist_raw": 0.105,
-   "cost_added": 0.2821,
+   "residue_added": 0.2154,
+   "efficacy": 0.57,
+   "cost_missing": 0.0376,
+   "cost_lin_dist": 0.099,
+   "cost_missing_raw": 0.0685,
+   "cost_lin_dist_raw": 0.106,
+   "cost_added": 0.2789,
    "control": {
-    "missing": 0.0368,
-    "lin_dist": 0.196,
-    "added": 0.2538,
+    "missing": 0.0403,
+    "lin_dist": 0.188,
+    "added": 0.2868,
     "width_db": 0.002,
     "attack_db": 0.0,
-    "pumping_db": 0.0
+    "pumping_db": 0.001
    },
-   "energy_left": 3.612,
+   "energy_left": 2.4792,
    "targeted": true
   },
   {
@@ -24745,22 +26445,22 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.2402,
-   "efficacy": 0.52,
-   "cost_missing": 0.0532,
-   "cost_lin_dist": 0.384,
-   "cost_missing_raw": 0.084,
-   "cost_lin_dist_raw": 0.391,
-   "cost_added": 0.4417,
+   "residue_added": 0.2325,
+   "efficacy": 0.536,
+   "cost_missing": 0.0529,
+   "cost_lin_dist": 0.367,
+   "cost_missing_raw": 0.0838,
+   "cost_lin_dist_raw": 0.374,
+   "cost_added": 0.4505,
    "control": {
-    "missing": 0.0696,
-    "lin_dist": 0.341,
-    "added": 0.3354,
-    "width_db": 0.003,
+    "missing": 0.0716,
+    "lin_dist": 0.353,
+    "added": 0.354,
+    "width_db": 0.004,
     "attack_db": 0.0,
-    "pumping_db": 0.001
+    "pumping_db": 0.017
    },
-   "energy_left": 4.4195,
+   "energy_left": 4.5958,
    "targeted": true
   },
   {
@@ -24918,22 +26618,22 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.6695,
-   "efficacy": 0.665,
-   "cost_missing": 0.1301,
-   "cost_lin_dist": 0.196,
-   "cost_missing_raw": 0.2266,
-   "cost_lin_dist_raw": 0.224,
-   "cost_added": 0.7054,
+   "residue_added": 0.7777,
+   "efficacy": 0.611,
+   "cost_missing": 0.3087,
+   "cost_lin_dist": 0.217,
+   "cost_missing_raw": 0.4052,
+   "cost_lin_dist_raw": 0.244,
+   "cost_added": 0.8081,
    "control": {
-    "missing": 0.0368,
-    "lin_dist": 0.196,
-    "added": 0.2538,
+    "missing": 0.0403,
+    "lin_dist": 0.188,
+    "added": 0.2868,
     "width_db": 0.002,
     "attack_db": 0.0,
-    "pumping_db": 0.0
+    "pumping_db": 0.001
    },
-   "energy_left": 1.3589,
+   "energy_left": 1.4187,
    "targeted": true
   },
   {
@@ -25006,22 +26706,22 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.6703,
-   "efficacy": 0.665,
-   "cost_missing": 0.1121,
-   "cost_lin_dist": 0.374,
-   "cost_missing_raw": 0.2085,
-   "cost_lin_dist_raw": 0.402,
-   "cost_added": 0.757,
+   "residue_added": 0.7543,
+   "efficacy": 0.623,
+   "cost_missing": 0.3192,
+   "cost_lin_dist": 0.383,
+   "cost_missing_raw": 0.4157,
+   "cost_lin_dist_raw": 0.411,
+   "cost_added": 0.8352,
    "control": {
-    "missing": 0.0696,
-    "lin_dist": 0.341,
-    "added": 0.3354,
-    "width_db": 0.003,
+    "missing": 0.0716,
+    "lin_dist": 0.353,
+    "added": 0.354,
+    "width_db": 0.004,
     "attack_db": 0.0,
-    "pumping_db": 0.001
+    "pumping_db": 0.017
    },
-   "energy_left": 1.337,
+   "energy_left": 1.3676,
    "targeted": true
   },
   {
@@ -25179,13 +26879,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.3129,
-   "efficacy": 0.375,
+   "residue_added": 0.3395,
+   "efficacy": 0.321,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0782,
-   "cost_lin_dist_raw": 0.035,
-   "cost_added": 0.3129,
+   "cost_missing_raw": 0.0787,
+   "cost_lin_dist_raw": 0.034,
+   "cost_added": 0.3395,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -25194,7 +26894,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.5954,
+   "energy_left": 0.6122,
    "targeted": true
   },
   {
@@ -25267,22 +26967,22 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.2079,
-   "efficacy": 0.584,
+   "residue_added": 0.2431,
+   "efficacy": 0.514,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.104,
-   "cost_lin_dist_raw": 0.026,
-   "cost_added": 0.208,
+   "cost_missing_raw": 0.0732,
+   "cost_lin_dist_raw": 0.024,
+   "cost_added": 0.2431,
    "control": {
-    "missing": 0.0141,
+    "missing": 0.0146,
     "lin_dist": 0.002,
-    "added": 0.0056,
+    "added": 0.0059,
     "width_db": 0.001,
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.4827,
+   "energy_left": 0.4906,
    "targeted": true
   },
   {
@@ -25440,13 +27140,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.6156,
-   "efficacy": 0.397,
+   "residue_added": 0.6446,
+   "efficacy": 0.369,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.8086,
-   "cost_lin_dist_raw": 0.211,
-   "cost_added": 0.6156,
+   "cost_missing_raw": 0.818,
+   "cost_lin_dist_raw": 0.208,
+   "cost_added": 0.6446,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -25455,7 +27155,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.4549,
+   "energy_left": 0.4307,
    "targeted": true
   },
   {
@@ -25528,22 +27228,22 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.7102,
-   "efficacy": 0.305,
+   "residue_added": 0.4728,
+   "efficacy": 0.537,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.5893,
-   "cost_lin_dist_raw": 0.093,
-   "cost_added": 0.7102,
+   "cost_missing_raw": 0.4133,
+   "cost_lin_dist_raw": 0.027,
+   "cost_added": 0.4728,
    "control": {
-    "missing": 0.0141,
+    "missing": 0.0146,
     "lin_dist": 0.002,
-    "added": 0.0056,
+    "added": 0.0059,
     "width_db": 0.001,
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.3662,
+   "energy_left": 0.1023,
    "targeted": true
   },
   {
@@ -25701,13 +27401,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.1418,
-   "efficacy": 0.716,
+   "residue_added": 0.2075,
+   "efficacy": 0.585,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0489,
-   "cost_lin_dist_raw": 0.031,
-   "cost_added": 0.1418,
+   "cost_missing_raw": 0.0612,
+   "cost_lin_dist_raw": 0.034,
+   "cost_added": 0.2075,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -25716,7 +27416,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.4532,
+   "energy_left": 0.6087,
    "targeted": true
   },
   {
@@ -25789,22 +27489,22 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.1411,
-   "efficacy": 0.718,
+   "residue_added": 0.2018,
+   "efficacy": 0.596,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0493,
-   "cost_lin_dist_raw": 0.036,
-   "cost_added": 0.1411,
+   "cost_missing_raw": 0.0604,
+   "cost_lin_dist_raw": 0.035,
+   "cost_added": 0.2018,
    "control": {
-    "missing": 0.0141,
+    "missing": 0.0146,
     "lin_dist": 0.002,
-    "added": 0.0056,
+    "added": 0.0059,
     "width_db": 0.001,
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.5369,
+   "energy_left": 0.6423,
    "targeted": true
   },
   {
@@ -25962,13 +27662,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.6307,
-   "efficacy": 0.667,
+   "residue_added": 0.7698,
+   "efficacy": 0.594,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.1056,
-   "cost_lin_dist_raw": 0.104,
-   "cost_added": 0.6307,
+   "cost_missing_raw": 0.1314,
+   "cost_lin_dist_raw": 0.092,
+   "cost_added": 0.7698,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -25977,7 +27677,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.2526,
+   "energy_left": 0.2729,
    "targeted": true
   },
   {
@@ -26050,22 +27750,22 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.6079,
-   "efficacy": 0.679,
+   "residue_added": 0.7159,
+   "efficacy": 0.622,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0975,
-   "cost_lin_dist_raw": 0.099,
-   "cost_added": 0.6074,
+   "cost_missing_raw": 0.1165,
+   "cost_lin_dist_raw": 0.077,
+   "cost_added": 0.7151,
    "control": {
-    "missing": 0.0141,
+    "missing": 0.0146,
     "lin_dist": 0.002,
-    "added": 0.0056,
+    "added": 0.0059,
     "width_db": 0.001,
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.2378,
+   "energy_left": 0.2268,
    "targeted": true
   },
   {
@@ -26223,13 +27923,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.5262,
+   "residue_added": 0.5264,
    "efficacy": -0.054,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0657,
+   "cost_missing_raw": 0.065,
    "cost_lin_dist_raw": 0.012,
-   "cost_added": 0.5262,
+   "cost_added": 0.5264,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -26238,7 +27938,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.7304,
+   "energy_left": 0.6961,
    "targeted": true
   },
   {
@@ -26311,13 +28011,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.4982,
-   "efficacy": 0.002,
+   "residue_added": 0.4979,
+   "efficacy": 0.003,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0614,
+   "cost_missing_raw": 0.0598,
    "cost_lin_dist_raw": 0.012,
-   "cost_added": 0.4982,
+   "cost_added": 0.4979,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -26326,7 +28026,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.6611,
+   "energy_left": 0.65,
    "targeted": true
   },
   {
@@ -26484,13 +28184,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 1.8912,
-   "efficacy": 0.054,
+   "residue_added": 1.3417,
+   "efficacy": 0.329,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 2.5119,
-   "cost_lin_dist_raw": 0.19,
-   "cost_added": 1.8912,
+   "cost_missing_raw": 1.3731,
+   "cost_lin_dist_raw": 0.073,
+   "cost_added": 1.3417,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -26499,7 +28199,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.9725,
+   "energy_left": 0.3246,
    "targeted": true
   },
   {
@@ -26572,13 +28272,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 1.0985,
-   "efficacy": 0.451,
+   "residue_added": 1.2885,
+   "efficacy": 0.356,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 1.7793,
-   "cost_lin_dist_raw": 0.101,
-   "cost_added": 1.0985,
+   "cost_missing_raw": 0.7151,
+   "cost_lin_dist_raw": 0.039,
+   "cost_added": 1.2885,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -26587,7 +28287,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.7021,
+   "energy_left": 0.2819,
    "targeted": true
   },
   {
@@ -26745,13 +28445,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.3125,
-   "efficacy": 0.375,
-   "cost_missing": 0.0,
+   "residue_added": 0.6506,
+   "efficacy": -0.3,
+   "cost_missing": 0.0061,
    "cost_lin_dist": 0.005,
-   "cost_missing_raw": 0.0821,
-   "cost_lin_dist_raw": 0.042,
-   "cost_added": 0.3125,
+   "cost_missing_raw": 0.1049,
+   "cost_lin_dist_raw": 0.043,
+   "cost_added": 0.6506,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -26760,7 +28460,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.5812,
+   "energy_left": 0.7312,
    "targeted": true
   },
   {
@@ -26833,13 +28533,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.2372,
-   "efficacy": 0.526,
-   "cost_missing": 0.0,
-   "cost_lin_dist": 0.007,
-   "cost_missing_raw": 0.0775,
-   "cost_lin_dist_raw": 0.045,
-   "cost_added": 0.2372,
+   "residue_added": 0.5756,
+   "efficacy": -0.15,
+   "cost_missing": 0.0531,
+   "cost_lin_dist": 0.019,
+   "cost_missing_raw": 0.152,
+   "cost_lin_dist_raw": 0.057,
+   "cost_added": 0.5756,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -26848,7 +28548,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.5581,
+   "energy_left": 1.1916,
    "targeted": true
   },
   {
@@ -27006,13 +28706,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.8574,
-   "efficacy": 0.572,
-   "cost_missing": 0.0,
-   "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.2145,
-   "cost_lin_dist_raw": 0.081,
-   "cost_added": 0.8574,
+   "residue_added": 3.4856,
+   "efficacy": -0.742,
+   "cost_missing": 1.0418,
+   "cost_lin_dist": 0.028,
+   "cost_missing_raw": 1.3808,
+   "cost_lin_dist_raw": 0.147,
+   "cost_added": 3.4856,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -27021,7 +28721,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.4175,
+   "energy_left": 0.8858,
    "targeted": true
   },
   {
@@ -27094,13 +28794,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.7256,
-   "efficacy": 0.637,
+   "residue_added": 2.4902,
+   "efficacy": -0.244,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.1945,
-   "cost_lin_dist_raw": 0.077,
-   "cost_added": 0.7256,
+   "cost_missing_raw": 0.2153,
+   "cost_lin_dist_raw": 0.072,
+   "cost_added": 2.4902,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -27109,7 +28809,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.3474,
+   "energy_left": 0.3578,
    "targeted": true
   },
   {
@@ -27267,13 +28967,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.3428,
-   "efficacy": 0.314,
+   "residue_added": 0.3522,
+   "efficacy": 0.295,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.1083,
-   "cost_lin_dist_raw": 0.012,
-   "cost_added": 0.3428,
+   "cost_missing_raw": 0.1027,
+   "cost_lin_dist_raw": 0.009,
+   "cost_added": 0.3522,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -27282,7 +28982,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.9871,
+   "energy_left": 0.787,
    "targeted": true
   },
   {
@@ -27355,13 +29055,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.2716,
-   "efficacy": 0.456,
+   "residue_added": 0.296,
+   "efficacy": 0.408,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0971,
-   "cost_lin_dist_raw": 0.009,
-   "cost_added": 0.2716,
+   "cost_missing_raw": 0.106,
+   "cost_lin_dist_raw": 0.007,
+   "cost_added": 0.296,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -27370,7 +29070,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.7776,
+   "energy_left": 0.8257,
    "targeted": true
   },
   {
@@ -27528,13 +29228,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.9471,
-   "efficacy": 0.527,
+   "residue_added": 1.4298,
+   "efficacy": 0.285,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 1.2697,
-   "cost_lin_dist_raw": 0.25,
-   "cost_added": 0.9471,
+   "cost_missing_raw": 0.2643,
+   "cost_lin_dist_raw": 0.049,
+   "cost_added": 1.4298,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -27543,7 +29243,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.9489,
+   "energy_left": 0.1999,
    "targeted": true
   },
   {
@@ -27616,13 +29316,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.8479,
-   "efficacy": 0.576,
+   "residue_added": 1.2293,
+   "efficacy": 0.386,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0376,
-   "cost_lin_dist_raw": 0.135,
-   "cost_added": 0.8479,
+   "cost_missing_raw": 0.0322,
+   "cost_lin_dist_raw": 0.009,
+   "cost_added": 1.2293,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -27631,7 +29331,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.4752,
+   "energy_left": 0.0285,
    "targeted": true
   },
   {
@@ -27789,13 +29489,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 2.5477,
-   "efficacy": -4.087,
-   "cost_missing": 0.0,
-   "cost_lin_dist": 0.002,
-   "cost_missing_raw": 0.0715,
-   "cost_lin_dist_raw": 0.042,
-   "cost_added": 2.5477,
+   "residue_added": 1.8031,
+   "efficacy": -2.6,
+   "cost_missing": 0.0905,
+   "cost_lin_dist": 0.008,
+   "cost_missing_raw": 0.1867,
+   "cost_lin_dist_raw": 0.049,
+   "cost_added": 1.8031,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -27804,7 +29504,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.7698,
+   "energy_left": 0.8394,
    "targeted": true
   },
   {
@@ -27877,13 +29577,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 2.5471,
-   "efficacy": -4.086,
+   "residue_added": 1.7868,
+   "efficacy": -2.568,
    "cost_missing": 0.0,
-   "cost_lin_dist": 0.006,
-   "cost_missing_raw": 0.072,
-   "cost_lin_dist_raw": 0.046,
-   "cost_added": 2.5471,
+   "cost_lin_dist": 0.004,
+   "cost_missing_raw": 0.0679,
+   "cost_lin_dist_raw": 0.045,
+   "cost_added": 1.7868,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -27892,7 +29592,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.6122,
+   "energy_left": 0.6542,
    "targeted": true
   },
   {
@@ -28050,13 +29750,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 3.4358,
-   "efficacy": -0.716,
-   "cost_missing": 0.0449,
+   "residue_added": 4.1489,
+   "efficacy": -1.072,
+   "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.3805,
-   "cost_lin_dist_raw": 0.186,
-   "cost_added": 3.4358,
+   "cost_missing_raw": 0.2226,
+   "cost_lin_dist_raw": 0.152,
+   "cost_added": 4.1489,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -28065,7 +29765,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.8558,
+   "energy_left": 0.5681,
    "targeted": true
   },
   {
@@ -28138,13 +29838,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 3.3146,
-   "efficacy": -0.655,
-   "cost_missing": 0.0441,
+   "residue_added": 4.1021,
+   "efficacy": -1.049,
+   "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.3797,
-   "cost_lin_dist_raw": 0.099,
-   "cost_added": 3.3146,
+   "cost_missing_raw": 0.1626,
+   "cost_lin_dist_raw": 0.094,
+   "cost_added": 4.1021,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -28153,7 +29853,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.3897,
+   "energy_left": 0.3974,
    "targeted": true
   },
   {
@@ -28311,13 +30011,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.4312,
+   "residue_added": 0.4311,
    "efficacy": 0.137,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0223,
+   "cost_missing_raw": 0.0236,
    "cost_lin_dist_raw": 0.005,
-   "cost_added": 0.4312,
+   "cost_added": 0.4311,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -28326,7 +30026,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.8719,
+   "energy_left": 0.8319,
    "targeted": true
   },
   {
@@ -28399,13 +30099,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.8399,
-   "efficacy": -0.681,
-   "cost_missing": 1.2025,
-   "cost_lin_dist": 0.08,
-   "cost_missing_raw": 1.2265,
-   "cost_lin_dist_raw": 0.086,
-   "cost_added": 0.8399,
+   "residue_added": 0.1108,
+   "efficacy": 0.778,
+   "cost_missing": 0.0023,
+   "cost_lin_dist": 0.0,
+   "cost_missing_raw": 0.0263,
+   "cost_lin_dist_raw": 0.006,
+   "cost_added": 0.1108,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -28414,7 +30114,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 13.9426,
+   "energy_left": 0.9435,
    "targeted": true
   },
   {
@@ -28572,13 +30272,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.6783,
-   "efficacy": 0.661,
+   "residue_added": 0.6675,
+   "efficacy": 0.666,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0521,
-   "cost_lin_dist_raw": 0.012,
-   "cost_added": 0.6783,
+   "cost_missing_raw": 0.0512,
+   "cost_lin_dist_raw": 0.011,
+   "cost_added": 0.6675,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -28587,7 +30287,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.629,
+   "energy_left": 0.6134,
    "targeted": true
   },
   {
@@ -28660,13 +30360,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.5484,
-   "efficacy": 0.726,
+   "residue_added": 0.9187,
+   "efficacy": 0.541,
    "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.0548,
-   "cost_lin_dist_raw": 0.014,
-   "cost_added": 0.5484,
+   "cost_missing_raw": 0.0521,
+   "cost_lin_dist_raw": 0.012,
+   "cost_added": 0.9187,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -28675,7 +30375,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.7113,
+   "energy_left": 0.6093,
    "targeted": true
   },
   {
@@ -28833,13 +30533,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.2721,
-   "efficacy": 0.456,
-   "cost_missing": 0.0026,
-   "cost_lin_dist": 0.005,
-   "cost_missing_raw": 0.05,
+   "residue_added": 0.1039,
+   "efficacy": 0.792,
+   "cost_missing": 0.0,
+   "cost_lin_dist": 0.004,
+   "cost_missing_raw": 0.039,
    "cost_lin_dist_raw": 0.021,
-   "cost_added": 0.2721,
+   "cost_added": 0.1039,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -28848,7 +30548,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.8694,
+   "energy_left": 1.1231,
    "targeted": true
   },
   {
@@ -28921,13 +30621,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.1872,
-   "efficacy": 0.625,
-   "cost_missing": 0.0,
-   "cost_lin_dist": 0.01,
-   "cost_missing_raw": 0.0443,
-   "cost_lin_dist_raw": 0.027,
-   "cost_added": 0.1872,
+   "residue_added": 0.1964,
+   "efficacy": 0.607,
+   "cost_missing": 0.0034,
+   "cost_lin_dist": 0.013,
+   "cost_missing_raw": 0.0507,
+   "cost_lin_dist_raw": 0.03,
+   "cost_added": 0.1964,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -28936,7 +30636,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 1.0795,
+   "energy_left": 1.3926,
    "targeted": true
   },
   {
@@ -29094,13 +30794,13 @@
    },
    "preset": "card:clicks",
    "strength": 0.5,
-   "residue_added": 0.6142,
-   "efficacy": 0.693,
-   "cost_missing": 0.0237,
+   "residue_added": 0.2102,
+   "efficacy": 0.895,
+   "cost_missing": 0.0,
    "cost_lin_dist": 0.0,
-   "cost_missing_raw": 0.1383,
-   "cost_lin_dist_raw": 0.037,
-   "cost_added": 0.6142,
+   "cost_missing_raw": 0.0811,
+   "cost_lin_dist_raw": 0.04,
+   "cost_added": 0.2102,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -29109,7 +30809,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.4573,
+   "energy_left": 0.722,
    "targeted": true
   },
   {
@@ -29182,13 +30882,13 @@
    },
    "preset": "card:clicks",
    "strength": 1.0,
-   "residue_added": 0.4664,
-   "efficacy": 0.767,
+   "residue_added": 0.5445,
+   "efficacy": 0.728,
    "cost_missing": 0.0,
-   "cost_lin_dist": 0.002,
-   "cost_missing_raw": 0.08,
-   "cost_lin_dist_raw": 0.044,
-   "cost_added": 0.4664,
+   "cost_lin_dist": 0.009,
+   "cost_missing_raw": 0.0923,
+   "cost_lin_dist_raw": 0.052,
+   "cost_added": 0.5445,
    "control": {
     "missing": 0.0,
     "lin_dist": 0.0,
@@ -29197,7 +30897,7 @@
     "attack_db": 0.0,
     "pumping_db": 0.0
    },
-   "energy_left": 0.5472,
+   "energy_left": 0.7383,
    "targeted": true
   }
  ]
