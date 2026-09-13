@@ -166,14 +166,14 @@ def test_a_reference_track_changes_the_tone_stage():
 
 def test_card_rows_say_where_each_card_acts():
     view = describe_chain(Settings(fixes={"tones": 1.0}), notches=THREE,
-                          cards_on=["tones", "air", "loudness"], noted=["shimmer", "clicks"])
+                          cards_on=["tones", "air", "loudness"], noted=["phasiness", "clicks"])
     fx = _stages(view)["fixes"]
     assert [r["key"] for r in fx["fixes"]] == ["tones", "air", "loudness"]
     assert fx["fixes"][1]["tag"] == {"kind": "stage", "text": "In Tone", "stage": "tone"}
     assert fx["fixes"][2]["text"].endswith("at −9 LUFS.")
     assert [(r["key"], r["tag"]["text"], r["muted"]) for r in fx["noted"]] == [
-        ("shimmer", "No fix yet", True), ("clicks", "Not built yet", False)]
-    assert fx["noted"][1]["text"].startswith("The de-click is not built yet.")
+        ("clicks", "Not built yet", False), ("phasiness", "No fix yet", True)]
+    assert fx["noted"][0]["text"].startswith("The de-click is not built yet.")
     assert fx["verdict"] == "1 fix runs · 2 go to mastering · 2 not built yet"
     assert fx["nb_badges"] == ["2 not built yet"]
     assert view["summary"]["facts"][-1] == "3 cards on · 2 noted"
@@ -224,7 +224,8 @@ def test_a_ready_tool_gets_its_own_row():
     assert f"By up to {deesser.MAX_CUT_DB * 0.5:g} dB at Amount 50%." in row["text"]
     assert fx["verdict"] == "1 fix runs"
     assert fx["badges"] == ["De-esser 50%"]
-    assert "Built so far: the notch filter, de-esser and dynamic EQ." in fx["paras"][0]
+    assert ("Built so far: the notch filter, de-esser, dynamic EQ and spectral de-noise."
+            in fx["paras"][0])
     assert view["summary"]["text"] == "The sound changes in Fixes, Tone and Master."
     # With the notch too, both run and both are named.
     both = _stages(describe_chain(Settings(fixes={"tones": 1.0, "sibilance": 0.5}),

@@ -177,6 +177,22 @@ def test_a_mono_song_works():
     assert y1.shape == (x.shape[0],) and np.allclose(y1, y[:, 0])
 
 
+@needs_weights
+def test_a_new_amount_reuses_the_songs_gains(monkeypatch):
+    """The network runs once per song, in plan(); a window or a new Amount
+    only applies the kept gains."""
+    x = _song(3.0) + 0.02 * artifacts.make("hash_wide", 3 * SR, SR)
+    p = hash_remover.plan(x, SR)
+    assert len(p.gains) == 2
+
+    def no_second_pass(*a, **k):
+        raise AssertionError("the network ran again")
+    monkeypatch.setattr(hash_remover, "_gains", no_second_pass)
+    for amount in (0.3, 1.0):
+        assert float(np.abs(hash_remover.apply(x, SR, p, amount) - x).max()) > 1e-4
+    hash_remover.apply(x[SR:2 * SR], SR, p, 0.5, offset=SR)
+
+
 def test_bypass_is_bit_exact():
     x = _song(2.0)
     assert hash_remover.apply(x, SR, hash_remover.plan(x, SR), 0.0) is x

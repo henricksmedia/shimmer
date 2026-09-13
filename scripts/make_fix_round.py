@@ -40,6 +40,8 @@ QUESTIONS = {
                  "thinner?",
     "mud": "Which sounds clearest in the low mids, without the song sounding thinner?",
     "clicks": "Which has the fewest clicks and crackles, without softer drums?",
+    "shimmer": "Which has the least fizzy, flickering hiss up top, without the song "
+               "sounding duller?",
 }
 
 

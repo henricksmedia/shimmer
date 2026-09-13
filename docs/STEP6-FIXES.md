@@ -561,10 +561,8 @@ stems or a clean re-record.
 The one Shimmer fix already trained is the mask network from the evidence
 branch (`scripts/hash_learn`, model 3; HANDOFF-CHECKLIST item 15). It is
 now `shimmer/core/repair/hash_remover.py`, in numpy, so nothing new is
-installed. It is registered in render so the harness measures it through
-the engine. The card still says "No fix yet" on screen, and only the
-command line (`--fix shimmer`) can run it, listed there as "built, not
-passed yet".
+installed. It runs in render's Fixes stage as the Shimmer card's
+"Spectral de-noise", on to try (below).
 
 - **Same result as torch:** its gains are within 1.3e-6 of the network
   run in torch, on a real song's spectrogram
@@ -588,10 +586,11 @@ passed yet".
   - skips rows no later layer reads
   - runs on 8 threads
 
-  That is about 9 s for 30 s of stereo, or about 50 s for a 3-minute song
-  the first time. It is still too slow for the Amount slider to feel
-  instant. If the fix passes, each song's gains are kept after the first
-  pass, so moving the slider only redoes the cheap last step.
+  That is about 8 s for 30 s of stereo, or about 50 s for a 3-minute
+  song. It runs once per song, from the song as it comes in, before the
+  other fixes. The gains are kept (7 MB per 30 s of stereo), so a new
+  Amount or a preview window takes about 0.3 s. Kept gains match gains
+  worked out per window to -84 dB.
 - **Weights:** `testing/masknet3.npz` (0.5 MB), kept out of git until the
   author decides whether the model ships in the public repo. Without the
   file the tool does nothing and says so, and its tests are skipped.
@@ -599,6 +598,52 @@ passed yet".
   The codec test above found that a real codec smooths the top rather than
   adding flicker. Removing the models' fizz may not mean removing what
   Suno does. The codec sets are the check.
+
+### Numbers through the engine (2026-09-13)
+
+5 real songs. The two levels are how loud the added fault is, in sones.
+Each cell is the range over the songs, with the mean in brackets.
+
+| Model | Amount 50 %, 0.5 sones | Amount 100 %, 0.5 sones | Amount 100 %, 2.0 sones |
+|---|---|---|---|
+| `hash`: flicker, what it was trained on | 27 to 46 % | 47 to 77 % (61 %) | 28 to 82 % (52 %) |
+| `hash_wide`: broadband, measured on a Suno song | 14 to 28 % | 21 to 46 % (36 %) | -23 to +37 % (13 %) |
+| `fizz`: steady, 8-18 kHz | 0 to 14 % | -1 to +19 % (6 %) | -4 to +1 % (-2 %) |
+| `shadow`: follows the music | -4 to +5 % | -10 to +5 % (-2 %) | -28 to +7 % (-8 %) |
+
+What it takes from the clean songs (missing, sones):
+
+| Song | Amount 50 % | Amount 100 % |
+|---|---|---|
+| Alive Again | 0.014 | 0.033 |
+| Falling For You | 0.006 | 0.011 |
+| Leave The World Behind | 0.009 | 0.021 |
+| We Were Meant For The Stars | 0.008 | 0.017 |
+| Hey | 0.026 | 0.064 |
+
+Side effects on the clean songs:
+- Width within 0.01 dB.
+- Attacks unchanged.
+- Pumping at most 0.22 dB (Hey, Amount 100 %).
+- What it adds with nothing to remove: up to 0.094 sones (Alive Again,
+  Amount 100 %). It changes the top's texture a little even there.
+
+Against the rule:
+1. **Removes the fault on the models:** only the one it was trained on
+   (`hash`). It takes part of `hash_wide`, but at 2 sones on Stars it
+   makes that one 23 % more audible, and `shadow` 28 % more. It does
+   nothing for `fizz` or `shadow`. So it does not pass on the models.
+2. **Cost:** passes. At most 0.064 sones, so Amount's top stays at 100 %.
+3. **Side effects:** none worth naming.
+4. **Blind round:** the `fix-shimmer-*` sets, on the author's own mixes,
+   the same kind of songs as the other cards' sets. If Suno shimmer is in
+   them, this is the real test.
+
+**On to try in the rebuild (2026-09-13).** The Master tab shows the card as
+"Spectral de-noise · Shimmer", as it shows the other three before their
+blind round, so the author can try it on real songs. The first time it is
+turned on for a song, the network takes about 50 s for a 3-minute song.
+After that, a new Amount or a preview is quick.
 
 ## Phasiness
 

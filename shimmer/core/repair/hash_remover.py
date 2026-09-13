@@ -18,9 +18,10 @@ turns on (docs/STEP6-FIXES.md).
 What changes from the training script's inference (scripts/hash_learn/
 infer.py), and why:
 
-- The level the network sees is normalised by the whole song's mean
-  log-magnitude, not each excerpt's own, so a preview window gets the same
-  gains as the full render.
+- The network runs once over the whole song as it comes in, before the
+  other fixes, in plan(). The gains are kept, so a preview window gets the
+  same gains as the full render and a new Amount costs almost nothing.
+  The level it sees is set by the whole song's mean log-magnitude.
 - It works at 48 kHz, as trained. A song at another rate is resampled to
   48 kHz for the work, and only what the network removes is resampled back
   and subtracted, so nothing outside its band is touched.
@@ -93,11 +94,15 @@ def _net() -> Dict[str, Any]:
     return _NET
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Plan:
     """What the remover needs from the whole song: each channel's mean
-    log-magnitude over the bins the network sees (its level)."""
+    log-magnitude over the bins the network sees (its level), and the
+    network's gains for every frame of the song in its band ([bins,
+    frames], float16). They are worked out once, so a preview window or a
+    new Amount only redoes the cheap last step."""
     mean_lm: Tuple[float, ...]
+    gains: Tuple[np.ndarray, ...] = ()
 
 
 def _to48(x: np.ndarray, sr: int) -> np.ndarray:
@@ -135,12 +140,15 @@ def plan(audio: np.ndarray, sr: int) -> Plan:
     a = np.asarray(audio, dtype=np.float64)
     a = a[:, None] if a.ndim == 1 else a
     ctx = _ctx_bins(net)
+    rows = net["band"] > 0
     x48 = _to48(a, sr)
-    means = []
+    means, gains = [], []
     for c in range(x48.shape[1]):
         lm = np.log(np.abs(_stft(x48[:, c])[ctx]) + 1e-6)
-        means.append(float(lm.mean()))
-    return Plan(tuple(means))
+        mean = float(lm.mean())
+        means.append(mean)
+        gains.append(_gains((lm - mean).astype(np.float32), net)[rows].astype(np.float16))
+    return Plan(tuple(means), tuple(gains))
 
 
 _R2 = np.float32(1.0 / np.sqrt(2.0))
@@ -228,21 +236,29 @@ def removed(x: np.ndarray, sr: int, p: Plan, amount: float, offset: int = 0) -> 
     n = a.shape[0]
     x48 = _to48(a, sr)
     ctx = _ctx_bins(net)
-    band = net["band"].astype(np.float32)[:, None]
+    rows = net["band"] > 0
     out = np.zeros_like(x48)
     # Frames sit on a 256-sample grid counted from the start of the song (at
-    # 48 kHz), so a window and a full render cut the same frames.
-    pad = int(round(offset * SR / sr)) % HOP
+    # 48 kHz), so a window and a full render cut the same frames: frame k
+    # here is frame k0 + k of the song.
+    start = int(round(offset * SR / sr))
+    pad = start % HOP
+    k0 = (start - pad) // HOP
     for c in range(x48.shape[1]):
         seg = np.concatenate([np.zeros(pad), x48[:, c]]) if pad else x48[:, c]
         Z = _stft(seg)
-        lm = np.log(np.abs(Z[ctx]) + 1e-6)
-        mean = p.mean_lm[c] if c < len(p.mean_lm) else float(lm.mean())
-        g = _gains((lm - mean).astype(np.float32), net)
-        g = g * band + (1.0 - band)
+        if c < len(p.gains):
+            # The song's own gains; frames past its end keep everything.
+            g = np.ones((int(rows.sum()), Z.shape[1]), dtype=np.float32)
+            have = p.gains[c][:, k0:k0 + Z.shape[1]]
+            g[:, :have.shape[1]] = have
+        else:
+            lm = np.log(np.abs(Z[ctx]) + 1e-6)
+            mean = p.mean_lm[c] if c < len(p.mean_lm) else float(lm.mean())
+            g = _gains((lm - mean).astype(np.float32), net)[rows]
         g = np.clip(1.0 - float(amount) * (1.0 - g), 0.0, 1.0)
         G = np.ones(Z.shape, dtype=np.float32)
-        G[ctx] = g
+        G[ctx[rows]] = g
         _, y = ss.istft(Z * (1.0 - G), fs=SR, nperseg=N_FFT, noverlap=N_FFT - HOP,
                         input_onesided=True, boundary=True)
         y = y[pad:pad + x48.shape[0]]

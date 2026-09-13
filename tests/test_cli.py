@@ -130,8 +130,8 @@ def test_list_names_every_card_and_target(capsys):
     # Each card says whether naming it changes the song.
     state = {line.split()[0]: line for line in said.splitlines() if line.startswith("  ")}
     assert state["sibilance"].endswith("ready")
-    assert state["shimmer"].endswith("built, not passed yet")      # runs, not on screen
-    assert state["clicks"].endswith("built, not passed yet")
+    assert state["shimmer"].endswith("ready")
+    assert state["clicks"].endswith("built, not passed yet")        # runs, not on screen
     assert state["phasiness"].endswith("no fix yet")
 
 

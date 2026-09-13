@@ -61,13 +61,13 @@ def test_the_screens_notches_and_cards(client):
     st = _stages(client.post("/api/chain", json={
         "fixes": {"tones": 1.0}, "auto": True,
         "repair": {"enabled": True, "notches": [{"hz": 3000.0, "depth_db": 8.0, "bw_hz": 40.0}]},
-        "cards": {"on": ["tones", "air"], "noted": ["shimmer", "nonsense"]},
+        "cards": {"on": ["tones", "air"], "noted": ["phasiness", "nonsense"]},
         "mastering": {"enabled": True, "target": "cd"},
         "trim": {"in_s": 1.5, "out_s": None},
     }))
     assert st["fixes"]["badges"][0] == "1 notch"
     assert [r["key"] for r in st["fixes"]["fixes"]] == ["tones", "air"]
-    assert [r["key"] for r in st["fixes"]["noted"]] == ["shimmer"]
+    assert [r["key"] for r in st["fixes"]["noted"]] == ["phasiness"]
     assert st["edit"]["verdict"] == "On · starts at 0:01.5"
 
 

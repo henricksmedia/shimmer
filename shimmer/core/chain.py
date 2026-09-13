@@ -47,6 +47,8 @@ _TOOL_GLOSS = {
     "deesser": "Turns down harsh “s”, “t” and “ch” while they stick out.",
     "dynamic_eq": "Cuts a band only while it rings out above the rest.",
     "declick": "Finds short pops and crackle and fills them in.",
+    "spectral_denoise": "Turns down fizzy, flickering hiss up top, only where a trained "
+                        "model hears it.",
 }
 
 

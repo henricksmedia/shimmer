@@ -332,16 +332,16 @@ the music" (`GOALS.md`):*
 | Sibilance | De-esser | Built and measured 2026-09-13; blind round built, waiting for the author |
 | Low-mid build-up | Dynamic EQ, 200–500 Hz | Built and measured 2026-09-13; blind round built, waiting for the author |
 | Harshness | Dynamic EQ, 2–5 kHz | Built and measured 2026-09-13; blind round built, waiting for the author |
-| Shimmer (the fizz) | See [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md) | Research done 2026-09-12; real-codec test case built 2026-09-13 (EnCodec) |
+| Shimmer (the fizz) | Spectral de-noise: the learned mask, in numpy (see [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md)) | Built and measured 2026-09-13. It removes the flicker model (61 %) and part of the wide one, but not fizz or shadow. It takes at most 0.064 sones from a clean song. On to try; blind sets built, waiting for the author. Real-codec test case built (EnCodec) |
 | Phasiness | A model first, then a tool | Model built; the codec test case is its honest check |
 | Lack of air | Tone target (Step 5) | With Step 5 |
 | Loudness | Loudness target (Step 5) | With Step 5 |
 
 Measurements, designs compared and blind sets: [STEP6-FIXES.md](STEP6-FIXES.md).
 A card turns on in the Master tab through `catalog.TOOLS_READY`. Sibilance,
-Harshness and Low-mid build-up are on in the rebuild (2026-09-13) so the
-author can try them on real songs before their blind round; the de-click
-stays off until it finds pops in dense music.
+Harshness, Low-mid build-up and Shimmer are on in the rebuild (2026-09-13),
+so the author can try them on real songs before their blind round. The
+de-click stays off until it finds pops in dense music.
 
 **Shimmer, in order:**
 
@@ -467,8 +467,7 @@ stays off until it finds pops in dense music.
     in every tab's report.
   - `--list` says which cards are ready, which fixes are built but have
     not passed yet, and which have no fix (2026-09-13). A built fix runs
-    when named, as Shimmer and Clicks do, though the screens do not offer
-    it.
+    when named, as the de-click does, though the screens do not offer it.
 - [ ] Old saved settings migrate.
 - [ ] Delete the retired modules and their tests.
   - [x] `server.py`'s dead 1.x code (2026-09-12), 878 lines:

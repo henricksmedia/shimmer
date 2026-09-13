@@ -20,19 +20,23 @@ from typing import Optional, Tuple
 
 # ── The "What do you hear?" cards ───────────────────────────────────────
 
-TOOLS = ("notch", "declick", "deesser", "dynamic_eq", "tone_target", "loudness_target")
+TOOLS = ("notch", "declick", "deesser", "dynamic_eq", "spectral_denoise", "tone_target",
+         "loudness_target")
 
 # The name each tool shows on screen, and which tools are built. A card whose
 # tool is not built yet says so plainly, rather than seem to do something
 # (docs/ARCHITECTURE.md §19.2 D3).
 TOOL_LABELS = {"notch": "Notch filter", "declick": "De-click", "deesser": "De-esser",
-               "dynamic_eq": "Dynamic EQ", "tone_target": "Tone target",
-               "loudness_target": "Loudness target"}
+               "dynamic_eq": "Dynamic EQ", "spectral_denoise": "Spectral de-noise",
+               "tone_target": "Tone target", "loudness_target": "Loudness target"}
 # The de-esser and the dynamic EQ are on for the author to try in the
 # rebuild (2026-09-13), measured but before their blind round
-# (docs/STEP6-FIXES.md); the de-click stays off until it finds pops in
+# (docs/STEP6-FIXES.md). The spectral de-noise (Shimmer) is on to try too,
+# though it passes on only one of its four fault models; the blind round
+# on real songs decides. The de-click stays off until it finds pops in
 # dense music.
-TOOLS_READY = ("notch", "tone_target", "loudness_target", "deesser", "dynamic_eq")
+TOOLS_READY = ("notch", "tone_target", "loudness_target", "deesser", "dynamic_eq",
+               "spectral_denoise")
 
 
 @dataclass(frozen=True)
@@ -54,7 +58,7 @@ class Card:
 CARDS: Tuple[Card, ...] = (
     Card("shimmer", "Shimmer", "Fizzy, flickering hiss up top",
          "A flickering, fizzy texture in the top end, riding on cymbals and vocals.",
-         "auto_awesome", "artifacts", None, (5000.0, 12000.0)),
+         "auto_awesome", "artifacts", "spectral_denoise", (5000.0, 12000.0)),
     Card("tones", "Fixed tones", "A whistle or whine that never changes",
          "Steady tones the generator leaves at one pitch for the whole song.",
          "sports", "artifacts", "notch", None, default_amount=1.0),
