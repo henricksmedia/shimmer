@@ -94,8 +94,9 @@ window.
 
 - **"did not answer in 45 s"**: the headless browser stopped drawing. The
   script already passes the flags that prevent it (`--disable-gpu` and the
-  occluded-window flags); check that no other copy of the browser is holding
-  debugging port 9333.
+  occluded-window flags). Each run takes its own debugging port and browser
+  profile, so two runs cannot reach into each other's browser; pass
+  `--cdp-port` to pin one.
 - **"timed out waiting for the upload"**: Shimmer is not on that port, or the
   song is a format it cannot read.
 - **"No Edge or Chrome found"**: pass one with `--browser`.

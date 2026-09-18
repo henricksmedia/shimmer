@@ -35,8 +35,11 @@ const PORT_APP = arg('port', '7860');
 const MODE = arg('mode', 'full');
 const WINDOW = MODE === 'cards' ? '1600,2400' : '1600,1000';
 const APP = `http://127.0.0.1:${PORT_APP}/`;
-const PROFILE = join(tmpdir(), 'shimmer-promo-browser');
-const PORT_CDP = 9333;
+// Its own debugging port and browser profile per run, so two runs (say the
+// full pass and the cards pass, or two songs) never talk to each other's
+// browser.
+const PORT_CDP = Number(arg('cdp-port', 0)) || 9400 + Math.floor(Math.random() * 500);
+const PROFILE = join(tmpdir(), `shimmer-promo-browser-${PORT_CDP}`);
 const BROWSER = [
     arg('browser'),
     'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
