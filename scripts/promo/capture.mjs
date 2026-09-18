@@ -158,6 +158,19 @@ try {
     await send('Page.navigate', { url: APP });
     await loaded;
     await sleep(2500);
+    // A fresh browser profile makes the app open its Quick start help over
+    // everything, which would cover every shot. Mark it seen, reload, and
+    // press Escape in case anything else is open.
+    await js(`(() => { try { localStorage.setItem('shimmer.quickstart-seen', '1'); } catch (e) {} return true; })()`);
+    const reloaded = once('Page.loadEventFired');
+    await send('Page.reload', {});
+    await reloaded;
+    await sleep(2500);
+    await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape',
+                                          windowsVirtualKeyCode: 27 }).catch(() => {});
+    await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape',
+                                          windowsVirtualKeyCode: 27 }).catch(() => {});
+    await sleep(500);
     // Fail fast if screenshots do not work at all.
     await shot('check-page-loaded');
 
