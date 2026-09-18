@@ -17,6 +17,7 @@ For the user-facing introduction, see the [root README](../README.md).
 | [API.md](API.md) | Every HTTP route the screens call, what it sends and what it reads back |
 | [FEATURES.md](FEATURES.md) | The full feature reference for 2.0: every tab, card, format and setting |
 | [GETTING-STARTED.md](GETTING-STARTED.md) | A step-by-step guide for new users: install, a first master, Batch, Remix, settings, and fixes for common problems |
+| [PROMO-ASSETS.md](PROMO-ASSETS.md) | One command that makes the screenshots, audio clips and short videos the marketing kit asks for, from the app itself |
 
 Background and rules:
 

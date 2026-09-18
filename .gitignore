@@ -131,3 +131,7 @@ listening-test/ab/
 # The real-codec test case (scripts/make_codec_case.py): clean masters
 # through EnCodec. Test audio only, made on this machine; never committed.
 listening-test/codec/
+
+# Promo assets made by scripts/make_promo.py: screenshots, audio and video
+# of your own songs (docs/PROMO-ASSETS.md).
+promo-assets/
