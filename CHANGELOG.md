@@ -5,6 +5,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-09-24
+
 ### Added
 
 - **Fade in and fade out, in the Trim card.** Head shows **Fade in** (Off,

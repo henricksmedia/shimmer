@@ -9,7 +9,10 @@ launchers that keep a git clone on the latest release. 2.1.1 added the
 next-step bar after Analyze, and 2.1.2 set the Suggested EQ apart
 in the checklist, with a link down to its moves. 2.1.3 made a click
 on a dimmed Processed or Removed turn on Live. 2.1.4 made the player
-bar a warm, amber-lit deck with a white Play button.
+bar a warm, amber-lit deck with a white Play button. 2.2.0 added fades in
+the Trim card, moved to the source-available Shimmer License, wrote tags
+with Shimmer's own code, and fixed the lossy exports (M4A pops, the release
+check's true-peak rule, MP3 above 48 kHz).
 
 For the user-facing introduction, see the [root README](../README.md).
 
