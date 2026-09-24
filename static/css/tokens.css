@@ -11,12 +11,14 @@
     --bg-3:  #14181e;
     --bg-4:  #1c222b;
     /* Shell decks. The page (bg-1) is the recessed work area; the rail is
-       lifted one step above it and the transport bridge two steps, both
-       with a cool tint, so the three frames read apart without going to
-       black. Controls that sit on them use bg-2 wells or translucent
-       state layers, so they keep their contrast on the lifted decks. */
+       lifted one step above it with a cool tint. The transport bridge is
+       the player, the part used most, so it is warm and amber-lit: the one
+       warm strip on screen, in the colour of what you hear there
+       (Processed, Live, the loop). Blue read as a passive status bar and is
+       the analysis colour; grey read as a footer. layout.css gives the
+       bridge warm neutrals to match. */
     --bg-rail:   #11161e;
-    --bg-bridge: #161c26;
+    --bg-bridge: #241c10;
     --line:  #252c37;
     --line-2:#313a48;
 

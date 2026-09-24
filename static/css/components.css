@@ -758,10 +758,10 @@ input[type=range]::-moz-range-thumb {
     font-weight: 600;
 }
 
-/* Peripheral cue: the bridge's top edge glows amber while rendering. */
+/* Peripheral cue: the bridge's amber top edge glows down into the deck
+   while rendering (the edge itself is always amber). */
 .bridge:has(.preview-status.busy) {
-    border-top-color: rgba(245, 165, 36, .6);
-    box-shadow: inset 0 2px 12px -6px rgba(245, 165, 36, .5);
+    box-shadow: inset 0 3px 18px -6px rgba(245, 165, 36, .8);
 }
 
 @media (prefers-reduced-motion: reduce) {

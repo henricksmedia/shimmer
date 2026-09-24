@@ -5,6 +5,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.4] — 2026-09-24
+
+### Changed
+
+- **The player bar at the bottom stands out.** It was a slate blue that read
+  as a status bar, and blue is the analysis colour here. It is now a warm,
+  amber-lit deck with an amber line along the top, the colour of what you
+  hear there (Processed, Live, the loop). **Play** is a solid white button,
+  the brightest thing on the bar, and the played part of the progress bar
+  is white too, with the loop in amber on top. While a loop renders, the
+  top edge glows down into the bar.
+
 ## [2.1.3] — 2026-09-24
 
 ### Changed

@@ -37,7 +37,7 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: .12em;
-    color: var(--fg-1);
+    color: #f3d9a8;
     font-weight: 700;
 }
 .bz-row { display: flex; align-items: center; gap: 8px; }
@@ -67,7 +67,7 @@
 .tp-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .tp-buttons { display: flex; align-items: center; gap: 8px; flex: none; }
 .tp-bar { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 0; }
-.tp-time { font-family: var(--font-mono); font-size: 12px; color: var(--fg-1); flex: none; min-width: 34px; }
+.tp-time { font-family: var(--font-mono); font-size: 12px; color: var(--fg-0); flex: none; min-width: 34px; }
 #tp-cur { text-align: right; }
 .tp-hint { font-size: 11px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tp-btn {
@@ -86,14 +86,17 @@
 .tp-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); border-color: var(--fg-3); color: var(--fg-0); }
 .tp-btn:active:not(:disabled) { transform: scale(0.95); }
 .tp-seek { flex: 1 1 auto; min-width: 0; padding: 8px 0; cursor: pointer; touch-action: none; user-select: none; }
-.tp-seek-track { position: relative; height: 6px; border-radius: 3px; background: var(--bg-4); }
-.tp-seek-loop { position: absolute; top: 0; bottom: 0; background: rgba(245, 165, 36, 0.38); border-radius: 3px; }
+.tp-seek-track { position: relative; height: 8px; border-radius: 4px; background: var(--bg-4); }
+.tp-seek-loop { position: absolute; top: 0; bottom: 0; background: rgba(245, 165, 36, 0.5); border-radius: 4px; }
 .tp-seek-fill {
     position: absolute;
     left: 0; top: 0; bottom: 0;
     width: 0;
-    background: linear-gradient(90deg, var(--cyan), var(--teal));
-    border-radius: 3px;
+    /* Where you are: white, like Play, so the player reads as one control.
+       Cyan and teal are the Analyze and Upload colours. */
+    background: #fff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
 }
 .tp-seek-thumb {
     position: absolute;
@@ -119,6 +122,9 @@
 .bridge .player-tabs { flex: 1 1 auto; width: 100%; }
 .bridge .track-tab { flex: 1 1 0; justify-content: center; min-width: 0; }
 
+/* Play is the brightest thing on the bar: solid white with a dark glyph, as
+   media players do. White, not amber: amber already means Clean & Master
+   and Processed. */
 .bridge .play-btn {
     width: 44px;
     height: 44px;
@@ -127,16 +133,16 @@
     display: grid;
     place-items: center;
     font-size: 15px;
-    background: var(--bg-4);
-    border: 1px solid var(--line-2);
-    color: var(--fg-0);
-    box-shadow: none;
-    transition: border-color 120ms ease, box-shadow 120ms ease;
+    background: var(--fg-0);
+    border: 1px solid var(--fg-0);
+    color: var(--bg-0);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+    transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
 }
 .bridge .play-btn:hover:not(:disabled) {
-    background: var(--bg-4);
+    background: #fff;
     border-color: var(--amber);
-    box-shadow: 0 0 0 1px rgba(245,165,36,.35), 0 0 18px rgba(245,165,36,.18);
+    box-shadow: 0 0 0 2px rgba(245,165,36,.45), 0 0 18px rgba(245,165,36,.25);
 }
 .bridge .player-time {
     font-family: var(--font-mono);
@@ -151,6 +157,8 @@
     flex-wrap: nowrap;
     white-space: nowrap;
 }
+/* The global .btn hover is a cool grey; on the warm deck it stays warm. */
+.bridge .btn-ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); border-color: var(--line-2); }
 .bridge .preview-toggle-row { font-size: 12px; }
 .bridge .preview-select { padding: 4px 6px; }
 .bridge .preview-here-btn { padding: 4px 10px; }
@@ -816,7 +824,7 @@
 .bridge .track-tab[data-track="original"]::after  { background: var(--fg-2); }
 .bridge .track-tab[data-track="processed"]::after { background: var(--amber); }
 .bridge .track-tab[data-track="removed"]::after   { background: var(--danger); }
-.bridge .track-tab:hover:not([aria-disabled="true"]) { color: var(--fg-0); border-color: #3d4756; }
+.bridge .track-tab:hover:not([aria-disabled="true"]) { color: var(--fg-0); border-color: rgba(245, 165, 36, .45); }
 /* Not rendered yet: dimmed until Live preview or a full run has produced the
    track. Still clickable (aria-disabled, not disabled): a click turns on
    Live and plays the track when the loop is ready. */
@@ -825,8 +833,8 @@
 .bridge .track-tab.active { color: var(--fg-0); }
 .bridge .track-tab.active::after { opacity: 1; }
 .bridge .track-tab.active[data-track="original"] {
-    background: #232a35;
-    border-color: #4a5462;
+    background: rgba(255, 255, 255, .08);
+    border-color: rgba(255, 255, 255, .32);
 }
 .bridge .track-tab.active[data-track="processed"] {
     background: var(--amber-soft);
