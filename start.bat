@@ -22,6 +22,18 @@ echo.
 
 cd /d "%~dp0"
 
+REM ── Step 0: the latest release ────────────────────────────────────────
+REM A git copy on main is brought up to the newest release on GitHub before
+REM anything else (scripts\update-to-latest.ps1 says when it cannot: no
+REM network, unsaved changes, another branch). A zip download has no .git
+REM and is left alone. start-test.bat sets SHIMMER_NO_UPDATE=1, so a test
+REM copy stays on its branch.
+REM The update can rewrite this very file, and cmd reads a batch file from
+REM disk as it goes. So the check and the restart are ONE line: cmd has
+REM read all of it before the update runs. Exit code 10 means "updated":
+REM start again in a new window from the new files, then close this one.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\update-to-latest.ps1" & if errorlevel 10 (set "SHIMMER_UPDATED=1" & start "Shimmer by The Treq" cmd /c ""%~f0"" & exit /b 0)
+
 REM Port can be overridden:  set SHIMMER_PORT=7870 && start.bat
 if not defined SHIMMER_PORT set "SHIMMER_PORT=7860"
 set "PORT=%SHIMMER_PORT%"

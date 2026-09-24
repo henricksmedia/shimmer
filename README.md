@@ -194,6 +194,14 @@ reports from other platforms are genuinely useful.
 Get 2.0.1 the same way you got 1.1.1 (a new release zip, or `git pull` in
 your clone), then launch it as before.
 
+- **A git clone keeps itself up to date.** From now on, `start.bat` and
+  `start.sh` check GitHub each time they start, and move a clone on the
+  `main` branch forward to the newest release. They leave a clone alone when
+  it has unsaved changes or no network, and a zip download is never
+  touched. To try a branch without that, use `start-test.bat` (or
+  `start-test.sh`): it runs that copy as it is, on port 7870, with its own
+  settings.
+
 - **The libraries update themselves.** `start.bat` (Windows) and `start.sh`
   (macOS and Linux) see that the library list changed and install what 2.0
   needs, such as mutagen for tags, before they start.

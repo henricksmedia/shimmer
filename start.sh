@@ -9,6 +9,43 @@ set -u
 
 cd "$(dirname "$0")" || exit 1
 
+# ── The latest release ────────────────────────────────────────────────
+# As start.bat (scripts/update-to-latest.ps1): a git copy on main moves
+# forward to the newest release on GitHub before anything else. A zip
+# download has no .git and is left alone, and so is a copy with unsaved
+# changes, one on another branch, or any copy when the network is down.
+# SHIMMER_NO_UPDATE=1 skips it (start-test.sh sets it).
+# bash reads a script as it runs, and the update can rewrite this file, so
+# the whole step is a function: bash has read all of it before it runs.
+update_to_latest() {
+    [ "${SHIMMER_NO_UPDATE:-}" = "1" ] && return 0
+    [ "${SHIMMER_UPDATED:-}" = "1" ] && return 0
+    [ -d .git ] || return 0
+    command -v git >/dev/null 2>&1 || return 0
+    local branch before
+    branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+    if [ "$branch" != "main" ]; then
+        echo "  This copy is on the branch '$branch', not on the latest release (main)."
+        echo "  start.sh runs the latest release. To try a branch, use start-test.sh."
+        return 0
+    fi
+    if [ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+        return 0
+    fi
+    before="$(git rev-parse HEAD)"
+    if ! git fetch -q origin main 2>/dev/null; then
+        echo "  Could not check for updates (offline?). Starting the version you have."
+        return 0
+    fi
+    [ "$(git rev-parse origin/main)" = "$before" ] && return 0
+    if git merge -q --ff-only origin/main 2>/dev/null; then
+        echo "  Updated to the latest release. Starting again from the new files."
+        SHIMMER_UPDATED=1 exec bash "$0" "$@"
+    fi
+    return 0
+}
+update_to_latest "$@"
+
 # Port can be overridden:  SHIMMER_PORT=7870 ./start.sh
 PORT="${SHIMMER_PORT:-7860}"
 URL="http://localhost:$PORT"

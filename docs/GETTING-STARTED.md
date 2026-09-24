@@ -142,7 +142,10 @@ Shimmer is still running, the launcher closes it first.
 
 1. Get 2.0.1 the same way you got 1.1.1: download the new release zip, or
    run `git pull` in your clone.
-2. Launch it as before, with `start.bat` or `./start.sh`.
+2. Launch it as before, with `start.bat` or `./start.sh`. From 2.0.1 on, a
+   git clone updates itself: each time the launcher starts, it moves a
+   clone on the `main` branch to the newest release. It skips this when the
+   clone has unsaved changes or there is no network.
 3. Wait while the launcher installs the new libraries 2.0 needs. It sees
    that the list changed and installs them before it starts.
 

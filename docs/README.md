@@ -191,6 +191,20 @@ port.
 SHA-256 of the last installed file in `.venv\requirements.sha256`. `start.sh`
 only reinstalls when an import probe fails.
 
+**Staying on the latest release.** Before anything else, both launchers move
+a git clone on `main` forward to the newest release on GitHub
+(`scripts/update-to-latest.ps1`, and a function in `start.sh`). Only a
+fast-forward, never over unsaved changes, and nothing without a network or a
+`.git` folder. On another branch, `start.bat` offers to switch back to
+`main`. The update can rewrite the launcher itself while it runs, so the
+check and the restart are one line in `start.bat` and one function in
+`start.sh`. `SHIMMER_NO_UPDATE=1` skips it.
+
+**Testing a branch.** `start-test.bat` / `start-test.sh` run the copy they
+sit in, as it is: port 7870, settings in their own folder
+(`SHIMMER_CONFIG_DIR`, `%APPDATA%\Shimmer-test` on Windows), and no update.
+Your everyday Shimmer can stay open on 7860 beside it.
+
 Manual:
 
 ```bash
@@ -282,8 +296,9 @@ which runs a card's fix through `render()` exactly as the Master tab does
 ## Project layout
 
 ```
-start.bat              Windows launcher (uv bootstrap + server)
+start.bat              Windows launcher (update, uv bootstrap, server)
 start.sh               macOS / Linux launcher (same flow)
+start-test.bat/.sh     Run this copy as it is: port 7870, own settings, no update
 shimmer/               The Python package
   __init__.py          version; imports _winfix first
   __main__.py          `python -m shimmer` runs cli.main
