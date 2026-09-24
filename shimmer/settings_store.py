@@ -37,6 +37,11 @@ def _settings_path() -> str:
     return os.path.join(_settings_dir(), "settings.json")
 
 
+# Saves are stamped with this. 2: from 2.0.2, when a Streaming target saved
+# by an older version stopped being carried over (migrate_saved).
+SETTINGS_VERSION = 2
+
+
 def load_settings() -> Dict[str, Any]:
     """Return the last-saved settings, or {} if none exist, carried over
     from 1.x as they load (see migrate_saved)."""
@@ -62,6 +67,13 @@ def migrate_saved(data: Dict[str, Any]) -> Dict[str, Any]:
       to, at that card's default Amount. Once 2.0 has saved the picks, they
       are kept as saved, so a card turned off stays off.
 
+    - A loudness target of "streaming" saved before 2.0.2 becomes the
+      Commercial default. Streaming (-14 LUFS) was 1.x's default, so almost
+      every upgrade carried it over unchosen, and 2.0 mastered those songs
+      5 dB quieter than the Commercial default it was built to fix. Every
+      save from 2.0.2 on is stamped SETTINGS_VERSION, so a Streaming choice
+      made since then is kept.
+
     Nothing is written back until the screen next saves. The tables are the
     engine's (core.settings), so the 1.x presets module can go.
     """
@@ -75,11 +87,16 @@ def migrate_saved(data: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(out.get("fixes"), dict):
         card = card_for_preset(out.get("preset"))
         out["fixes"] = {card: catalog.card(card).default_amount} if card else {}
+    master = out.get("mastering")
+    if (int(out.get("settings_version") or 0) < SETTINGS_VERSION and isinstance(master, dict)
+            and master.get("target") == "streaming"):
+        out["mastering"] = {**master, "target": catalog.DEFAULT_LOUDNESS}
     return out
 
 
 def save_settings(data: Dict[str, Any]) -> None:
-    """Atomically write settings JSON to disk."""
+    """Atomically write settings JSON to disk, stamped SETTINGS_VERSION."""
+    data = {**data, "settings_version": SETTINGS_VERSION}
     d = _settings_dir()
     os.makedirs(d, exist_ok=True)
     path = _settings_path()

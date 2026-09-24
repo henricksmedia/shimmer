@@ -5,6 +5,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Masters from an upgraded copy were 5 dB too quiet.** 1.1.1's default
+  loudness was Streaming (-14 LUFS), so almost every saved settings file
+  carried it, unchosen. 2.0 kept it, and mastered those songs well under the
+  Commercial default (-9 LUFS) it was built for. A Streaming choice saved
+  before this version now loads as Commercial, once. Pick Streaming again if
+  you want it: from now on your choice is kept.
+
 ## [2.0.1] — 2026-09-24
 
 ### Added

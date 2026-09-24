@@ -51,3 +51,20 @@ def test_no_file_or_a_broken_one_is_empty(saved):
     assert settings_store.load_settings() == {}
     assert saved("{not json") == {}
     assert saved("[1, 2]") == {}
+
+
+def test_an_unchosen_streaming_target_from_before_2_0_2_becomes_commercial(tmp_path, monkeypatch):
+    # 1.x saved "streaming" as its default, and 2.0.0-2.0.1 kept it, so
+    # upgraders mastered 5 dB under the Commercial default.
+    monkeypatch.setenv("SHIMMER_CONFIG_DIR", str(tmp_path))
+    old = {"fixes": {}, "mastering": {"enabled": True, "target": "streaming"}}
+    (tmp_path / "settings.json").write_text(json.dumps(old), encoding="utf-8")
+    assert settings_store.load_settings()["mastering"]["target"] == "cd"
+
+
+def test_a_streaming_target_saved_from_2_0_2_on_is_kept(tmp_path, monkeypatch):
+    monkeypatch.setenv("SHIMMER_CONFIG_DIR", str(tmp_path))
+    settings_store.save_settings({"fixes": {}, "mastering": {"enabled": True, "target": "streaming"}})
+    loaded = settings_store.load_settings()
+    assert loaded["mastering"]["target"] == "streaming"
+    assert loaded["settings_version"] == settings_store.SETTINGS_VERSION
