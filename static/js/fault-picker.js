@@ -96,6 +96,8 @@ function foundText(card, list) {
                                  : `${list.length} tones`;
     }
     if (card === 'loudness') return `${list[0].value.toFixed(1)} dB under`;
+    if (card === 'air') return `${list[0].value.toFixed(1)} dB dull`;
+    if (card === 'mud') return `${list[0].value.toFixed(1)} dB over`;
     return `${list[0].value} ${list[0].unit}`;
 }
 
@@ -225,6 +227,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         cards.forEach((c) => {
             c.found = null;
             c.foundHz = null;
+            c.level = '';
             if (c.by === 'Analyze') { c.on = false; c.by = null; }
         });
         const groups = new Map();
@@ -236,10 +239,17 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
             const c = byKey.get(key);
             if (!c) return;
             c.found = foundText(key, list);
+            c.level = list[0].level || '';
             if (key === 'tones') c.foundHz = list.map((f) => f.value);
-            // Fixed tones is the proven tool: Analyze turns it on, unless
-            // the user turned it off for this song.
-            if (key === 'tones' && c.ready && !c.userOff && !c.on) { c.on = true; c.by = 'Analyze'; }
+            // A finding that recommends an Amount turns its card on at that
+            // Amount (Fixed tones always does), unless the user turned it
+            // off for this song or set it themselves.
+            const amt = list.reduce((m, f) => (f.amount != null ? Math.max(m, f.amount) : m), -1);
+            if (amt >= 0 && c.ready && !c.master && !c.userOff && !(c.on && c.by === 'you')) {
+                c.on = true;
+                c.by = 'Analyze';
+                c.amount = Math.round(amt * 100);
+            }
         });
         render();
         onChange();

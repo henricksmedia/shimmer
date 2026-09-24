@@ -262,14 +262,20 @@ button is the same as the **Clean & Master** button at the top of the
 right-hand panel, which glows until you press it. Everything under the bar
 is optional.
 
-Only two cards can get a **Found** note, because only these can be
-measured reliably today:
+These cards can get a **Found** note, with how much: **some** or **a lot**:
 
 - **Fixed tones:** each tone found, with its pitch.
 - **Loudness:** how far the song is under your loudness target, when it is
   1 dB or more.
+- **Lack of air:** how many dB the top end sits under the tone target. The
+  checklist offers a brighter Tilt; it starts unticked.
+- **Low-mid build-up**, **Sibilance** and **Harshness:** how much of the
+  problem is there. Their fix turns on, at 50 % for some and 100 % for a
+  lot. Sibilance and Harshness take a few seconds more, so they listen in
+  the background as soon as the song is loaded.
 
-For every other card, your ears decide.
+Change an Amount or turn a card off, and Analyze leaves it that way for
+this song. For every other card, your ears decide.
 
 **Expand** opens the analysis in a bigger panel. Its **Loop the worst
 part** button turns on Live and loops the worst stretch.

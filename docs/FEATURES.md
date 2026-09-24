@@ -177,16 +177,30 @@ it or load a new song. Everything under the bar is optional detail.
 **Expand** opens the analysis in a bigger panel over the page, with a
 **Loop the worst part** button.
 
-**What Analyze reports as found.** Only two cards get a "Found" note today,
-because only these can be measured reliably:
+**What Analyze reports as found.** A card gets a "Found" note when its
+detector measures the problem, with how much: **some** or **a lot**. Each
+detector was set on a library of AI songs and stays quiet on finished
+masters (docs/DETECTORS.md).
 
 - **Fixed tones:** each tone found, with its pitch and how far it stands
-  above its surroundings.
+  above its surroundings. The notch turns on.
 - **Loudness:** how far the song is under the chosen loudness target, when
   it is 1 dB or more.
+- **Lack of air:** how far the top end (8-16 kHz) sits under the tone
+  target: 3 dB or more is some, 6 dB or more a lot. The checklist offers
+  Tilt: Bright or Brightest, unticked. Mastering lifts the top end by
+  2 dB at most.
+- **Low-mid build-up:** how far 200-500 Hz sits over the tone target: 2 dB
+  or more. Its dynamic EQ turns on.
+- **Sibilance** and **Harshness:** how much of the song their fix acts on.
+  They take 5-15 seconds each, so they run in the background as soon as
+  the song is loaded; Analyze waits for them and says what it is listening
+  for. Their fix turns on.
 
-Every other card stays quiet until its detector passes its own tests. A
-card that cannot measure its problem does not guess.
+A fix that Analyze turns on starts at 50 % for some and 100 % for a lot.
+Change the Amount or turn the card off, and Analyze leaves it for that
+song. Every other card stays quiet until its detector passes its own tests.
+A card that cannot measure its problem does not guess.
 
 ### 2.4 "What do you hear?" cards and their fixes
 

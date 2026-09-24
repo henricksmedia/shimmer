@@ -140,8 +140,11 @@ change.
 
 - **Sends:** `session_id` (or `file`), `tone_family`, `mastering`.
 - **Returns:**
-  - `findings[]`: `{card, value, unit, detail}`, one per card that fired
-    (ARCHITECTURE §19.3)
+  - `findings[]`: `{card, value, unit, detail, level, amount}`, one per card
+    that fired (ARCHITECTURE §19.3; docs/DETECTORS.md). `level` is "some"
+    or "a lot" where the detector grades it; `amount` is the Amount (0-1)
+    Analyze recommends for the card's fix, or null. The slow detectors'
+    findings come from `POST /api/detect`.
   - `timeline`, `notes`, `analysis`, `source_tags` and `tone_plan`, unchanged
 - **Retired with the presets:** `preset`, `strength`, `ranked`, `follow_up`,
   `scores`, `metrics`.
@@ -210,6 +213,21 @@ change.
   - The work is kept with the song, so previews after it are quick.
   - An export that gets there first shows the same progress in its progress
     window.
+
+**`POST /api/detect`** — New (2.3.0).
+
+- **Why:** the Sibilance and Harshness detectors each render the whole song
+  (about 5-15 s). The upload stays quick: its findings are the fast ones,
+  and the screen asks for these right after it.
+- **Sends:** `{session_id}`.
+- **Returns:**
+  - `{ready: true, findings: [...]}` once they have run for this song (the
+    same shape as `/api/suggest`'s findings; `[]` when none fired).
+  - Otherwise `{ready: false, job_id}`: the job for this song, followed on
+    `GET /api/progress/{job_id}` (`detail` names the card being listened
+    for). Ask again when it is done.
+- **Rules:** they run once per song; a second request while the job runs
+  gets the same job. An unknown session answers 404.
 
 **`GET /api/progress/{job_id}`** — Keep, new stage keys. Server-sent events.
 

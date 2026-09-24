@@ -218,3 +218,18 @@ def test_the_preview_is_the_export_on_a_window(client):
     residual_db = 10 * np.log10(np.mean(ref ** 2) / max(np.mean(d ** 2), 1e-30))
     assert residual_db >= 60.0                    # 16-bit preview vs 24-bit export
     assert np.max(np.abs(removed)) > 0            # the notch took the 16 kHz tone out
+
+
+def test_detect_runs_the_slow_detectors_once(client):
+    sid = _upload(client, _song())
+    r = client.post("/api/detect", json={"session_id": sid})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    if not body["ready"]:
+        _wait(client, body["job_id"])
+        body = client.post("/api/detect", json={"session_id": sid}).json()
+    assert body["ready"] and isinstance(body["findings"], list)
+    for f in body["findings"]:
+        assert f["card"] in ("sibilance", "harshness") and f["level"] in ("some", "a lot")
+    assert client.post("/api/detect", json={"session_id": "gone"}).status_code == 404
+

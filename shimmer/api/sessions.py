@@ -28,7 +28,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
@@ -71,6 +71,10 @@ class Session:
     # The job getting a slow fix ready for this song (POST /api/prepare),
     # while it runs, so a second request follows it instead of starting another.
     prepare_job: Optional[Any] = None
+    # The slow detectors (POST /api/detect): the job running them, and
+    # their findings once done ([] when none fired; None: not run yet).
+    detect_job: Optional[Any] = None
+    detect_findings: Optional[List[Any]] = None
 
     @property
     def samples(self) -> np.ndarray:

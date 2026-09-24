@@ -5,6 +5,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Analyze finds more.** Four more cards get a detector: **Lack of air**,
+  **Low-mid build-up**, **Sibilance** and **Harshness**. Each says how much
+  it found, some or a lot, and turns its fix on at 50 % or 100 %. Lack of
+  air offers a brighter Tilt instead, since the tone is your choice. Each
+  detector was set on a library of 284 AI songs and stays quiet on finished
+  masters (docs/DETECTORS.md). Sibilance and Harshness listen in the
+  background as soon as a song is loaded.
+
 ## [2.2.0] — 2026-09-24
 
 ### Added

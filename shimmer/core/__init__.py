@@ -18,7 +18,7 @@ below. Nothing here imports the web layer or the old engine
 """
 from . import catalog, tags
 from .analyze.edges import apply_fades, apply_trim, detect_edge_artifacts
-from .analyze.findings import Finding, findings
+from .analyze.findings import Finding, findings, slow_findings
 from .analyze.report import plr_db, spectra_report, stereo_correlation
 from .analyze.tone_plan import family_list, moves_to_eq_payload, normalize_family
 from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
@@ -43,7 +43,8 @@ __all__ = ["catalog", "tags", "export", "estimate_size", "estimate_sizes",
            "tone_plan", "family_list", "normalize_family", "moves_to_eq_payload",
            "reference_view", "percussive_share", "describe_chain", "known_gain",
            "Settings", "EqBand", "migrate", "Progress", "Cancelled",
-           "analyze_track", "detect_edge_artifacts", "apply_trim", "apply_fades", "findings", "Finding",
+           "analyze_track", "detect_edge_artifacts", "apply_trim", "apply_fades", "findings",
+           "slow_findings", "Finding",
            "scan_fixed_lines", "estimate_cutoff_hz", "plan_from_lines", "Notch", "NotchPlan",
            "spectra_report", "stereo_correlation", "plr_db",
            "release_check", "add_check", "tags_check",

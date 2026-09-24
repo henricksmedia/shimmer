@@ -734,6 +734,50 @@ async def prepare(payload: Dict[str, Any]) -> JSONResponse:
     return JSONResponse({"ready": False, "job_id": running.id, "cards": pending})
 
 
+async def _run_detect_async(job: jobs_mod.Job, sess: sessions.Session) -> None:
+    loop = asyncio.get_running_loop()
+    prog = jobs_mod.pusher(job, loop)
+    job.status = "running"
+    names = {c.key: c.label for c in core.catalog.CARDS}
+
+    def step(card: str, fraction: float) -> None:
+        if card:
+            prog.stage("fixes", "Listening", f"{names.get(card, card)}, {fraction:.0%}")
+
+    try:
+        found = await loop.run_in_executor(None, core.slow_findings, sess.source, step)
+    except Exception as e:  # noqa: BLE001  (Cancelled included)
+        await jobs_mod.finish(job, e)
+        return
+    sess.detect_findings = [dataclasses.asdict(f) for f in found]
+    job.metrics = {"findings": sess.detect_findings}
+    await jobs_mod.finish(job)
+
+
+@router.post("/api/detect")
+async def detect(payload: Dict[str, Any]) -> JSONResponse:
+    """The slow detectors for the loaded song (Sibilance, Harshness: a
+    whole-song render each), run once per song after the upload, as a job
+    the screen follows on /api/progress. The upload's own findings are the
+    fast ones.
+
+    {"ready": true, "findings": [...]} once they have run; else
+    {"ready": false, "job_id"}: the running job, or a new one."""
+    sess = sessions.SESSIONS.get(payload.get("session_id") or "")
+    if sess is None:
+        raise HTTPException(404, "Unknown session_id")
+    if sess.detect_findings is not None:
+        return JSONResponse({"ready": True, "findings": sess.detect_findings})
+    running = sess.detect_job
+    if running is not None and running.status not in ("queued", "running"):
+        running = sess.detect_job = None
+    if running is None:
+        running = sess.detect_job = jobs_mod.JOB_STORE.create()
+        asyncio.create_task(_run_detect_async(running, sess))
+        jobs_mod.JOB_STORE.sweep()
+    return JSONResponse({"ready": False, "job_id": running.id})
+
+
 @router.post("/api/size")
 async def size(payload: Dict[str, Any]) -> JSONResponse:
     """Every format's file size for the loaded song with these settings,

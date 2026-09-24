@@ -255,6 +255,48 @@ export async function initSingleTab() {
         if (analysisExpandBtn) analysisExpandBtn.hidden = state !== 'done';
         syncSheetStatus();
     }
+    // The slow detectors (POST /api/detect: Sibilance, Harshness), run
+    // once per song after the upload. The promise gives their findings,
+    // [] if they could not run; `onStatus` hears what is being listened
+    // for while they run.
+    let slowDetectFor = null;
+    let slowDetectPromise = null;
+    let slowDetectStatus = () => {};
+    function slowDetect(sid) {
+        if (!sid) return Promise.resolve([]);
+        if (slowDetectFor === sid && slowDetectPromise) return slowDetectPromise;
+        slowDetectFor = sid;
+        const ask = async () => {
+            const res = await fetch('/api/detect', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({session_id: sid}),
+            });
+            return res.ok ? res.json() : {ready: true, findings: []};
+        };
+        slowDetectPromise = (async () => {
+            try {
+                let r = await ask();
+                if (!r.ready) {
+                    await new Promise((resolve) => openSSE(`/api/progress/${r.job_id}`, {
+                        onMessage: (msg) => {
+                            if (msg.detail && slowDetectFor === sid) slowDetectStatus(msg.detail);
+                        },
+                        onDone: resolve,
+                        onError: resolve,
+                    }));
+                    r = await ask();
+                }
+                return r.ready ? (r.findings || []) : [];
+            } catch (_) {
+                return [];
+            }
+        })();
+        return slowDetectPromise;
+    }
+    // The upload's findings, so the slow ones can be added to them.
+    let uploadFindings = [];
+
     // The file in the workspace. Declared here, ahead of every helper
     // that reads it: settings restore fires a preset change during
     // startup, and that path (pushSettings -> syncDockStatus) used to
@@ -2284,6 +2326,49 @@ export async function initSingleTab() {
                 },
             });
         }
+        // The detectors' findings for the fix cards: ticking one turns its
+        // card on at the Amount Analyze recommends (the card is already on
+        // at it, set by the finding).
+        const FIX_ROWS = {
+            sibilance: {icon: 'record_voice_over', title: 'Sibilance'},
+            harshness: {icon: 'graphic_eq', title: 'Harshness'},
+            mud: {icon: 'foggy', title: 'Low-mid build-up'},
+        };
+        found.filter((f) => FIX_ROWS[f.card]).forEach((f) => {
+            const pct = Math.round((f.amount != null ? f.amount : 0.5) * 100);
+            items.push({
+                key: f.card, icon: FIX_ROWS[f.card].icon, title: FIX_ROWS[f.card].title,
+                detail: `${f.detail} (${f.level})`, action: `Fix it at ${pct}%`,
+                recommended: true,
+                isOn: () => picker.isOn(f.card),
+                set: (on) => picker.setOn(f.card, on),
+            });
+        });
+        const air = found.find((f) => f.card === 'air');
+        if (air) {
+            const want = air.level === 'a lot' ? 'brightest' : 'bright';
+            let tiltBefore = null;
+            items.push({
+                key: 'air', icon: 'brightness_low', title: 'Lack of air',
+                detail: `${air.detail}. Mastering lifts the top end by 2 dB at most.`,
+                action: want === 'brightest' ? 'Tilt: Brightest' : 'Tilt: Bright',
+                recommended: false,
+                isOn: () => masterEnabled.checked && (masterTilt.value === 'bright'
+                                                      || masterTilt.value === 'brightest'),
+                set: (on) => {
+                    if (on) {
+                        tiltBefore = masterTilt.value;
+                        picker.setOn('air', true);
+                        masterTilt.value = want;
+                        masterTilt.dispatchEvent(new Event('change'));
+                    } else {
+                        masterTilt.value = tiltBefore && tiltBefore !== want ? tiltBefore : 'neutral';
+                        masterTilt.dispatchEvent(new Event('change'));
+                        picker.setMasterCard('air', false);
+                    }
+                },
+            });
+        }
         if (moves) {
             items.push({
                 key: 'eq', icon: 'tune', title: 'Suggested EQ',
@@ -2660,6 +2745,17 @@ export async function initSingleTab() {
         let done = false;
         try {
             const r = await runAutoDetect(currentFile, analyzeExtras());
+            if (Array.isArray(r.findings)) {
+                const busyText = busyEl && busyEl.querySelector('.ab-text');
+                const busyWas = busyText ? busyText.innerHTML : '';
+                slowDetectStatus = (detail) => {
+                    if (busyText) busyText.innerHTML = `<b>Listening…</b> ${detail}`;
+                };
+                const slow = await slowDetect(previewState.sessionId);
+                slowDetectStatus = () => {};
+                if (busyText) busyText.innerHTML = busyWas;
+                r.findings = [...r.findings, ...slow];
+            }
             lastFollowUp = (r.follow_up && r.follow_up.name) ? r.follow_up : null;
             if (r.repair_plan) setRepairPlan(r.repair_plan);
             if (r.findings) picker.setFindings(r.findings);
@@ -2950,7 +3046,16 @@ export async function initSingleTab() {
             } }));
             lastEdges = r.edges || null;
             if (r.repair && r.repair.plan) setRepairPlan(r.repair.plan);
-            picker.setFindings(r.findings || []);
+            uploadFindings = r.findings || [];
+            picker.setFindings(uploadFindings);
+            {
+                const sid = r.session_id;
+                slowDetect(sid).then((slow) => {
+                    if (slow.length && previewState.sessionId === sid) {
+                        picker.setFindings([...uploadFindings, ...slow]);
+                    }
+                });
+            }
             if (r.analysis) {
                 lastAnalysis = r.analysis;
                 renderAnalysisReadout(r.analysis);
