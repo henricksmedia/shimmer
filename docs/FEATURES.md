@@ -74,8 +74,9 @@ flowchart TD
   L --> M{"Mastering on?"}
   M -- yes --> N["25 Hz low-cut, one static gain, peak shaper, true-peak limiter"]
   M -- no --> O["Preserve volume: one gain back to the song's own level"]
-  N --> P["Export: silence trim, dither for 16-bit, tags, peak check for lossy files"]
-  O --> P
+  N --> FD["Fades you set in Trim (Master tab)"]
+  O --> FD
+  FD --> P["Export: silence trim, dither for 16-bit, tags, peak check for lossy files"]
   P --> Q["Release check: measures the written file (mastering on)"]
 ```
 
@@ -361,10 +362,23 @@ visible.
   **Review**. It never cuts anything by itself.
 - **Edge cuts.** Pick **Head** or **Tail**, then click to place the in or
   out point. Arrow keys nudge it by 1 ms (10 ms with Shift). You can also
-  type the in and out points in ms. Zoom: 250 ms, 1 s, 3 s or 10 s.
-  **Audition** plays from the marker. **Clear** removes the cuts.
+  type the in and out points in ms. Zoom: 250 ms, 1 s, 3 s, 10 s or 30 s.
+  **Audition** plays from the marker. **Clear** removes the cuts and fades.
+- **Fades.** Head shows **Fade in** (Off, 0.5 s, 1 s, 2 s). Tail shows
+  **Fade out** (Off, 2 s, 4 s, 8 s, or **Custom** up to 30 s). The fade is
+  drawn on the level view as a line from full level to silence. A fade out
+  ends at your cut and a fade in starts at it, so moving the cut moves the
+  fade. **Audition** plays the whole fade. Each fade is held to half the
+  song.
+  - The fade out falls evenly in dB, like a held note dying away: half way
+    through it is 20 dB down. Over its last tenth it closes to silence.
+  - The fade in rises on a quarter sine: it comes up quickly, then eases
+    into full level, so the first beat is not lost.
 - Edge cuts run first in the export, before any other stage, so no stage
   works on audio you cut.
+- Fades run last, after mastering and before the file is written. The
+  limiter can't flatten them, and no fix hears the quiet ends. Dither for
+  16-bit files is added after them.
 - **Silence trim** is a separate option (in the Trim card and in Output).
   It removes the quiet floor below -60 dBFS from the start and end of the
   finished file, keeping a short natural pad. Playback in the app stays full
@@ -637,7 +651,7 @@ It shows nine stages, in the order the sound goes through them:
 | Stage | Name on screen | What it says |
 |---|---|---|
 | Read | Original file | The file's rate, bit depth, channels and length |
-| Trim | Edge cuts | Your in and out points, and how much is kept |
+| Trim | Edge cuts | Your in and out points, how much is kept, and your fades |
 | Sample rate | Resample | Whether the format needs a new rate |
 | Fixes | the tools that run | One row per card: on, nothing to cut, needs mastering, not built yet or no fix yet. Each notch, and each fix's deepest cut at its Amount |
 | Tone | Tone match or Reference match | Tone match and Tilt, or the reference and its Amount |

@@ -5,6 +5,39 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Fade in and fade out, in the Trim card.** Head shows **Fade in** (Off,
+  0.5, 1 or 2 s) and Tail shows **Fade out** (Off, 2, 4 or 8 s, or
+  **Custom**). The fade is drawn on the level view, follows your cut, and
+  **Audition** plays it. The fade out falls evenly in dB, like a note
+  dying away. Fades go on after mastering, so the limiter can't flatten
+  them. The Signal Chain view and the progress window list them.
+
+### Fixed
+
+- **The progress window drew the Trim step as skipped** even when your cuts
+  were applied. The cuts always went through; only the step's light was
+  wrong.
+- **The Signal Chain view described parts of the 2.0.0 engine.** It now
+  says the gain is checked on the finished song, the peak shaper works at
+  4x with both channels linked, nothing is boosted above the song's top
+  end, and a tone on a musical note is left alone. A review against the
+  engine fixed the rest:
+  - The release check shows as off with mastering off, as it never ran.
+  - A gain the preview has not checked yet reads "about +X dB".
+  - An MP3 of a song above 48 kHz shows 48 kHz, the rate it is written at.
+  - Preserve volume says it matches the average level, unless a peak
+    would pass full scale.
+  - The de-click shows as built but held back, not as not built.
+  - Vocal grain says it falls back to the centre without the splitter.
+  - Harshness says it can turn down two bands.
+  - The Fixes bar draws the range each running fix works in.
+  - The EQ counts only bands that change the sound.
+  - The tone, notch, low-cut, silence trim and tag steps give their numbers.
+- **The progress window lit the Sample rate step** for every 16-bit export,
+  even when the song was already at 44.1 kHz and nothing was resampled.
+
 ## [2.1.0] — 2026-09-24
 
 ### Added

@@ -37,6 +37,8 @@ export async function submitProcess(file, paramsBody, outputFormat, preserveVolu
     // untouched track keeps the exact request it sent before this existed.
     if (trim && trim.inS > 0) form.append('trim_in_s', String(trim.inS));
     if (trim && trim.outS != null) form.append('trim_out_s', String(trim.outS));
+    if (trim && trim.fadeInS > 0) form.append('fade_in_s', String(trim.fadeInS));
+    if (trim && trim.fadeOutS > 0) form.append('fade_out_s', String(trim.fadeOutS));
     // "Save to folder": the server copies the export there as the run
     // ends. Sent only when the user chose a folder for this run.
     if (saveFolder) form.append('save_folder', saveFolder);

@@ -289,21 +289,39 @@ def _build_tags(source_path: str, tags_req: Optional[Dict[str, Any]],
 def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
                 notches: Optional[List[core.Notch]], trim_in_s: float,
                 trim_out_s: Optional[float], tags_req: Optional[Dict[str, Any]],
-                save_folder: str, reference: Optional[core.Source] = None) -> None:
+                save_folder: str, reference: Optional[core.Source] = None,
+                fade_in_s: float = 0.0, fade_out_s: float = 0.0) -> None:
     """The worker: runs in a thread. Every stage checks for cancel.
-    `reference`: a reference track the tone moves toward, or None."""
+    `reference`: a reference track the tone moves toward, or None.
+    `fade_in_s`, `fade_out_s`: the Trim card's fades, 0 for none."""
     prog = job.run
     prog.stage("load", "Reading the file")
     x, sr = core.load_audio(source_path)
-    if float(trim_in_s or 0.0) > 0 or trim_out_s is not None:
-        prog.stage("edit", "Trimming the edges",
-                   f"in at {float(trim_in_s or 0.0):.2f} s"
-                   + (f" · out at {float(trim_out_s):.2f} s" if trim_out_s is not None else ""))
+    cuts = float(trim_in_s or 0.0) > 0 or trim_out_s is not None
+    fading = float(fade_in_s or 0.0) > 0 or float(fade_out_s or 0.0) > 0
+    if cuts or fading:
+        bits = []
+        if float(trim_in_s or 0.0) > 0:
+            bits.append(f"in at {float(trim_in_s):.2f} s")
+        if trim_out_s is not None:
+            bits.append(f"out at {float(trim_out_s):.2f} s")
+        if float(fade_in_s or 0.0) > 0:
+            bits.append(f"{float(fade_in_s):g} s fade in")
+        if float(fade_out_s or 0.0) > 0:
+            bits.append(f"{float(fade_out_s):g} s fade out")
+        prog.stage("edit", "Trimming the edges" if cuts else "Setting the fades",
+                   " · ".join(bits) + (" (fades go on after mastering)" if fading else ""))
     x, edge_trim = core.apply_trim(x, sr, trim_in_s, trim_out_s)
     src = core.Source.from_array(x, sr, path=source_path)
 
     rendered = core.render(src, s, progress=prog, with_removed=True, notches=notches,
                            reference=reference)
+    # The fades go on last, after the limiter and before the file is
+    # written: the limiter can't flatten them, and no fix hears the quiet
+    # ends. The dither is added after them, in export().
+    faded, fades = core.apply_fades(rendered.audio, rendered.sr, fade_in_s, fade_out_s)
+    if fades["applied"]:
+        rendered = dataclasses.replace(rendered, audio=faded)
     y, out_sr = rendered.audio, rendered.sr
     x_at = src.at_rate(out_sr)
     fmt = core.catalog.output_format(s.format)
@@ -414,6 +432,7 @@ def _run_export(job: jobs_mod.Job, source_path: str, s: core.Settings,
         "loudness": loudness,
         "trim": trim_report,
         "edge_trim": edge_trim,
+        "fades": fades,
         "repair": tones if isinstance(tones, dict) else {"enabled": False, "notches": 0},
         "declick": {"enabled": False},
         "cutoff_hz": float(core.estimate_cutoff_hz(x_at, out_sr).get("cutoff_hz") or 0.0),
@@ -520,6 +539,8 @@ async def process(background: BackgroundTasks,
                   trim_silence: bool = Form(False),
                   trim_in_s: float = Form(0.0),
                   trim_out_s: Optional[float] = Form(None),
+                  fade_in_s: float = Form(0.0),
+                  fade_out_s: float = Form(0.0),
                   save_folder: str = Form("")) -> JSONResponse:
     try:
         p = json.loads(params or "{}")
@@ -557,7 +578,7 @@ async def process(background: BackgroundTasks,
     asyncio.create_task(_run_export_async(
         job, source_path, s, explicit_notches(p, 48000 if sess is None else sess.sr),
         trim_in_s, trim_out_s, p.get("tags") if isinstance(p.get("tags"), dict) else None,
-        folder, reference_for(p, sess)))
+        folder, reference_for(p, sess), fade_in_s, fade_out_s))
     jobs_mod.JOB_STORE.sweep()
     return JSONResponse({"job_id": job.id})
 
@@ -782,17 +803,27 @@ async def chain(payload: Dict[str, Any]) -> JSONResponse:
         t_out = float(t["out_s"]) if t.get("out_s") is not None else None
     except (TypeError, ValueError):
         t_in, t_out = 0.0, None
-    trim = (t_in, t_out) if (t_in > 0 or t_out is not None or data.get("trim_armed")) else None
+    try:
+        f_in = max(0.0, float(t.get("fade_in_s") or 0.0))
+        f_out = max(0.0, float(t.get("fade_out_s") or 0.0))
+    except (TypeError, ValueError):
+        f_in = f_out = 0.0
+    trim = (t_in, t_out) if (t_in > 0 or t_out is not None) else None
+    fades = (f_in, f_out) if (f_in > 0 or f_out > 0) else None
 
     cards = data.get("cards") if isinstance(data.get("cards"), dict) else {}
     on = cards.get("on") if isinstance(cards.get("on"), list) else None
     noted = cards.get("noted") if isinstance(cards.get("noted"), list) else []
     # The gain, when the preview has already worked it out for these
     # settings (it renders from the same session copy).
-    gain = (core.known_gain(sess.source, s, notches=notches, reference=ref)
+    gain = (core.known_gain(sess.source, s, notches=notches, reference=ref, checked=True)
             if sess is not None else None)
+    gain_checked = gain is not None
+    if gain is None and sess is not None:
+        gain = core.known_gain(sess.source, s, notches=notches, reference=ref)
     view = core.describe_chain(
         s, song=_song_facts(sess) if sess is not None else None, notches=notches, trim=trim,
+        fades=fades, gain_checked=gain_checked,
         reference=sess.reference_info if ref is not None else None,
         cards_on=[str(k) for k in on] if on is not None else None,
         noted=[str(k) for k in noted],

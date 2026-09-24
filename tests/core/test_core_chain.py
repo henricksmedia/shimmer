@@ -55,7 +55,7 @@ def test_typical_settings():
                                         "WAV 24-bit · 44.1 kHz", "1 card on"]
     assert st["load"]["verdict"] == "On · Alive Again (clip).wav"
     assert st["load"]["badges"] == ["44.1 kHz", "16-bit", "stereo", "0:30"]
-    assert (st["edit"]["on"], st["edit"]["off"]) == (False, "no cuts placed")
+    assert (st["edit"]["on"], st["edit"]["off"]) == (False, "no cuts or fades set")
     assert st["rate"]["off"] == "WAV 24-bit keeps the song’s rate"
     assert st["fixes"]["verdict"] == "On · 3 notches, deepest −10 dB"
     assert st["fixes"]["badges"] == ["3 notches", "deepest −10 dB", "Amount 100%"]
@@ -76,7 +76,9 @@ def test_mastering_off_shows_preserve_volume_in_masters_place():
     s = Settings(fixes={"tones": 1.0}, mastering=False)
     view = describe_chain(s, song=SONG, notches=THREE, cards_on=["tones"])
     st = _stages(view)
-    assert view["summary"]["on"] == 5
+    # The release check runs with mastering on only.
+    assert view["summary"]["on"] == 4
+    assert (st["report"]["on"], st["report"]["off"]) == (False, "mastering is off")
     assert view["summary"]["text"] == "Mastering is off, so the song keeps its own level."
     assert view["summary"]["facts"][:2] == ["Mastering off", "Preserve volume on"]
     assert st["tone"]["off"] == "mastering is off"
@@ -172,22 +174,33 @@ def test_card_rows_say_where_each_card_acts():
     assert fx["fixes"][1]["tag"] == {"kind": "stage", "text": "In Tone", "stage": "tone"}
     assert fx["fixes"][2]["text"].endswith("at −9 LUFS.")
     assert [(r["key"], r["tag"]["text"], r["muted"]) for r in fx["noted"]] == [
-        ("clicks", "Not built yet", False), ("phasiness", "No fix yet", True)]
-    assert fx["noted"][0]["text"].startswith("The de-click is not built yet.")
-    assert fx["verdict"] == "1 fix runs · 2 go to mastering · 2 not built yet"
-    assert fx["nb_badges"] == ["2 not built yet"]
+        ("clicks", "Held back", False), ("phasiness", "No fix yet", True)]
+    assert fx["noted"][0]["text"].startswith("The de-click is built but held back")
+    assert fx["verdict"] == "1 fix runs · 2 go to mastering · 1 held back · 1 no fix yet"
+    assert fx["nb_badges"] == ["1 held back", "1 no fix yet"]
     assert view["summary"]["facts"][-1] == "3 cards on · 2 noted"
-    assert view["summary"]["text"] == ("3 cards are on, and 2 more are noted: no tool is "
-                                       "built for them yet.")
+    assert view["summary"]["text"] == ("3 cards are on, and 2 more are noted. Noted cards "
+                                       "change nothing yet.")
     # Mastering off: the cards that live in mastering change nothing.
     off = _stages(describe_chain(Settings(mastering=False), cards_on=["air"]))["fixes"]
     assert {r["key"]: r for r in off["fixes"]}["air"]["tag"]["text"] == "Needs mastering"
 
 
-def test_a_card_on_with_no_tool_built_is_said_plainly():
+def test_a_held_back_tool_is_said_to_run():
+    # The de-click is built and runs when its card is set (render._FIX_TOOLS),
+    # though the screen doesn't offer it yet (catalog.TOOLS_READY).
     view = describe_chain(Settings(fixes={"clicks": 0.5}))
+    fx = _stages(view)["fixes"]
+    rows = {r["key"]: r for r in fx["fixes"]}
+    assert rows["clicks"]["tag"]["text"] == "Held back"
+    assert fx["on"] and fx["name"] == "Notch filter, De-click"
+    assert view["summary"]["text"] == "The sound changes in Fixes, Tone and Master."
+
+
+def test_a_card_on_with_no_fix_is_said_plainly():
+    view = describe_chain(Settings(fixes={"phasiness": 0.5}))
     rows = {r["key"]: r for r in _stages(view)["fixes"]["fixes"]}
-    assert rows["clicks"]["tag"]["text"] == "Not built yet"
+    assert rows["phasiness"]["tag"]["text"] == "No fix yet"
     assert view["summary"]["text"] == "1 card is on, and 1 of them has no tool built yet."
 
 
@@ -277,3 +290,54 @@ def test_tone_limits_are_the_engines():
     p = inspect.signature(tone.tone_curve).parameters
     assert p["max_boost_db"].default == TONE_MAX_BOOST_DB
     assert p["max_cut_db"].default == TONE_MAX_CUT_DB
+
+
+def test_fades_show_with_the_cuts():
+    st = _stages(describe_chain(Settings(), song=SONG, fades=(1.0, 4.0)))
+    assert st["edit"]["on"] and st["edit"]["verdict"] == "On · 1 s fade in, 4 s fade out"
+    assert st["edit"]["badges"] == ["fade in 1 s", "fade out 4 s"]
+    assert any("after mastering" in p for p in st["edit"]["paras"])
+    assert any("20 dB down" in p for p in st["edit"]["paras"])
+
+
+def test_the_release_check_runs_with_mastering_only():
+    assert _stages(describe_chain(Settings()))["report"]["on"]
+    off = _stages(describe_chain(Settings(mastering=False)))["report"]
+    assert (off["on"], off["off"]) == (False, "mastering is off")
+
+
+def test_a_first_pass_gain_is_marked_as_about():
+    m = _stages(describe_chain(Settings(), gain_db=6.24, gain_checked=False))["master"]
+    assert m["badges"][0] == "about +6.2 dB gain"
+    assert "about +6.2 dB gain" in m["verdict"]
+    m = _stages(describe_chain(Settings(), gain_db=6.24))["master"]
+    assert m["badges"][0] == "+6.2 dB gain"
+
+
+def test_mp3_is_written_at_48_khz_at_most():
+    view = describe_chain(Settings(format="mp3"), song={**SONG, "sample_rate": 96000})
+    st = _stages(view)
+    assert st["export"]["verdict"].endswith("at 48 kHz")
+    assert not st["rate"]["on"] and "encoder" in st["rate"]["off"]
+    st = _stages(describe_chain(Settings(format="m4a"), song={**SONG, "sample_rate": 96000}))
+    assert st["export"]["verdict"].endswith("at 96 kHz")
+
+
+def test_eq_counts_only_bands_that_change_the_sound():
+    bands = [EqBand(type="bell", freq_hz=1000.0, gain_db=0.0, q=1.0, enabled=True),
+             EqBand(type="bell", freq_hz=3000.0, gain_db=-2.0, q=1.0, enabled=True)]
+    eq = _stages(describe_chain(Settings(eq_enabled=True, eq_bands=bands)))["eq"]
+    assert eq["verdict"] == "On · 1 band"
+
+
+def test_running_fixes_draw_their_range():
+    fx = _stages(describe_chain(Settings(fixes={"tones": 0.0, "sibilance": 0.5})))["fixes"]
+    assert fx["band"]["ranges"] == [[4500.0, 10000.0]]
+    assert fx["band_text"] == "Sibilance 4.5 kHz–10 kHz."
+
+
+def test_two_cards_on_one_tool_are_named_by_card():
+    fx = _stages(describe_chain(Settings(fixes={"tones": 0.0, "harshness": 0.5,
+                                                "mud": 0.5})))["fixes"]
+    assert fx["name"] == "Dynamic EQ (Harshness and Low-mid build-up)"
+    assert fx["badges"] == ["Harshness 50%", "Low-mid build-up 50%"]

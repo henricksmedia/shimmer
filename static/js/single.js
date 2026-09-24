@@ -2660,7 +2660,10 @@ export async function initSingleTab() {
             trim_silence: trimSilence.checked,
             output_format: outputFormat.value,
             save_folder: activeSaveFolder(),
-            trim: t && (t.inS > 0 || t.outS != null) ? { in_s: t.inS || 0, out_s: t.outS ?? null } : null,
+            trim: t && (t.inS > 0 || t.outS != null || t.fadeInS > 0 || t.fadeOutS > 0)
+                ? { in_s: t.inS || 0, out_s: t.outS ?? null,
+                    fade_in_s: t.fadeInS || 0, fade_out_s: t.fadeOutS || 0 }
+                : null,
             tags_enabled: !tagsEnabled || tagsEnabled.checked,
             repair: repairPayload(),
         };
@@ -2885,6 +2888,7 @@ export async function initSingleTab() {
             // A reference track lived in the last song's session.
             if (refMatch) refMatch.reset();
             previewState.durationS = r.duration_s;
+            previewState.sampleRate = r.sample_rate || 0;
             // The recents list keys its "stems ready" badge on the digest.
             document.dispatchEvent(new CustomEvent('shimmer:uploaded', { detail: {
                 name: currentFile.name, size: currentFile.size,
@@ -3169,7 +3173,10 @@ export async function initSingleTab() {
         // placed); reading `trim_armed`, which it never sent, drew the Trim
         // step as skipped even when the export cut the song.
         if (st && st.trim) set.add('edit');
-        if (outputFormat.value === 'wav16' || outputFormat.value === 'flac16') set.add('rate');
+        // The engine resamples, and reports the step, only when the format
+        // sets a rate the song is not already at.
+        const fmt = ((RULES && RULES.formats) || []).find((f) => f.key === outputFormat.value);
+        if (fmt && fmt.sr && fmt.sr !== previewState.sampleRate) set.add('rate');
         const p = picker.payload();
         if (Object.values(p.fixes).some((v) => v > 0)
             || (lastRepair && lastRepair.notches.some((n) => n.on !== false))) set.add('fixes');
@@ -3547,6 +3554,13 @@ export async function initSingleTab() {
                     if (et.cut_tail_s > 0) parts.push(`${(et.cut_tail_s * 1000).toFixed(0)} ms tail`);
                     job.push(`Trimmed ${parts.join(' + ')}`);
                     bannerChips.push(`Trimmed ${parts.join(' + ')}`);
+                }
+                if (mm.fades && mm.fades.applied) {
+                    const parts = [];
+                    if (mm.fades.fade_in_s > 0) parts.push(`${mm.fades.fade_in_s} s fade in`);
+                    if (mm.fades.fade_out_s > 0) parts.push(`${mm.fades.fade_out_s} s fade out`);
+                    job.push(parts.join(' + '));
+                    bannerChips.push(parts.join(' + '));
                 }
                 if (mm.trim && mm.trim.enabled) {
                     const cut = (mm.trim.cut_head_s || 0) + (mm.trim.cut_tail_s || 0);

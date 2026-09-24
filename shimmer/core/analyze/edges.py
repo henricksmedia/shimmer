@@ -390,6 +390,66 @@ def apply_trim(x: np.ndarray, sr: int,
     }
 
 
+# Fades the user sets in the Trim card. They go on after mastering, just
+# before the file is written (api/render.py _run_export), so the limiter
+# can't flatten them and no fix or level measure hears the quiet ends.
+#
+# The fade-out falls evenly in dB, like a held note dying away, at a rate
+# that would reach FADE_OUT_RANGE_DB on the last sample. Over the last
+# FADE_CLOSE of it (from 36 dB down) the level also closes in a straight
+# line, so it meets silence exactly on the last sample. A straight line in
+# level all the way seems to hang on and then drop at the last moment.
+# The fade-in rises on a quarter sine: it comes up quickly and eases into
+# full level, so the first beat is not lost under a slow start.
+FADE_OUT_RANGE_DB = 40.0
+FADE_CLOSE = 0.1
+FADE_MAX_S = 30.0
+
+
+def fade_out_curve(n: int) -> np.ndarray:
+    """Gain for an n-sample fade-out: 1 at the start, 0 on the last sample."""
+    t = np.linspace(0.0, 1.0, max(int(n), 0))
+    close = np.clip((1.0 - t) / FADE_CLOSE, 0.0, 1.0)
+    return (10.0 ** (-FADE_OUT_RANGE_DB * t / 20.0) * close).astype(np.float32)
+
+
+def fade_in_curve(n: int) -> np.ndarray:
+    """Gain for an n-sample fade-in: 0 on the first sample, 1 at the end."""
+    return np.sin(0.5 * np.pi * np.linspace(0.0, 1.0, max(int(n), 0))).astype(np.float32)
+
+
+def apply_fades(x: np.ndarray, sr: int, fade_in_s: float = 0.0,
+                fade_out_s: float = 0.0) -> Tuple[np.ndarray, Dict[str, Any]]:
+    """Fade the start and end of `x`. Returns (audio, report).
+
+    Each fade is held to FADE_MAX_S and to half the song, so the two never
+    overlap. A bad length degrades to no fade, never to a failed export."""
+    x = as_2d(np.asarray(x, dtype=np.float32))
+    n = x.shape[0]
+
+    def samples(s: float) -> int:
+        try:
+            v = float(s or 0.0)
+        except (TypeError, ValueError):
+            return 0
+        if not np.isfinite(v):
+            return 0
+        return min(int(round(min(max(v, 0.0), FADE_MAX_S) * sr)), n // 2)
+
+    n_in, n_out = samples(fade_in_s), samples(fade_out_s)
+    if n_in < 2 and n_out < 2:
+        return x, {"applied": False, "fade_in_s": 0.0, "fade_out_s": 0.0}
+    y = x.copy()
+    if n_in >= 2:
+        y[:n_in] *= fade_in_curve(n_in)[:, None]
+    if n_out >= 2:
+        y[-n_out:] *= fade_out_curve(n_out)[:, None]
+    return y, {"applied": True,
+               "fade_in_s": round(n_in / sr, 3) if n_in >= 2 else 0.0,
+               "fade_out_s": round(n_out / sr, 3) if n_out >= 2 else 0.0,
+               "fade_out_range_db": FADE_OUT_RANGE_DB}
+
+
 def describe_edge(edge: Optional[Dict[str, Any]], where: str = "head") -> str:
     """One-line human summary, for logs, the CLI, and the UI notice."""
     if not edge:

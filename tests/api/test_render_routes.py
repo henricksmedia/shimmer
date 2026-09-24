@@ -123,6 +123,24 @@ def test_an_expired_session_asks_for_the_file_again(client):
     assert r.status_code == 404
 
 
+def test_fades_go_on_after_mastering(client):
+    # The fade out ends the file in silence, so the limiter could not have
+    # lifted it; the in point and the fade in start it from silence.
+    sid = _upload(client, _song())
+    job = _process(client, sid, MASTER_CD, trim_in_s=0.5, fade_in_s=0.5, fade_out_s=2)
+    m = _wait(client, job).json()["metrics"]
+    assert m["fades"] == {"applied": True, "fade_in_s": 0.5, "fade_out_s": 2.0,
+                          "fade_out_range_db": 40.0}
+    assert m["edge_trim"]["applied"]
+    y, _ = sf.read(io.BytesIO(client.get(f"/api/result/{job}").content), dtype="float32")
+    assert np.max(np.abs(y[-48:])) < 1e-3
+    assert np.max(np.abs(y[:48])) < 1e-2
+    # One second before the end the fade is about 20 dB down.
+    loud = np.sqrt(np.mean(y[SR:3 * SR] ** 2))
+    late = np.sqrt(np.mean(y[-SR - 2400:-SR + 2400] ** 2))
+    assert -24.0 < 20 * np.log10(late / loud) < -16.0
+
+
 def test_the_1x_fields_still_work(client):
     y = _song()
     r = client.post("/api/process", files={"file": ("old.wav", _wav_bytes(y), "audio/wav")},

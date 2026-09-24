@@ -608,7 +608,8 @@ size limit. Use MP3, OGG and M4A for listening and sharing.
 - [ ] The **Removed** track holds only noise, no music.
 - [ ] You played the whole finished song once, not only the loop.
 - [ ] There is no click or cut-off at the very start or end. If there is,
-      use the **Trim** card on the Master tab.
+      use the **Trim** card on the Master tab. It can also fade the song in
+      or out.
 - [ ] The file is under your upload site's size limit, if it has one.
 
 ---

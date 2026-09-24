@@ -191,16 +191,30 @@
                                     <option value="1">1 s</option>
                                     <option value="3" selected>3 s</option>
                                     <option value="10">10 s</option>
+                                    <option value="30">30 s</option>
                                 </select>
                                 <span class="spacer"></span>
                                 <button type="button" class="btn btn-sm" id="trim-audition"
                                         title="Play from the marker so you hear the track as it will export">Audition</button>
                                 <button type="button" class="btn btn-ghost btn-sm" id="trim-clear"
-                                        title="Remove the trim — export the full file">Clear</button>
+                                        title="Remove the cuts and fades — export the full file">Clear</button>
                             </div>
 
                             <canvas id="trim-canvas" class="trim-canvas" tabindex="0"
                                     aria-label="Level over time in dBFS. Click to place the marker, arrow keys to nudge."></canvas>
+
+                            <!-- One fade per end: Head shows Fade in, Tail shows
+                                 Fade out. The fade follows the cut. -->
+                            <div class="trim-fade" id="trim-fade">
+                                <span class="trim-fade-label" id="trim-fade-label">Fade in</span>
+                                <div class="player-view-toggle trim-fade-presets" id="trim-fade-presets"
+                                     role="group" aria-labelledby="trim-fade-label"></div>
+                                <label class="trim-num" id="trim-fade-custom" hidden>
+                                    <input type="number" id="trim-fade-s" step="0.1" min="0.1" max="30"
+                                           aria-label="Fade out length in seconds"> s
+                                </label>
+                                <span class="trim-fade-note" id="trim-fade-note"></span>
+                            </div>
 
                             <label class="checkbox-row trim-export-check"
                                    title="The same setting as in Output. Removes the quiet floor below −60 dBFS from the start and end of the downloaded file, keeping a short natural pad. The head and tail cuts above only remove the artifact itself.">

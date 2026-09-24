@@ -26,6 +26,10 @@ The order, each stage at its place in the chain:
      volume" on, one gain back to the song's own level. Either gain is
      always worked out from the whole song.
 
+Around render(), the Master tab's export (shimmer/api/render.py) cuts the
+edges you placed in Trim before it, and adds your fades after it, so the
+limiter can't flatten them. export() then adds dither and writes the file.
+
 A window renders only its span, plus a lead-in and a tail. The filters,
 the notches and the limiter then settle exactly as they do in a full
 render.
@@ -462,12 +466,15 @@ def _preserve_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch]
 
 def known_gain(source: Source, settings: Optional[Settings] = None, *,
                notches: Optional[Sequence[notch.Notch]] = None,
-               reference: Optional[Source] = None) -> Optional[float]:
+               reference: Optional[Source] = None,
+               checked: bool = False) -> Optional[float]:
     """The one gain in dB that mastering adds for these settings (with
     mastering off, Preserve volume's), when a render has already worked it
     out for this song; else None. It never measures: the Signal Chain view
     asks on every settings change. `notches` is the list the render was
-    given (None: the scan's, known only once the scan has run)."""
+    given (None: the scan's, known only once the scan has run).
+    `checked`: only the gain checked against the finished song, never the
+    first-pass one (None when only that is known)."""
     s = settings if settings is not None else Settings()
     if not s.mastering and not s.preserve_volume:
         return None
@@ -483,6 +490,8 @@ def known_gain(source: Source, settings: Optional[Settings] = None, *,
         done = source._cache.get(_gain_key(s, sr, plan, reference))
         if done is not None:
             return float(done[1])
+        if checked:
+            return None
         # Another target or format, not rendered yet: the first-pass gain,
         # before the shaper and limiter are checked (within a few tenths).
         lufs = source._cache.get(_whole_key(s, sr, plan, "premaster_lufs", reference))

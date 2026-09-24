@@ -81,7 +81,7 @@ async function refreshChain() {
         const flow = hostEl.querySelector('.chain-flow');
         if (flow) {
             flow.innerHTML =
-                `<div class="chain-error">Could not load the Signal Chain: ${esc(e.message)}</div>`;
+                `<div class="chain-error">Could not load the stages: ${esc(e.message)}</div>`;
         }
     }
 }
@@ -113,7 +113,7 @@ export function initChainTab() {
     hostEl.innerHTML = `
         <div class="chain-head">
             <h2>Signal Chain</h2>
-            <span class="lede">Every stage your song passes through, in order, for the settings on the Master tab right now. Follow the wire. Click a stage to read what it does. Dashed stages are skipped for these settings.</span>
+            <span class="lede">Every stage your song passes through, in order, for the settings on the Master tab right now. Click a stage to read what it does. Dashed stages are skipped for these settings.</span>
         </div>
         <div class="chain-summary"></div>
         <div class="chain-body">
@@ -160,14 +160,19 @@ function badges(s) {
     return (s.badges || []).map(t => badge(t, nb.has(t)));
 }
 
-// A small log-frequency bar, 20 Hz to 20 kHz: notches as thin marks, a
-// whole-signal stage faintly filled, a tick at the low-cut.
+// A small log-frequency bar, 20 Hz to 20 kHz: notches as thin marks, the
+// range each running fix works in as a filled span, a whole-signal stage
+// faintly filled, a tick at the low-cut.
 function bandBar(s, large) {
     const b = s.band;
     if (!b) return '';
     let fill = '', cls = '';
-    if (b.notches) {
-        fill = b.notches.map(hz => `<i style="left:${(pos(hz) - 0.5).toFixed(2)}%;width:1%"></i>`).join('');
+    if (b.notches || b.ranges) {
+        fill = (b.ranges || []).map(([lo, hi]) => {
+            const a = pos(lo);
+            return `<i style="left:${a.toFixed(2)}%;width:${Math.max(1, pos(hi) - a).toFixed(2)}%"></i>`;
+        }).join('')
+            + (b.notches || []).map(hz => `<i style="left:${(pos(hz) - 0.5).toFixed(2)}%;width:1%"></i>`).join('');
     } else if (b.whole) {
         cls = 'whole';
         const left = b.from ? pos(b.from) : 0;
