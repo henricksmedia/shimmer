@@ -65,6 +65,49 @@ Versions follow [Semantic Versioning](https://semver.org/).
   An MP3 holds 48 kHz at most, so Shimmer now resamples to 48 kHz first,
   before the fixes and the limiter, as it does for the 16-bit copies.
 
+## [2.1.4] — 2026-09-24
+
+### Changed
+
+- **The player bar at the bottom stands out.** It was a slate blue that read
+  as a status bar, and blue is the analysis colour here. It is now a warm,
+  amber-lit deck with an amber line along the top, the colour of what you
+  hear there (Processed, Live, the loop). **Play** is a solid white button,
+  the brightest thing on the bar, and the played part of the progress bar
+  is white too, with the loop in amber on top. While a loop renders, the
+  top edge glows down into the bar.
+
+## [2.1.3] — 2026-09-24
+
+### Changed
+
+- **Clicking a dimmed Processed or Removed now does something.** They play
+  rendered audio, so they stay dimmed until Live preview or Clean & Master
+  has rendered some. A click on one (or pressing 2 or 3) used to do
+  nothing; now it turns on **Live** and plays that track as soon as the
+  loop is ready. The note under them says "click Processed to render"
+  instead of "waiting for render", and the tooltips say what a click does.
+
+## [2.1.2] — 2026-09-24
+
+### Changed
+
+- **The Suggested EQ sits apart in the Analysis checklist.** It is planned
+  for every song, not something Analyze found, so it now has its own
+  **Suggestion** label and the header counts it apart: "1 thing to fix ·
+  1 suggestion". Its row has a **See the moves ↓** link that jumps down to
+  the Suggested EQ panel and outlines it for a moment.
+
+## [2.1.1] — 2026-09-24
+
+### Changed
+
+- **Analyze shows the next step.** Under the Analysis checklist, a
+  **Next: Clean & Master** bar has the button right there, so the detail
+  below it no longer reads like a wall of text. The **Clean & Master**
+  button at the top of the right-hand panel glows until you press it or
+  load a new song, so you learn where it lives.
+
 ## [2.1.0] — 2026-09-24
 
 ### Added

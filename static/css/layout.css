@@ -231,7 +231,16 @@ body {
 .bridge {
     grid-area: bridge;
     background: var(--bg-bridge);
-    border-top: 1px solid var(--line-2);
+    border-top: 2px solid var(--amber);
+    /* Warm neutrals for everything on the deck: the cool page greys read
+       as blue on the amber-lit background. */
+    --line:   rgba(245, 165, 36, 0.16);
+    --line-2: rgba(245, 165, 36, 0.28);
+    --fg-2:   #b3a48c;
+    --fg-3:   #8f806a;
+    --bg-2:   #170f06;
+    --bg-3:   #1a1409;
+    --bg-4:   #33281a;
     /* Hairline highlight on the top edge plus a soft shadow onto the page:
        the player reads as a deck lifted above the work area. */
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04),

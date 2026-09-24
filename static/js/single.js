@@ -544,6 +544,7 @@ export async function initSingleTab() {
     // never fires again on any later visit.
     const NUDGE_KEY = 'shimmer.previewNudgeSeen';
     let previewNudged = false;  // this session, avoid repeat pulses
+    let wantTrack = null;       // Processed / Removed, clicked before a render: play it when one lands
     const nudgeSeen = () => {
         try { return !!localStorage.getItem(NUDGE_KEY); } catch (_) { return false; }
     };
@@ -770,6 +771,17 @@ export async function initSingleTab() {
             const v = controls.getValues();
             return { lo: v.start_hz || 5100, hi: v.end_hz || 7200 };
         },
+        // Processed and Removed need a render first. A click (or key 2/3)
+        // on one not rendered yet turns on Live, and the loop switches to
+        // that track when it lands, instead of the click doing nothing.
+        onTrackUnavailable: (key) => {
+            if (!currentFile) return;
+            wantTrack = key;
+            if (!previewState.active) {
+                previewToggle.checked = true;
+                applyPreviewToggle(true);
+            }
+        },
     });
     player.attachKeyboard();
     player.setTargetLufs(loudnessLufs(RULES, masterTarget.value));
@@ -825,7 +837,8 @@ export async function initSingleTab() {
             let txt = '';
             if (abLoudnessMatch.checked) {
                 if (d == null) {
-                    txt = '(waiting for render)';
+                    txt = !currentFile ? ''
+                        : (previewState.active ? '(rendering the loop)' : '(click Processed to render)');
                 } else if (Math.abs(dd) >= 0.1) {
                     const side = dd > 0 ? 'Processed' : 'Original';
                     txt = `${side} −${Math.abs(dd).toFixed(1)} dB`;
@@ -1058,6 +1071,7 @@ export async function initSingleTab() {
         // sit under a new file.
         autoDetectResults.hidden = true;
         autoDetectResults.innerHTML = '';
+        processBtn.classList.remove('is-next');
         renderToneStrip();
         const priorNote = $('prior-pass-note');
         if (priorNote) {
@@ -2280,12 +2294,18 @@ export async function initSingleTab() {
             });
         }
         const fixes = items.filter((i) => i.key !== 'eq').length;
+        // The Suggested EQ is not a problem Analyze found: it is planned for
+        // every song. Counted and labelled apart, so "1 thing to fix" is not
+        // read against two rows.
+        const suggestions = items.length - fixes;
+        const sugText = suggestions ? ` \u00b7 ${suggestions} suggestion${suggestions === 1 ? '' : 's'}` : '';
+        let eqDetail = null;            // the Suggested EQ panel further down
 
         const card = el('div', 'an-findings an-check');
         const head = el('div', 'an-head');
         head.appendChild(el('div', 'an-verdict', fixes
-            ? `Analysis \u00b7 ${fixes} thing${fixes === 1 ? '' : 's'} to fix`
-            : 'Nothing found that Shimmer can fix yet'));
+            ? `Analysis \u00b7 ${fixes} thing${fixes === 1 ? '' : 's'} to fix${sugText}`
+            : `Nothing found that Shimmer can fix yet${sugText}`));
         const apply = el('button', 'btn btn-primary btn-sm an-apply');
         apply.type = 'button';
         const done = el('span', 'an-done');
@@ -2302,6 +2322,23 @@ export async function initSingleTab() {
             const what = el('div', 'an-what',
                 `<b><span class="ms" aria-hidden="true">${it.icon}</span>${it.title}</b>`
                 + `<span>${it.detail}</span>`);
+            if (it.key === 'eq') {
+                // A way down to the moves, which sit under the Next bar.
+                const jump = el('button', 'an-jump', `See the ${moves} move${moves === 1 ? '' : 's'} ↓`);
+                jump.type = 'button';
+                jump.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!eqDetail) return;
+                    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    eqDetail.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+                    eqDetail.classList.remove('an-flash');
+                    void eqDetail.offsetWidth;   // restart the outline
+                    eqDetail.classList.add('an-flash');
+                    setTimeout(() => eqDetail.classList.remove('an-flash'), 2000);
+                });
+                what.appendChild(jump);
+                card.appendChild(el('div', 'an-group', 'Suggestion'));
+            }
             const side = el('div', 'an-side');
             const act = el('span', 'an-action', it.action);
             const state = el('span', 'an-state');
@@ -2347,10 +2384,27 @@ export async function initSingleTab() {
         card.appendChild(el('div', 'an-foot',
             'Hear something Analyze missed? Pick it under <b>What do you hear?</b> on the left.'));
         autoDetectResults.appendChild(card);
+
+        // The next step, between the checklist and the detail, so a new user
+        // is not left reading a wall of text. Its button runs the real Clean
+        // & Master button, which glows until it is pressed, so they learn
+        // where it lives.
+        const next = el('div', 'an-next',
+            '<div class="an-next-what"><b>Next: Clean &amp; Master</b>'
+            + '<span>The detail below is optional. The same button is at the top of the right-hand panel.</span></div>');
+        const go = el('button', 'btn btn-primary process-btn step-btn an-next-btn', 'Clean &amp; Master');
+        go.type = 'button';
+        go.dataset.step = '3';
+        go.addEventListener('click', () => { if (!processBtn.disabled) processBtn.click(); });
+        next.appendChild(go);
+        autoDetectResults.appendChild(next);
+        processBtn.classList.add('is-next');
+
         if (r.tone_plan && !r.tone_plan.error) {
             const main = el('div', 'ad-main');
             main.appendChild(renderTonePlan(r.tone_plan, { followUp: null }));
             autoDetectResults.appendChild(main);
+            eqDetail = main;
             maybeAutoApplyTone(r.tone_plan, null);
         } else if (r.tone_plan && r.tone_plan.error) {
             autoDetectResults.appendChild(el('div', 'ad-reason', `Tone plan skipped: ${r.tone_plan.error}`));
@@ -2923,6 +2977,10 @@ export async function initSingleTab() {
             startS: start,
             endS: end,
         });
+        if (wantTrack) {
+            player.setTrack(wantTrack);
+            wantTrack = null;
+        }
         const meta = entry.meta || {};
         previewMatchDb =
             (typeof meta.lufs_processed === 'number' &&
@@ -3126,6 +3184,7 @@ export async function initSingleTab() {
                 previewState.debounceTimer = null;
             }
             previewState.renderPending = false;
+            wantTrack = null;
             player.exitPreview();
             player.setSource('processed', null);
             player.setSource('removed', null);
@@ -3354,6 +3413,7 @@ export async function initSingleTab() {
 
     processBtn.addEventListener('click', async () => {
         if (!currentFile) return;
+        processBtn.classList.remove('is-next');   // the next step is taken
         // Analyze found a second pass and mastering is on: ask before we
         // master a file that still needs another cleaning pass. Three
         // real choices; Cancel means cancel.

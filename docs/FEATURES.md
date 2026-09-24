@@ -164,6 +164,16 @@ fix", or "Apply 2 changes" when it also turns something off. When nothing is
 waiting, it says "Everything you ticked is on". A change made elsewhere (a
 card on the left, the Loudness menu, the EQ) shows up in the list at once.
 
+The Suggested EQ row sits under its own **Suggestion** label, because
+Analyze plans it for every song; it is not a problem found. The header
+counts it apart ("1 thing to fix · 1 suggestion"). **See the moves ↓** on
+that row jumps down to the Suggested EQ panel and outlines it for a moment.
+
+**Next: Clean & Master.** Under the checklist, a bar names the next step
+and has its button. It runs the same **Clean & Master** as the button at
+the top of the right-hand panel, which glows after Analyze until you press
+it or load a new song. Everything under the bar is optional detail.
+
 **Expand** opens the analysis in a bigger panel over the page, with a
 **Loop the worst part** button.
 
@@ -312,6 +322,10 @@ you turn Fixed tones off for a song, it stays off.
 Press **3** (or click **Removed**) to hear the Removed track. It is what the
 fixes took out, and nothing else: the song before the fixes, less the song
 after them. It does not include the tone curve, the EQ or mastering.
+
+Processed and Removed play rendered audio, so they are dimmed until Live
+preview or Clean & Master has rendered some. Clicking a dimmed one (or
+pressing 2 or 3) turns on Live and plays that track once the loop is ready.
 
 - It is marked **boosted**: the player turns it up so you can hear it. That
   boost is a monitoring level only and never goes into a file.

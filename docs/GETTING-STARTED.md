@@ -1,4 +1,4 @@
-# Getting started with Shimmer 2.1.0
+# Getting started with Shimmer 2.1.4
 
 Shimmer is a free app that cleans and masters songs made with AI music
 tools such as Suno and Udio. It runs on your own computer, on Windows,
@@ -8,7 +8,7 @@ never uploaded.
 This guide is for you if you have just downloaded Shimmer. You do not need
 to know how to master a song. The steps are in the order you will do them.
 
-Version 2.1.0 came out on 2026-09-24. Shimmer is made by The Treq.
+Version 2.1.4 came out on 2026-09-24. Shimmer is made by The Treq.
 
 **How to read this guide.** Words in **bold** are the words you will see on
 the screen: buttons, menus, cards and switches. When a sound term comes up
@@ -28,7 +28,7 @@ For every feature in detail, see [FEATURES.md](FEATURES.md).
 8. [The Settings tab and "Remember settings"](#8-the-settings-tab-and-remember-settings)
 9. [The command line in three examples](#9-the-command-line-in-three-examples)
 10. [If something goes wrong](#10-if-something-goes-wrong)
-11. [What is not in 2.1.0 yet](#11-what-is-not-in-210-yet)
+11. [What is not in 2.1.4 yet](#11-what-is-not-in-214-yet)
 
 ---
 
@@ -140,7 +140,7 @@ Shimmer is still running, the launcher closes it first.
 
 ## 3. Updating from 1.1.1
 
-1. Get 2.1.0 the same way you got 1.1.1: download the new release zip, or
+1. Get 2.1.4 the same way you got 1.1.1: download the new release zip, or
    run `git pull` in your clone.
 2. Launch it as before, with `start.bat` or `./start.sh`. From 2.1.0 on, a
    git clone updates itself: each time the launcher starts, it moves a
@@ -178,7 +178,7 @@ Two things to check:
   (−9 LUFS). 1.1.1 started at −14 LUFS. If you had saved Streaming, you
   still get −14 LUFS until you pick another target.
 - **Stems you already split.** They are kept in the `stem_cache` folder
-  inside the Shimmer folder. If you unzipped 2.1.0 into a new folder,
+  inside the Shimmer folder. If you unzipped 2.1.4 into a new folder,
   copy `stem_cache` from the old folder into the new one. A new folder
   also means the first-time setup runs once more.
 
@@ -253,6 +253,15 @@ says what ticking it does and whether it is **On** now. Leave the ticks as
 they are to take Analyze's advice, or change them, then press **Apply**.
 Nothing Analyze suggests changes your sound until it says **On**.
 
+The **Suggested EQ** row sits under its own **Suggestion** label. It is not
+a problem Analyze found: Analyze suggests it for every song. Click **See
+the moves ↓** on that row to jump down to the moves.
+
+Under the list, a **Next: Clean & Master** bar shows the next step. Its
+button is the same as the **Clean & Master** button at the top of the
+right-hand panel, which glows until you press it. Everything under the bar
+is optional.
+
 Only two cards can get a **Found** note, because only these can be
 measured reliably today:
 
@@ -278,7 +287,7 @@ not part of your music.
 
 Each card turns on one tool:
 
-| Card | What you hear | What it turns on | State in 2.1.0 |
+| Card | What you hear | What it turns on | State in 2.1.4 |
 |---|---|---|---|
 | **Shimmer** | Fizzy, flickering hiss up top | **Spectral de-noise**: turns noise down frequency by frequency, from 1.5 to 16 kHz | On, to try |
 | **Vocal grain** | Grainy hiss riding on the voice | **Voice de-noise**: takes out a steady hiss, a hiss that follows the voice, and sharp little spikes, strongest at 4 to 8 kHz | New, to try. Asks you to check the first time |
@@ -352,6 +361,10 @@ Starting gentle — check the Removed track."
 5. Press **1** to hear the **Original**. Press **2** to hear the
    **Processed** song. Press **3** to hear the **Removed** track.
 6. Switch back and forth. This is how you judge the result.
+
+**Processed** and **Removed** look dimmed until something has been
+rendered. Click either one (or press 2 or 3) and Shimmer turns on **Live**
+for you, then plays that track when the loop is ready.
 
 Every change you make renders the loop again. The preview uses the same
 sound path as the export, level included, so what you hear is what the
@@ -889,7 +902,7 @@ installed.
 
 ---
 
-## 11. What is not in 2.1.0 yet
+## 11. What is not in 2.1.4 yet
 
 - **Clicks and crackle and Phasiness have no working fix.** The de-click
   is built but has not passed its tests, so the card says **Not built
