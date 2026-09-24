@@ -5,6 +5,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.2] — 2026-09-24
+
+### Changed
+
+- **The Suggested EQ sits apart in the Analysis checklist.** It is planned
+  for every song, not something Analyze found, so it now has its own
+  **Suggestion** label and the header counts it apart: "1 thing to fix ·
+  1 suggestion". Its row has a **See the moves ↓** link that jumps down to
+  the Suggested EQ panel and outlines it for a moment.
+
 ## [2.1.1] — 2026-09-24
 
 ### Changed

@@ -2281,12 +2281,18 @@ export async function initSingleTab() {
             });
         }
         const fixes = items.filter((i) => i.key !== 'eq').length;
+        // The Suggested EQ is not a problem Analyze found: it is planned for
+        // every song. Counted and labelled apart, so "1 thing to fix" is not
+        // read against two rows.
+        const suggestions = items.length - fixes;
+        const sugText = suggestions ? ` \u00b7 ${suggestions} suggestion${suggestions === 1 ? '' : 's'}` : '';
+        let eqDetail = null;            // the Suggested EQ panel further down
 
         const card = el('div', 'an-findings an-check');
         const head = el('div', 'an-head');
         head.appendChild(el('div', 'an-verdict', fixes
-            ? `Analysis \u00b7 ${fixes} thing${fixes === 1 ? '' : 's'} to fix`
-            : 'Nothing found that Shimmer can fix yet'));
+            ? `Analysis \u00b7 ${fixes} thing${fixes === 1 ? '' : 's'} to fix${sugText}`
+            : `Nothing found that Shimmer can fix yet${sugText}`));
         const apply = el('button', 'btn btn-primary btn-sm an-apply');
         apply.type = 'button';
         const done = el('span', 'an-done');
@@ -2303,6 +2309,23 @@ export async function initSingleTab() {
             const what = el('div', 'an-what',
                 `<b><span class="ms" aria-hidden="true">${it.icon}</span>${it.title}</b>`
                 + `<span>${it.detail}</span>`);
+            if (it.key === 'eq') {
+                // A way down to the moves, which sit under the Next bar.
+                const jump = el('button', 'an-jump', `See the ${moves} move${moves === 1 ? '' : 's'} ↓`);
+                jump.type = 'button';
+                jump.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!eqDetail) return;
+                    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    eqDetail.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+                    eqDetail.classList.remove('an-flash');
+                    void eqDetail.offsetWidth;   // restart the outline
+                    eqDetail.classList.add('an-flash');
+                    setTimeout(() => eqDetail.classList.remove('an-flash'), 2000);
+                });
+                what.appendChild(jump);
+                card.appendChild(el('div', 'an-group', 'Suggestion'));
+            }
             const side = el('div', 'an-side');
             const act = el('span', 'an-action', it.action);
             const state = el('span', 'an-state');
@@ -2368,6 +2391,7 @@ export async function initSingleTab() {
             const main = el('div', 'ad-main');
             main.appendChild(renderTonePlan(r.tone_plan, { followUp: null }));
             autoDetectResults.appendChild(main);
+            eqDetail = main;
             maybeAutoApplyTone(r.tone_plan, null);
         } else if (r.tone_plan && r.tone_plan.error) {
             autoDetectResults.appendChild(el('div', 'ad-reason', `Tone plan skipped: ${r.tone_plan.error}`));

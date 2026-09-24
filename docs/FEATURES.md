@@ -163,6 +163,11 @@ fix", or "Apply 2 changes" when it also turns something off. When nothing is
 waiting, it says "Everything you ticked is on". A change made elsewhere (a
 card on the left, the Loudness menu, the EQ) shows up in the list at once.
 
+The Suggested EQ row sits under its own **Suggestion** label, because
+Analyze plans it for every song; it is not a problem found. The header
+counts it apart ("1 thing to fix · 1 suggestion"). **See the moves ↓** on
+that row jumps down to the Suggested EQ panel and outlines it for a moment.
+
 **Next: Clean & Master.** Under the checklist, a bar names the next step
 and has its button. It runs the same **Clean & Master** as the button at
 the top of the right-hand panel, which glows after Analyze until you press
