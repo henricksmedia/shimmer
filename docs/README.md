@@ -1,8 +1,10 @@
 # Shimmer — technical overview
 
 Shimmer cleans and masters AI-generated music (Suno and similar tools). It
-runs offline, on your own computer. Version 2.0.0 is a rebuild of 1.1.1:
-the screens stayed, and the engine behind them is new.
+runs offline, on your own computer. Version 2.0 is a rebuild of 1.1.1:
+the screens stayed, and the engine behind them is new. 2.0.1 added the
+Vocal grain card and the fixes from [CHAIN-AUDIT.md](CHAIN-AUDIT.md)
+(plan A).
 
 For the user-facing introduction, see the [root README](../README.md).
 
@@ -57,10 +59,12 @@ function, `export()` in `shimmer/core/export.py`.
 Read → Trim → Sample rate → Fixes → Tone → EQ → Master → Export → Report
 
 Fixes, in order:   de-click*  →  notch (Fixed tones)  →  spectral de-noise (Shimmer)
-                   →  de-esser (Sibilance)  →  dynamic EQ (Harshness, Low-mid build-up)
+                   →  voice de-noise (Vocal grain)  →  de-esser (Sibilance)
+                   →  dynamic EQ (Harshness, Low-mid build-up)
 Tone:              mastering on only; the built-in target or a reference track
-Master:            25 Hz low-cut → one loudness gain (whole song) → peak shaper
-                   → true-peak limiter (8× oversampled)
+Master:            25 Hz low-cut → one loudness gain (whole song, checked once
+                   after the limiter) → peak shaper (soft clip at 4×, channels
+                   linked) → true-peak limiter (8× oversampled)
                    mastering off + Preserve volume: one gain back to the song's own level
 Export:            16-bit TPDF dither → encode → lossy check → tags → release check
 
@@ -96,12 +100,17 @@ the signal, with no fixes and with all four fixes on at full.
 `GET /api/rules` serves it, and the screens read it instead of keeping their
 own copies.
 
-- `CARDS` — the nine "What do you hear?" cards: label, descriptor, icon,
-  group, the tool that fixes it, its band, and where its Amount starts.
+- `CARDS` — the ten "What do you hear?" cards: label, descriptor, icon,
+  group, the tool that fixes it, its band, and where its Amount starts. A
+  card can also have `modes` (the ways its fix can work; Vocal grain works
+  on the centre of the mix or on the vocal alone) and a `caution`, shown
+  the first time it is turned on (Vocal grain, whose cost on clean songs is
+  over the 0.10-sone limit).
 - `TOOL_LABELS` — the name each tool shows on screen.
 - `TOOLS_READY` — the tools the screens offer. The notch, the tone target
-  and the loudness target are proven. The de-esser, the dynamic EQ and the
-  spectral de-noise are on to try, before their blind rounds. The de-click is
+  and the loudness target are proven. The de-esser, the dynamic EQ, the
+  spectral de-noise and the voice de-noise are on to try, before their
+  blind rounds. The de-click is
   not in the list: it misses moderate pops in dense music
   ([STEP6-FIXES.md](STEP6-FIXES.md)).
 - `LOUDNESS_TARGETS` — Commercial −9 LUFS (the default), Balanced −11,
@@ -122,7 +131,9 @@ Each fix is one module in `shimmer/core/repair/`. `render.py` lists them in
 
 A module with `SLOW_PLAN = True` reports how far it has got under Fixes.
 Today that is the spectral de-noise, which reads the whole song once (about
-50 s for a 3-minute song). `prepare()` does that work ahead of a preview, as
+50 s for a 3-minute song), and the voice de-noise (about 10 s, or more in
+vocal mode, which splits out the vocal first through the Remix splitter the
+app hands the engine with `core.set_vocal_splitter`). `prepare()` does that work ahead of a preview, as
 its own cancellable job (`POST /api/prepare`). Its weights are
 `shimmer/core/repair/hash_remover.npz`; without the file the tool does
 nothing and says so.
@@ -146,9 +157,13 @@ after the fixes and the tone curve, the way the song will render.
 With mastering on, `render()` applies, in order: the tone curve (1.1.1's,
 ported bit-exact, or `tone.match_curve` toward a reference track), the user
 EQ, a 25 Hz low-cut, one static loudness gain worked out from the whole song,
-the peak shaper, and the true-peak limiter. The limiter finds peaks at 8×,
-ramps its gain across the 2 ms lookahead, and aims 0.17 dB under the
-ceiling.
+the peak shaper, and the true-peak limiter. The gain is checked once against
+the finished loudness, after the shaper and limiter, and corrected, so the
+song lands on its target. The shaper is a soft clipper at 4×, with both
+channels linked; only its change is filtered back down, near the peaks. The
+limiter finds peaks at 8×, ramps its gain across the 2 ms lookahead, and
+aims 0.17 dB under the ceiling. The tone curve boosts nothing at or above
+90 % of the song's bandwidth cutoff, or above 16 kHz when none is found.
 
 Reference-track matching takes 50 % of the difference by default, smoothed
 over about an octave, at most ±3 dB, level-matched first.
