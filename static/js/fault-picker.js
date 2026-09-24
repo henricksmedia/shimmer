@@ -54,6 +54,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         master: c.tool === 'tone_target' || c.tool === 'loudness_target',
         band: c.band_hz ? bandText(c.band_hz) : '',
         amount: Math.round((c.default_amount ?? rules.default_amount ?? 0.5) * 100),
+        modes: c.modes || [], mode: (c.modes && c.modes.length) ? c.modes[0][0] : null,
         on: false, by: null, found: null, noted: false, userOff: false,
     }));
     const byKey = new Map(cards.map((c) => [c.key, c]));
@@ -102,6 +103,19 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         const note = c.found ? '' : '<div class="fx-note">Analyze didn’t measure this. Starting gentle — check the Removed track.</div>';
         r.innerHTML = `<div class="fx-head"><span class="ms" aria-hidden="true">${c.icon}</span>${c.toolLabel}<span class="fx-for">· ${c.label}</span><span class="fx-src">${src}</span></div>
             <div class="fx-ctl"><label for="amt-${c.key}">Amount</label><input id="amt-${c.key}" type="range" min="0" max="100" step="1" value="${c.amount}"><span class="fx-val" id="val-${c.key}">${c.amount}%</span></div>${note}`;
+        if (c.modes.length > 1) {
+            const ctl = document.createElement('div');
+            ctl.className = 'fx-ctl';
+            const lab = document.createElement('label');
+            lab.htmlFor = `mode-${c.key}`;
+            lab.textContent = 'Works on';
+            const sel = document.createElement('select');
+            sel.id = `mode-${c.key}`;
+            c.modes.forEach(([key, label]) => sel.add(new Option(label, key, false, key === c.mode)));
+            sel.onchange = () => { c.mode = sel.value; onChange(); };
+            ctl.append(lab, sel);
+            r.insertBefore(ctl, r.querySelector('.fx-note'));
+        }
         const rng = r.querySelector('input');
         rng.oninput = () => {
             c.amount = Math.round(+rng.value);
@@ -152,13 +166,20 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         onChange();
     }
 
-    /** What the engine needs: {fixes, auto}. */
+    /** What the engine needs: {fixes, auto, fix_modes}. */
     function payload() {
         const fixes = {};
         cards.forEach((c) => { if (c.on && c.ready && !c.master) fixes[c.key] = c.amount / 100; });
         const tones = byKey.get('tones');
         if (tones && !tones.on && tones.userOff) fixes.tones = 0;   // turned off on purpose
-        return { fixes, auto: true };
+        return { fixes, auto: true, fix_modes: modes() };
+    }
+
+    /** Each card's chosen way of working, where it has more than one. */
+    function modes() {
+        const out = {};
+        cards.forEach((c) => { if (c.modes.length > 1) out[c.key] = c.mode; });
+        return out;
     }
 
     /** The cards picked, for the Signal Chain view: {on, noted}. */
@@ -178,7 +199,11 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
 
     /** Turn on the picks from saved settings (card to Amount 0-1). A card
      *  whose fix is not ready yet is noted instead. */
-    function restore(fixes) {
+    function restore(fixes, savedModes = {}) {
+        Object.entries(savedModes || {}).forEach(([key, mode]) => {
+            const c = byKey.get(key);
+            if (c && c.modes.some(([k]) => k === mode)) c.mode = mode;
+        });
         Object.entries(fixes || {}).forEach(([key, amount]) => {
             const c = byKey.get(key);
             if (!c || c.master || !(Number(amount) > 0)) return;
@@ -215,5 +240,5 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
     }
 
     render();
-    return { setFindings, payload, state, reset, setMasterCard, picks, restore };
+    return { setFindings, payload, state, reset, setMasterCard, picks, modes, restore };
 }

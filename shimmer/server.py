@@ -612,7 +612,7 @@ async def api_batch(payload: Dict[str, Any]) -> StreamingResponse:
         "eq": payload.get("eq") or {},
         "repair": {"enabled": bool(payload.get("static_repair", True))},
     }
-    for key in ("fixes", "auto"):
+    for key in ("fixes", "auto", "fix_modes"):
         if key in payload:
             params[key] = payload[key]
     s = _api_render.settings_from_request(

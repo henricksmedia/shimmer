@@ -65,7 +65,7 @@ def test_the_sides_are_never_touched():
 
 def test_it_takes_the_hiss_and_leaves_the_voice_below_its_band():
     song, voice, hiss = _song()
-    r = vocal_grain.removed(song, SR, _plan(song), 1.0)
+    r = vocal_grain.removed(song, SR, _plan(song), 1.0)[:, 0]
     edge = int(0.2 * SR)
     hiss_band = _band(hiss, 4000.0, 8000.0)[edge:-edge]
     left = _band((song.mean(axis=1) - r), 4000.0, 8000.0)[edge:-edge]
@@ -98,3 +98,59 @@ def test_the_render_reports_it():
     s = Settings(fixes={"grain": 0.5}, auto=False, mastering=False, preserve_volume=False)
     rep = render(Source.from_array(song, SR), s).report["fixes"]["grain"]
     assert rep["enabled"] and rep["tool"] == "voice_denoise" and rep["amount"] == 0.5
+
+
+# ── Vocal only: the fix on the split-out vocal ──────────────────────────
+
+def _cymbal(n, seed=9):
+    """A steady, centred hiss in 4-8 kHz that is not part of the voice (a
+    ride cymbal, say), for the vocal-only mode to leave alone."""
+    rng = np.random.default_rng(seed)
+    c = _band(rng.standard_normal(n), 4000.0, 8000.0)
+    return 0.01 * c / np.std(c)
+
+
+def test_vocal_mode_takes_from_the_vocal_and_leaves_the_cymbal():
+    song, voice, hiss = _song()
+    cym = _cymbal(song.shape[0])
+    mix = song + cym[:, None]
+    vocal = np.repeat((voice + hiss)[:, None], 2, axis=1)
+    p = vocal_grain.plan(mix, SR, vocal=vocal)
+    assert p.mode == "vocal" and len(p.cut_db) == 2
+    r = vocal_grain.removed(mix, SR, p, 1.0)
+    edge = int(0.2 * SR)
+    # What it takes is the vocal's own hiss, with none of the cymbal in it:
+    # it lines up with the hiss, not with the cymbal.
+    took = _band(r[:, 0], 4000.0, 8000.0)[edge:-edge]
+    h = hiss[edge:-edge]
+    c = cym[edge:-edge]
+    assert abs(np.dot(took, c)) / (np.linalg.norm(took) * np.linalg.norm(c)) < 0.05
+    assert np.dot(took, h) / (np.linalg.norm(took) * np.linalg.norm(h)) > 0.3
+
+
+def test_vocal_mode_window_matches_the_full_song():
+    song, voice, hiss = _song()
+    vocal = np.repeat((voice + hiss)[:, None], 2, axis=1)
+    p = vocal_grain.plan(song, SR, vocal=vocal)
+    full = vocal_grain.apply(song, SR, p, 0.8)
+    # A lead-in and a tail, as render() gives a preview window.
+    a, b, lead, tail = int(3.0 * SR), int(5.0 * SR), int(1.0 * SR), int(0.5 * SR)
+    part = vocal_grain.apply(song[a - lead:b + tail], SR, p, 0.8, offset=a - lead)
+    assert np.max(np.abs(part[lead:lead + b - a] - full[a:b])) < 1e-6
+
+
+def test_vocal_mode_without_a_file_falls_back_to_the_centre_and_says_so():
+    song, _, _ = _song(seconds=4.0)
+    s = Settings(fixes={"grain": 0.5}, fix_modes={"grain": "vocal"}, auto=False,
+                 mastering=False, preserve_volume=False)
+    rep = render(Source.from_array(song, SR), s).report["fixes"]["grain"]
+    assert rep["mode"] == "centre" and "no file" in rep["note"]
+
+
+def test_the_mode_is_kept_and_checked_in_settings():
+    s = Settings(fix_modes={"grain": "vocal", "sibilance": "vocal", "nope": "x"})
+    assert s.fix_modes == {"grain": "vocal"}
+    assert Settings.from_dict(s.to_dict()).fix_modes == {"grain": "vocal"}
+    # The default mode, or one the card does not have, is not stored.
+    assert Settings(fix_modes={"grain": "centre"}).fix_modes == {}
+    assert Settings(fix_modes={"grain": "sideways"}).fix_modes == {}

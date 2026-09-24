@@ -229,7 +229,13 @@ was measured, and what it takes from a clean song:
   then takes out three things: a steady hiss floor above 3.5 kHz; a hiss
   that rises and falls with the voice, measured again every 2 seconds; and
   a grain of sharp little spikes, each pulled back to the level around it.
-  The author picked it by ear on one song in listening rounds 5-14
+  It works one of two ways, chosen under the card's Amount slider:
+  **Centre of the mix** (the default) needs nothing extra. **Vocal only**
+  first splits out the vocal with the Remix tab's splitter, then works on
+  the vocal alone, so cymbals in the centre are left as they are. It reuses
+  a split the Remix tab has already made for the file. Without the
+  splitter, the card uses the centre of the mix and says so in its report.
+  The author picked it by ear on one song in listening rounds 5-16
   (2026-09-23). Its cost on clean songs, which sets the top of its Amount
   slider, is still to be measured.
 - **Notch filter (Fixed tones).** Narrow notches at each steady tone the

@@ -56,6 +56,9 @@ class Card:
     # starts at full depth: the notch is the one tool proven safe and
     # effective (96 %), and 1.1.1 applied it at full depth.
     default_amount: float = 0.5
+    # Ways the fix can work, as (key, label); the first is the default. Empty
+    # for a fix with one way. Settings.fix_modes holds a card's choice.
+    modes: Tuple[Tuple[str, str], ...] = ()
 
 
 CARDS: Tuple[Card, ...] = (
@@ -65,7 +68,9 @@ CARDS: Tuple[Card, ...] = (
     Card("grain", "Vocal grain", "Grainy hiss riding on the voice",
          "A gritty hiss on the lead vocal that follows the voice and never quite "
          "goes away, often worse later in the song.",
-         "noise_aware", "artifacts", "voice_denoise", (3500.0, 10000.0)),
+         "noise_aware", "artifacts", "voice_denoise", (3500.0, 10000.0),
+         modes=(("centre", "Centre of the mix"),
+                ("vocal", "Vocal only (uses the Remix splitter)"))),
     Card("tones", "Fixed tones", "A whistle or whine that never changes",
          "Steady tones the generator leaves at one pitch for the whole song.",
          "sports", "artifacts", "notch", None, default_amount=1.0),
@@ -101,6 +106,15 @@ def card(key: str) -> Card:
         if c.key == key:
             return c
     raise KeyError(key)
+
+
+def card_mode(key: str, chosen: Optional[str] = None) -> Optional[str]:
+    """The way a card's fix works: `chosen` when it is one of the card's
+    modes, else the card's default; None for a card with one way."""
+    modes = [m for m, _ in card(key).modes]
+    if not modes:
+        return None
+    return chosen if chosen in modes else modes[0]
 
 
 # ── Loudness choices ────────────────────────────────────────────────────

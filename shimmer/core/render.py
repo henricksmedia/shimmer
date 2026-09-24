@@ -191,24 +191,84 @@ def _tools(source: Source, sr: int, s: Settings,
     for card, mod in _FIX_TOOLS:
         amount = float(s.fixes.get(card, 0.0))
         if amount > 0.0:
-            out.append((card, mod, _plan(source, sr, card, mod, progress), amount))
+            out.append((card, mod, _plan(source, sr, card, mod, progress, _mode(s, card)),
+                        amount))
     return out
 
 
+def _mode(s: Settings, card: str) -> Optional[str]:
+    """How this card's fix works in these settings (catalog.Card.modes)."""
+    return catalog.card_mode(card, s.fix_modes.get(card))
+
+
+def _plan_key(card: str, sr: int, mode: Optional[str]) -> Tuple:
+    """A plan's cache key. A card's default mode keeps the plain key."""
+    return (card, "plan", sr) if mode in (None, catalog.card_mode(card)) else (
+        card, "plan", sr, mode)
+
+
 def _plan(source: Source, sr: int, card: str, mod: Any,
-          progress: Optional[Progress] = None) -> Any:
-    """A tool's whole-song plan, worked out once per song and rate. A slow
-    one (SLOW_PLAN) says how far it has got under Fixes, and stops there if
-    the run is cancelled."""
+          progress: Optional[Progress] = None, mode: Optional[str] = None) -> Any:
+    """A tool's whole-song plan, worked out once per song, rate and mode. A
+    slow one (SLOW_PLAN) says how far it has got under Fixes, and stops
+    there if the run is cancelled. A mode in the tool's STEM_MODES gets the
+    song's vocal first (_vocal_stem)."""
+    key = _plan_key(card, sr, mode)
     if not getattr(mod, "SLOW_PLAN", False):
-        return source._remember((card, "plan", sr), lambda: mod.plan(source.at_rate(sr), sr))
+        return source._remember(key, lambda: mod.plan(source.at_rate(sr), sr))
     c = catalog.card(card)
     label = f"{c.label}: {catalog.TOOL_LABELS.get(c.tool or '', card)}"
 
     def step(f: float) -> None:
         _stage(progress, "fixes", label, f"reading the whole song once, {f:.0%}")
-    return source._remember((card, "plan", sr),
-                            lambda: mod.plan(source.at_rate(sr), sr, step=step))
+
+    def make() -> Any:
+        if mode in getattr(mod, "STEM_MODES", ()):
+            vocal, why = _vocal_stem(source, sr, progress, label)
+            if vocal is None:
+                return mod.plan(source.at_rate(sr), sr, step=step, note=why)
+            return mod.plan(source.at_rate(sr), sr, step=step, vocal=vocal)
+        return mod.plan(source.at_rate(sr), sr, step=step)
+    return source._remember(key, make)
+
+
+# How the engine gets a song's vocal, for a fix mode that needs it (a
+# tool's STEM_MODES). The engine carries no splitter of its own: the app
+# hands one in at start-up (set_vocal_splitter; shimmer/api/render.py uses
+# the Remix tab's). It is called as splitter(path, sr, report) and returns
+# (vocal or None, why not); report(detail) says how far it has got.
+_VOCAL_SPLITTER: Optional[Any] = None
+
+
+def set_vocal_splitter(splitter: Optional[Any]) -> None:
+    global _VOCAL_SPLITTER
+    _VOCAL_SPLITTER = splitter
+
+
+def _vocal_stem(source: Source, sr: int, progress: Optional[Progress],
+                label: str) -> Tuple[Optional[np.ndarray], str]:
+    """The song's vocal at `sr` and the song's length, or (None, why not)."""
+    path = source.path
+    if not path or not os.path.isfile(path):
+        return None, "the song has no file on disk to split"
+    if _VOCAL_SPLITTER is None:
+        return None, "the Remix splitter is not installed"
+    try:
+        vocal, why = _VOCAL_SPLITTER(
+            path, sr, lambda detail: _stage(progress, "fixes", label,
+                                            f"splitting out the vocal: {detail}"))
+    except Exception as e:  # noqa: BLE001 - a failed split falls back, and says why
+        if progress is not None:
+            progress.check()
+        return None, f"the split failed ({type(e).__name__})"
+    if vocal is None:
+        return None, why or "the split has no vocal"
+    vocal = np.asarray(vocal, dtype=np.float32)
+    vocal = vocal[:, None] if vocal.ndim == 1 else vocal
+    n = source.at_rate(sr).shape[0]
+    out = np.zeros((n, vocal.shape[1]), dtype=np.float32)
+    out[:min(n, vocal.shape[0])] = vocal[:n]
+    return out, ""
 
 
 def plans_pending(source: Source, settings: Optional[Settings] = None) -> List[str]:
@@ -219,7 +279,7 @@ def plans_pending(source: Source, settings: Optional[Settings] = None) -> List[s
     sr = int(catalog.output_format(s.format).sr or source.sr)
     return [card for card, mod in _FIX_TOOLS
             if float(s.fixes.get(card, 0.0)) > 0.0 and getattr(mod, "SLOW_PLAN", False)
-            and (card, "plan", sr) not in source._cache]
+            and _plan_key(card, sr, _mode(s, card)) not in source._cache]
 
 
 def prepare(source: Source, settings: Optional[Settings] = None,
@@ -233,11 +293,11 @@ def prepare(source: Source, settings: Optional[Settings] = None,
     pending = plans_pending(source, s)
     for card, mod in _FIX_TOOLS:
         if card in pending:
-            _plan(source, sr, card, mod, progress)
+            _plan(source, sr, card, mod, progress, _mode(s, card))
 
 
 def _tools_key(s: Settings) -> Tuple:
-    return tuple((card, float(s.fixes[card])) for card in BUILT_CARDS
+    return tuple((card, float(s.fixes[card]), _mode(s, card)) for card in BUILT_CARDS
                  if s.fixes.get(card, 0.0) > 0.0)
 
 

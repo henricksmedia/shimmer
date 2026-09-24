@@ -11,8 +11,10 @@ Versions follow [Semantic Versioning](https://semver.org/).
   that rides on an AI lead vocal and never quite goes away, often worse
   later in the song. Its tool, the voice de-noise, works on the centre of
   the mix and leaves the sides alone. It reads the whole song once, the
-  first time the card is on, so it can follow the hiss as it grows. Its
-  Amount starts at 50 %. The top of the slider is still to be measured on
+  first time the card is on, so it can follow the hiss as it grows. Under
+  its Amount slider, **Works on** picks the centre of the mix (the default)
+  or the vocal alone, split out by the Remix tab's splitter, for songs
+  where cymbals share the centre with the voice. Its Amount starts at 50 %. The top of the slider is still to be measured on
   clean songs.
 
 ## [2.0.0] — 2026-09-13

@@ -47,8 +47,7 @@ _TOOL_GLOSS = {
     "deesser": "Turns down harsh “s”, “t” and “ch” while they stick out.",
     "dynamic_eq": "Cuts a band only while it rings out above the rest.",
     "declick": "Finds short pops and crackle and fills them in.",
-    "voice_denoise": "Takes the grainy hiss out of the centre of the mix, where the "
-                     "voice sits, and leaves the sides alone.",
+    "voice_denoise": "Takes out the grainy hiss that rides on the voice.",
     "spectral_denoise": "Turns down fizzy, flickering hiss up top, only where a trained "
                         "model hears it.",
 }
@@ -285,6 +284,9 @@ def _fixes(s: Settings, notches: Optional[Sequence[Notch]], cards_on: List[str],
             amt = _card_amount(s, key)
             depth = _tool_depth(key, amt)
             text = _TOOL_GLOSS.get(c.tool, "Runs this card's fix.")
+            if c.modes:
+                mode = catalog.card_mode(key, s.fix_modes.get(key))
+                text += f" Works on: {dict(c.modes)[mode].split(' (')[0].lower()}."
             if depth is not None:
                 text += f" By up to {_num(depth)} dB at Amount {round(amt * 100)}%."
             rows.append(_row(c, text, _tag("on", "On")))

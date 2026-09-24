@@ -855,7 +855,7 @@ export async function initSingleTab() {
         // Your card picks first: restoring the preset menu below saves the
         // settings, and that save must already hold them. A file saved by
         // 1.x arrives with its preset's card here (settings_store.migrate_saved).
-        if (saved.fixes) picker.restore(saved.fixes);
+        if (saved.fixes) picker.restore(saved.fixes, saved.fix_modes);
         if (typeof saved.preset_strength === 'number') {
             strengthEl.value = String(saved.preset_strength);
             renderStrengthBadge();
@@ -2574,6 +2574,7 @@ export async function initSingleTab() {
             preset: presetSelect.value,
             preset_strength: currentStrength(),
             fixes: picker.picks(),
+            fix_modes: picker.modes(),
             sliders: controls.getValues(),
             preserve_volume: preserveVol.checked,
             trim_silence: trimSilence.checked,

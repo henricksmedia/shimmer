@@ -261,7 +261,12 @@ const CARD_HELP = {
               'or you hear words in the Removed track.',
         note: 'The first time this card is on for a song, it reads the whole ' +
               'song once, so it can follow the hiss as it grows. After that, ' +
-              'the preview is quick.',
+              'the preview is quick. Works on: Centre of the mix needs nothing ' +
+              'extra. Vocal only splits out the vocal first with the Remix ' +
+              'splitter, which is more precise when cymbals sit in the centre ' +
+              'with the voice. The first split takes a minute or more. If the ' +
+              'splitter is not installed, the card uses the centre of the mix ' +
+              'and says so.',
     },
     tones: {
         up: 'You can still hear the whistle or whine.',

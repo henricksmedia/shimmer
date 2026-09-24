@@ -54,6 +54,28 @@ VERSION = "dev"
 def configure(version: str) -> None:
     global VERSION
     VERSION = str(version)
+    core.set_vocal_splitter(remix_vocal)
+
+
+# Stem-split quality, best first: a split the Remix tab has already made for
+# this file is used as it is (shimmer/stems.py, TIERS).
+_STEM_TIERS = ("studio", "ultra", "best", "fast", "six")
+
+
+def remix_vocal(path: str, sr: int, report: Any) -> Tuple[Optional[np.ndarray], str]:
+    """The song's vocal from the Remix tab's splitter, for a fix that works
+    on the vocal alone (the Vocal grain card's vocal mode). It reuses a split
+    already made for this file, and never installs the splitter."""
+    from .. import stems
+    if not stems.stems_python() or not stems.env_ready():
+        return None, "the Remix splitter is not installed"
+    digest = stems.file_digest(path)
+    cached = stems.cached_tiers(digest)
+    tier = next((t for t in _STEM_TIERS if t in cached), None) or stems.default_tier()
+    parts, _ = stems.separate(path, sr, tier=tier, digest=digest,
+                              progress=lambda frac, msg, *_: report(str(msg)))
+    vocal = parts.get("vocals")
+    return (vocal, "") if vocal is not None else (None, "the split has no vocal")
 
 
 # ── Requests to settings (the transition rule) ─────────────────────────
@@ -75,6 +97,8 @@ def settings_from_request(params: Optional[Dict[str, Any]], *, output_format: Op
         changes["fixes"] = p["fixes"]
     if "auto" in p:
         changes["auto"] = bool(p["auto"])
+    if isinstance(p.get("fix_modes"), dict):
+        changes["fix_modes"] = p["fix_modes"]
     master = p.get("mastering") if isinstance(p.get("mastering"), dict) else {}
     if "match_amount" in master:
         try:

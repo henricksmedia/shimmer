@@ -69,6 +69,9 @@ class Settings:
     match_amount     mastering tone with a reference track: how much of the
                      difference to take, 0-1 (catalog.MATCH_AMOUNT); used in
                      place of intensity when render() is given a reference
+    fix_modes        {card key: mode}: how a card's fix works, for a card with
+                     more than one way (catalog.Card.modes); a card left out
+                     uses its first mode
     """
     fixes: Dict[str, float] = field(default_factory=dict)
     auto: bool = True
@@ -82,6 +85,7 @@ class Settings:
     intensity: str = "med"
     tilt: str = "neutral"
     match_amount: float = catalog.MATCH_AMOUNT
+    fix_modes: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         # Unknown cards are dropped and amounts kept to 0-1, so a bad value
@@ -109,6 +113,14 @@ class Settings:
             self.match_amount = _clamp(float(self.match_amount), 0.0, 1.0)
         except (TypeError, ValueError):
             self.match_amount = catalog.MATCH_AMOUNT
+        # Only a card's own modes, and only when it is not the default.
+        modes = {}
+        for k, v in dict(self.fix_modes or {}).items():
+            if k in catalog.CARD_KEYS and catalog.card(k).modes:
+                m = catalog.card_mode(k, str(v))
+                if m != catalog.card_mode(k):
+                    modes[k] = m
+        self.fix_modes = modes
 
     @classmethod
     def bypass(cls) -> "Settings":
@@ -133,6 +145,7 @@ class Settings:
             "intensity": self.intensity,
             "tilt": self.tilt,
             "match_amount": self.match_amount,
+            "fix_modes": dict(self.fix_modes),
         }
 
     @classmethod
@@ -153,6 +166,7 @@ class Settings:
             intensity=d.get("intensity", "med"),
             tilt=d.get("tilt", "neutral"),
             match_amount=d.get("match_amount", catalog.MATCH_AMOUNT),
+            fix_modes=d.get("fix_modes") if isinstance(d.get("fix_modes"), Mapping) else {},
         )
 
 
