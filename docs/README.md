@@ -30,6 +30,8 @@ Background and rules:
   mastering choices.
 - [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md) — research on the shimmer
   artifact and what could reduce it.
+- [TEST-LIBRARY.md](TEST-LIBRARY.md) — a few hundred real AI songs, by
+  generator version and style, that every fix and master is run against.
 - [CHAIN-AUDIT.md](CHAIN-AUDIT.md) — every stage of the sound chain checked
   against user reports, pro mastering practice and measurement, with a
   ranked build plan.
