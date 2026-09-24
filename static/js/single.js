@@ -3176,7 +3176,9 @@ export async function initSingleTab() {
         // The engine resamples, and reports the step, only when the format
         // sets a rate the song is not already at.
         const fmt = ((RULES && RULES.formats) || []).find((f) => f.key === outputFormat.value);
-        if (fmt && fmt.sr && fmt.sr !== previewState.sampleRate) set.add('rate');
+        const song = previewState.sampleRate;
+        const rate = fmt && (fmt.sr || (fmt.max_sr && song > fmt.max_sr ? fmt.max_sr : song));
+        if (rate && song && rate !== song) set.add('rate');
         const p = picker.payload();
         if (Object.values(p.fixes).some((v) => v > 0)
             || (lastRepair && lastRepair.notches.some((n) => n.on !== false))) set.add('fixes');

@@ -318,7 +318,9 @@ def test_mp3_is_written_at_48_khz_at_most():
     view = describe_chain(Settings(format="mp3"), song={**SONG, "sample_rate": 96000})
     st = _stages(view)
     assert st["export"]["verdict"].endswith("at 48 kHz")
-    assert not st["rate"]["on"] and "encoder" in st["rate"]["off"]
+    assert st["rate"]["on"] and st["rate"]["badges"] == ["96 kHz → 48 kHz"]
+    at48 = _stages(describe_chain(Settings(format="mp3"), song={**SONG, "sample_rate": 48000}))
+    assert not at48["rate"]["on"]
     st = _stages(describe_chain(Settings(format="m4a"), song={**SONG, "sample_rate": 96000}))
     assert st["export"]["verdict"].endswith("at 96 kHz")
 

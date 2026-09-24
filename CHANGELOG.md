@@ -14,6 +14,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
   dying away. Fades go on after mastering, so the limiter can't flatten
   them. The Signal Chain view and the progress window list them.
 
+### Changed
+
+- **A new licence: the Shimmer License.** Shimmer stays free to use,
+  including on music you sell, and anything you make with it is yours. The
+  code stays public to read, but it is no longer open source: copying it,
+  changing it, sharing it or hosting it as a service needs a written
+  licence from Henricks Media. Versions before 2.2.0 stay under the
+  AGPL-3.0.
+- **Tags are written by Shimmer's own code.** The tag library Shimmer used
+  is gone. WAV, FLAC, OGG, MP3 and M4A files get the same tags as before,
+  ISRC included.
+
 ### Fixed
 
 - **The progress window drew the Trim step as skipped** even when your cuts
@@ -37,6 +49,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
   - The tone, notch, low-cut, silence trim and tag steps give their numbers.
 - **The progress window lit the Sample rate step** for every 16-bit export,
   even when the song was already at 44.1 kHz and nothing was resampled.
+- **MP3, OGG and M4A files could fail their own release check.** The
+  limiter aims lossy files at −2.0 dBTP to leave the encoder room, and
+  export holds the decoded file under −1.0 dBTP. But the release check
+  graded the file against −2.0, so a good file could show True peak: fail.
+  It now grades the decoded file against −1.0 dBTP.
+- **M4A files could have a pop, and came out up to 6 dB quiet.** ffmpeg's
+  built-in AAC encoder put a glitch into loud masters: on one song, one
+  spot decoded 3.6 dB over the master. Export then turned the whole file
+  down to hide it, by 2.3 dB on a typical song and up to 6.2 dB. Turning it
+  down did not always work: 3 of 30 test songs still went over. M4A now
+  uses the system's own AAC encoder when ffmpeg has one (Windows Media
+  Foundation, macOS AudioToolbox), which had no glitch on the same songs.
+- **An MP3 above 48 kHz was resampled by the encoder, after the limiter.**
+  An MP3 holds 48 kHz at most, so Shimmer now resamples to 48 kHz first,
+  before the fixes and the limiter, as it does for the 16-bit copies.
 
 ## [2.1.0] — 2026-09-24
 

@@ -280,7 +280,7 @@ def plans_pending(source: Source, settings: Optional[Settings] = None) -> List[s
     song first: a slow plan (SLOW_PLAN) not yet worked out for this song.
     It never does the work."""
     s = settings if settings is not None else Settings()
-    sr = int(catalog.output_format(s.format).sr or source.sr)
+    sr = catalog.output_format(s.format).rate_for(source.sr)
     return [card for card, mod in _FIX_TOOLS
             if float(s.fixes.get(card, 0.0)) > 0.0 and getattr(mod, "SLOW_PLAN", False)
             and _plan_key(card, sr, _mode(s, card)) not in source._cache]
@@ -293,7 +293,7 @@ def prepare(source: Source, settings: Optional[Settings] = None,
     job the first time a card like Shimmer is on for a song. Cancel stops it
     and keeps nothing half done."""
     s = settings if settings is not None else Settings()
-    sr = int(catalog.output_format(s.format).sr or source.sr)
+    sr = catalog.output_format(s.format).rate_for(source.sr)
     pending = plans_pending(source, s)
     for card, mod in _FIX_TOOLS:
         if card in pending:
@@ -478,7 +478,7 @@ def known_gain(source: Source, settings: Optional[Settings] = None, *,
     s = settings if settings is not None else Settings()
     if not s.mastering and not s.preserve_volume:
         return None
-    sr = int(catalog.output_format(s.format).sr or source.sr)
+    sr = catalog.output_format(s.format).rate_for(source.sr)
     if notches is None and _tones_amount(s) > 0.0:
         notches = source._cache.get(("tones_plan", sr))
         if notches is None:
@@ -510,7 +510,7 @@ def premaster_levels(source: Source, settings: Optional[Settings] = None, *,
     for a whole record from every song's level (master.loudness.album_gains).
     """
     s = settings if settings is not None else Settings()
-    sr = int(catalog.output_format(s.format).sr or source.sr)
+    sr = catalog.output_format(s.format).rate_for(source.sr)
     plan = _tones_plan(source, sr, s, None)
     y = _whole_premaster(source, sr, s, plan, reference)
     lufs = meters.loudness(y, sr)
@@ -527,7 +527,7 @@ def tone_plan(source: Source, settings: Optional[Settings] = None, *,
     nothing is corrected twice. `notches` is the screen's own list, as for
     render(). Measures only."""
     s = settings if settings is not None else Settings()
-    sr = int(catalog.output_format(s.format).sr or source.sr)
+    sr = catalog.output_format(s.format).rate_for(source.sr)
     x = source.at_rate(sr)
     plan = _tones_plan(source, sr, s, notches)
     tools = _tools(source, sr, s)
@@ -564,7 +564,7 @@ def reference_view(source: Source, reference: Source,
 
     Measures only."""
     s = settings if settings is not None else Settings()
-    sr = int(catalog.output_format(s.format).sr or source.sr)
+    sr = catalog.output_format(s.format).rate_for(source.sr)
     x = source.at_rate(sr)
     ref_shape, ref_cut = _reference(reference)
     cut = estimate_cutoff_hz(x, sr).get("cutoff_hz")
@@ -614,7 +614,7 @@ def render(source: Source, settings: Optional[Settings] = None,
     """
     s = settings if settings is not None else Settings()
     fmt = catalog.output_format(s.format)
-    sr = int(fmt.sr or source.sr)
+    sr = fmt.rate_for(source.sr)
     if sr != source.sr:
         _stage(progress, "rate", "Sample rate", f"{source.sr} Hz to {sr} Hz")
     x = source.at_rate(sr)

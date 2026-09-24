@@ -8,6 +8,7 @@ styles and versions at once.
     python scripts/test_library.py build "D:/Music" --out private/test-library/library.json
     python scripts/test_library.py run private/test-library/library.json --card grain=0.5 --out grain.json
     python scripts/test_library.py run private/test-library/library.json --master cd --out master.json
+    python scripts/test_library.py run private/test-library/core.json --master cd --formats mp3,ogg,m4a --out lossy.json
 
 build   Every folder named "suno" (any case) under the root is one song's
         originals, as the author keeps them. Its main WAV is the song
@@ -25,6 +26,9 @@ run     Renders each song through core.render() and reports, per song and
         from its own band, and how often it acts; for mastering, the
         loudness reached, the true peak and the gain. A song that fails is
         reported and the run goes on.
+        --formats writes each master as those lossy files and measures
+        each decoded file: its true peak and loudness, and how much the
+        export turned it down to keep the peak under its limit.
 
 The library names private songs, so the manifest and the results go in the
 private folder (scripts/_private.py), never in the repo.
@@ -189,6 +193,27 @@ def run_master(src, target: str) -> Dict[str, Any]:
             "hit_loss_db": round(hit, 2)}
 
 
+def run_lossy(src, target: str, formats: List[str]) -> Dict[str, Any]:
+    """Master once at `target`, write it as each lossy format, and measure
+    what a listener decodes: file_tp (true peak), file_lufs, turned_db (how
+    far export turned the file down), and the level it lost to that."""
+    import dataclasses
+    import tempfile
+    from shimmer import core
+    s = core.Settings(auto=False, mastering=True, loudness_target=target, format=formats[0])
+    r = core.render(src, s)
+    out: Dict[str, Any] = {"master_lufs": round(core.meters.loudness(r.audio, r.sr), 2)}
+    with tempfile.TemporaryDirectory() as d:
+        for key in formats:
+            fmt = core.catalog.output_format(key)
+            rk = dataclasses.replace(r, settings=dataclasses.replace(r.settings, format=key))
+            rep = core.export(rk, os.path.join(d, "song" + fmt.ext))
+            out[f"{key}_file_tp"] = round(float(rep["true_peak_dbtp"]), 2)
+            out[f"{key}_file_lufs"] = round(float(rep["lufs"]), 2)
+            out[f"{key}_turned_db"] = round(float(rep["lossy_trim_db"]), 2)
+    return out
+
+
 def summarise(rows: List[Dict[str, Any]], keys: List[str]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     for group in sorted({r["version"] for r in rows}) + ["all"]:
@@ -218,6 +243,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     r.add_argument("--mode", help="the card's mode, e.g. vocal")
     r.add_argument("--master", help="a loudness target key: cd, loud or streaming")
     r.add_argument("--mp3", action="store_true", help="use the MP3 copy instead of the WAV")
+    r.add_argument("--formats", help="with --master: lossy formats to write and measure, "
+                                     "e.g. mp3,ogg,m4a")
     r.add_argument("--limit", type=int, default=0)
     r.add_argument("--only", action="append", default=[],
                    help="only songs of this version (repeat for more), e.g. v6")
@@ -252,7 +279,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         songs = [s for s in songs if s["version"] in a.only]
     if a.limit:
         songs = songs[:a.limit]
+    formats = [f.strip() for f in (a.formats or "").split(",") if f.strip()]
     keys = (["took_song_db", "took_band_db", "acting_share"] if a.card
+            else ["master_lufs"] + [f"{k}_{m}" for k in formats
+                                    for m in ("file_tp", "file_lufs", "turned_db")] if formats
             else ["lufs", "true_peak_dbtp", "plr_db", "gain_db", "shaped_share",
                   "limiter_gr_db", "hit_loss_db"])
     rows = []
@@ -284,6 +314,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             if a.card:
                 card, _, amt = a.card.partition("=")
                 row["result"] = run_card(src, card, float(amt or 0.5), a.mode)
+            elif formats:
+                row["result"] = run_lossy(src, a.master or "cd", formats)
             else:
                 row["result"] = run_master(src, a.master or "cd")
         except Exception as e:  # noqa: BLE001 - one bad song must not stop the run

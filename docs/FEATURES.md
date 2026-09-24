@@ -538,19 +538,25 @@ menu shows them:
 | **WAV release copy (16-bit · 44.1 kHz · dithered)** | 44.1 kHz | 16-bit | -1.0 dBTP |
 | **FLAC (24-bit)** | the song's own | 24-bit | -1.0 dBTP |
 | **FLAC release copy (16-bit · 44.1 kHz · dithered)** | 44.1 kHz | 16-bit | -1.0 dBTP |
-| **MP3 (320 kbps)** | the song's own | lossy | -2.0 dBTP |
+| **MP3 (320 kbps)** | the song's own, 48 kHz at most | lossy | -2.0 dBTP |
 | **OGG Vorbis** (quality 0.8) | the song's own | lossy | -2.0 dBTP |
 | **M4A (AAC)** 256 kbps | the song's own | lossy | -2.0 dBTP |
 
 - **Release copies** are resampled to 44.1 kHz before the fixes and the
   limiter, so the ceiling holds at the rate that is written. The FLAC
   release copy is the same audio as the WAV one at about half the size.
+- **An MP3 holds 48 kHz at most.** A song above that is resampled to 48 kHz
+  at the same point, before the fixes and the limiter.
 - **Dither:** 16-bit files get TPDF dither of ±1 LSB.
 - **Lossy files are checked after encoding.** Encoders push peaks up. Each
   MP3, OGG and M4A file is decoded and measured. If it is over -1.0 dBTP,
   it is turned down by the excess and encoded again, and the report says
-  by how much. On drum-heavy songs an M4A can be turned down by up to
-  about 2.5 dB this way.
+  by how much. The -2.0 dBTP ceiling is only the aim before encoding: the
+  release check grades the decoded file against -1.0 dBTP.
+- **M4A uses your system's AAC encoder** when ffmpeg has one: Media
+  Foundation on Windows, AudioToolbox on macOS, at 44.1 or 48 kHz.
+  ffmpeg's built-in AAC encoder can put a pop into a loud master, and is
+  used only when there is no other.
 - **MP3 and M4A need ffmpeg.** They are encoded from 32-bit float.
 - **The source is never overwritten.**
 - **A file appears whole or not at all.** It is written under a temporary
@@ -610,7 +616,7 @@ You get one verdict first, then each check:
 | Check | Passes when |
 |---|---|
 | Loudness | within 0.5 LU of the target (within 1 LU warns) |
-| True peak | at or under the format's ceiling |
+| True peak | at or under the format's ceiling; a lossy file, as decoded, at or under -1.0 dBTP |
 | Clipping in the source | the uploaded file was not already clipped |
 | Sample rate | 44.1 or 48 kHz (hi-res rates also pass) |
 | Format | WAV or FLAC. A lossy file warns: fine for listening, not for a store |

@@ -37,7 +37,7 @@ _DITHER_SEED = 0          # the same dither every time, so an export repeats exa
 # A lossy file, decoded, stays at or under -1.0 dBTP (ARCHITECTURE §19.1
 # item 12). The meter reads at 8x, which can miss up to 0.17 dB, so it aims
 # that much lower.
-_LOSSY_LIMIT_DBTP = -1.0
+_LOSSY_LIMIT_DBTP = catalog.LOSSY_FILE_LIMIT_DBTP
 _LOSSY_AIM_DBTP = _LOSSY_LIMIT_DBTP + 20.0 * math.log10(math.cos(math.pi / 16))
 _LOSSY_TRIES = 3
 
@@ -87,7 +87,7 @@ def _flac_ratio(x: np.ndarray, sr: int, fmt: catalog.Format, sample: bool = Fals
     enc = pcm = 0
     for a in starts:
         seg = x[max(0, a):max(0, a) + width]
-        out_sr = fmt.sr or sr
+        out_sr = fmt.rate_for(sr)
         if out_sr != sr:
             seg = io.resample(seg, sr, out_sr)[0]
         y = np.asarray(seg, dtype=np.float64)
@@ -113,8 +113,8 @@ def estimate_size(audio: np.ndarray, sr: int, key: str,
     x = x[:, None] if x.ndim == 1 else x
     sample = seconds is not None
     seconds = float(seconds) if sample else x.shape[0] / float(sr)
-    frames = int(round(seconds * (fmt.sr or sr))) if sample else \
-        int(round(x.shape[0] * (fmt.sr or sr) / float(sr)))
+    frames = int(round(seconds * fmt.rate_for(sr))) if sample else \
+        int(round(x.shape[0] * fmt.rate_for(sr) / float(sr)))
     ch = x.shape[1]
     if not fmt.lossy and fmt.ext == ".wav":
         b = _wav_header_bytes(ch, fmt.bits) + frames * ch * (fmt.bits // 8)
@@ -176,8 +176,9 @@ def export(rendered: Rendered, path, source_path=None,
     for src in (rendered.source_path, source_path):
         if src and _same_file(path, os.fspath(src)):
             raise ValueError("refusing to write over the source file")
-    if fmt.sr and rendered.sr != fmt.sr:
-        raise ValueError(f"{fmt.label} is {fmt.sr} Hz; render with this format first")
+    if rendered.sr != fmt.rate_for(rendered.sr):
+        raise ValueError(f"{fmt.label} is {fmt.rate_for(rendered.sr)} Hz; render with this "
+                         "format first")
 
     y = np.asarray(rendered.audio, dtype=np.float64)
     if fmt.bits == 16:

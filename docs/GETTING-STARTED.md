@@ -543,7 +543,7 @@ Then one line for each check:
 | Check | It passes when | If it does not |
 |---|---|---|
 | Loudness | within 0.5 LU of your target | |
-| True peak | at or under the format's ceiling | |
+| True peak | at or under the format's ceiling | An MP3, OGG or M4A passes at or under −1.0 dBTP as played back |
 | Clipping in the source | the file you uploaded was not already clipped | This is about your upload, not Shimmer's file |
 | Sample rate | 44.1 or 48 kHz (higher rates pass too) | |
 | Format | WAV or FLAC | A compressed file is fine for listening, not for a store. Pick a WAV or FLAC release copy |

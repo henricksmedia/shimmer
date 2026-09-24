@@ -96,3 +96,28 @@ def test_a_mono_file_has_no_low_end_row():
     assert low_end_check(_tone(55.0).astype(np.float32), SR) is None
     keys = {r["key"] for r in release_check(_tone(55.0).astype(np.float32), SR)["checks"]}
     assert "low_end" not in keys
+
+
+def _true_peak(fmt, tp, ceiling):
+    from shimmer.core.master.release import release_check
+    y = _stereo(_tone(440.0, -14.0, 40.0), _tone(440.0, -14.0, 40.0))
+    m = {"enabled": True, "target_lufs": -9.0, "ceiling_dbtp": ceiling,
+         "after": {"lufs_i": -9.0, "true_peak_dbtp": tp}}
+    rows = {r["key"]: r for r in release_check(y, SR, mastering=m,
+                                                export={"format": fmt, "bit_depth": None})["checks"]}
+    return rows["true_peak"]
+
+
+def test_a_lossy_file_is_graded_as_decoded_against_minus_1():
+    # The -2.0 ceiling is the aim before encoding; the decoded file's limit
+    # is -1.0 dBTP, which export() holds (catalog.LOSSY_FILE_LIMIT_DBTP).
+    for fmt in ("mp3", "ogg", "m4a"):
+        row = _true_peak(fmt, -1.6, -2.0)
+        assert row["status"] == "pass", (fmt, row)
+        assert "decoded" in row["detail"]
+        assert _true_peak(fmt, -0.8, -2.0)["status"] == "fail"
+
+
+def test_a_lossless_file_keeps_its_ceiling():
+    assert _true_peak("wav", -1.0, -1.0)["status"] == "pass"
+    assert _true_peak("wav", -0.8, -1.0)["status"] == "fail"

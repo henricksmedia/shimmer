@@ -26,7 +26,8 @@ import shutil
 import subprocess
 import tempfile
 from fractions import Fraction
-from typing import Optional, Tuple
+from functools import lru_cache
+from typing import List, Optional, Tuple
 
 import numpy as np
 import soundfile as sf
@@ -45,6 +46,35 @@ class AudioIOError(RuntimeError):
 
 def _tool(name: str) -> str:
     return shutil.which(name) or name
+
+
+# ffmpeg's built-in AAC encoder can drop a glitch into a loud master: one
+# spot decoded 3.6 dB over the master, an audible pop, and turning the file
+# down did not remove it (28 of 30 test songs were turned down, by up to
+# 6.2 dB, and 3 still went over). The system's own AAC encoders had no such
+# glitch on the same songs: macOS AudioToolbox and Windows Media Foundation.
+# They take 44.1 and 48 kHz; other rates, or a build without them, use the
+# built-in one.
+_SYSTEM_AAC = ("aac_at", "aac_mf")
+_SYSTEM_AAC_RATES = (44100, 48000)
+
+
+@lru_cache(maxsize=1)
+def _encoders() -> Tuple[str, ...]:
+    try:
+        out = subprocess.run([_tool("ffmpeg"), "-hide_banner", "-encoders"],
+                             capture_output=True, timeout=30).stdout.decode("utf-8", "replace")
+    except (OSError, subprocess.SubprocessError):
+        return ()
+    return tuple(line.split()[1] for line in out.splitlines()
+                 if len(line.split()) > 1 and line.split()[0].startswith("A"))
+
+
+def _aac_encoders(sr: int) -> List[str]:
+    """The AAC encoders to try, best first."""
+    have = _encoders()
+    first = [e for e in _SYSTEM_AAC if e in have] if int(sr) in _SYSTEM_AAC_RATES else []
+    return first + ["aac"]
 
 
 def _as_2d(y: np.ndarray) -> np.ndarray:
@@ -169,19 +199,24 @@ def save(path, y: np.ndarray, sr: int, subtype: str = "PCM_24",
     try:
         # 32-bit float in, so the encoder sees every bit the engine made.
         sf.write(tmp, a, int(sr), subtype="FLOAT")
-        cmd = [_tool("ffmpeg"), "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
-               "-i", tmp, "-c:a", codec]
-        if bitrate:
-            cmd += ["-b:a", bitrate]
-        cmd += ["-f", container, path]
-        try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=600)
-        except FileNotFoundError as e:
-            raise AudioIOError("ffmpeg is needed to write MP3 and M4A. Install ffmpeg "
-                               "and add it to PATH.") from e
-        except subprocess.CalledProcessError as e:
-            err = (e.stderr or b"").decode("utf-8", errors="replace")
-            raise AudioIOError(f"Could not write '{path}'.\n{err}") from e
+        codecs = _aac_encoders(int(sr)) if codec == "aac" else [codec]
+        for i, name in enumerate(codecs):
+            cmd = [_tool("ffmpeg"), "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
+                   "-i", tmp, "-c:a", name]
+            if bitrate:
+                cmd += ["-b:a", bitrate]
+            cmd += ["-f", container, path]
+            try:
+                subprocess.run(cmd, capture_output=True, check=True, timeout=600)
+                break
+            except FileNotFoundError as e:
+                raise AudioIOError("ffmpeg is needed to write MP3 and M4A. Install ffmpeg "
+                                   "and add it to PATH.") from e
+            except subprocess.CalledProcessError as e:
+                if i + 1 < len(codecs):
+                    continue                 # a system encoder failed: the next one
+                err = (e.stderr or b"").decode("utf-8", errors="replace")
+                raise AudioIOError(f"Could not write '{path}'.\n{err}") from e
     finally:
         try:
             os.unlink(tmp)

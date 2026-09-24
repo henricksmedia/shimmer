@@ -12,7 +12,9 @@ the streaming services' loudness rules and the stores' delivery rules:
 
 * Loudness on target (with mastering on): within 0.5 LU passes, within
   1 LU warns, further fails.
-* True peak at or under the ceiling: the limiter's promise.
+* True peak at or under the ceiling: the limiter's promise. A lossy file
+  is graded as decoded, against -1.0 dBTP: its -2.0 ceiling is only the
+  aim before encoding, and the encoder may push peaks up into that room.
 * Clipping in the uploaded file: Shimmer cannot undo flat-topped peaks.
 * Sample rate and format: 44.1 or 48 kHz WAV or FLAC is what the stores
   ask for; a lossy export is for listening.
@@ -36,8 +38,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
+from .. import catalog
 from ..audio import filters, meters
 from ..audio.trim import find_audible_bounds
+
+_LOSSY_EXTS = tuple(f.ext.lstrip(".") for f in catalog.FORMATS if f.lossy)
 
 
 def as_2d(x: np.ndarray) -> np.ndarray:
@@ -287,11 +292,15 @@ def release_check(y: np.ndarray, sr: int, *,
     ceiling = _finite(m.get("ceiling_dbtp")) if mastered else None
     if ceiling is None:
         ceiling = -1.0
+    lossy = str((export or {}).get("format") or "").lower().lstrip(".") in _LOSSY_EXTS
+    if lossy:
+        ceiling = catalog.LOSSY_FILE_LIMIT_DBTP
     if tp is None:
         checks.append(_check("true_peak", "True peak", "warn", "n/a", "could not be measured"))
     elif tp <= ceiling + TP_SLACK_DB:
         checks.append(_check("true_peak", "True peak", "pass", f"{tp:.1f} dBTP",
-                             f"ceiling {ceiling:g} dBTP"))
+                             f"limit {ceiling:g} dBTP for the decoded file" if lossy
+                             else f"ceiling {ceiling:g} dBTP"))
     else:
         checks.append(_check("true_peak", "True peak", "fail" if mastered else "warn",
                              f"{tp:.1f} dBTP",

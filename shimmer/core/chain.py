@@ -25,9 +25,6 @@ from .repair import notch as notch_mod
 from .repair.notch import Notch
 from .settings import Settings
 
-# The widest rate an MP3 can hold. Above it, the encoder writes 48 kHz.
-MP3_MAX_SR = 48000
-
 # The built-in tone target's limits: master.tone.tone_curve's defaults (a
 # test holds them equal).
 TONE_MAX_BOOST_DB = 2.0
@@ -265,10 +262,6 @@ def _trim(trim: Optional[Tuple[float, Optional[float]]],
     return d
 
 
-def _mp3(fmt: catalog.Format) -> bool:
-    return fmt.ext == ".mp3"
-
-
 def _rate(fmt: catalog.Format, song_sr: Optional[int]) -> Dict[str, Any]:
     fixed = [f for f in catalog.FORMATS if f.sr]
     kinds = []
@@ -277,32 +270,27 @@ def _rate(fmt: catalog.Format, song_sr: Optional[int]) -> Dict[str, Any]:
         if k not in kinds:
             kinds.append(k)
     rates = _join(sorted({_hz(f.sr) for f in fixed}))
-    paras = [f"Only the 16-bit release copies ({_join(kinds)}) need a set rate: {rates}. "
-             "Other formats keep the song’s own rate.",
+    capped = [f for f in catalog.FORMATS if f.max_sr]
+    paras = [f"The 16-bit release copies ({_join(kinds)}) need a set rate: {rates}. "
+             + "".join(f"{f.label.split()[0]} holds {_hz(f.max_sr)} at most, so a song above "
+                       "that is brought down to it. " for f in capped)
+             + "Other formats keep the song’s own rate.",
              "When it runs, it runs before the fixes and the limiter, so the peak ceiling "
              "holds at the rate that is written."]
     note = "Set by the format in Output."
-    if _mp3(fmt) and song_sr and song_sr > MP3_MAX_SR:
-        return _stage("rate", "Resample", "Changes the sample rate when the format needs it.",
-                      on=False, off=f"the MP3 encoder does it, to {_hz(MP3_MAX_SR)}",
-                      paras=paras + [f"An MP3 can’t hold more than {_hz(MP3_MAX_SR)}. This song "
-                                     f"is at {_hz(song_sr)}, so the encoder writes "
-                                     f"{_hz(MP3_MAX_SR)}. That happens after the limiter; "
-                                     "the peak check after encoding still holds the peaks "
-                                     "under −1.0 dBTP."],
-                      note=note)
-    if not fmt.sr:
+    target = fmt.sr or (fmt.max_sr if fmt.max_sr and song_sr and song_sr > fmt.max_sr else None)
+    if not target:
         return _stage("rate", "Resample", "Changes the sample rate when the format needs it.",
                       on=False, off=f"{fmt.label} keeps the song’s rate", paras=paras, note=note)
-    if song_sr == fmt.sr:
+    if song_sr == target:
         return _stage("rate", "Resample", "Changes the sample rate when the format needs it.",
-                      on=False, off=f"the song is already at {_hz(fmt.sr)}", paras=paras,
+                      on=False, off=f"the song is already at {_hz(target)}", paras=paras,
                       note=note)
-    move = f"{_hz(song_sr)} → {_hz(fmt.sr)}" if song_sr else f"to {_hz(fmt.sr)}"
+    move = f"{_hz(song_sr)} → {_hz(target)}" if song_sr else f"to {_hz(target)}"
     return _stage("rate", "Resample", "Changes the sample rate when the format needs it.",
                   on=True,
-                  verdict=(f"On · {_hz(song_sr)} to {_hz(fmt.sr)}" if song_sr
-                           else f"On · to {_hz(fmt.sr)}"),
+                  verdict=(f"On · {_hz(song_sr)} to {_hz(target)}" if song_sr
+                           else f"On · to {_hz(target)}"),
                   badges=[move], paras=paras, note=note)
 
 
@@ -744,6 +732,10 @@ def _report(s: Settings) -> Dict[str, Any]:
              "checks measure the finished song just before it is written. You get one verdict "
              "first, then any check that needs a look.",
              "It also shows how much each streaming service will turn the song up or down."]
+    if catalog.output_format(s.format).lossy:
+        paras.append("A lossy file is graded as a listener decodes it: its true peak passes "
+                     f"at or under {_db1(catalog.LOSSY_FILE_LIMIT_DBTP)} dBTP. The limiter’s "
+                     "lower ceiling is only room for the encoder.")
     if not s.mastering:
         return _stage("report", "Release check", "Measures the exported file. Changes nothing.",
                       on=False, off="mastering is off",
@@ -797,9 +789,7 @@ def describe_chain(settings: Optional[Settings] = None, *,
     song = dict(song or {})
     fmt = catalog.output_format(s.format)
     song_sr = int(song["sample_rate"]) if song.get("sample_rate") else None
-    out_sr = fmt.sr or song_sr
-    if _mp3(fmt) and out_sr and out_sr > MP3_MAX_SR:
-        out_sr = MP3_MAX_SR
+    out_sr = fmt.rate_for(song_sr) if song_sr else fmt.sr
     picked = set(cards_on if cards_on is not None
                  else [k for k, v in s.fixes.items() if v > 0])
     on_keys = [c.key for c in catalog.CARDS if c.key in picked]

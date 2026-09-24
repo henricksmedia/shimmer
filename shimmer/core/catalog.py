@@ -170,6 +170,14 @@ class Format:
     ceiling_dbtp: float
     bitrate: Optional[str]
     quality: Optional[float] = None   # OGG Vorbis quality, 0-1; None = libsndfile's default
+    max_sr: Optional[int] = None      # the highest rate the format holds (MP3: 48 kHz)
+
+    def rate_for(self, song_sr: int) -> int:
+        """The rate this format is written at, for a song at `song_sr`: the
+        fixed rate, else the song's own, held to max_sr."""
+        if self.sr:
+            return int(self.sr)
+        return int(min(song_sr, self.max_sr)) if self.max_sr else int(song_sr)
 
 
 # Lossy ceilings leave room for the codec's overshoot, set from measurement
@@ -183,8 +191,9 @@ class Format:
 #   both mixes).
 #   M4A, ffmpeg's built-in AAC encoder, overshot by up to +2.9 dB, mid-song on
 #   sharp hits; 320k and VBR were worse (testing/scripts/codec_probe.py). On
-#   drum-heavy songs export() turns an M4A down by up to ~2.5 dB to keep it
-#   from clipping, and says so in its report.
+#   the 30-song test set (2026-09-24) it glitched: turned down on 28 songs,
+#   by up to 6.2 dB. So an M4A now uses the system's AAC encoder when ffmpeg
+#   has one (audio/io.py _aac_encoders); the built-in one is the fallback.
 FORMATS: Tuple[Format, ...] = (
     Format("wav", ".wav", "WAV 24-bit", "PCM_24", None, 24, False, -1.0, None),
     Format("wav16", ".wav", "WAV 16-bit 44.1 kHz", "PCM_16", 44100, 16, False, -1.0, None),
@@ -192,10 +201,20 @@ FORMATS: Tuple[Format, ...] = (
     # The release copy as FLAC: the same audio as WAV 16-bit, about half the
     # size. For upload sites with a file size limit.
     Format("flac16", ".flac", "FLAC 16-bit 44.1 kHz", "PCM_16", 44100, 16, False, -1.0, None),
-    Format("mp3", ".mp3", "MP3 320 kbps", None, None, None, True, -2.0, "320k"),
+    # An MP3 holds 48 kHz at most. Above that, render() resamples first,
+    # as for the release copies, so the ceiling holds at the written rate
+    # (the encoder would otherwise resample after the limiter).
+    Format("mp3", ".mp3", "MP3 320 kbps", None, None, None, True, -2.0, "320k",
+           max_sr=48000),
     Format("ogg", ".ogg", "OGG Vorbis", None, None, None, True, -2.0, None, quality=0.8),
     Format("m4a", ".m4a", "M4A (AAC)", None, None, None, True, -2.0, "256k"),
 )
+
+# What a listener decodes from a lossy file stays at or under this.
+# export() checks every lossy file after encoding and turns it down to hold
+# it; the release check grades the file against it. The lossy ceilings above
+# are only the limiter's aim before encoding.
+LOSSY_FILE_LIMIT_DBTP = -1.0
 
 DEFAULT_FORMAT = "wav"
 
