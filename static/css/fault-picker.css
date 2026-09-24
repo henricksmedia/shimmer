@@ -18,20 +18,35 @@
   transition:background 100ms ease,border-color 100ms ease}
 .hear-tile:hover{background:var(--bg-3);border-color:var(--line-2)}
 .hear-tile:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
-.hear-tile .ms{color:var(--fg-2);margin-bottom:3px}
-.hear-tile .t{font-size:12.5px;font-weight:600;color:var(--fg-0);line-height:1.25}
-.hear-tile .d{font-size:10.5px;color:var(--fg-2);line-height:1.35}
-.hear-tile .st{margin-top:auto;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;
+/* Icon and name share one line, with the full width for the name. */
+.hear-tile .h{display:flex;align-items:flex-start;gap:6px;align-self:stretch}
+.hear-tile .ms{flex:none;font-size:17px;color:var(--fg-2)}
+.hear-tile .t{font-size:12.5px;font-weight:600;color:var(--fg-0);line-height:1.35}
+.hear-tile .d{margin-top:2px;font-size:10.5px;color:var(--fg-2);line-height:1.35}
+/* Where the problem sits: a band bar on the Signal Chain view's
+   20 Hz-20 kHz axis and its range. Grey until found (cyan) or on (amber). */
+.hear-tile{--phase:var(--fg-2)}
+.hear-tile:hover{--phase:var(--fg-1)}
+.hear-tile .bnd{display:flex;flex-direction:column;gap:3px;align-self:stretch;margin-top:auto;padding-top:7px}
+.hear-tile .m-band{display:block;margin:0}
+.hear-tile .m-band-track{display:block;height:4px}
+.hear-tile .m-band-track i.tick{width:2px}
+/* Range on the left, ON / NOTED on the right of the same line. */
+.hear-tile .bl{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:14px}
+.hear-tile .hz{font-family:var(--font-mono);font-size:9.5px;line-height:1.2;color:var(--fg-3)}
+.hear-tile .bst{padding:1px 5px;border-radius:4px;font-size:8.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--fg-2);border:1px solid var(--line-2)}
+.hear-tile .bst.on{color:var(--amber);border-color:rgba(245,165,36,.5)}
+.hear-tile.on{--phase:var(--amber)}
+.hear-tile.on .hz{color:var(--amber)}
+.hear-tile:has(.st.found):not(.on){--phase:var(--cyan)}
+.hear-tile .st{margin-top:5px;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;
   letter-spacing:.05em;text-transform:uppercase}
 .hear-tile .st.found{color:var(--cyan);border:1px solid rgba(56,189,248,.45);background:rgba(56,189,248,.08)}
 .hear-tile .st.nofix{color:var(--fg-3);border:1px dashed var(--line-2)}
 .hear-tile.on{background:var(--amber-soft);border-color:rgba(245,165,36,.5)}
 .hear-tile.on .ms{color:var(--amber)}
-.hear-tile.on::after,.hear-tile.noted::after{position:absolute;top:7px;right:7px;padding:1px 5px;
-  border-radius:4px;font-size:8.5px;font-weight:700;letter-spacing:.08em}
-.hear-tile.on::after{content:"ON";color:var(--amber);border:1px solid rgba(245,165,36,.5)}
 .hear-tile.noted{border-color:var(--line-2)}
-.hear-tile.noted::after{content:"NOTED";color:var(--fg-2);border:1px solid var(--line-2)}
 .hear-fixes{display:block;margin-top:12px}
 .fx-row{display:flex;flex-direction:column;gap:5px;padding:8px 0;border-top:1px solid var(--line)}
 .pb-effect-label + .fx-row{border-top:none;padding-top:2px}

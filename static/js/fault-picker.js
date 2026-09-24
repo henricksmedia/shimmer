@@ -66,6 +66,30 @@ function bandText(band) {
     return hi == null ? `above ${f(lo)}` : `${f(lo)}–${f(hi)}`.replace(' kHz–', '–');
 }
 
+// Where a card's problem sits: the same log axis (20 Hz-20 kHz) and bar as
+// the Signal Chain view. A range is lit; Fixed tones marks each tone found;
+// Loudness covers the whole mix.
+const bandPos = (hz) => Math.log10(Math.max(20, Math.min(20000, hz)) / 20) / 3 * 100;
+
+function bandStrip(c) {
+    let label, fill = '', cls = '';
+    if (c.band_hz) {
+        const [lo, hi] = c.band_hz;
+        const left = bandPos(lo), right = bandPos(hi ?? 20000);
+        label = c.band;
+        fill = `<i style="left:${left.toFixed(2)}%;width:${(right - left).toFixed(2)}%"></i>`;
+    } else if (c.key === 'tones') {
+        label = 'One pitch';
+        fill = (c.foundHz || []).map((hz) => `<i class="tick" style="left:${(bandPos(hz) - 0.5).toFixed(2)}%"></i>`).join('');
+    } else {
+        label = 'Whole mix';
+        cls = ' whole';
+        fill = '<i style="left:0;width:100%"></i>';
+    }
+    const state = c.on ? '<span class="bst on">On</span>' : (c.noted ? '<span class="bst">Noted</span>' : '');
+    return `<span class="bnd"><span class="m-band${cls}"><span class="m-band-track">${fill}</span></span><span class="bl"><span class="hz">${label}</span>${state}</span></span>`;
+}
+
 function foundText(card, list) {
     if (card === 'tones') {
         return list.length === 1 ? `${(list[0].value / 1000).toFixed(2)} kHz`
@@ -95,7 +119,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
     const ready = new Set(rules.tools_ready || []);
     const cards = rules.cards.map((c) => ({
         key: c.key, label: c.label, desc: c.descriptor, tip: c.tip, icon: c.icon,
-        group: c.group, tool: c.tool,
+        group: c.group, tool: c.tool, band_hz: c.band_hz,
         toolLabel: c.tool ? (rules.tool_labels[c.tool] || c.tool) : null,
         ready: !!c.tool && ready.has(c.tool),
         master: c.tool === 'tone_target' || c.tool === 'loudness_target',
@@ -103,7 +127,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         amount: Math.round((c.default_amount ?? rules.default_amount ?? 0.5) * 100),
         modes: c.modes || [], mode: (c.modes && c.modes.length) ? c.modes[0][0] : null,
         caution: c.caution || null,
-        on: false, by: null, found: null, noted: false, userOff: false,
+        on: false, by: null, found: null, foundHz: null, noted: false, userOff: false,
     }));
     const byKey = new Map(cards.map((c) => [c.key, c]));
 
@@ -118,8 +142,8 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         if (c.found) chip = `<span class="st found">Found · ${c.found}</span>`;
         else if (!c.tool) chip = '<span class="st nofix">No fix yet</span>';
         else if (!c.ready) chip = '<span class="st nofix">Not built yet</span>';
-        b.innerHTML = `<span class="ms" aria-hidden="true">${c.icon}</span>
-            <span class="t">${c.label}</span><span class="d">${c.desc}</span>${chip}`;
+        b.innerHTML = `<span class="h"><span class="ms" aria-hidden="true">${c.icon}</span><span class="t">${c.label}</span></span>
+            <span class="d">${c.desc}</span>${bandStrip(c)}${chip}`;
         b.onclick = async () => {
             if (c.ready && !c.on && c.caution && !cautionSeen(c.key)) {
                 // Asked once per computer, the first time it is turned on.
@@ -200,6 +224,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
     function setFindings(findings) {
         cards.forEach((c) => {
             c.found = null;
+            c.foundHz = null;
             if (c.by === 'Analyze') { c.on = false; c.by = null; }
         });
         const groups = new Map();
@@ -211,6 +236,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
             const c = byKey.get(key);
             if (!c) return;
             c.found = foundText(key, list);
+            if (key === 'tones') c.foundHz = list.map((f) => f.value);
             // Fixed tones is the proven tool: Analyze turns it on, unless
             // the user turned it off for this song.
             if (key === 'tones' && c.ready && !c.userOff && !c.on) { c.on = true; c.by = 'Analyze'; }
@@ -278,7 +304,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         cards.forEach((c) => {
             const keep = keepPicks && c.on && c.by === 'you';
             if (!keep) { c.on = false; c.by = null; }
-            c.found = null; c.noted = false; c.userOff = false;
+            c.found = null; c.foundHz = null; c.noted = false; c.userOff = false;
         });
         render();
     }
