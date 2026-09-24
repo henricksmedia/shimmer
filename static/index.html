@@ -87,7 +87,7 @@
                 <input type="file" id="file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" hidden>
                 <div class="dropzone-inner">
                     <div class="dropzone-primary">Drop a track to clean &amp; master</div>
-                    <div class="dropzone-secondary">Suno exports welcome — Shimmer removes AI artifacts, then masters for release.</div>
+                    <div class="dropzone-secondary">AI song exports welcome — Shimmer removes AI artifacts, then masters for release.</div>
                     <button type="button" class="btn btn-primary step-btn" data-step="1" id="pick-file-btn">Choose file…</button>
                     <div class="dropzone-formats">.wav · .mp3 · .flac · .ogg · .m4a</div>
                     <div class="selected-file" id="selected-file" hidden></div>
@@ -1167,6 +1167,26 @@
     </div>
 </div>
 
+<!-- ───────────── Card caution (a fix that needs the right song) ───────────── -->
+<div id="card-caution-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
+     aria-labelledby="card-caution-title">
+    <div class="process-modal card second-pass-card" role="document">
+        <div class="sp-kicker"><span class="sp-warn" aria-hidden="true">!</span>Before you turn this on</div>
+        <div class="process-modal-title sp-title" id="card-caution-title"></div>
+        <p class="sp-lead" id="card-caution-lead"></p>
+        <p class="sp-why" id="card-caution-why"></p>
+        <div class="second-pass-actions">
+            <button type="button" class="btn btn-primary sp-primary" id="card-caution-on">
+                <span class="sp-btn-main">Turn it on</span>
+                <span class="sp-btn-sub">You can change its Amount after</span>
+            </button>
+            <div class="sp-row">
+                <button type="button" class="btn btn-ghost" id="card-caution-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ───────────── Clean & Master progress modal ───────────── -->
 <div id="process-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
      aria-labelledby="process-modal-title">
@@ -1512,6 +1532,22 @@
                 </div>
 
                 <div class="help-card">
+                    <h4>A grainy hiss on the voice that never quite goes away</h4>
+                    <p><b>Fix:</b> turn on <b>Vocal grain</b>. It runs the voice
+                    de-noise, which takes out a steady hiss, a hiss that follows the
+                    voice, and sharp little spikes, strongest at 4&ndash;8 kHz. It is
+                    often worse later in the song.</p>
+                    <p>The first time you turn it on, Shimmer asks you to check: on
+                    a song without grain, this fix takes some sparkle away. Listen
+                    to the Removed track (key 3). It should hold only hiss and
+                    grit.</p>
+                    <p><b>Works on:</b> <b>Centre of the mix</b> needs nothing extra.
+                    <b>Vocal only</b> splits out the vocal first with the Remix
+                    splitter, so cymbals in the centre are left alone. The first
+                    split takes a minute or more.</p>
+                </div>
+
+                <div class="help-card">
                     <h4>Harsh, spitty "s" and "sh" on the vocals</h4>
                     <p><b>Fix:</b> turn on <b>Sibilance</b>. It runs a de-esser, which
                     turns down harsh "s", "t" and "ch" only while they stick out. If
@@ -1521,8 +1557,9 @@
                 <div class="help-card">
                     <h4>Piercing upper mids that come and go</h4>
                     <p><b>Fix:</b> turn on <b>Harshness</b>. It runs a dynamic EQ that
-                    cuts a narrow band in the upper mids only while it rings out
-                    above the rest of the mix.</p>
+                    finds the narrow band in the upper mids that sticks out most, and
+                    turns it down only while it is louder than usual for the
+                    song.</p>
                 </div>
 
                 <div class="help-card">
@@ -1553,9 +1590,9 @@
                     <h4>The result sounds dull or lifeless</h4>
                     <p><b>What is happening:</b> a fix is taking too much out of the
                     top end.</p>
-                    <p><b>Fix:</b> lower the <b>Amount</b> on <b>Shimmer</b> or
-                    <b>Sibilance</b> first. Turn off any card for a problem you
-                    cannot hear. If the song was dull to start with, try <b>Lack of
+                    <p><b>Fix:</b> lower the <b>Amount</b> on <b>Vocal grain</b>,
+                    <b>Shimmer</b> or <b>Sibilance</b> first. Turn off any card for
+                    a problem you cannot hear. If the song was dull to start with, try <b>Lack of
                     air</b>, which sets Tilt to Bright in Mastering.</p>
                 </div>
 
@@ -1579,7 +1616,9 @@
                     <h4>Cymbals lost their sparkle</h4>
                     <p><b>What is happening:</b> cymbals share the top end with the
                     fizz, so a deep cut can take some of their shine.</p>
-                    <p><b>Fix:</b> lower the <b>Amount</b> on <b>Shimmer</b>.</p>
+                    <p><b>Fix:</b> lower the <b>Amount</b> on <b>Shimmer</b>. With
+                    <b>Vocal grain</b> on, set its <b>Works on</b> to <b>Vocal
+                    only</b>, so it leaves the cymbals alone.</p>
                 </div>
 
                 <div class="help-card">

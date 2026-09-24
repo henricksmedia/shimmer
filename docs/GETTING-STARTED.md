@@ -1,4 +1,4 @@
-# Getting started with Shimmer 2.0.0
+# Getting started with Shimmer 2.0.1
 
 Shimmer is a free app that cleans and masters songs made with AI music
 tools such as Suno and Udio. It runs on your own computer, on Windows,
@@ -8,7 +8,7 @@ never uploaded.
 This guide is for you if you have just downloaded Shimmer. You do not need
 to know how to master a song. The steps are in the order you will do them.
 
-Version 2.0.0 came out on 2026-09-13. Shimmer is made by The Treq.
+Version 2.0.1 came out on 2026-09-24. Shimmer is made by The Treq.
 
 **How to read this guide.** Words in **bold** are the words you will see on
 the screen: buttons, menus, cards and switches. When a sound term comes up
@@ -28,7 +28,7 @@ For every feature in detail, see [FEATURES.md](FEATURES.md).
 8. [The Settings tab and "Remember settings"](#8-the-settings-tab-and-remember-settings)
 9. [The command line in three examples](#9-the-command-line-in-three-examples)
 10. [If something goes wrong](#10-if-something-goes-wrong)
-11. [What is not in 2.0.0 yet](#11-what-is-not-in-200-yet)
+11. [What is not in 2.0.1 yet](#11-what-is-not-in-201-yet)
 
 ---
 
@@ -140,7 +140,7 @@ Shimmer is still running, the launcher closes it first.
 
 ## 3. Updating from 1.1.1
 
-1. Get 2.0.0 the same way you got 1.1.1: download the new release zip, or
+1. Get 2.0.1 the same way you got 1.1.1: download the new release zip, or
    run `git pull` in your clone.
 2. Launch it as before, with `start.bat` or `./start.sh`.
 3. Wait while the launcher installs the new libraries 2.0 needs. It sees
@@ -175,7 +175,7 @@ Two things to check:
   (−9 LUFS). 1.1.1 started at −14 LUFS. If you had saved Streaming, you
   still get −14 LUFS until you pick another target.
 - **Stems you already split.** They are kept in the `stem_cache` folder
-  inside the Shimmer folder. If you unzipped 2.0.0 into a new folder,
+  inside the Shimmer folder. If you unzipped 2.0.1 into a new folder,
   copy `stem_cache` from the old folder into the new one. A new folder
   also means the first-time setup runs once more.
 
@@ -270,13 +270,14 @@ not part of your music.
 
 Each card turns on one tool:
 
-| Card | What you hear | What it turns on | State in 2.0.0 |
+| Card | What you hear | What it turns on | State in 2.0.1 |
 |---|---|---|---|
 | **Shimmer** | Fizzy, flickering hiss up top | **Spectral de-noise**: turns noise down frequency by frequency, from 1.5 to 16 kHz | On, to try |
+| **Vocal grain** | Grainy hiss riding on the voice | **Voice de-noise**: takes out a steady hiss, a hiss that follows the voice, and sharp little spikes, strongest at 4 to 8 kHz | New, to try. Asks you to check the first time |
 | **Fixed tones** | A whistle or whine that never changes | **Notch filter**: a very narrow cut at each steady tone, so the music on either side is kept | Ready. Analyze turns it on |
 | **Sibilance** | Harsh, spitty "s" and "sh" | **De-esser**: turns down 4.5 to 10 kHz only while an "s", "sh", "t" or "ch" sticks out | On, to try |
 | **Clicks and crackle** | Short pops, ticks or static | **De-click**: finds short pops and fills them in | Not built yet. Changes nothing |
-| **Harshness** | Piercing, painful upper mids | **Dynamic EQ** (2 to 5 kHz): an EQ cut that only works while a band gets too loud | On, to try |
+| **Harshness** | Piercing, painful upper mids | **Dynamic EQ** (2 to 5 kHz): turns the band that sticks out most down while it is louder than usual | On, to try |
 | **Phasiness** | Grainy or watery reverb tails | Nothing yet | No fix yet. Changes nothing |
 | **Low-mid build-up** | Muddy, boxy, words hard to hear | **Dynamic EQ** (200 to 500 Hz) | On, to try |
 | **Lack of air** | Dull, no sparkle | Sets **Tilt** to Bright in Mastering | Ready |
@@ -297,6 +298,12 @@ A few more things:
 
 - **Lack of air** and **Loudness** change Mastering settings instead of
   running a fix. Turning either one on turns mastering on.
+- **Vocal grain asks first.** The first time you turn it on, a box asks
+  you to check: on a song without grain, this fix takes some sparkle away.
+  Listen to the Removed track. It should hold only hiss and grit. Its
+  **Works on** menu picks **Centre of the mix** (needs nothing extra) or
+  **Vocal only**, which splits out the vocal first with the Remix splitter
+  and leaves cymbals alone. The first split takes a minute or more.
 - **The Shimmer card takes a while the first time.** Its spectral
   de-noise reads the whole song once: about 50 seconds for a 3-minute
   song. The status line at the bottom says "Getting ready for this
@@ -499,7 +506,7 @@ time** off.
    Sample rate, Fixes, Tone, EQ, Master, Export, Report. A stage that does
    not run for this song is dashed.
 
-There is no Cancel button in 2.0.0, so let the run finish. If the Shimmer
+There is no Cancel button yet, so let the run finish. If the Shimmer
 card is on and has not read the song yet, that read happens now, and the
 window shows it under Fixes.
 
@@ -569,8 +576,8 @@ Processed track, but Removed shows it.
 
 **Start gentle.** Turn on only the cards for problems you can hear. Leave
 each Amount where it starts, then change it in small steps. Turning all
-four fixes (Shimmer, Sibilance, Harshness, Low-mid build-up) up to 100 %
-at once can take too much.
+five fixes (Shimmer, Vocal grain, Sibilance, Harshness, Low-mid build-up)
+up to 100 % at once can take too much.
 
 **Compare at matched loudness.** Keep **Loudness-matched A/B** on. Switch
 between **1** and **2** often. Louder fools your ears.
@@ -841,7 +848,7 @@ Good to know:
 | The preview is slow after you turn on **Shimmer** | This is the first read of the song: about 50 seconds for a 3-minute song. Watch the status line at the bottom |
 | "Download failed" and "the result is gone" | Shimmer was restarted since the run. Run **Clean & Master** again |
 | The export is quieter than other songs | Check that **Master for release** is on, and that the **Loudness target** is **Commercial** |
-| The result sounds dull, or cymbals lost their sparkle | Lower the **Amount** on **Shimmer** or **Sibilance**. Turn off any card for a problem you cannot hear |
+| The result sounds dull, or cymbals lost their sparkle | Lower the **Amount** on **Vocal grain**, **Shimmer** or **Sibilance**. Turn off any card for a problem you cannot hear. With Vocal grain on, try **Works on: Vocal only** |
 | Vocals sound lispy, or the "s" sounds went missing | Lower the **Amount** on **Sibilance** |
 | The low end or the voice feels thin | Lower the **Amount** on **Low-mid build-up**, or turn it off. Check the **Parametric EQ** for a cut you did not mean |
 | A warble or an "underwater" sound appeared | Lower the **Amount** on **Shimmer**. Try half and listen again |
@@ -873,7 +880,7 @@ installed.
 
 ---
 
-## 11. What is not in 2.0.0 yet
+## 11. What is not in 2.0.1 yet
 
 - **Clicks and crackle and Phasiness have no working fix.** The de-click
   is built but has not passed its tests, so the card says **Not built

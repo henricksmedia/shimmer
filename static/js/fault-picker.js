@@ -12,6 +12,53 @@
 // this computer to help test new fixes.
 
 const NOTED_KEY = 'shimmer.notedCards';
+const CAUTION_KEY = 'shimmer.cautionSeen';
+
+function cautionSeen(key) {
+    try { return (JSON.parse(localStorage.getItem(CAUTION_KEY) || '[]')).includes(key); }
+    catch (_) { return false; }
+}
+
+function markCautionSeen(key) {
+    try {
+        const seen = JSON.parse(localStorage.getItem(CAUTION_KEY) || '[]');
+        if (!seen.includes(key)) seen.push(key);
+        localStorage.setItem(CAUTION_KEY, JSON.stringify(seen));
+    } catch (_) { /* storage off: it asks again next time */ }
+}
+
+/**
+ * The card's caution (catalog.Card.caution), in the same dialog as the
+ * master-once reminder. Resolves true to turn the card on, false to leave
+ * it off. Without the dialog in the page, it turns the card on.
+ */
+function askCaution(c) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('card-caution-modal');
+        if (!modal || !c.caution) { resolve(true); return; }
+        const [title, lead, why] = c.caution;
+        document.getElementById('card-caution-title').textContent = title;
+        document.getElementById('card-caution-lead').textContent = lead;
+        document.getElementById('card-caution-why').textContent = why;
+        const on = document.getElementById('card-caution-on');
+        const cancel = document.getElementById('card-caution-cancel');
+        const finish = (yes) => {
+            modal.hidden = true;
+            on.removeEventListener('click', onOn);
+            cancel.removeEventListener('click', onCancel);
+            document.removeEventListener('keydown', onKey);
+            resolve(yes);
+        };
+        const onOn = () => finish(true);
+        const onCancel = () => finish(false);
+        const onKey = (e) => { if (e.key === 'Escape') finish(false); };
+        on.addEventListener('click', onOn);
+        cancel.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKey);
+        modal.hidden = false;
+        on.focus();
+    });
+}
 
 function bandText(band) {
     const [lo, hi] = band;
@@ -55,6 +102,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         band: c.band_hz ? bandText(c.band_hz) : '',
         amount: Math.round((c.default_amount ?? rules.default_amount ?? 0.5) * 100),
         modes: c.modes || [], mode: (c.modes && c.modes.length) ? c.modes[0][0] : null,
+        caution: c.caution || null,
         on: false, by: null, found: null, noted: false, userOff: false,
     }));
     const byKey = new Map(cards.map((c) => [c.key, c]));
@@ -72,7 +120,12 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         else if (!c.ready) chip = '<span class="st nofix">Not built yet</span>';
         b.innerHTML = `<span class="ms" aria-hidden="true">${c.icon}</span>
             <span class="t">${c.label}</span><span class="d">${c.desc}</span>${chip}`;
-        b.onclick = () => {
+        b.onclick = async () => {
+            if (c.ready && !c.on && c.caution && !cautionSeen(c.key)) {
+                // Asked once per computer, the first time it is turned on.
+                if (!(await askCaution(c))) return;
+                markCautionSeen(c.key);
+            }
             if (!c.ready) {
                 c.noted = !c.noted;
                 if (c.noted) countNoted(c.key);

@@ -77,6 +77,20 @@ def test_no_service_names_in_anything_the_user_reads():
 
 
 @catalog_
+def test_a_caution_has_its_three_parts_and_names_no_service():
+    # Vocal grain is over the 0.10-sone limit on clean songs, so it asks
+    # first (CHANGELOG 2.0.1).
+    from shimmer.core import catalog
+    assert catalog.card("grain").caution is not None
+    for c in catalog.CARDS:
+        if c.caution is None:
+            continue
+        assert len(c.caution) == 3 and all(c.caution), c.key
+        for name in SERVICE_NAMES:
+            assert name not in " ".join(c.caution).lower(), c.key
+
+
+@catalog_
 def test_the_loudness_choices_stay_as_they_are():
     from shimmer.core import catalog
     assert {t.key: t.lufs for t in catalog.LOUDNESS_TARGETS} == {

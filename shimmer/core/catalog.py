@@ -36,8 +36,9 @@ TOOL_LABELS = {"notch": "Notch filter", "declick": "De-click", "deesser": "De-es
 # though it passes on only one of its four fault models; the blind round
 # on real songs decides. The de-click stays off until it finds pops in
 # dense music. The voice de-noise (Vocal grain) is on to try: the author
-# picked it by ear in listening rounds 5-14 (2026-09-23), on one song so far;
-# its Amount top is set from measured cost before release (CHAIN-AUDIT §6).
+# picked it by ear in listening rounds 5-16 (2026-09-23) and kept it at
+# 50 %, over the 0.10-sone limit on clean songs, so its card carries a
+# caution that shows the first time it is turned on (CHANGELOG 2.0.1).
 TOOLS_READY = ("notch", "tone_target", "loudness_target", "deesser", "dynamic_eq",
                "spectral_denoise", "voice_denoise")
 
@@ -59,6 +60,10 @@ class Card:
     # Ways the fix can work, as (key, label); the first is the default. Empty
     # for a fix with one way. Settings.fix_modes holds a card's choice.
     modes: Tuple[Tuple[str, str], ...] = ()
+    # A warning shown the first time the card is turned on, as (title, lead,
+    # why), for a fix that can cost a song without the problem more than the
+    # 0.10-sone limit the others keep to; None for most cards.
+    caution: Optional[Tuple[str, str, str]] = None
 
 
 CARDS: Tuple[Card, ...] = (
@@ -70,7 +75,12 @@ CARDS: Tuple[Card, ...] = (
          "goes away, often worse later in the song.",
          "noise_aware", "artifacts", "voice_denoise", (3500.0, 10000.0),
          modes=(("centre", "Centre of the mix"),
-                ("vocal", "Vocal only (uses the Remix splitter)"))),
+                ("vocal", "Vocal only (uses the Remix splitter)")),
+         # On five clean songs it took 0.17-2.1 sones at 50 % (CHANGELOG 2.0.1).
+         caution=("Only for songs with vocal grain",
+                  "This fix thins the steady top end of the voice.",
+                  "On a song without grain, it takes some sparkle away. Listen to the "
+                  "Removed track: it should hold only hiss and grit.")),
     Card("tones", "Fixed tones", "A whistle or whine that never changes",
          "Steady tones the generator leaves at one pitch for the whole song.",
          "sports", "artifacts", "notch", None, default_amount=1.0),

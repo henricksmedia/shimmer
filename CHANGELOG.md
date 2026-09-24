@@ -22,9 +22,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
   - Its Amount starts at 50 %. It was picked by ear on the author's songs.
     Unlike the other fixes, it is not held to the 0.10-sone limit: on five
     clean songs it took 0.17-2.1 sones at 50 %, because it also thins the
-    steady top end of a song that has no grain. Turn it on only when you
-    hear the grain, and check the Removed track: it should hold only hiss
-    and grit.
+    steady top end of a song that has no grain. The first time you turn it
+    on, a box says so and asks you to confirm. Check the Removed track: it
+    should hold only hiss and grit.
+- **Help** covers the new card: the card guide, a problem-and-fix entry,
+  and a new answer in the "What do you hear?" quiz.
 
 ### Changed
 
@@ -44,6 +46,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The upload box and one quiz answer named a music service. They now say
+  "AI song" and describe the sound instead.
 - The tone curve could boost past the song's top cutoff, and with no cutoff
   found it boosted 16-20 kHz, which was mostly noise. It no longer boosts
   either.

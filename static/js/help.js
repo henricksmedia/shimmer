@@ -134,6 +134,19 @@ const PRESET_RESULTS = {
     },
 };
 
+// Quiz results for cards no 1.x preset turns on. Same shape as a preset
+// result, with no `label`: the answer names the card and says nothing about
+// the Remix and Batch preset menus.
+const CARD_RESULTS = {
+    vocal_grain: {
+        key: 'vocal_grain', card: 'grain',
+        why: 'A steady, gritty hiss that rides on the lead vocal, strongest ' +
+             'at 4-8 kHz. It follows the voice and is often worse later in ' +
+             'the song. The Shimmer card does not catch it: Shimmer is for ' +
+             'a flickering fizz.',
+    },
+};
+
 // Quiz tree: questions narrow the user from "where do you hear it?" down to
 // a preset, and the result names the card that preset turns on. Each step
 // is { type: 'question', prompt, options: [{label, next}] }, where `next`
@@ -158,7 +171,8 @@ const QUIZ = {
         prompt: 'What does it sound like on the vocals?',
         options: [
             { label: 'The voice itself sounds glassy or plastic',                  next: 'vocal_glaze' },
-            { label: 'A glassy voice plus fizzy sizzle up top (common with Suno)', next: 'vocal_glaze_plus' },
+            { label: 'A glassy voice plus fizzy sizzle up top',                   next: 'vocal_glaze_plus' },
+            { label: 'A grainy hiss on the voice that never quite goes away',       next: 'vocal_grain' },
             { label: 'A flickering, metallic hiss that follows the voice',         next: 'suno_hash' },
             { label: 'Harsh, spitty "s" and "sh" sounds',                          next: 'sibilance_rattle' },
             { label: 'Fizz that follows every note and stops in silence',          next: 'echo_sheen' },
@@ -259,9 +273,11 @@ const CARD_HELP = {
             'holds only hiss and grit.',
         down: 'The voice sounds dull or lispy, the hi-hats lose their snap, ' +
               'or you hear words in the Removed track.',
-        note: 'The first time this card is on for a song, it reads the whole ' +
-              'song once, so it can follow the hiss as it grows. After that, ' +
-              'the preview is quick. Works on: Centre of the mix needs nothing ' +
+        note: 'The first time you turn it on, Shimmer asks you to check the ' +
+              'Removed track: on a song without grain, this fix takes some ' +
+              'sparkle away. The first time this card is on for a song, it ' +
+              'reads the whole song once, so it can follow the hiss as it grows. ' +
+              'After that, the preview is quick. Works on: Centre of the mix needs nothing ' +
               'extra. Vocal only splits out the vocal first with the Remix ' +
               'splitter, which is more precise when cymbals sit in the centre ' +
               'with the voice. The first split takes a minute or more. If the ' +
@@ -500,7 +516,7 @@ function renderQuiz(host) {
                 const b = el('button', 'quiz-option', opt.label);
                 b.type = 'button';
                 b.addEventListener('click', () => {
-                    if (PRESET_RESULTS[opt.next]) {
+                    if (PRESET_RESULTS[opt.next] || CARD_RESULTS[opt.next]) {
                         renderResult(opt.next);
                     } else {
                         state.stepId = opt.next;
@@ -535,7 +551,7 @@ function renderQuiz(host) {
     };
 
     const renderResult = async (presetKey) => {
-        const r = PRESET_RESULTS[presetKey];
+        const r = PRESET_RESULTS[presetKey] || CARD_RESULTS[presetKey];
         let rules = null;
         try { rules = await loadRules(); } catch (_) { /* words only */ }
         host.innerHTML = '';
@@ -570,11 +586,13 @@ function renderQuiz(host) {
         }
         card.appendChild(el('p', 'quiz-body', master));
 
-        const inRemix = info
-            ? `In Remix or Batch, the ${r.label} preset turns on the same card.` +
-              (info.ready ? '' : ' For now, that does not change the sound.')
-            : `In Remix or Batch, the ${r.label} preset turns on no card.`;
-        card.appendChild(el('p', 'quiz-body', inRemix));
+        if (r.label) {
+            const inRemix = info
+                ? `In Remix or Batch, the ${r.label} preset turns on the same card.` +
+                  (info.ready ? '' : ' For now, that does not change the sound.')
+                : `In Remix or Batch, the ${r.label} preset turns on no card.`;
+            card.appendChild(el('p', 'quiz-body', inRemix));
+        }
 
         const row = el('div', 'quiz-actions');
         row.append(goButton(info), restartButton());
