@@ -280,6 +280,7 @@ export function createUnifiedPlayer({
     lufsTargetEl,
     getShimmerBand = () => ({ lo: 5100, hi: 7200 }),
     onTimeUpdate = null,
+    onTrackUnavailable = null,   // (key) => ..., a click or key on a track not rendered yet
 }) {
     const state = {
         active: 'original',
@@ -588,7 +589,11 @@ export function createUnifiedPlayer({
     }
 
     function setTrack(key) {
-        if (!TRACK_KEYS.includes(key) || !state.available[key]) return;
+        if (!TRACK_KEYS.includes(key)) return;
+        if (!state.available[key]) {
+            if (onTrackUnavailable) onTrackUnavailable(key);
+            return;
+        }
         if (key === state.active) return;
         if (state.preview) {
             // Loop sources share one clock: switching is a crossfade,
@@ -619,8 +624,8 @@ export function createUnifiedPlayer({
             const avail = !!state.available[key];
             btn.classList.toggle('active', key === state.active);
             // aria-disabled (not the `disabled` attribute) keeps the button
-            // hoverable so its tooltip can explain how to enable the track;
-            // setTrack ignores clicks on unavailable tracks either way.
+            // hoverable and clickable: a click on a track not rendered yet
+            // goes to onTrackUnavailable, which starts a render.
             btn.setAttribute('aria-disabled', String(!avail));
             const ready = btn.dataset.titleReady;
             if (ready) btn.title = avail ? ready : (btn.dataset.titleDisabled || ready);

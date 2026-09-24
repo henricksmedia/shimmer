@@ -5,6 +5,17 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.3] — 2026-09-24
+
+### Changed
+
+- **Clicking a dimmed Processed or Removed now does something.** They play
+  rendered audio, so they stay dimmed until Live preview or Clean & Master
+  has rendered some. A click on one (or pressing 2 or 3) used to do
+  nothing; now it turns on **Live** and plays that track as soon as the
+  loop is ready. The note under them says "click Processed to render"
+  instead of "waiting for render", and the tooltips say what a click does.
+
 ## [2.1.2] — 2026-09-24
 
 ### Changed

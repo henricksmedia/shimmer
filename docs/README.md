@@ -7,7 +7,8 @@ Vocal grain card and the fixes from [CHAIN-AUDIT.md](CHAIN-AUDIT.md)
 (plan A). 2.1.0 added the Analysis checklist, the cards' band bars, and
 launchers that keep a git clone on the latest release. 2.1.1 added the
 next-step bar after Analyze, and 2.1.2 set the Suggested EQ apart
-in the checklist, with a link down to its moves.
+in the checklist, with a link down to its moves. 2.1.3 made a click
+on a dimmed Processed or Removed turn on Live.
 
 For the user-facing introduction, see the [root README](../README.md).
 

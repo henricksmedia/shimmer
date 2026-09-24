@@ -322,6 +322,10 @@ Press **3** (or click **Removed**) to hear the Removed track. It is what the
 fixes took out, and nothing else: the song before the fixes, less the song
 after them. It does not include the tone curve, the EQ or mastering.
 
+Processed and Removed play rendered audio, so they are dimmed until Live
+preview or Clean & Master has rendered some. Clicking a dimmed one (or
+pressing 2 or 3) turns on Live and plays that track once the loop is ready.
+
 - It is marked **boosted**: the player turns it up so you can hear it. That
   boost is a monitoring level only and never goes into a file.
 - It should sound like hiss, fizz, whistles or sizzle. If you hear vocals,

@@ -544,6 +544,7 @@ export async function initSingleTab() {
     // never fires again on any later visit.
     const NUDGE_KEY = 'shimmer.previewNudgeSeen';
     let previewNudged = false;  // this session, avoid repeat pulses
+    let wantTrack = null;       // Processed / Removed, clicked before a render: play it when one lands
     const nudgeSeen = () => {
         try { return !!localStorage.getItem(NUDGE_KEY); } catch (_) { return false; }
     };
@@ -770,6 +771,17 @@ export async function initSingleTab() {
             const v = controls.getValues();
             return { lo: v.start_hz || 5100, hi: v.end_hz || 7200 };
         },
+        // Processed and Removed need a render first. A click (or key 2/3)
+        // on one not rendered yet turns on Live, and the loop switches to
+        // that track when it lands, instead of the click doing nothing.
+        onTrackUnavailable: (key) => {
+            if (!currentFile) return;
+            wantTrack = key;
+            if (!previewState.active) {
+                previewToggle.checked = true;
+                applyPreviewToggle(true);
+            }
+        },
     });
     player.attachKeyboard();
     player.setTargetLufs(loudnessLufs(RULES, masterTarget.value));
@@ -825,7 +837,8 @@ export async function initSingleTab() {
             let txt = '';
             if (abLoudnessMatch.checked) {
                 if (d == null) {
-                    txt = '(waiting for render)';
+                    txt = !currentFile ? ''
+                        : (previewState.active ? '(rendering the loop)' : '(click Processed to render)');
                 } else if (Math.abs(dd) >= 0.1) {
                     const side = dd > 0 ? 'Processed' : 'Original';
                     txt = `${side} −${Math.abs(dd).toFixed(1)} dB`;
@@ -2960,6 +2973,10 @@ export async function initSingleTab() {
             startS: start,
             endS: end,
         });
+        if (wantTrack) {
+            player.setTrack(wantTrack);
+            wantTrack = null;
+        }
         const meta = entry.meta || {};
         previewMatchDb =
             (typeof meta.lufs_processed === 'number' &&
@@ -3163,6 +3180,7 @@ export async function initSingleTab() {
                 previewState.debounceTimer = null;
             }
             previewState.renderPending = false;
+            wantTrack = null;
             player.exitPreview();
             player.setSource('processed', null);
             player.setSource('removed', null);
