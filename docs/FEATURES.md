@@ -154,6 +154,15 @@ never changes it. It:
 - moves the preview loop to where the top end is busiest
 - plans a **Suggested EQ** (see [2.9](#29-eq-and-suggested-eq))
 
+**The Analysis card is a checklist.** Each thing Analyze found is one row:
+a box to tick, what ticking it does ("Notch it", "Set to Commercial", "Add
+to the EQ"), and a word saying whether it is **On** now, **Not on yet**, or
+**Optional**. What Analyze recommends starts ticked; the Suggested EQ starts
+unticked, as optional. **Apply** makes the sound match the ticks: "Apply 1
+fix", or "Apply 2 changes" when it also turns something off. When nothing is
+waiting, it says "Everything you ticked is on". A change made elsewhere (a
+card on the left, the Loudness menu, the EQ) shows up in the list at once.
+
 **Expand** opens the analysis in a bigger panel over the page, with a
 **Loop the worst part** button.
 

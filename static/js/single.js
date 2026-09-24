@@ -590,6 +590,7 @@ export async function initSingleTab() {
     let lastTonePlan = null;
     let toneAppliedBands = [];
     let toneApplied = false;
+    let syncAnalysisChecklist = null;   // re-reads the Analysis checklist's rows
     const toneStrip = $('tone-strip');
     const stateEls = {
         eq: $('state-eq'), master: $('state-master'), output: $('state-output'), tags: $('state-tags'),
@@ -651,7 +652,11 @@ export async function initSingleTab() {
     // "What do you hear?": its picks go to the engine as fixes/auto. The
     // cards that live in Mastering (Loudness, Lack of air) set its controls.
     const picker = await initFaultPicker({
-        onChange: () => { pushSettings(); schedulePreviewRender(); },
+        onChange: () => {
+            pushSettings();
+            schedulePreviewRender();
+            if (syncAnalysisChecklist) syncAnalysisChecklist();
+        },
         onMasterCard: (key, on) => {
             if (!on && key === 'loudness') return;
             if (on && !masterEnabled.checked) {
@@ -1048,6 +1053,7 @@ export async function initSingleTab() {
         lastTonePlan = null;
         toneAppliedBands = [];
         toneApplied = false;
+        syncAnalysisChecklist = null;
         // The previous track's analysis (and its suggested EQ) must not
         // sit under a new file.
         autoDetectResults.hidden = true;
@@ -1314,7 +1320,11 @@ export async function initSingleTab() {
         }
         return best;
     }
-    masterEnabled.addEventListener('change', () => { if (syncNextStep) syncNextStep(); });
+    masterEnabled.addEventListener('change', () => {
+        if (syncNextStep) syncNextStep();
+        if (syncAnalysisChecklist) syncAnalysisChecklist();
+    });
+    masterTarget.addEventListener('change', () => { if (syncAnalysisChecklist) syncAnalysisChecklist(); });
     preserveVol.addEventListener('change', () => { if (syncNextStep) syncNextStep(); });
 
     function mkEl(tag, cls, text) {
@@ -1937,6 +1947,7 @@ export async function initSingleTab() {
         });
         renderToneStrip();
         if (syncNextStep) syncNextStep();
+        if (syncAnalysisChecklist) syncAnalysisChecklist();
     }
     function applyTonePlan() {
         const bands = toneBandsNow();
@@ -2210,9 +2221,11 @@ export async function initSingleTab() {
         el.addEventListener('change', () => pushSettings());
     });
 
-    // The Analysis card on the new engine (approved mockup): the verdict
-    // first, then one row per finding with what is being done about it, the
-    // Suggested EQ, and the timeline.
+    // The Analysis card as a checklist (approved 2026-09-24, option 2): what
+    // Analyze found, one row each, with a box to tick, what ticking it does,
+    // and whether it is on now. "Apply" makes the sound match the ticks.
+    // Rows follow changes made elsewhere (a card on the left, the Loudness
+    // menu, the EQ), so the list never says something the sound is not.
     function renderFindings(r) {
         const el = (tag, cls, html) => {
             const e = document.createElement(tag);
@@ -2223,24 +2236,114 @@ export async function initSingleTab() {
         const found = r.findings || [];
         const tones = found.filter((f) => f.card === 'tones');
         const loud = found.find((f) => f.card === 'loudness');
-        const rows = [];
+        const plan = r.tone_plan && !r.tone_plan.error ? r.tone_plan : null;
+        const moves = plan && Array.isArray(plan.moves) ? plan.moves.length : 0;
+        let loudBefore = null;          // the target Loudness replaced, to undo it
+
+        // Each row: what it is, what ticking it does, how to read and set it.
+        const items = [];
         if (tones.length) {
             const hz = tones.map((f) => `${(f.value / 1000).toFixed(2)} kHz`).join(', ');
-            rows.push(['sports', tones.length > 1 ? 'Fixed tones' : 'Fixed tone',
-                `${hz}, all through the song`, 'on', 'Notch filter on']);
+            items.push({
+                key: 'tones', icon: 'sports', title: tones.length > 1 ? 'Fixed tones' : 'Fixed tone',
+                detail: `A steady whistle at ${hz}, all through the song`, action: 'Notch it',
+                recommended: true,
+                isOn: () => picker.isOn('tones'),
+                set: (on) => picker.setOn('tones', on),
+            });
         }
-        if (loud) rows.push(['volume_down', 'Loudness', loud.detail, 'ask', 'Your call']);
-        const verdict = found.length
-            ? `${found.length} found · ${tones.length ? 1 : 0} fixed automatically`
-            : 'Nothing found that Shimmer can fix yet';
-        const card = el('div', 'an-findings');
-        card.appendChild(el('div', 'an-verdict', verdict));
-        rows.forEach(([icon, title, detail, act, actText]) => {
-            card.appendChild(el('div', 'an-row',
-                `<span class="ms" aria-hidden="true">${icon}</span>`
-                + `<div class="an-what"><b>${title}</b><span>${detail}</span></div>`
-                + `<span class="an-act ${act}">${actText}</span>`));
+        if (loud) {
+            items.push({
+                key: 'loudness', icon: 'volume_down', title: 'Loudness', detail: loud.detail,
+                action: 'Set to Commercial', recommended: true,
+                isOn: () => masterEnabled.checked && masterTarget.value === 'cd',
+                set: (on) => {
+                    if (on) {
+                        loudBefore = masterTarget.value;
+                        picker.setOn('loudness', true);
+                        picker.setMasterCard('loudness', true);
+                    } else if (loudBefore && loudBefore !== 'cd') {
+                        masterTarget.value = loudBefore;
+                        masterTarget.dispatchEvent(new Event('change'));
+                        picker.setMasterCard('loudness', false);
+                    }
+                },
+            });
+        }
+        if (moves) {
+            items.push({
+                key: 'eq', icon: 'tune', title: 'Suggested EQ',
+                detail: `${moves} move${moves === 1 ? '' : 's'} toward the tone of released songs`,
+                action: 'Add to the EQ', recommended: false,
+                isOn: () => toneApplied,
+                set: (on) => (on ? applyTonePlan() : removeTonePlan()),
+            });
+        }
+        const fixes = items.filter((i) => i.key !== 'eq').length;
+
+        const card = el('div', 'an-findings an-check');
+        const head = el('div', 'an-head');
+        head.appendChild(el('div', 'an-verdict', fixes
+            ? `Analysis \u00b7 ${fixes} thing${fixes === 1 ? '' : 's'} to fix`
+            : 'Nothing found that Shimmer can fix yet'));
+        const apply = el('button', 'btn btn-primary btn-sm an-apply');
+        apply.type = 'button';
+        const done = el('span', 'an-done');
+        head.append(apply, done);
+        card.appendChild(head);
+
+        const rows = items.map((it) => {
+            const want = it.isOn() || it.recommended;
+            const row = el('label', 'an-row');
+            const box = el('input');
+            box.type = 'checkbox';
+            box.checked = want;
+            box.addEventListener('change', () => sync());
+            const what = el('div', 'an-what',
+                `<b><span class="ms" aria-hidden="true">${it.icon}</span>${it.title}</b>`
+                + `<span>${it.detail}</span>`);
+            const side = el('div', 'an-side');
+            const act = el('span', 'an-action', it.action);
+            const state = el('span', 'an-state');
+            side.append(act, state);
+            row.append(box, what, side);
+            card.appendChild(row);
+            return { it, box, state, lastOn: it.isOn() };
         });
+
+        function sync() {
+            let pending = 0;
+            let turnOn = 0;
+            rows.forEach((rw) => {
+                const on = rw.it.isOn();
+                // Changed elsewhere: the tick follows, so nothing is pending
+                // that the user did not ask for here.
+                if (on !== rw.lastOn) rw.box.checked = on;
+                rw.lastOn = on;
+                rw.state.textContent = on ? 'On' : (rw.it.recommended ? 'Not on yet' : 'Optional');
+                rw.state.className = 'an-state ' + (on ? 'on' : 'off');
+                if (rw.box.checked !== on) {
+                    pending += 1;
+                    if (rw.box.checked) turnOn += 1;
+                }
+            });
+            apply.hidden = pending === 0;
+            apply.textContent = pending === turnOn
+                ? `Apply ${pending} fix${pending === 1 ? '' : 'es'}`
+                : `Apply ${pending} change${pending === 1 ? '' : 's'}`;
+            done.hidden = pending > 0 || !rows.length;
+            done.textContent = rows.some((rw) => rw.box.checked)
+                ? '\u2713 Everything you ticked is on'
+                : 'None of these are on. Tick one to add it.';
+        }
+        apply.addEventListener('click', () => {
+            rows.forEach((rw) => {
+                if (rw.box.checked !== rw.it.isOn()) rw.it.set(rw.box.checked);
+            });
+            sync();
+        });
+        syncAnalysisChecklist = sync;
+
         card.appendChild(el('div', 'an-foot',
             'Hear something Analyze missed? Pick it under <b>What do you hear?</b> on the left.'));
         autoDetectResults.appendChild(card);
@@ -2252,6 +2355,7 @@ export async function initSingleTab() {
         } else if (r.tone_plan && r.tone_plan.error) {
             autoDetectResults.appendChild(el('div', 'ad-reason', `Tone plan skipped: ${r.tone_plan.error}`));
         }
+        sync();
     }
 
     function renderAutoDetect(r) {

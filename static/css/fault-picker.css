@@ -74,6 +74,20 @@
 .an-act.nofix{color:var(--fg-3);border:1px dashed var(--line-2)}
 .an-act.ask{color:var(--cyan);border:1px solid rgba(56,189,248,.45)}
 .an-foot{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg-2)}
+/* The Analysis checklist: tick what you want, Apply makes it so. */
+.an-check .an-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.an-check .an-head .an-verdict{flex:1;margin-bottom:0}
+.an-check .an-apply{white-space:nowrap}
+.an-check .an-done{font-size:11.5px;color:var(--fg-2)}
+.an-check .an-row{cursor:pointer}
+.an-check .an-row input{width:16px;height:16px;accent-color:var(--amber);margin:0;justify-self:center}
+.an-check .an-what b .ms{font-size:15px;vertical-align:-3px;margin-right:6px;color:var(--cyan)}
+.an-check .an-side{display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
+.an-check .an-action{font-size:11.5px;color:var(--fg-1)}
+.an-check .an-state{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:1px 6px;border-radius:4px;white-space:nowrap}
+.an-check .an-state.on{color:var(--amber);border:1px solid rgba(245,165,36,.5);background:var(--amber-soft)}
+.an-check .an-state.off{color:var(--fg-2);border:1px solid var(--line-2)}
 .an-foot b{color:var(--fg-1)}
 
 /* Loudness target as three cards, as approved in

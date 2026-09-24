@@ -309,6 +309,26 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         render();
     }
 
+    /** Turn a card on or off as a click would (the Analysis checklist uses
+     *  this), except that it never asks the card's caution: the checklist
+     *  only offers cards Analyze measured. */
+    function setOn(key, on) {
+        const c = byKey.get(key);
+        if (!c || !c.ready || !!c.on === !!on) return;
+        c.on = !!on;
+        c.by = c.on ? 'you' : null;
+        c.userOff = !c.on;
+        if (c.master) onMasterCard(c.key, c.on);
+        render();
+        onChange();
+    }
+
+    /** Is this card on? */
+    function isOn(key) {
+        const c = byKey.get(key);
+        return !!(c && c.on);
+    }
+
     /** Keep a Mastering card in step when its control changes elsewhere. */
     function setMasterCard(key, on) {
         const c = byKey.get(key);
@@ -319,5 +339,6 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
     }
 
     render();
-    return { setFindings, payload, state, reset, setMasterCard, picks, modes, restore };
+    return { setFindings, payload, state, reset, setMasterCard, picks, modes, restore,
+             setOn, isOn };
 }

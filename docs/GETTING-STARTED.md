@@ -248,6 +248,11 @@ Analyze only measures. It never changes your song. It does four things:
   hear problems there first.
 - **It plans a Suggested EQ** (see [Step 8](#step-8-optional-check-the-suggested-eq)).
 
+Then the **Analysis** card lists what it found as a checklist. Each row
+says what ticking it does and whether it is **On** now. Leave the ticks as
+they are to take Analyze's advice, or change them, then press **Apply**.
+Nothing Analyze suggests changes your sound until it says **On**.
+
 Only two cards can get a **Found** note, because only these can be
 measured reliably today:
 

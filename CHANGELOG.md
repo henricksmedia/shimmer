@@ -5,6 +5,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **The Analysis card is a checklist.** Each thing Analyze found is a row
+  with a box to tick, what ticking it does, and whether it is on now. What
+  Analyze recommends starts ticked, and one **Apply** button makes the sound
+  match. It says **On** or **Not on yet** in words, so there is nothing to
+  decode.
+
 ### Fixed
 
 - **Masters from an upgraded copy were 5 dB too quiet.** 1.1.1's default
