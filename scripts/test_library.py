@@ -151,10 +151,14 @@ def run_card(src, card: str, amount: float, mode: Optional[str]) -> Dict[str, An
 def run_master(src, target: str) -> Dict[str, Any]:
     """Master at `target` and measure what the level stage did.
 
-    hit_loss_db  how much the loudest hits lost to the shaper and limiter:
-                 the median, over the 50 loudest 10 ms moments of the song
-                 before them (at the same gain), of the output's peak
-                 against that one (0 = untouched, -3 = 3 dB off each hit)
+    hit_loss_db  how much the loudest hits lost against the rest of the song:
+                 over the 50 loudest 10 ms moments before mastering, the
+                 median of how far each hit's peak stands above the song's
+                 loudness after mastering, minus the same before (0 =
+                 untouched, -3 = each hit 3 dB less prominent). Measured
+                 against the song's own loudness, not against the gain: a
+                 stage that adds loudness before the gain once made the
+                 gain-based measure show a saving that was not there.
     plr_db       true peak minus loudness after mastering (bigger = punchier)
     """
     from scipy import signal as ss
@@ -175,7 +179,9 @@ def run_master(src, target: str) -> Dict[str, Any]:
     pin = np.max(np.abs(pre[:k * n]).reshape(k, n, -1), axis=(1, 2))
     pout = np.max(np.abs(y[:k * n]).reshape(k, n, -1), axis=(1, 2))
     top = np.argsort(pin)[-50:]
-    hit = float(np.median(20 * np.log10((pout[top] + 1e-12) / (pin[top] + 1e-12))))
+    above_in = 20 * np.log10(pin[top] + 1e-12) - core.meters.loudness(pre, sr)
+    above_out = 20 * np.log10(pout[top] + 1e-12) - lufs
+    hit = float(np.median(above_out - above_in))
     return {"lufs": round(lufs, 2), "true_peak_dbtp": round(float(tp), 2),
             "plr_db": round(float(tp - lufs), 2), "gain_db": round(m["gain_db"], 2),
             "shaped_share": round(m["shaped_ratio"], 4),
