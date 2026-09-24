@@ -1,37 +1,28 @@
 Shimmer — clean up AI music artifacts, then master for release.
 
-Copyright (C) 2026 Jeremy Henricks / Henricks Media
+Copyright (C) 2026 Jeremy Henricks / Henricks Media. All rights reserved.
 https://treqmusic.com/ · https://henricksmedia.com/
 
-This program is free software: you can redistribute it and/or modify it
-under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or (at
-your option) any later version.
+Shimmer is licensed under the Shimmer License 1.0, in the LICENSE file
+alongside this notice. It is not open-source software: you may use the
+program and read its source code, but copying, changing, sharing or
+hosting it needs a written license from Henricks Media. Anything you make
+with Shimmer is yours; the license never covers it.
 
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero
-General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-The full license text is in the LICENSE file alongside this notice.
+Versions released before 2.2.0 were released under the GNU Affero General
+Public License v3, and copies of those versions stay under it.
 
 
-COMMERCIAL LICENSING
---------------------
-If the AGPL terms do not suit your use case — for example, you want to
-build a closed-source or hosted commercial product on Shimmer — a
-separate commercial license is available.
-
-Contact Henricks Media: https://henricksmedia.com/
+LICENSING
+---------
+For a license to copy, change, share or host Shimmer, contact Henricks
+Media: https://henricksmedia.com/
 
 
 TRADEMARKS
 ----------
-The "Shimmer" and "The Treq" names and logos are NOT covered by the
-AGPL-3.0 license. Forks and derivative works are welcome, but must use a
-different name and branding.
+The "Shimmer" and "The Treq" names and logos belong to Henricks Media and
+are not licensed for use by others.
 
 
 THIRD-PARTY COMPONENTS

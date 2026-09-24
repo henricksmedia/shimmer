@@ -112,12 +112,43 @@ def test_wav_has_both_riff_info_and_id3(tmp_path):
     with sf.SoundFile(path) as f:
         assert f.title == "Both"
         assert f.artist == "The Treq"
-    from mutagen.wave import WAVE
-    w = WAVE(path)
-    assert str(w.tags["TIT2"]) == "Both"
-    assert str(w.tags["TPE1"]) == "The Treq"
+    # The ID3 chunk, read on its own.
+    blob = open(path, "rb").read()
+    chunks = dict(T._riff_chunks(blob))
+    id3 = T._read_id3(chunks[b"id3 "][8:])
+    assert (id3["title"], id3["artist"]) == ("Both", "The Treq")
     y, _ = sf.read(path, dtype="float32", always_2d=True)
     assert y.shape[0] == _tone().shape[0]
+
+
+@pytest.mark.skipif(__import__("shutil").which("ffmpeg") is None, reason="needs ffmpeg")
+@pytest.mark.parametrize("ext", [".mp3", ".m4a"])
+def test_round_trip_lossy(tmp_path, ext):
+    from shimmer.core.audio import io as aio
+    path = str(tmp_path / f"t{ext}")
+    x = _tone(2.0)
+    aio.save(path, x, SR, bitrate="256k")
+    before, _ = aio.load(path)
+    tags = {"title": "Alive Again ☂", "artist": "The Treq", "album_artist": "The Treq",
+            "album": "Leave The World Behind", "genre": "Electronic", "year": "2026",
+            "track": "3/12", "comment": "line one\nShimmer: pass 1",
+            "copyright": "© 2026 The Treq", "isrc": "USABC2600001", "software": "Shimmer"}
+    for title in ("First", tags["title"]):
+        assert T.write_tags(path, dict(tags, title=title))["written"]
+    back = T.read_tags(path)
+    assert back == {k: v for k, v in tags.items()}, back
+    after, _ = aio.load(path)
+    assert np.array_equal(before, after)
+
+
+def test_shimmer_needs_no_tag_library():
+    """Tags are read and written by Shimmer's own code (shimmer/core/tags.py):
+    a GPL tag library cannot ship inside Shimmer under its license."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    reqs = open(os.path.join(root, "requirements.txt"), encoding="utf-8").read()
+    assert "mutagen" not in reqs
+    src = open(os.path.join(root, "shimmer", "core", "tags.py"), encoding="utf-8").read()
+    assert "import mutagen" not in src and "from mutagen" not in src
 
 
 def test_read_unknown_or_missing_never_raises(tmp_path):

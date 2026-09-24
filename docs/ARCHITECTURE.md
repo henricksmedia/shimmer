@@ -726,7 +726,8 @@ and what was learned. These are the gaps, most important first.
     8-second clips, and a vendor-derived curve that conflicts with
     `GOALS.md`. Do not build it in as a constant; keep it a measured,
     replaceable input.
-12. **Compatibility.** The repo is public (AGPL). Existing saved settings,
+12. **Compatibility.** The repo is public (AGPL until 2.2.0, then the
+    source-available Shimmer License). Existing saved settings,
     remix projects and CLI flags will break. Decide whether that matters and
     say so in the changelog.
 13. **The work to keep is on an unmerged branch.** Everything worth keeping

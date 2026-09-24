@@ -9,7 +9,7 @@
 *A free, offline mastering suite built for tracks made with Suno, Udio, and other AI music tools.*
 
 [![CI](https://github.com/henricksmedia/shimmer/actions/workflows/ci.yml/badge.svg)](https://github.com/henricksmedia/shimmer/actions/workflows/ci.yml)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-f5a524.svg)](LICENSE)
+[![License: Shimmer License](https://img.shields.io/badge/License-Shimmer%20License-f5a524.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776ab.svg)](https://www.python.org/)
 [![Runs locally](https://img.shields.io/badge/Runs-100%25%20locally-4ade80.svg)](#your-music-stays-on-your-computer)
 
@@ -204,7 +204,7 @@ your clone), then launch it as before.
 
 - **The libraries update themselves.** `start.bat` (Windows) and `start.sh`
   (macOS and Linux) see that the library list changed and install what 2.0
-  needs, such as mutagen for tags, before they start.
+  needs before they start.
 
 - **Your saved settings carry over.** A 1.x preset turns on the card it
   became. For example, Suno Hash turns on **Shimmer**, and Muddy / Boxy
@@ -375,7 +375,7 @@ through the tone target.
 | WAV 16-bit 44.1 kHz | The release copy, with TPDF dither | −1.0 dBTP |
 | FLAC | 24-bit | −1.0 dBTP |
 | FLAC 16-bit 44.1 kHz | The same audio as the WAV release copy, about half the size | −1.0 dBTP |
-| MP3 | 320 kbps | −2.0 dBTP |
+| MP3 | 320 kbps, 48 kHz at most | −2.0 dBTP |
 | OGG Vorbis | Quality 0.8 | −2.0 dBTP |
 | M4A (AAC) | 256 kbps | −2.0 dBTP |
 
@@ -597,8 +597,9 @@ remixing work on any audio.
 
 **Is it really free?**
 Yes. Free to download, free to use, and free to use on music you sell. The
-licence only has something to say if you want to *redistribute Shimmer itself*
-or run it as a paid service — see [License](#license--credits) below.
+licence only matters if you want to copy, change or share Shimmer's code, or
+run it as a service: that needs a written licence. See
+[License](#license--credits) below.
 
 **Can I use it on tracks I'm selling?**
 Yes. The licence covers the software, not your music. Anything you make with
@@ -658,31 +659,28 @@ especially macOS and Linux bug reports, since Shimmer was built on Windows.
 Open an [issue](https://github.com/henricksmedia/shimmer/issues) or a pull
 request.
 
-By submitting a contribution you agree that it is licensed under AGPL-3.0,
-and that Henricks Media may also include it in a commercially licensed
-version of Shimmer. This keeps dual licensing possible without chasing
-signatures later.
+By sending a change, fix or idea, you let Henricks Media use, change and
+license it as part of Shimmer, with no payment owed (section 4 of the
+[licence](LICENSE)).
 
 ## License & credits
 
-Shimmer is released under the
-[GNU Affero General Public License v3](LICENSE).
+Shimmer is released under the [Shimmer License](LICENSE). It is not open
+source: the code is public so you can read it, not so you can reuse it.
 
 **In plain language:**
 
-- ✅ Use it free, forever, for anything — including **music you sell**. The
-  licence governs the software, not what you create with it.
-- ✅ Read it, modify it, learn from it, share it.
-- ⚠️ If you distribute a modified version, or run Shimmer as a hosted
-  service, you must publish your source under the same licence.
-- ❌ You can't take this code closed-source and sell it as your own product.
+- ✅ Use it free, for anything — including **music you sell**. Anything you
+  make with Shimmer is yours. The licence covers the code, never your music.
+- ✅ Read the code to see how it works, and report bugs.
+- ❌ Copying the code, changing it, sharing it, hosting it as a service, or
+  using any part of it in other software needs a written licence from
+  [Henricks Media](https://henricksmedia.com/).
 
-**Building something commercial?** A separate commercial licence is available
-if AGPL doesn't fit your case — contact
-[Henricks Media](https://henricksmedia.com/).
+Versions before 2.2.0 were released under the AGPL-3.0, and copies of those
+versions stay under it.
 
-The **Shimmer** and **The Treq** names and logos are not covered by the
-licence. Forks are welcome; please give them your own name.
+The **Shimmer** and **The Treq** names and logos belong to Henricks Media.
 
 Copyright, trademark, and third-party component licences are listed in
 [NOTICE](NOTICE).
@@ -692,7 +690,7 @@ Built on excellent open-source work: [NumPy](https://numpy.org/) and
 [FastAPI](https://fastapi.tiangolo.com/) for the server,
 [pyloudnorm](https://github.com/csteinmetz1/pyloudnorm) for loudness
 measurement, [soundfile](https://github.com/bastibe/python-soundfile) for
-audio I/O, [mutagen](https://github.com/quodlibet/mutagen) for tags, and
+audio I/O, and
 [Demucs](https://github.com/facebookresearch/demucs) (Meta,
 MIT) with [audio-separator](https://github.com/nomadkaraoke/python-audio-separator)
 (MIT, carrying [RoFormer model code](https://github.com/lucidrains/BS-RoFormer)
@@ -718,6 +716,6 @@ shouldn't need an audio engineering background to fix it.
 
 **[🎵 Hear my music — The Treq](https://treqmusic.com/)**
 
-<sub>© 2026 Jeremy Henricks · [Henricks Media](https://henricksmedia.com/) · Released under AGPL-3.0</sub>
+<sub>© 2026 Jeremy Henricks · [Henricks Media](https://henricksmedia.com/) · All rights reserved · [Shimmer License](LICENSE)</sub>
 
 </div>

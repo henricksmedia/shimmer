@@ -368,10 +368,15 @@ imports them. `shimmer/chain.py` and `shimmer/probe.py` are already gone.
 
 ## License
 
-GNU Affero General Public License v3 — see [LICENSE](../LICENSE).
+The Shimmer License 1.0 — see [LICENSE](../LICENSE). Shimmer is not open
+source: the code may be read, but copying, changing, sharing or hosting it
+needs a written license from Henricks Media. Versions before 2.2.0 were
+released under the AGPL-3.0.
 
-Shimmer invokes Demucs as a subprocess in an isolated virtual environment
-rather than importing or bundling it, so there is no linkage between the two
-codebases. Contributions are accepted under AGPL-3.0 with an additional grant
-allowing Henricks Media to include them in a commercially licensed build; see
-the Contributing section of the [root README](../README.md#contributing).
+Every library Shimmer imports is under a permissive license (BSD, MIT,
+Apache, PSF), so none of them puts terms on Shimmer's own code. Tags are
+read and written by Shimmer's own code (`shimmer/core/tags.py`), not a GPL
+tag library. Shimmer invokes Demucs and ffmpeg as separate programs, in a
+side environment or from the PATH, rather than importing or bundling them.
+Contributions are covered by section 4 of the license; see the Contributing
+section of the [root README](../README.md#contributing).

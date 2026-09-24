@@ -225,7 +225,7 @@ def test_the_release_copy_is_16_bit_44k_and_dithered(tmp_path, dense_mix):
 
 @exporting
 def test_exports_carry_their_tags(tmp_path, dense_mix):
-    from mutagen.flac import FLAC
+    from shimmer.core import tags as tagging
     from shimmer.core.export import export
     from shimmer.core.render import Source, render
     from shimmer.core.settings import Settings
@@ -233,9 +233,8 @@ def test_exports_carry_their_tags(tmp_path, dense_mix):
     path = tmp_path / "tagged.flac"
     export(render(Source.from_array(x, sr), Settings(format="flac")), path,
            tags={"title": "Test Song", "artist": "Test Artist"})
-    got = FLAC(str(path))
-    assert got["TITLE"] == ["Test Song"]
-    assert got["ARTIST"] == ["Test Artist"]
+    got = tagging.read_tags(str(path))
+    assert (got["title"], got["artist"]) == ("Test Song", "Test Artist")
 
 
 @exporting
