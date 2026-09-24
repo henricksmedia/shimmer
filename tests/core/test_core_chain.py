@@ -224,8 +224,8 @@ def test_a_ready_tool_gets_its_own_row():
     assert f"By up to {deesser.MAX_CUT_DB * 0.5:g} dB at Amount 50%." in row["text"]
     assert fx["verdict"] == "1 fix runs"
     assert fx["badges"] == ["De-esser 50%"]
-    assert ("Built so far: the notch filter, de-esser, dynamic EQ and spectral de-noise."
-            in fx["paras"][0])
+    assert ("Built so far: the notch filter, de-esser, dynamic EQ, spectral de-noise and "
+            "voice de-noise." in fx["paras"][0])
     assert view["summary"]["text"] == "The sound changes in Fixes, Tone and Master."
     # With the notch too, both run and both are named.
     both = _stages(describe_chain(Settings(fixes={"tones": 1.0, "sibilance": 0.5}),

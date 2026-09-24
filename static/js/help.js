@@ -227,6 +227,10 @@ const TOOL_HELP = {
              'while they stick out.',
     dynamic_eq: 'A dynamic EQ cuts one band only while it rings out above ' +
                 'the rest of the mix.',
+    voice_denoise: 'Voice de-noise takes out the hiss and grain that ride on ' +
+                   'a voice: a steady hiss floor, a hiss that follows the ' +
+                   'voice, and sharp little spikes. It works on the centre of ' +
+                   'the mix, where the lead vocal sits.',
     spectral_denoise: 'Spectral de-noise turns down fizzy, flickering hiss, ' +
                       'band by band, only where a trained model hears it.',
     tone_target: 'The tone target is part of mastering. Tone match and Tilt ' +
@@ -249,6 +253,15 @@ const CARD_HELP = {
               'it reads the whole song once. That takes about 50 seconds for ' +
               'a 3-minute song. The preview status line at the bottom shows ' +
               'how far it has got. After that, the preview is quick.',
+    },
+    grain: {
+        up: 'The voice still sounds grainy or hissy, and the Removed track ' +
+            'holds only hiss and grit.',
+        down: 'The voice sounds dull or lispy, the hi-hats lose their snap, ' +
+              'or you hear words in the Removed track.',
+        note: 'The first time this card is on for a song, it reads the whole ' +
+              'song once, so it can follow the hiss as it grows. After that, ' +
+              'the preview is quick.',
     },
     tones: {
         up: 'You can still hear the whistle or whine.',

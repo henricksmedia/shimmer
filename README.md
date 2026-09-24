@@ -273,14 +273,15 @@ between them must be at least 60 dB quieter than the song.
 
 ## What's inside
 
-### "What do you hear?" — nine cards, one tool each
+### "What do you hear?" — ten cards, one tool each
 
 Pick the cards that match what you hear. Each one turns on the tool made for
 that problem.
 
-| Card | What it sounds like | Tool | Status in 2.0.0 |
+| Card | What it sounds like | Tool | Status |
 |---|---|---|---|
 | **Shimmer** | Fizzy, flickering hiss up top | Spectral de-noise | On, to try |
+| **Vocal grain** | Grainy hiss riding on the voice | Voice de-noise | New, to try; its Amount top is still being measured |
 | **Fixed tones** | A whistle or whine that never changes | Notch filter | Ready; Analyze turns it on |
 | **Sibilance** | Harsh, spitty "s" and "sh" | De-esser | On, to try |
 | **Clicks and crackle** | Short pops, ticks or static | De-click | Not built yet |

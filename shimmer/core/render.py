@@ -12,7 +12,8 @@ The order, each stage at its place in the chain:
      44.1 kHz), so the limiter's ceiling holds at the rate that is written.
   2. Fixes. One tool per card that is on (_FIX_TOOLS): the de-click first,
      since a click would ring on through a notch; then the Fixed tones
-     notch; then the spectral de-noise, the de-esser and the dynamic EQ.
+     notch; then the spectral de-noise, the voice de-noise, the de-esser
+     and the dynamic EQ.
      A tool whose plan reads the whole song slowly (SLOW_PLAN) says how far
      it has got, once per song; prepare() does that work ahead of a preview.
   2b. With mastering on, the tone curve (1.1.1's, ported bit-exact): worked
@@ -48,7 +49,7 @@ from .audio import eq as user_eq
 from .audio import filters, io, meters
 from .master import limiter, loudness, tone
 from .progress import Progress
-from .repair import declick, deesser, dynamic_eq, hash_remover, notch
+from .repair import declick, deesser, dynamic_eq, hash_remover, notch, vocal_grain
 from .settings import EqBand, Settings
 
 LEAD_IN_S = 1.0            # filters and the limiter's release settle in this
@@ -71,6 +72,7 @@ _MASTERING_TOOLS = ("tone_target", "loudness_target")
 _FIX_TOOLS: Tuple[Tuple[str, Any], ...] = (
     ("clicks", declick),
     ("shimmer", hash_remover),
+    ("grain", vocal_grain),
     ("sibilance", deesser),
     ("harshness", dynamic_eq.HARSHNESS),
     ("mud", dynamic_eq.MUD),

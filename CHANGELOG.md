@@ -5,6 +5,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Vocal grain card.** A new "What do you hear?" card for a grainy hiss
+  that rides on an AI lead vocal and never quite goes away, often worse
+  later in the song. Its tool, the voice de-noise, works on the centre of
+  the mix and leaves the sides alone. It reads the whole song once, the
+  first time the card is on, so it can follow the hiss as it grows. Its
+  Amount starts at 50 %. The top of the slider is still to be measured on
+  clean songs.
+
 ## [2.0.0] — 2026-09-13
 
 Shimmer 2.0 is a rebuild of 1.1.1. The sound engine is new. Every tab now

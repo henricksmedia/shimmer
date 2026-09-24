@@ -21,7 +21,7 @@ from _contract import needs
 catalog_ = needs("shimmer.core.catalog")
 settings_ = needs("shimmer.core.settings")
 
-CARD_KEYS = {"shimmer", "tones", "sibilance", "clicks", "harshness", "phasiness",
+CARD_KEYS = {"shimmer", "grain", "tones", "sibilance", "clicks", "harshness", "phasiness",
              "mud", "air", "loudness"}
 # STYLE.md: never name a third-party service in anything the user reads.
 SERVICE_NAMES = ("suno", "udio", "spotify", "distrokid", "landr", "apple music",
@@ -50,7 +50,7 @@ OLD_ALIASES = {
 
 
 @catalog_
-def test_the_nine_cards_are_there():
+def test_the_cards_are_there():
     from shimmer.core import catalog
     keys = [c.key for c in catalog.CARDS]
     assert len(keys) == len(set(keys))

@@ -63,7 +63,8 @@ flowchart TD
   C --> D["De-click: Clicks and crackle (command line only in 2.0.0)"]
   D --> E["Notch filter: Fixed tones"]
   E --> F["Spectral de-noise: Shimmer"]
-  F --> G["De-esser: Sibilance"]
+  F --> F2["Voice de-noise: Vocal grain"]
+  F2 --> G["De-esser: Sibilance"]
   G --> H["Dynamic EQ, 2-5 kHz: Harshness"]
   H --> I["Dynamic EQ, 200-500 Hz: Low-mid build-up"]
   I --> J{"Mastering on?"}
@@ -177,6 +178,7 @@ their tools come from `shimmer/core/catalog.py` (`CARDS`, `TOOL_LABELS`,
 | Card | What you hear | Tool | Band | Deepest cut at Amount 100 % | State in 2.0.0 |
 |---|---|---|---|---|---|
 | Shimmer | Fizzy, flickering hiss up top | Spectral de-noise | 1.5-16 kHz | a gain per frequency bin, set by a trained model | On, to try |
+| Vocal grain | Grainy hiss riding on the voice | Voice de-noise | centre only, 3.5-10 kHz | a gain per frequency bin, worked out from the song | New, to try |
 | Fixed tones | A whistle or whine that never changes | Notch filter | at each tone found | full notch depth | On |
 | Sibilance | Harsh, spitty "s" and "sh" | De-esser | 4.5-10 kHz | 7.2 dB | On, to try |
 | Clicks and crackle | Short pops, ticks or static | De-click | above 2 kHz | not a fixed cut | Built, not passed. The card says "Not built yet" |
@@ -221,6 +223,15 @@ was measured, and what it takes from a clean song:
   was trained on, but not the other three kinds of fizz, so it passes on
   one of its four fault models. It takes at most 0.064 sones from a clean
   song.
+- **Voice de-noise (Vocal grain).** A gritty hiss that rides on an AI lead
+  vocal, strongest at 4-8 kHz. It works on the centre of the mix, where the
+  lead vocal sits, and leaves the sides alone. It reads the whole song once,
+  then takes out three things: a steady hiss floor above 3.5 kHz; a hiss
+  that rises and falls with the voice, measured again every 2 seconds; and
+  a grain of sharp little spikes, each pulled back to the level around it.
+  The author picked it by ear on one song in listening rounds 5-14
+  (2026-09-23). Its cost on clean songs, which sets the top of its Amount
+  slider, is still to be measured.
 - **Notch filter (Fixed tones).** Narrow notches at each steady tone the
   scan finds, on both channels. Each notch is narrow, so the music on
   either side is kept. It removes 96 % of a fixed tone. It only catches
