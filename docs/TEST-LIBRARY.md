@@ -45,8 +45,8 @@ the results are grouped by version:
 | `--card` | How much the fix takes from the whole song and from its own band (dB), and the share of the song where it takes more than 1 dB of its band |
 | `--master` | The loudness reached, the true peak at 8x, the gain, and the share of the song the peak shaper touched |
 
-`--mp3` uses the MP3 export in place of the WAV. `--limit N` runs only the
-first N songs. A song that fails is reported and the run goes on.
+`--mp3` uses the MP3 export in place of the WAV. `--only v6` runs one
+version (repeat it for more). `--limit N` runs only the first N songs. A song that fails is reported and the run goes on.
 
 ## What it can and cannot tell
 

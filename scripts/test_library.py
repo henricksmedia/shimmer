@@ -189,6 +189,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     r.add_argument("--master", help="a loudness target key: cd, loud or streaming")
     r.add_argument("--mp3", action="store_true", help="use the MP3 copy instead of the WAV")
     r.add_argument("--limit", type=int, default=0)
+    r.add_argument("--only", action="append", default=[],
+                   help="only songs of this version (repeat for more), e.g. v6")
     r.add_argument("--out", required=True)
     a = ap.parse_args(argv)
 
@@ -207,6 +209,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     from shimmer import core
     songs = json.load(open(a.manifest, encoding="utf-8"))["songs"]
+    if a.only:
+        songs = [s for s in songs if s["version"] in a.only]
     if a.limit:
         songs = songs[:a.limit]
     rows = []
