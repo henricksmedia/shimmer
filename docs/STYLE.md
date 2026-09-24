@@ -25,9 +25,13 @@ translate to a DAW.
 **Follow DAW convention** where one exists. dB, LUFS, dBTP, Hz, 1/3-octave,
 true peak, high-shelf. If a plugin would call it that, so do we.
 
-**No invented jargon, and no AI-slop vocabulary.** "Signal Chain" as a
-capitalised product noun is the standing example of what not to do. If a
-phrase would look at home in a generated landing page, cut it.
+**No invented jargon, and no AI-slop vocabulary.** If a phrase would look
+at home in a generated landing page, cut it.
+
+**Signal Chain** is the name of the tab and its view, so it takes capitals
+when it names them ("open the Signal Chain tab"). As the general studio
+term for the path the sound takes, it is lower case ("each stage in the
+signal chain").
 
 **Say the number.** "About 6 dB duller across 800 Hz to 6.3 kHz" beats
 "noticeably duller." A claim without a number cannot be checked, and several

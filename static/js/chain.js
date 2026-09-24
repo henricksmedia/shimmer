@@ -81,7 +81,7 @@ async function refreshChain() {
         const flow = hostEl.querySelector('.chain-flow');
         if (flow) {
             flow.innerHTML =
-                `<div class="chain-error">Could not load the stages: ${esc(e.message)}</div>`;
+                `<div class="chain-error">Could not load the Signal Chain: ${esc(e.message)}</div>`;
         }
     }
 }
