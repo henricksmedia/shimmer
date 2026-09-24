@@ -149,14 +149,38 @@ def run_card(src, card: str, amount: float, mode: Optional[str]) -> Dict[str, An
 
 
 def run_master(src, target: str) -> Dict[str, Any]:
+    """Master at `target` and measure what the level stage did.
+
+    hit_loss_db  how much the loudest hits lost to the shaper and limiter:
+                 the median, over the 50 loudest 10 ms moments of the song
+                 before them (at the same gain), of the output's peak
+                 against that one (0 = untouched, -3 = 3 dB off each hit)
+    plr_db       true peak minus loudness after mastering (bigger = punchier)
+    """
     from scipy import signal as ss
     from shimmer import core
-    r = core.render(src, core.Settings(auto=False, mastering=True, loudness_target=target))
+    R = sys.modules["shimmer.core.render"]           # the module, not core.render()
+    s = core.Settings(auto=False, mastering=True, loudness_target=target)
+    r = core.render(src, s)
     y = r.audio.astype(np.float64)
+    sr = r.sr
     tp = 20 * np.log10(np.max(np.abs(ss.resample_poly(y, 8, 1, axis=0))) + 1e-12)
-    return {"lufs": round(core.meters.loudness(y, r.sr), 2), "true_peak_dbtp": round(float(tp), 2),
-            "gain_db": round(r.report["mastering"]["gain_db"], 2),
-            "shaped_share": round(r.report["mastering"]["shaped_ratio"], 4)}
+    lufs = core.meters.loudness(y, sr)
+    m = r.report["mastering"]
+    # The song just before the level stage, at the gain it got.
+    pre = np.asarray(R._whole_premaster(src, sr, s, R._tones_plan(src, sr, s, None)),
+                     dtype=np.float64) * 10.0 ** (m["gain_db"] / 20.0)
+    n = int(0.01 * sr)
+    k = min(len(pre), len(y)) // n
+    pin = np.max(np.abs(pre[:k * n]).reshape(k, n, -1), axis=(1, 2))
+    pout = np.max(np.abs(y[:k * n]).reshape(k, n, -1), axis=(1, 2))
+    top = np.argsort(pin)[-50:]
+    hit = float(np.median(20 * np.log10((pout[top] + 1e-12) / (pin[top] + 1e-12))))
+    return {"lufs": round(lufs, 2), "true_peak_dbtp": round(float(tp), 2),
+            "plr_db": round(float(tp - lufs), 2), "gain_db": round(m["gain_db"], 2),
+            "shaped_share": round(m["shaped_ratio"], 4),
+            "limiter_gr_db": round(m["limiter_gain_reduction_db"], 2),
+            "hit_loss_db": round(hit, 2)}
 
 
 def summarise(rows: List[Dict[str, Any]], keys: List[str]) -> Dict[str, Any]:
@@ -223,7 +247,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if a.limit:
         songs = songs[:a.limit]
     keys = (["took_song_db", "took_band_db", "acting_share"] if a.card
-            else ["lufs", "true_peak_dbtp", "gain_db", "shaped_share"])
+            else ["lufs", "true_peak_dbtp", "plr_db", "gain_db", "shaped_share",
+                  "limiter_gr_db", "hit_loss_db"])
     rows = []
     if a.resume and os.path.isfile(a.out):
         rows = [r for r in json.load(open(a.out, encoding="utf-8"))["rows"] if "result" in r]
