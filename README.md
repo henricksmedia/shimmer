@@ -191,7 +191,7 @@ reports from other platforms are genuinely useful.
 
 ### Updating from 1.1.1
 
-Get 2.0.1 the same way you got 1.1.1 (a new release zip, or `git pull` in
+Get 2.1.0 the same way you got 1.1.1 (a new release zip, or `git pull` in
 your clone), then launch it as before.
 
 - **A git clone keeps itself up to date.** From now on, `start.bat` and
@@ -546,7 +546,8 @@ planned for a later version:
 - **All four fixes at full Amount can take a little too much.** With
   Shimmer, Sibilance, Harshness and Low-mid build-up all at 100 %, two of
   the five test songs lost a little more than one fix is allowed to take.
-  Sound tuning is planned for 2.0.1.
+  2.0.1 brought Sibilance and Harshness back under that limit; more sound
+  tuning is planned.
 - **Batch has no cancel button.**
 - **Icons show as words when you are offline.** The icon font loads from
   Google Fonts.

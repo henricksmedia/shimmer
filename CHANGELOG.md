@@ -5,8 +5,28 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-09-24
+
+### Added
+
+- **Shimmer keeps itself up to date.** If you installed with git, `start.bat`
+  (and `start.sh`) now checks GitHub each time it starts and moves your copy
+  to the newest release. It leaves your copy alone when it has unsaved
+  changes, when it is on another branch (it asks first), or when there is
+  no network. A copy downloaded as a zip is never touched.
+- **`start-test.bat`** (and `start-test.sh`) runs a copy of Shimmer as it
+  is, for trying something out: on port 7870, with its own settings, and
+  with no update. Your everyday Shimmer can stay open beside it.
+- **For developers:** `scripts/test_library.py` runs any fix or master over
+  a library of AI songs and groups the results by generator version
+  (`docs/TEST-LIBRARY.md`).
+
 ### Changed
 
+- **Each card shows where its problem sits.** A bar under the name marks
+  its range on a 20 Hz to 20 kHz scale (Fixed tones marks each tone found,
+  Loudness the whole mix), the icon sits beside the name, and the card says
+  **On** or **Noted** in words. The Analyze steps read more clearly.
 - **The Analysis card is a checklist.** Each thing Analyze found is a row
   with a box to tick, what ticking it does, and whether it is on now. What
   Analyze recommends starts ticked, and one **Apply** button makes the sound
