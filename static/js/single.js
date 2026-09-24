@@ -1058,6 +1058,7 @@ export async function initSingleTab() {
         // sit under a new file.
         autoDetectResults.hidden = true;
         autoDetectResults.innerHTML = '';
+        processBtn.classList.remove('is-next');
         renderToneStrip();
         const priorNote = $('prior-pass-note');
         if (priorNote) {
@@ -2347,6 +2348,22 @@ export async function initSingleTab() {
         card.appendChild(el('div', 'an-foot',
             'Hear something Analyze missed? Pick it under <b>What do you hear?</b> on the left.'));
         autoDetectResults.appendChild(card);
+
+        // The next step, between the checklist and the detail, so a new user
+        // is not left reading a wall of text. Its button runs the real Clean
+        // & Master button, which glows until it is pressed, so they learn
+        // where it lives.
+        const next = el('div', 'an-next',
+            '<div class="an-next-what"><b>Next: Clean &amp; Master</b>'
+            + '<span>The detail below is optional. The same button is at the top of the right-hand panel.</span></div>');
+        const go = el('button', 'btn btn-primary process-btn step-btn an-next-btn', 'Clean &amp; Master');
+        go.type = 'button';
+        go.dataset.step = '3';
+        go.addEventListener('click', () => { if (!processBtn.disabled) processBtn.click(); });
+        next.appendChild(go);
+        autoDetectResults.appendChild(next);
+        processBtn.classList.add('is-next');
+
         if (r.tone_plan && !r.tone_plan.error) {
             const main = el('div', 'ad-main');
             main.appendChild(renderTonePlan(r.tone_plan, { followUp: null }));
@@ -3342,6 +3359,7 @@ export async function initSingleTab() {
 
     processBtn.addEventListener('click', async () => {
         if (!currentFile) return;
+        processBtn.classList.remove('is-next');   // the next step is taken
         // Analyze found a second pass and mastering is on: ask before we
         // master a file that still needs another cleaning pass. Three
         // real choices; Cancel means cancel.

@@ -194,8 +194,18 @@
     0%, 100% { box-shadow: 0 0 0 0 rgba(245, 165, 36, 0); }
     50%      { box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.5); }
 }
+/* After Analyze: Clean & Master glows slowly until it is pressed or a new
+   song loads, so the next step is found whenever they look over. */
+.process-dock .process-btn.is-next:not(:disabled) { animation: nextGlow 2.4s ease-in-out infinite; }
+@keyframes nextGlow {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(245, 165, 36, 0.25); }
+    50%      { box-shadow: 0 0 0 4px rgba(245, 165, 36, 0.55), 0 0 18px rgba(245, 165, 36, 0.35); }
+}
 @media (prefers-reduced-motion: reduce) {
     .preview-toggle-row.nudge-pulse { animation: none; }
+    .process-dock .process-btn.is-next:not(:disabled) {
+        animation: none; box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.5);
+    }
 }
 
 .bridge .ab-match-note {
