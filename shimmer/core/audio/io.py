@@ -153,6 +153,12 @@ def save(path, y: np.ndarray, sr: int, subtype: str = "PCM_24",
         _write_blocks(path, a, sr, **fmt)
         return
     if ext in SOUNDFILE_EXTS:
+        if subtype == "PCM_16":
+            # libsndfile 1.2.2 rounds float down when it writes 16-bit WAV
+            # (FLAC it rounds to nearest), which adds 3 dB of noise and half
+            # a step of DC (docs/CHAIN-AUDIT.md section 4). Round here, the
+            # same way for every format, and hand it whole numbers.
+            a = np.clip(np.round(a.astype(np.float64) * 32768.0), -32768, 32767).astype(np.int16)
         _write_blocks(path, a, sr, subtype=subtype)
         return
     if ext not in _FFMPEG_CODEC:

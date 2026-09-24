@@ -221,7 +221,8 @@ def test_a_ready_tool_gets_its_own_row():
     assert fx["on"] and fx["name"] == "De-esser"
     row = fx["fixes"][0]
     assert (row["key"], row["tag"]["text"]) == ("sibilance", "On")
-    assert f"By up to {deesser.MAX_CUT_DB * 0.5:g} dB at Amount 50%." in row["text"]
+    from shimmer.core.chain import _num
+    assert f"By up to {_num(deesser.MAX_CUT_DB * 0.5)} dB at Amount 50%." in row["text"]
     assert fx["verdict"] == "1 fix runs"
     assert fx["badges"] == ["De-esser 50%"]
     assert ("Built so far: the notch filter, de-esser, dynamic EQ, spectral de-noise and "
@@ -257,9 +258,10 @@ def test_master_shows_the_gain_once_a_render_has_worked_it_out():
     assert g == pytest.approx(r.report["mastering"]["gain_db"])
     master = _stages(describe_chain(s, notches=THREE, gain_db=g))["master"]
     assert _gain_badge(master) == pytest.approx(round(g, 1))
-    # A new loudness target needs no new measurement; a new tone does.
+    # A new loudness target needs no new measurement to show a gain: the
+    # first-pass gain, before the second pass checks it after the limiter.
     assert known_gain(src, s.replace(loudness_target="streaming"), notches=THREE) == \
-        pytest.approx(g - 5.0)
+        pytest.approx(g - 5.0, abs=0.5)
     assert known_gain(src, s.replace(tilt="bright"), notches=THREE) is None
     # Mastering off: Preserve volume's gain, once rendered.
     off = s.replace(mastering=False)

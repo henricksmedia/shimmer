@@ -42,11 +42,13 @@ def test_with_mastering_on_the_plan_is_judged_after_the_tone_curve():
 
 def test_a_fixed_tone_is_judged_after_its_notch():
     from shimmer import core
-    src = core.Source.from_array(_song(tone_hz=3510.0), SR)
+    # 3650 Hz: between two notes, so the plan takes it for a generator line
+    # (3510 Hz would sit on A7, which the notch plan now leaves alone).
+    src = core.Source.from_array(_song(tone_hz=3650.0), SR)
     found = core.tone_plan(src, core.Settings(mastering=False))
     assert found["analysis"]["cleaning_applied"] is True
     assert not [m for m in found["moves"]
-                if m["kind"] == "resonance" and abs(m["freq_hz"] - 3510.0) / 3510.0 < 0.03]
+                if m["kind"] == "resonance" and abs(m["freq_hz"] - 3650.0) / 3650.0 < 0.03]
     none = core.tone_plan(src, core.Settings(mastering=False, auto=False))
     assert none["analysis"]["cleaning_applied"] is False
 

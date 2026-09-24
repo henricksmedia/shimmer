@@ -41,13 +41,36 @@ def _band(hz):
 # ── The target as an input ──────────────────────────────────────────────
 
 def test_the_default_target_is_1_1_1s_bit_for_bit():
+    # With a cutoff given, as render() gives it. With none found, 2.0.1 also
+    # boosts nothing above 16 kHz, which 1.1.1 did (CHAIN-AUDIT §4).
     from shimmer.core.master import tone
     x = _noise(1, -1.5)
-    base = tone.compute_tone_curve(x, SR, strength=0.55, tilt="warm")
-    assert tone.compute_tone_curve(x, SR, strength=0.55, tilt="warm",
+    base = tone.compute_tone_curve(x, SR, strength=0.55, tilt="warm", cutoff_hz=19000.0)
+    assert tone.compute_tone_curve(x, SR, strength=0.55, tilt="warm", cutoff_hz=19000.0,
                                    target_db=tone.REF_DB) == base
     old = pytest.importorskip("shimmer.mastering")
-    assert old.compute_tone_curve(x, SR, strength=0.55, tilt="warm") == base
+    assert old.compute_tone_curve(x, SR, strength=0.55, tilt="warm", cutoff_hz=19000.0) == base
+
+
+def test_with_no_cutoff_nothing_above_16_khz_is_boosted():
+    from shimmer.core.analyze.track import REF_FREQS
+    from shimmer.core.master import tone
+    curve = np.array(tone.compute_tone_curve(_noise(1, -3.0), SR, strength=1.0,
+                                             tilt="brightest"))
+    assert curve[REF_FREQS >= 16000].max() <= 0.0 and curve.max() > 1.0
+
+
+def test_a_boost_never_reaches_past_the_cutoff():
+    """The curve is set per band and spread between band centres; the bins
+    past 90 % of the cutoff still get no boost."""
+    from shimmer.core.analyze.track import REF_FREQS
+    from shimmer.core.master import tone
+    x = _noise(2, 0.0, seconds=2.0)
+    y = tone.apply_tone_curve(x, SR, [2.0] * len(REF_FREQS), cutoff_hz=15000.0)
+    f = np.fft.rfftfreq(x.shape[0], 1 / SR)
+    gain = np.abs(np.fft.rfft(y[:, 0])) / (np.abs(np.fft.rfft(x[:, 0])) + 1e-12)
+    assert 20 * np.log10(np.median(gain[(f > 14000) & (f < 20000)])) < 0.1
+    assert 20 * np.log10(np.median(gain[(f > 2000) & (f < 8000)])) > 1.8
 
 
 def test_the_target_decides_where_the_curve_goes():

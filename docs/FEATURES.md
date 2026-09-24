@@ -180,9 +180,9 @@ their tools come from `shimmer/core/catalog.py` (`CARDS`, `TOOL_LABELS`,
 | Shimmer | Fizzy, flickering hiss up top | Spectral de-noise | 1.5-16 kHz | a gain per frequency bin, set by a trained model | On, to try |
 | Vocal grain | Grainy hiss riding on the voice | Voice de-noise | centre only, 3.5-10 kHz | a gain per frequency bin, worked out from the song | New, to try |
 | Fixed tones | A whistle or whine that never changes | Notch filter | at each tone found | full notch depth | On |
-| Sibilance | Harsh, spitty "s" and "sh" | De-esser | 4.5-10 kHz | 7.2 dB | On, to try |
+| Sibilance | Harsh, spitty "s" and "sh" | De-esser | 4.5-10 kHz | 6.5 dB | On, to try |
 | Clicks and crackle | Short pops, ticks or static | De-click | above 2 kHz | not a fixed cut | Built, not passed. The card says "Not built yet" |
-| Harshness | Piercing, painful upper mids | Dynamic EQ | 2-5 kHz | 5.1 dB | On, to try |
+| Harshness | Piercing, painful upper mids | Dynamic EQ | 2-5 kHz | 3.3 dB | On, to try |
 | Phasiness | Grainy or watery reverb tails | none | | | "No fix yet" |
 | Low-mid build-up | Muddy, boxy, words hard to hear | Dynamic EQ | 200-500 Hz | 4.0 dB | On, to try |
 | Lack of air | Dull, no sparkle | Tone target | whole spectrum | | Part of mastering |
@@ -250,7 +250,8 @@ was measured, and what it takes from a clean song:
   most consonants from cymbals.
 - **Dynamic EQ (Harshness, Low-mid build-up).** It finds, once for the
   whole song, the band that most often rings out above its neighbours. It
-  then cuts that band only while it sticks out. Harshness watches up to two
+  then turns that band down only while it is louder than usual for this
+  song. Harshness watches up to two
   bands in 2-5 kHz. Low-mid build-up watches one band in 200-500 Hz. If no
   band sticks out, nothing is cut. Both channels get the same cut, so the
   stereo image stays put.
@@ -435,9 +436,14 @@ How the level is set, in order:
 1. **Low-cut at 25 Hz.** Removes rumble and DC. It runs one way, so it
    adds no pre-echo.
 2. **One static gain.** Worked out once from the whole song, after the
-   fixes, tone curve and EQ. It does not ride up and down.
-3. **Peak shaper.** Softly rounds the tallest peaks, so the limiter has
-   less to do.
+   fixes, tone curve and EQ. It does not ride up and down. It is checked
+   once against the finished loudness, after the shaper and limiter, and
+   corrected, so the song lands on its target (within about 0.05 LU).
+3. **Peak shaper.** A soft clipper that rounds off the peaks. At −9 LUFS
+   it does most of the peak work. It runs at 4x the sample rate, so it
+   folds no off-key tones back into the audible range, and both channels
+   get the same gain, so the stereo image stays put. Away from the peaks
+   it leaves the audio exactly as it was.
 4. **True-peak limiter.** Holds every peak under the format's ceiling
    (see [4.1](#41-formats)). It finds peaks at 8x and aims 0.17 dB under
    the ceiling, the most a peak can hide between readings.

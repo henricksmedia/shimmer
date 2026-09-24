@@ -5,8 +5,9 @@ be nulled against the original (docs/ARCHITECTURE.md §19.1 item 1). Fixes
 land after this one at a time, each listed with numbers in
 docs/SOUND-CHANGES.md.
 
-Chain position: after the static loudness gain. The shaper takes the top
-~2 dB, then the limiter trims true peaks to the ceiling in one pass.
+Chain position: after the static loudness gain. The shaper (a soft clipper,
+at 4x) takes the peaks, then the limiter trims true peaks to the ceiling in
+one pass.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from typing import Dict, Tuple
 
 import numpy as np
 from scipy.ndimage import minimum_filter1d
-from scipy.signal import resample_poly
+from scipy.signal import firwin, oaconvolve, resample_poly
 
 # Peaks are found at 8x, the rate the meter reads (shimmer.core.audio.meters).
 # 1.1.1 found them at 4x, and its -1.0 dBTP read -0.78 at 16x.
@@ -79,31 +80,99 @@ def _peak_hold_release(x: np.ndarray, coeff: float) -> np.ndarray:
     return out
 
 
+# The shaper works at 4x, as Ozone and FabFilter clip: a curve at the base
+# rate folds its new harmonics back below Nyquist as off-key tones (at -9
+# LUFS they reached -25 to -44 dB against the top end, docs/CHAIN-AUDIT.md
+# section 4). At 4x they land above the audible range and the filter back
+# down takes them out.
+_SHAPER_OVERSAMPLE = 4
+# The filter up and back down: steep (Kaiser, beta 10), passing up to 90 % of
+# the base rate's Nyquist, run by FFT. It only ever filters the shaper's
+# change, never the music, so its early roll-off costs nothing. scipy's
+# default resampling filter left the fold-back of a 9 kHz tone at -49 dB;
+# this one leaves -64 dB, which is what 4x itself allows (a far harmonic
+# folds at 4x), in a third of the time of a longer one.
+_SHAPER_FIR = firwin(_SHAPER_OVERSAMPLE * 64 + 1, 0.9 / _SHAPER_OVERSAMPLE,
+                     window=("kaiser", 10.0))
+
+
+def _up(v: np.ndarray, factor: int) -> np.ndarray:
+    z = np.zeros((v.shape[0] * factor, v.shape[1]))
+    z[::factor] = v * factor
+    return oaconvolve(z, _SHAPER_FIR[:, None], mode="same", axes=0)
+
+
+def _down(v: np.ndarray, factor: int) -> np.ndarray:
+    return oaconvolve(v, _SHAPER_FIR[:, None], mode="same", axes=0)[::factor]
+
+
+def _shape(m: np.ndarray, knee_start: float, span: float) -> np.ndarray:
+    """The rational soft clip, on magnitudes above the knee."""
+    t = np.clip((m - knee_start) / span, 0.0, None)
+    return knee_start + span * (t / (1.0 + t))
+
+
+# Only stretches near a peak are worked on: a sample within 3 dB of the knee
+# marks one (a peak between samples rarely stands 3 dB above them), widened
+# by _SHAPER_REACH samples each side, which covers the filter's reach
+# (32 samples each way at the base rate) with room to spare.
+_SHAPER_NEAR_DB = 3.0
+_SHAPER_REACH = 256
+
+
 def soft_peak_shaper(x: np.ndarray, ceiling_dbtp: float = -1.0,
                      knee_db: float = 2.0) -> Tuple[np.ndarray, Dict[str, float]]:
-    """Gentle waveshaper catching the top ~`knee_db` dB before the limiter.
+    """A soft clipper before the limiter.
 
-    Below the knee the signal is bit-transparent (identity). Inside the
-    knee, peaks are smoothly compressed with a rational soft clip that
-    approaches (but never quite reaches) ~1 dB above the ceiling, so the
-    true-peak limiter that follows only has to shave the last fraction
-    of a dB instead of doing all the work.
+    Peaks above the knee (knee_db under the ceiling) are rounded off by a
+    rational soft clip that approaches, but never quite reaches, about 1 dB
+    above the ceiling; the true-peak limiter after it trims the rest. How
+    much it takes depends on the loudness target: at -9 LUFS it cut peaks
+    by up to 7.7 dB on real songs (docs/CHAIN-AUDIT.md section 4), so it is
+    the main peak stage, not a trim of the top 2 dB as 1.1.1 said.
+
+    It works at _SHAPER_OVERSAMPLE times the rate, and both channels get the
+    same gain (the louder one decides), so the stereo image stays put. Only
+    the change is filtered back down and added to the input, and only near
+    peaks: elsewhere the output is the input, sample for sample. Each
+    stretch is worked out from the samples around it alone, so a preview
+    window matches the same span of a full render.
     """
     x = _as_2d(np.asarray(x, dtype=np.float64))
     ceiling = float(_db_to_lin(ceiling_dbtp))
     knee_start = float(ceiling * _db_to_lin(-abs(knee_db)))
     span = max(1e-9, ceiling * 1.12 - knee_start)
-
-    ax = np.abs(x)
-    over = ax > knee_start
-    if not np.any(over):
-        return x.astype(np.float32), {"shaped_ratio": 0.0}
-
-    t = np.clip((ax[over] - knee_start) / span, 0.0, None)
-    shaped = knee_start + span * (t / (1.0 + t))
+    F = _SHAPER_OVERSAMPLE
+    n = x.shape[0]
     y = x.copy()
-    y[over] = np.sign(x[over]) * shaped
-    return y.astype(np.float32), {"shaped_ratio": float(np.mean(over))}
+    if n == 0:
+        return y.astype(np.float32), {"shaped_ratio": 0.0}
+    near = np.max(np.abs(x), axis=1) > knee_start * _db_to_lin(-_SHAPER_NEAR_DB)
+    if not np.any(near):
+        return y.astype(np.float32), {"shaped_ratio": 0.0}
+    # Stretches: the near samples, widened by _SHAPER_REACH each side.
+    idx = np.flatnonzero(near)
+    gaps = np.flatnonzero(np.diff(idx) > 2 * _SHAPER_REACH)
+    starts = np.concatenate([[idx[0]], idx[gaps + 1]])
+    ends = np.concatenate([idx[gaps], [idx[-1]]])
+    shaped = 0
+    for s0, e0 in zip(starts, ends):
+        s = max(0, int(s0) - _SHAPER_REACH)
+        e = min(n, int(e0) + 1 + _SHAPER_REACH)
+        a, b = max(0, s - _SHAPER_REACH), min(n, e + _SHAPER_REACH)
+        up = _up(x[a:b], F)
+        m = np.max(np.abs(up), axis=1)
+        over = m > knee_start
+        if not np.any(over):
+            continue
+        g = np.ones_like(m)
+        g[over] = _shape(m[over], knee_start, span) / m[over]
+        back = _down(up * (g - 1.0)[:, None], F)
+        lo = s - a
+        y[s:e] += back[lo:lo + (e - s)]
+        mid = over[lo * F:(lo + e - s) * F]
+        shaped += int(np.count_nonzero(mid.reshape(-1, F).any(axis=1)))
+    return y.astype(np.float32), {"shaped_ratio": float(shaped / n)}
 
 
 def true_peak_limiter(x: np.ndarray, sr: int,

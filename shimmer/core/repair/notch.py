@@ -18,6 +18,7 @@ plan(source) and apply(x, sr, notches) are the engine's entry points
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -38,6 +39,26 @@ LOW_LINE_MIN_DUTY = 0.9
 MIN_NOTCH_HZ = 2000.0
 MAX_NOTCHES = 24
 NOTCH_BW_BINS = 4.0             # width in analysis bins (sr / 4096): ~43 Hz at 44.1 kHz
+# A held note can pass the rules above: on "Alive Again" the scan found A7
+# (3514 Hz, 3 cents flat) and the plan cut it by 15.8 dB (CHAIN-AUDIT §3).
+# The generator's lines sit on a 200 Hz grid (14.2, 16.0, 17.6, 19.2 kHz on
+# five songs); a line under NOTE_GUARD_HZ that is off that grid and within
+# NOTE_CENTS of a note on the usual A440 scale is taken for music.
+GRID_HZ, GRID_TOL_HZ = 200.0, 10.0
+NOTE_GUARD_HZ = 12000.0
+NOTE_CENTS = 15.0
+
+
+def looks_like_a_note(hz: float) -> bool:
+    """A line under NOTE_GUARD_HZ, off the generator's 200 Hz grid, at a
+    musical note's pitch: music, not a generator line."""
+    hz = float(hz)
+    if hz <= 0.0 or hz >= NOTE_GUARD_HZ:
+        return False
+    if abs(hz - round(hz / GRID_HZ) * GRID_HZ) <= GRID_TOL_HZ:
+        return False
+    semis = 12.0 * math.log2(hz / 440.0)
+    return abs(semis - round(semis)) * 100.0 <= NOTE_CENTS
 
 
 @dataclass
@@ -96,7 +117,8 @@ def plan_from_lines(lines: Sequence[Dict[str, Any]], sr: int,
     Eligibility: the line's 25th-percentile excess over the whole file
     must be >= 6 dB (present at least three quarters of the time, which
     rules out musical partials); below 3 kHz it must also be >= 10 dB
-    and present >= 90 % of the time. Depth follows the loud parts of the
+    and present >= 90 % of the time. A line that looks like a held note
+    (looks_like_a_note) is left alone. Depth follows the loud parts of the
     song (`excess_hi_db`, the 90th percentile) so the notch removes the
     line where it is strongest, capped at 30 dB. Width is four analysis
     bins; a fixed line is not music, so a slightly wider notch costs
@@ -115,6 +137,8 @@ def plan_from_lines(lines: Sequence[Dict[str, Any]], sr: int,
         if ex < MIN_LINE_EXCESS_DB:
             continue
         if hz < LOW_LINE_HZ and (ex < LOW_LINE_MIN_EXCESS_DB or duty < LOW_LINE_MIN_DUTY):
+            continue
+        if looks_like_a_note(hz):
             continue
         if any(abs(hz - n.hz) < bw for n in plan.notches):
             continue

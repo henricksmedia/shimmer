@@ -386,6 +386,25 @@ pick decides (`GOALS.md` rule 4).
 
 ### A. Fix what exists (2.0.1): mostly bugs, each measurable
 
+**Status, 2026-09-24:** done in 2.0.1, except item 4 and part of item 3.
+- **Item 1:** Sibilance's top is now 6.5 dB (was 7.2) and Harshness's
+  3.3 dB (was 5.1); Low-mid build-up was under the limit.
+- **Item 2:** the shaper runs at 4x with linked channels.
+- **Item 3:** the cutoff guard holds per FFT bin, and nothing above 16 kHz
+  is boosted with no cutoff. The inert fizz cap was removed, not tightened:
+  a real cap would darken masters that §4 found already too dark.
+- **Item 4 not done:** a zero-phase low-cut smears kicks with pre-echo, so
+  the filter code refuses it on purpose (SOUND-CHANGES, "Low-cut runs one
+  way").
+- **Item 5:** one correction pass after the limiter.
+- **Item 6:** the notch skips lines at a note's pitch that are off the
+  200 Hz grid. The duty rule was left as it is: real generator lines
+  measure 0.50-0.64 too.
+- **Item 7:** 16-bit files round to the nearest step.
+- **Item 8:** the description was changed to match the code. The band
+  compressor was chosen by measurement (STEP6-FIXES).
+- **Item 9:** the docs are updated.
+
 1. **Measure the Amount limits again on whole-song plans.** Fix the
    harness, then reset the top Amount for Harshness and Sibilance.
 2. **Oversample the peak shaper 4×, and link the channels.** This is the

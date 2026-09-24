@@ -3,8 +3,11 @@
 A resonance that comes and goes with the music: a narrow band in 2-5 kHz
 that rings out above its neighbours on loud notes (harshness), or a broad
 one in 200-500 Hz that swells when the low mids stack up (mud). A static EQ
-cut would thin the song all the time; this cuts the band only while it
-sticks out.
+cut would thin the song all the time; this turns the one band that sticks
+out most down only while that band is louder than usual for this song. It
+judges the band's level against its own, not against its neighbours: that
+removed the most for its cost on five real songs (docs/STEP6-FIXES.md), so
+it also acts on the band's own loud notes, about 30 % of the time.
 
 How it works:
 
@@ -264,16 +267,18 @@ class DynamicEQ:
 # Judging by a fixed excess over the neighbours, or by the band's usual
 # excess, removed less; watching every band cost far more music.
 #
-# The top of the Amount slider, set from measured cost (GOALS.md rule 2):
-# tested at 0.5 dB per dB (9 dB deepest for Harshness, 6 dB for Low-mid
-# build-up), the worst clean song reached the 0.10-sone limit at 56 % of
-# that for Harshness and 66 % for Low-mid build-up, so 100 % on the slider
-# is 0.28 dB per dB and 5.1 dB deepest, and 0.33 dB per dB and 4.0 dB
-# deepest.
+# The top of the Amount slider, set from measured cost (GOALS.md rule 2),
+# measured the way the app runs: planned from the whole song, cost on its
+# loudest 8 s (docs/CHAIN-AUDIT.md, plan A item 1; the first tops were set
+# on 8 s rendered as a song of their own). Harshness at 0.28 dB per dB and
+# 5.1 dB deepest took 0.148 sones from "Leave The World Behind"; 65 % of
+# that stays under the 0.10 limit on all five songs (0.098), so 100 % on the
+# slider is 0.18 dB per dB and 3.3 dB deepest. Low-mid build-up stays under
+# it as it was (0.079 at worst): 0.33 dB per dB and 4.0 dB deepest.
 HARSHNESS = DynamicEQ(Config("harshness", 2000.0, 5000.0, count=2, q=3.0, spread_oct=0.75,
-                             threshold_db=0.0, max_cut_db=5.1, n_fft=2048,
+                             threshold_db=0.0, max_cut_db=3.3, n_fft=2048,
                              release_db_per_s=100.0, detect="compress", compress_pct=70.0,
-                             slope=0.28))
+                             slope=0.18))
 MUD = DynamicEQ(Config("mud", 200.0, 500.0, count=1, q=1.4, spread_oct=1.0,
                        threshold_db=0.0, max_cut_db=4.0, n_fft=8192, release_db_per_s=60.0,
                        detect="compress", compress_pct=70.0, slope=0.33))

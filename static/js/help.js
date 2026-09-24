@@ -225,8 +225,8 @@ const TOOL_HELP = {
     declick: 'A de-click finds short pops and crackle and fills them in.',
     deesser: 'A de-esser turns down harsh "s", "t" and "ch" sounds only ' +
              'while they stick out.',
-    dynamic_eq: 'A dynamic EQ cuts one band only while it rings out above ' +
-                'the rest of the mix.',
+    dynamic_eq: 'A dynamic EQ finds the band that sticks out most, then turns ' +
+                'it down only while it is louder than usual for this song.',
     voice_denoise: 'Voice de-noise takes out the hiss and grain that ride on ' +
                    'a voice: a steady hiss floor, a hiss that follows the ' +
                    'voice, and sharp little spikes. It works on the centre of ' +

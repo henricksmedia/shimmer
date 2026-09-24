@@ -317,12 +317,12 @@ fixed tone.
 
 **Sibilance — de-esser.** Turns the high band down only while an "s", "sh",
 "t" or "ch" sticks out: fully in the center, half as much in the sides. Up to
-7.2 dB at Amount 100 %.
+6.5 dB at Amount 100 %.
 
 **Harshness and Low-mid build-up — dynamic EQ.** Finds the band that sticks
 out most (up to two in 2–5 kHz for Harshness, one in 200–500 Hz for Low-mid
 build-up). It cuts that band only while it gets louder than usual for that
-song. Up to 5.1 dB for Harshness and 4.0 dB for Low-mid build-up at Amount
+song. Up to 3.3 dB for Harshness and 4.0 dB for Low-mid build-up at Amount
 100 %.
 
 **Lack of air and Loudness** are handled in Mastering. Loudness sets the
@@ -342,8 +342,9 @@ through the tone target.
 - **One steady gain.** Loudness is set with one gain, worked out from the
   whole song. There is no multiband compression. A 25 Hz low-cut (high-pass
   filter) comes first. It runs one way, so it adds no pre-echo before a kick.
-- **Peak shaper and true-peak limiter.** The shaper rounds off the top
-  couple of dB. Then the limiter holds the ceiling. It finds peaks at 8×
+- **Peak shaper and true-peak limiter.** The shaper, a soft clipper at 4×
+  oversampling with both channels linked, rounds off the peaks. Then the
+  limiter holds the ceiling. It finds peaks at 8×
   oversampling and eases the gain down across a 2 ms lookahead, so it does
   not click.
 - **Tone target.** With mastering on, Shimmer moves your song's tone toward a

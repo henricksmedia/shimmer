@@ -154,6 +154,10 @@ lose only about 25 %, and the de-esser removes −2 % of centred sibilance
 
 ## 3. The mastering half
 
+*This section describes 1.1.1 (`shimmer/mastering.py`). What the new engine
+does is in [FEATURES.md](FEATURES.md) §3 and
+[SOUND-CHANGES.md](SOUND-CHANGES.md).*
+
 What `mastering.master` does, in order (read):
 
 1. **DC removal and a 25 Hz high-pass.** Written as 2nd order, but zero-phase
@@ -589,6 +593,10 @@ many places.
 | Side width compensation | Fine for code | Stereo width makeup |
 
 ### 13.4 Mastering best practice
+
+*Written against 1.1.1. Since then: MP3 and M4A are encoded from 32-bit
+float, true peak is read at 8x per channel, and the peak shaper runs at 4x
+([CHAIN-AUDIT.md](CHAIN-AUDIT.md) §4).*
 
 Sources are the ones recorded in `BRIGHTNESS-ASSESSMENT.md` §6 and
 `IMPLEMENTATION.md` §6 unless marked *believed*. By `STYLE.md`, anything

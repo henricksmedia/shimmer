@@ -348,7 +348,7 @@ def _tone_curve(source: Source, sr: int, s: Settings,
 
     def make() -> List[float]:
         x = source.at_rate(sr)
-        cutoff = estimate_cutoff_hz(x, sr).get("cutoff_hz")
+        cutoff = _cutoff(source, sr)
         if ref is not None:
             return tone.match_curve(x, sr, ref[0], amount=s.match_amount, tilt=s.tilt,
                                     cutoff_hz=cutoff, ref_cutoff_hz=ref[1])
@@ -359,8 +359,14 @@ def _tone_curve(source: Source, sr: int, s: Settings,
     return curve if max(abs(v) for v in curve) >= 1e-3 else []
 
 
-def _toned(x: np.ndarray, sr: int, curve: List[float]) -> np.ndarray:
-    return tone.apply_tone_curve(x, sr, curve) if curve else x
+def _cutoff(source: Source, sr: int) -> Optional[float]:
+    """The song's bandwidth cutoff at this rate, or None; worked out once."""
+    return source._remember(("cutoff", sr),
+                            lambda: estimate_cutoff_hz(source.at_rate(sr), sr).get("cutoff_hz"))
+
+
+def _toned(x: np.ndarray, sr: int, curve: List[float], cutoff: Optional[float]) -> np.ndarray:
+    return tone.apply_tone_curve(x, sr, curve, cutoff_hz=cutoff) if curve else x
 
 
 def _premaster(x: np.ndarray, sr: int, s: Settings) -> np.ndarray:
@@ -383,21 +389,58 @@ def _whole_key(s: Settings, sr: int, plan: List[notch.Notch], what: str,
         tuple((n.hz, n.depth_db, n.bw_hz) for n in plan), _tools_key(s))
 
 
+def _gain_key(s: Settings, sr: int, plan: List[notch.Notch],
+              reference: Optional[Source] = None) -> Tuple:
+    """The mastering gain also depends on the target and the ceiling."""
+    return _whole_key(s, sr, plan, "master_gain", reference) + (s.loudness_target, s.format)
+
+
 def _whole_premaster(source: Source, sr: int, s: Settings, plan: List[notch.Notch],
                      reference: Optional[Source] = None) -> np.ndarray:
     x = source.at_rate(sr)
     fixed = _fix(x, sr, plan, _tools(source, sr, s))
-    return _premaster(_toned(fixed, sr, _tone_curve(source, sr, s, reference)), sr, s)
+    return _premaster(_toned(fixed, sr, _tone_curve(source, sr, s, reference),
+                             _cutoff(source, sr)), sr, s)
+
+
+# The gain is checked against the loudness after the shaper and limiter,
+# which take a little back (0.02-0.32 LU on real songs, docs/CHAIN-AUDIT.md
+# section 4), and corrected up to this many times, until within LOUDNESS_TOL.
+# One pass lands within a few hundredths of a LU on real songs.
+LOUDNESS_PASSES = 1
+LOUDNESS_TOL_LU = 0.05
+
+
+def _level(y: np.ndarray, sr: int, ceiling_dbtp: float, gain_db: float):
+    """Mastering's level stage: the gain, the peak shaper, the limiter."""
+    y = np.asarray(y, dtype=np.float64) * 10.0 ** (gain_db / 20.0)
+    y, shaper = limiter.soft_peak_shaper(y, ceiling_dbtp)
+    y, lim = limiter.true_peak_limiter(y, sr, ceiling_dbtp)
+    return y, shaper, lim
 
 
 def _whole_song_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch],
                      reference: Optional[Source] = None) -> Tuple[float, float]:
-    """(loudness before mastering, gain to the target), for the whole song."""
-    lufs = source._remember(
-        _whole_key(s, sr, plan, "premaster_lufs", reference),
-        lambda: meters.loudness(_whole_premaster(source, sr, s, plan, reference), sr))
+    """(loudness before mastering, gain to the target), for the whole song.
+    The gain is the one that lands the finished song on the target, after
+    the shaper and the limiter."""
     target = catalog.loudness_target(s.loudness_target).lufs
-    return lufs, loudness.gain_to_target(lufs, target)
+    ceiling = catalog.output_format(s.format).ceiling_dbtp
+
+    def make() -> Tuple[float, float]:
+        y = _whole_premaster(source, sr, s, plan, reference)
+        lufs = source._remember(_whole_key(s, sr, plan, "premaster_lufs", reference),
+                                lambda: meters.loudness(y, sr))
+        gain = loudness.gain_to_target(lufs, target)
+        if gain == 0.0:
+            return lufs, gain
+        for _ in range(LOUDNESS_PASSES):
+            miss = target - meters.loudness(_level(y, sr, ceiling, gain)[0], sr)
+            if not np.isfinite(miss) or abs(miss) < LOUDNESS_TOL_LU:
+                break
+            gain += float(miss)
+        return lufs, float(gain)
+    return source._remember(_gain_key(s, sr, plan, reference), make)
 
 
 def _preserve_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notch]) -> float:
@@ -437,6 +480,11 @@ def known_gain(source: Source, settings: Optional[Settings] = None, *,
     if s.mastering:
         if reference is not None and ("reference_shape",) not in reference._cache:
             return None
+        done = source._cache.get(_gain_key(s, sr, plan, reference))
+        if done is not None:
+            return float(done[1])
+        # Another target or format, not rendered yet: the first-pass gain,
+        # before the shaper and limiter are checked (within a few tenths).
         lufs = source._cache.get(_whole_key(s, sr, plan, "premaster_lufs", reference))
         if lufs is None:
             return None
@@ -616,7 +664,7 @@ def render(source: Source, settings: Optional[Settings] = None,
                f"matching the reference, {s.match_amount:.0%}, {s.tilt}" if matched
                else f"{s.intensity}, {s.tilt}")
         report["mastering"]["tone_curve_db"] = [round(v, 2) for v in curve]
-    toned = _toned(fixed, sr, curve)
+    toned = _toned(fixed, sr, curve, _cutoff(source, sr) if curve else None)
 
     # 3. The user EQ, and the mastering low-cut.
     if s.eq_enabled and user_eq.designs(s.eq_bands, sr):
@@ -633,9 +681,7 @@ def render(source: Source, settings: Optional[Settings] = None,
             aim = f"the album's gain, {gain:+.1f} dB"
         _stage(progress, "master", "Loudness and peaks",
                f"{aim}, {fmt.ceiling_dbtp:g} dBTP ceiling")
-        y = np.asarray(y, dtype=np.float64) * 10.0 ** (gain / 20.0)
-        y, shaper = limiter.soft_peak_shaper(y, fmt.ceiling_dbtp)
-        y, lim = limiter.true_peak_limiter(y, sr, fmt.ceiling_dbtp)
+        y, shaper, lim = _level(y, sr, fmt.ceiling_dbtp, gain)
         report["mastering"].update({
             "target_lufs": catalog.loudness_target(s.loudness_target).lufs,
             "loudness_before_lufs": before,

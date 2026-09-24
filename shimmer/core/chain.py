@@ -45,7 +45,7 @@ _SAVED = "Your pick is saved on this computer to help test new fixes."
 # What each built cleaning tool does, in the Fixes stage's words.
 _TOOL_GLOSS = {
     "deesser": "Turns down harsh “s”, “t” and “ch” while they stick out.",
-    "dynamic_eq": "Cuts a band only while it rings out above the rest.",
+    "dynamic_eq": "Turns the band that sticks out most down while it is louder than usual.",
     "declick": "Finds short pops and crackle and fills them in.",
     "voice_denoise": "Takes out the grainy hiss that rides on the voice.",
     "spectral_denoise": "Turns down fizzy, flickering hiss up top, only where a trained "

@@ -92,7 +92,10 @@ _MAX_EQ_BOOST_DB = 2.0    # static tone curve max boost
 _MAX_EQ_CUT_DB = 3.0      # static tone curve max cut
 _HARSH_LO_HZ = 5000.0     # the band AI fizz lives in
 _HARSH_HI_HZ = 12000.0
-_HARSH_MAX_BOOST_DB = 2.0
+_HARSH_MAX_BOOST_DB = 2.0       # binds only in match_curve (its limit is 3 dB)
+# With no cutoff found, nothing above this is boosted: the estimate misses
+# some band-limited songs, whose top is then mostly noise (CHAIN-AUDIT §4).
+_NO_CUTOFF_TOP_HZ = 16000.0
 
 # Stylistic warm<->bright tilt (5-position tone control): the tilt amplitude
 # in dB at the frequency extremes; positive = bright, negative = warm.
@@ -188,14 +191,13 @@ def compute_tone_curve(x_raw: np.ndarray, sr: int, strength: float = 1.0,
     delta = np.clip(delta, -_MAX_EQ_CUT_DB, _MAX_EQ_BOOST_DB)
     delta = gaussian_filter1d(delta, sigma=1.0)  # ~1/3-octave smoothing
 
-    # Harshness guard: the 5-12 kHz band where AI fizz lives.
-    harsh = (REF_FREQS >= _HARSH_LO_HZ) & (REF_FREQS <= _HARSH_HI_HZ)
-    delta[harsh] = np.minimum(delta[harsh], _HARSH_MAX_BOOST_DB)
+    # 1.1.1 capped boosts in 5-12 kHz, where AI fizz lives, at 2.0 dB: the
+    # same as every boost, so the cap never did anything (CHAIN-AUDIT §4).
+    # It is left out here; match_curve keeps it, where it binds.
     # Bandwidth guard: never boost above the source's cutoff. There is
     # nothing there to match a reference against, only residue.
-    if cutoff_hz is not None and cutoff_hz > 0:
-        above = REF_FREQS >= 0.9 * float(cutoff_hz)
-        delta[above] = np.minimum(delta[above], 0.0)
+    above = REF_FREQS >= boost_limit_hz(cutoff_hz)
+    delta[above] = np.minimum(delta[above], 0.0)
     # Re-clip after smoothing so bounds are hard guarantees.
     delta = np.clip(delta, -_MAX_EQ_CUT_DB, _MAX_EQ_BOOST_DB)
     return delta.tolist()
@@ -261,10 +263,17 @@ def match_curve(x_raw: np.ndarray, sr: int, reference_db, amount: float = MATCH_
     delta = np.clip(diff * amount + tilt_offsets_db(tilt), -MATCH_LIMIT_DB, MATCH_LIMIT_DB)
     harsh = (REF_FREQS >= _HARSH_LO_HZ) & (REF_FREQS <= _HARSH_HI_HZ)
     delta[harsh] = np.minimum(delta[harsh], _HARSH_MAX_BOOST_DB)
-    if cutoff_hz is not None and cutoff_hz > 0:
-        above = REF_FREQS >= 0.9 * float(cutoff_hz)
-        delta[above] = np.minimum(delta[above], 0.0)
+    above = REF_FREQS >= boost_limit_hz(cutoff_hz)
+    delta[above] = np.minimum(delta[above], 0.0)
     return delta.tolist()
+
+
+def boost_limit_hz(cutoff_hz: Optional[float]) -> float:
+    """Nothing at or above this is boosted: 90 % of the song's bandwidth
+    cutoff, or _NO_CUTOFF_TOP_HZ when none was found."""
+    if cutoff_hz is not None and cutoff_hz > 0:
+        return 0.9 * float(cutoff_hz)
+    return _NO_CUTOFF_TOP_HZ
 
 
 def _interp_correction(freqs_hz: np.ndarray, correction_db: np.ndarray,
@@ -278,8 +287,15 @@ def _interp_correction(freqs_hz: np.ndarray, correction_db: np.ndarray,
     ).astype(np.float64)
 
 
-def apply_tone_curve(x: np.ndarray, sr: int, correction_db: List[float]) -> np.ndarray:
-    """Apply a precomputed static tone curve (zero-phase STFT domain)."""
+def apply_tone_curve(x: np.ndarray, sr: int, correction_db: List[float],
+                     cutoff_hz: Optional[float] = None) -> np.ndarray:
+    """Apply a precomputed static tone curve (zero-phase STFT domain).
+
+    The curve is set per 1/3-octave band and spread between band centres,
+    so a boost could reach past the song's cutoff (+1.1 dB at the cutoff on
+    one song, CHAIN-AUDIT §4). No FFT bin at or above
+    boost_limit_hz(cutoff_hz) is boosted. Pass the cutoff the curve was
+    worked out with."""
     delta = np.asarray(correction_db, dtype=np.float64)
     if delta.size != REF_FREQS.size:
         raise ValueError("correction_db length mismatch with REF_FREQS")
@@ -292,7 +308,10 @@ def apply_tone_curve(x: np.ndarray, sr: int, correction_db: List[float]) -> np.n
     hop = n_fft // 4
     x2 = np.asarray(x2, dtype=np.float64)
     n_samples, n_ch = x2.shape
-    corr_lin = 10.0 ** (_interp_correction(REF_FREQS, delta, n_fft, sr) / 20.0)
+    corr_db = _interp_correction(REF_FREQS, delta, n_fft, sr)
+    top = np.fft.rfftfreq(n_fft, 1.0 / sr) >= boost_limit_hz(cutoff_hz)
+    corr_db[top] = np.minimum(corr_db[top], 0.0)
+    corr_lin = 10.0 ** (corr_db / 20.0)
     window = np.hanning(n_fft).astype(np.float64)
     out = np.zeros_like(x2)
 

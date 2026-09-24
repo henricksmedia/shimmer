@@ -136,6 +136,11 @@ and the author wants it gone, that is the evidence to raise the top.
 
 ### Final numbers (the shipped settings)
 
+*2.0.1 (2026-09-24): planned from the whole song, as the app runs, "Hey"
+lost 0.107 sones at 100 %, so the top is now 90 % of the one below:
+0.405 dB per dB and 6.5 dB deepest (0.098 at worst). [CHAIN-AUDIT.md](CHAIN-AUDIT.md),
+plan A item 1.*
+
 | Amount | Removed, new model (2.0 / 0.5 sones) | Older model | Music taken, mean | Worst song |
 |---|---|---|---|---|
 | 50 % (the card's default) | 27 % / 11 % | 23 % / 6 % | 0.028 | 0.051 (Hey) |
@@ -268,6 +273,13 @@ build-up 0.33 dB per dB and 4.0 dB deepest. Most of the cost is one song
 will say whether those bands are its own harshness and mud.
 
 ### Final numbers (the shipped settings)
+
+*2.0.1 (2026-09-24): these were measured on the loudest 8 s rendered as a
+song of its own, so the fix planned from those 8 s. Planned from the whole
+song, as the app runs, Harshness at 100 % took 0.148 sones from "Leave The
+World Behind". The top is now 65 % of the one below: 0.18 dB per dB and
+3.3 dB deepest (0.098 at worst). Low-mid build-up stays (0.079 at worst).
+[CHAIN-AUDIT.md](CHAIN-AUDIT.md), plan A item 1.*
 
 | Card | Amount | Removed 2.0 / 0.5 | Music taken, mean | Worst song |
 |---|---|---|---|---|

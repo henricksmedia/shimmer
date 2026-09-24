@@ -70,9 +70,12 @@ BRIGHT_FLOOR_DB = -20.0        # a band this far under the vowel is too quiet to
 # The top of the Amount slider, set from measured cost (GOALS.md rule 2):
 # at 0.75 dB per dB and 12 dB deepest, the brightest clean song ("Hey")
 # lost 0.148 sones; it stays at the 0.10 limit at 60 % of that, so 100 % on
-# the slider is 0.45 dB per dB and 7.2 dB deepest (docs/STEP6-FIXES.md).
-SLOPE = 0.45                   # dB of cut per dB of excess, at Amount 100 %
-MAX_CUT_DB = 7.2               # at Amount 100 %
+# the slider was 0.45 dB per dB and 7.2 dB deepest (docs/STEP6-FIXES.md).
+# Measured again the way the app runs, planned from the whole song, "Hey"
+# lost 0.107 there, so the top is now 90 % of it (0.098 at worst,
+# docs/CHAIN-AUDIT.md, plan A item 1).
+SLOPE = 0.405                  # dB of cut per dB of excess, at Amount 100 %
+MAX_CUT_DB = 6.5               # at Amount 100 %
 SIDE_SHARE = 0.5               # the sides get this share of the centre's cut, in dB
 LOOKAHEAD_MS = 2.0
 RELEASE_DB_PER_S = 200.0       # 10 dB of cut lets go in 50 ms

@@ -20,9 +20,38 @@ Versions follow [Semantic Versioning](https://semver.org/).
     Remix tab's splitter, for songs where cymbals share the centre with the
     voice. Without the splitter it uses the centre and says so.
   - Its Amount starts at 50 %. It was picked by ear on the author's songs.
-    Unlike the other fixes, the top of its Amount slider has not yet been
-    measured on clean songs, so check the Removed track: it should hold
-    only hiss and grit.
+    Unlike the other fixes, it is not held to the 0.10-sone limit: on five
+    clean songs it took 0.17-2.1 sones at 50 %, because it also thins the
+    steady top end of a song that has no grain. Turn it on only when you
+    hear the grain, and check the Removed track: it should hold only hiss
+    and grit.
+
+### Changed
+
+- **Cleaner loud masters.** The peak shaper, which does most of the peak
+  work at −9 LUFS, now runs at 4× the sample rate with both channels
+  linked. It no longer folds harsh, off-key tones back into the top end,
+  and the stereo image stays put.
+- **Songs land on their loudness target.** The gain is checked against the
+  finished loudness, after the shaper and limiter, and corrected: −9.01
+  LUFS where 2.0.0 gave −9.09 to −9.32. A full master takes a few seconds
+  longer (about 10-18 s for a 4-minute song).
+- **Sibilance and Harshness stay under the damage limit at 100 %.** Their
+  Amount tops were set on the loudest 8 seconds rendered on their own; the
+  app works from the whole song, where they took more. Measured again that
+  way: Sibilance now cuts up to 6.5 dB (was 7.2), Harshness up to 3.3 dB
+  (was 5.1).
+
+### Fixed
+
+- The tone curve could boost past the song's top cutoff, and with no cutoff
+  found it boosted 16-20 kHz, which was mostly noise. It no longer boosts
+  either.
+- The Fixed tones notch could cut a held musical note (A7 on one song). A
+  line off the generator's 200 Hz grid, at a note's pitch, is now left
+  alone.
+- 16-bit WAV files rounded every sample down, adding a little noise and a
+  tiny DC offset. They now round to the nearest step, as FLAC always did.
 
 ## [2.0.0] — 2026-09-13
 
