@@ -191,7 +191,7 @@ reports from other platforms are genuinely useful.
 
 ### Updating from 1.1.1
 
-Get 2.0.0 the same way you got 1.1.1 (a new release zip, or `git pull` in
+Get 2.0.1 the same way you got 1.1.1 (a new release zip, or `git pull` in
 your clone), then launch it as before.
 
 - **The libraries update themselves.** `start.bat` (Windows) and `start.sh`
@@ -281,7 +281,7 @@ that problem.
 | Card | What it sounds like | Tool | Status |
 |---|---|---|---|
 | **Shimmer** | Fizzy, flickering hiss up top | Spectral de-noise | On, to try |
-| **Vocal grain** | Grainy hiss riding on the voice | Voice de-noise | New, to try; its Amount top is still being measured |
+| **Vocal grain** | Grainy hiss riding on the voice | Voice de-noise | New in 2.0.1, to try; picked by ear, its Amount top not yet measured |
 | **Fixed tones** | A whistle or whine that never changes | Notch filter | Ready; Analyze turns it on |
 | **Sibilance** | Harsh, spitty "s" and "sh" | De-esser | On, to try |
 | **Clicks and crackle** | Short pops, ticks or static | De-click | Not built yet |

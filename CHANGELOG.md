@@ -5,17 +5,24 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.1] — 2026-09-24
+
 ### Added
 
 - **Vocal grain card.** A new "What do you hear?" card for a grainy hiss
   that rides on an AI lead vocal and never quite goes away, often worse
-  later in the song. Its tool, the voice de-noise, works on the centre of
-  the mix and leaves the sides alone. It reads the whole song once, the
-  first time the card is on, so it can follow the hiss as it grows. Under
-  its Amount slider, **Works on** picks the centre of the mix (the default)
-  or the vocal alone, split out by the Remix tab's splitter, for songs
-  where cymbals share the centre with the voice. Its Amount starts at 50 %. The top of the slider is still to be measured on
-  clean songs.
+  later in the song. Its tool, the voice de-noise, takes out a steady hiss
+  floor, a hiss that follows the voice, and sharp little spikes. It reads
+  the whole song once, the first time the card is on, so it can follow the
+  hiss as it grows.
+  - **Works on**, under its Amount slider: the centre of the mix (the
+    default, needs nothing extra), or the vocal alone, split out by the
+    Remix tab's splitter, for songs where cymbals share the centre with the
+    voice. Without the splitter it uses the centre and says so.
+  - Its Amount starts at 50 %. It was picked by ear on the author's songs.
+    Unlike the other fixes, the top of its Amount slider has not yet been
+    measured on clean songs, so check the Removed track: it should hold
+    only hiss and grit.
 
 ## [2.0.0] — 2026-09-13
 
