@@ -30,6 +30,9 @@ Background and rules:
   mastering choices.
 - [SHIMMER-RESEARCH.md](SHIMMER-RESEARCH.md) — research on the shimmer
   artifact and what could reduce it.
+- [CHAIN-AUDIT.md](CHAIN-AUDIT.md) — every stage of the sound chain checked
+  against user reports, pro mastering practice and measurement, with a
+  ranked build plan.
 - [STEMS_MODELS.md](STEMS_MODELS.md) — the stem-separation model shortlist,
   with licences.
 - [DEPLOYMENT.md](DEPLOYMENT.md) — remote access and hosting options, and
