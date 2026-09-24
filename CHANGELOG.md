@@ -5,6 +5,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.1] — 2026-09-24
+
+### Changed
+
+- **Analyze shows the next step.** Under the Analysis checklist, a
+  **Next: Clean & Master** bar has the button right there, so the detail
+  below it no longer reads like a wall of text. The **Clean & Master**
+  button at the top of the right-hand panel glows until you press it or
+  load a new song, so you learn where it lives.
+
 ## [2.1.0] — 2026-09-24
 
 ### Added

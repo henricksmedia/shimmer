@@ -5,7 +5,8 @@ runs offline, on your own computer. Version 2.0 is a rebuild of 1.1.1:
 the screens stayed, and the engine behind them is new. 2.0.1 added the
 Vocal grain card and the fixes from [CHAIN-AUDIT.md](CHAIN-AUDIT.md)
 (plan A). 2.1.0 added the Analysis checklist, the cards' band bars, and
-launchers that keep a git clone on the latest release.
+launchers that keep a git clone on the latest release. 2.1.1 added the
+next-step bar after Analyze.
 
 For the user-facing introduction, see the [root README](../README.md).
 

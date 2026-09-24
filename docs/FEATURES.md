@@ -163,6 +163,11 @@ fix", or "Apply 2 changes" when it also turns something off. When nothing is
 waiting, it says "Everything you ticked is on". A change made elsewhere (a
 card on the left, the Loudness menu, the EQ) shows up in the list at once.
 
+**Next: Clean & Master.** Under the checklist, a bar names the next step
+and has its button. It runs the same **Clean & Master** as the button at
+the top of the right-hand panel, which glows after Analyze until you press
+it or load a new song. Everything under the bar is optional detail.
+
 **Expand** opens the analysis in a bigger panel over the page, with a
 **Loop the worst part** button.
 
