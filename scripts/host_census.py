@@ -9,7 +9,9 @@ budget.EXCESS_FLOOR_DB — with the caveat, measured under checklist item 15,
 that the flicker feature is blind on drum-driven material, so "reads clean"
 is a necessary check, not a guarantee.
 
-Writes docs/host-census.json: path, song, flicker excess, duration.
+Writes private/data/host-census.json: path, song, flicker excess, duration.
+It names the author's songs and folders, so it stays out of the public repo
+(scripts/_private.py).
 
 Usage: python scripts/host_census.py
 """
@@ -43,7 +45,9 @@ def main(argv):
                      "sr": sr, "flicker_excess_db": round(float(ev.flicker_excess_db), 2),
                      "usable": bool(ev.flicker_excess_db < EXCESS_FLOOR_DB)})
         print(f"{song[:44]:44s} {ev.flicker_excess_db:+6.2f} {'usable' if rows[-1]['usable'] else ''}", flush=True)
-    out = os.path.join(ROOT, "docs", "host-census.json")
+    from _private import private_path
+    out = private_path("data", "host-census.json")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w", encoding="utf-8", newline="\n") as f:
         json.dump({"floor_db": EXCESS_FLOOR_DB, "rows": rows}, f, indent=1)
     n_ok = sum(r["usable"] for r in rows)

@@ -135,3 +135,8 @@ listening-test/codec/
 # Promo assets made by scripts/make_promo.py: screenshots, audio and video
 # of your own songs (docs/PROMO-ASSETS.md).
 promo-assets/
+
+# ── Private: anything that names the author's songs or folders ───────────
+# One home for song paths, test libraries, research data and notes. Never
+# tracked (docs/STYLE.md, "Public and private"; tests/test_privacy.py).
+private/

@@ -50,13 +50,11 @@ from shimmer.mastering import (analyze_spectrum, measure_loudness,  # noqa: E402
                                measure_true_peak_db,
                                relative_band_levels, _REF_DB, _REF_FREQS)
 
-ROOTS = [
-    r"D:\MusicVault\The Treq\albums",
-    r"D:\MusicVault\Avey Kay\albums",
-    r"D:\MusicVault\Jackson Ryle\albums",
-    r"D:\MusicVault\Singles",
-    r"D:\DownloadVault",
-]
+# The folders to read, from private/paths.json ("tone_reference_roots"):
+# the author's folder names stay out of the public code.
+from _private import need  # noqa: E402
+
+ROOTS = need("tone_reference_roots")
 INTENSITIES = ("Low", "Medium", "High")
 EQ_SETTINGS = ("Warmer", "Warm", "Neutral", "Bright", "Brighter")
 MIN_PER_CELL = 8          # below this a median is not worth reporting

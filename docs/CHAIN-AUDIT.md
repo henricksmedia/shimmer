@@ -11,8 +11,9 @@ Audit of 2.0.0, 2026-09-23. Every stage of `render()` was checked four ways:
    should change nothing.
 
 Nothing in the app was changed by this audit. The full research reports, the
-measuring scripts and their raw numbers are kept outside this public repo, in
-`D:/MusicVault/Shimmer-research/2026-09 chain audit/`. The sources are listed
+measuring scripts and their raw numbers are kept out of this public repo, in
+the private folder (`private/research/2026-09 chain audit/`, see
+[STYLE.md](STYLE.md), "Public and private"). The sources are listed
 at the end.
 
 **Words used here**
@@ -123,7 +124,7 @@ pretend to fix them.
 - **In short:** v6 trades shimmer for muffle. The complaint Shimmer was named
   for is now a smaller share than dullness, hiss and late-song decay.
 
-### The vocal hiss heard on *Just Another Rain*
+### The vocal hiss heard on the test song
 
 This is a common, lasting complaint. About 210–260 Reddit threads describe
 a hiss, static or sizzle on the voice.
@@ -158,7 +159,7 @@ Prompts don't reliably help.
 
 ### Why Shimmer misses the vocal sizzle
 
-Measured on *Just Another Rain*:
+Measured on the test song:
 
 - **The sizzle is not too much energy.** 3.5–7 kHz sits 6–11 dB *below*
   clean songs. It is the wrong texture, not too much level.
@@ -314,7 +315,7 @@ masters and the DistroKid masters of the same songs.
     overall 2 dB cap (`tone.py:91-95`, `:191-193`).
   - **The cutoff guard leaks.** The curve is spread between bands on a
     straight Hz scale (`tone.py:270-278`), so boost reaches past the
-    song's top cutoff (+1.1 dB at the cutoff on *Just Another Rain*).
+    song's top cutoff (+1.1 dB at the cutoff on the test song).
 - **When no cutoff is found,** +2 dB goes onto 16–20 kHz, where there is
   mostly noise.
 
@@ -448,7 +449,7 @@ Ordered by the Reddit counts in §2, weighted toward what is growing in v6.
     - Split out the vocal, the same split the Remix tab makes.
     - Take the steady hiss out of the vocal's top end only.
     - **Round 5 result (2026-09-23): C, "steady hiss taken out of the
-      vocal".** The author's pick on *Just Another Rain*, 1:50. Taking out
+      vocal".** The author's pick on the test song, 1:50. Taking out
       a per-pitch hiss floor from the vocal stem above 3.5 kHz removed the
       hiss, and what it took sounded like nothing useful. One song and one
       passage so far.

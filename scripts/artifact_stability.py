@@ -46,10 +46,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Where to look for AI source renders. Sources live outside the repo, so this
 # is a list of folders rather than one fixed path.
-SOURCE_GLOBS = [
-    os.path.join(ROOT, "sources", "suno-*.wav"),
-    r"D:\MusicVault\The Treq\albums\The Fifth Direction\suno\*.wav",
-]
+# More folders come from private/paths.json ("artifact_stability_globs"),
+# so the author's folder names stay out of the public code.
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+from _private import paths as _private_paths  # noqa: E402
+
+SOURCE_GLOBS = [os.path.join(ROOT, "sources", "suno-*.wav")] + list(
+    _private_paths().get("artifact_stability_globs", []))
 
 WINDOW_S = 5.0          # what the detector uses today
 HOP_S = 5.0             # non-overlapping, so windows are independent samples

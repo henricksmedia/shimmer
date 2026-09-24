@@ -16,7 +16,7 @@ hash band that recovers the clean magnitude.
 
 Run under .venv-stems (torch). Writes shards to <out>/shard_*.npz.
 
-Usage: python scripts/hash_learn/data.py --out D:/MusicVault/Tools/Shimmer/hash_data
+Usage: python scripts/hash_learn/data.py --out hash_data
            [--pairs 4000] [--excerpt 4.0] [--holdout reference-hey,distrokid-alive-again]
 """
 from __future__ import annotations
@@ -133,7 +133,10 @@ def main(argv):
     band_hz = tuple(float(v) for v in opt("--band", f"{BAND[0]},{BAND[1]}").split(","))
     wide_share = float(opt("--wide", 0.0))
     holdout = set((opt("--holdout", "reference-hey,distrokid-alive-again")).split(","))
-    census = json.load(open(os.path.join(ROOT, "docs", "host-census.json"), encoding="utf-8"))["rows"]
+    # The census names the author's songs, so it lives in private/data.
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    from _private import private_path
+    census = json.load(open(private_path("data", "host-census.json"), encoding="utf-8"))["rows"]
     hosts = [r for r in census if r["usable"]]
     # hold out by song stem so the evaluation hosts never appear in training
     def stem(r):

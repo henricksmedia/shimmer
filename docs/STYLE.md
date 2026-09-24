@@ -115,6 +115,36 @@ and do not add another `text=auto`.
 gitignored folder inside the repo, next to the data it reads. Preserved, not
 published — the repo is public.
 
+## Public and private
+
+The repo is public. Anything that names the author's own songs or folders
+lives in **`private/`** at the top of the main checkout, which git never
+tracks:
+
+- **Song paths and file lists**, such as a census of training songs.
+- **Test libraries and their results** (`private/test-library/`).
+- **Research data and notes**, such as reports, datasets and listening
+  notes (`private/research/`).
+- **Folder locations the scripts need** (`private/paths.json`). A script
+  reads them through `scripts/_private.py` (`need("key")`), never from a
+  path typed into the code.
+
+A worktree or test copy finds the same `private/` through git, so there is
+one private home, not one per copy. `SHIMMER_PRIVATE` points elsewhere.
+
+**Public files use placeholders.** An example path is `D:/Music`, a song is
+"the test song". A doc may say that a number was measured on the author's
+songs; it does not list them.
+
+**The check:** `tests/test_privacy.py` fails when a tracked file holds a
+path into a personal music, download or home folder, or any word listed in
+`private/markers.txt` (song titles, artist names).
+
+**Git history keeps what was committed before.** Cleaning a file stops the
+leak going forward. Erasing it from history means a force-push that breaks
+every clone, so it is kept for something truly sensitive, such as a
+password or a key.
+
 **Short, neutral commit subjects.** The body carries the reasoning, the
 measurements, and what was left undone. No trailers.
 

@@ -8,7 +8,7 @@ param(
     [string]$Log = "$env:TEMP",
     [int]$Epochs = 30,
     [int]$MaxMinutes = 40,
-    [string]$Data = "D:/MusicVault/Tools/Shimmer/hash_data",
+    [string]$Data = (Join-Path $PSScriptRoot "..\..\hash_data"),
     [string]$Out = "scripts/hash_learn/masknet.pt",
     [switch]$Resume
 )

@@ -25,7 +25,10 @@ chain (their tags, when present, say which); this number is the size of the
 defect as shipped, not the current chain's. Re-rendering from source is
 verify_tone_fix.py's job.
 
-Usage: python scripts/tilt_gap.py [--out docs/tilt-gap.json]
+Usage: python scripts/tilt_gap.py [--out private/data/tilt-gap.json]
+
+The result names the author's songs and folders, so it is written to the
+private folder (scripts/_private.py), not docs/.
 """
 from __future__ import annotations
 
@@ -118,7 +121,10 @@ def pair(refs, shims):
 
 
 def main(argv):
-    out_path = argv[argv.index("--out") + 1] if "--out" in argv else os.path.join(ROOT, "docs", "tilt-gap.json")
+    from _private import private_path
+    out_path = (argv[argv.index("--out") + 1] if "--out" in argv
+                else private_path("data", "tilt-gap.json"))
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     refs, shims = collect()
     pairs = pair(refs, shims)
     print(f"{len(refs)} {SETTING} masters, {len(shims)} Shimmer exports, {len(pairs)} paired by name\n")

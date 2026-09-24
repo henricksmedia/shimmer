@@ -7,13 +7,14 @@ the first Amount limits were set on 8 seconds of five songs
 hundred real AI songs, labeled by generator version and style, that every
 fix and every master is run against before it ships.
 
-The songs are private, so the library lives next to them, never in this
-repo. The repo holds only the tool: `scripts/test_library.py`.
+The songs are private, so the library lives in the git-ignored `private/`
+folder (docs/STYLE.md, "Public and private"), never in the tracked repo.
+The repo holds only the tool: `scripts/test_library.py`.
 
 ## Build it
 
 ```bash
-python scripts/test_library.py build "D:/MusicVault" --out library.json
+python scripts/test_library.py build "D:/Music" --out private/test-library/library.json
 ```
 
 - **Every folder named `suno`** under the root holds one song's original

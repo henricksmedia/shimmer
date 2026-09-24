@@ -26,7 +26,7 @@ example is normalised by its own mean log-magnitude so level does not
 matter.
 
 Usage (under .venv-stems):
-    python scripts/hash_learn/train.py --data D:/MusicVault/Tools/Shimmer/hash_data
+    python scripts/hash_learn/train.py --data hash_data
         [--epochs 30] [--out scripts/hash_learn/masknet.pt] [--resume]
 """
 from __future__ import annotations

@@ -5,9 +5,9 @@ the original generator exports under a folder, one per song, and runs
 Shimmer's engine over all of them, so a change is judged on many songs,
 styles and versions at once.
 
-    python scripts/test_library.py build "D:/MusicVault" --out library.json
-    python scripts/test_library.py run library.json --card grain=0.5 --out grain.json
-    python scripts/test_library.py run library.json --master cd --out master.json
+    python scripts/test_library.py build "D:/Music" --out private/test-library/library.json
+    python scripts/test_library.py run private/test-library/library.json --card grain=0.5 --out grain.json
+    python scripts/test_library.py run private/test-library/library.json --master cd --out master.json
 
 build   Every folder named "suno" (any case) under the root is one song's
         originals, as the author keeps them. Its main WAV is the song
@@ -26,8 +26,8 @@ run     Renders each song through core.render() and reports, per song and
         loudness reached, the true peak and the gain. A song that fails is
         reported and the run goes on.
 
-The library holds private songs, so the manifest and the results stay out
-of the repo: write them where the songs are.
+The library names private songs, so the manifest and the results go in the
+private folder (scripts/_private.py), never in the repo.
 """
 from __future__ import annotations
 
@@ -192,7 +192,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     r.add_argument("--only", action="append", default=[],
                    help="only songs of this version (repeat for more), e.g. v6")
     r.add_argument("--out", required=True)
+    r.add_argument("--resume", action="store_true",
+                   help="keep the songs already in --out and run only the rest")
     a = ap.parse_args(argv)
+    # Song titles can hold any character; a console that cannot show one
+    # must not stop a long run (one did, 219 songs in).
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
 
     if a.cmd == "build":
         songs = build(a.root)
@@ -213,10 +222,27 @@ def main(argv: Optional[List[str]] = None) -> int:
         songs = [s for s in songs if s["version"] in a.only]
     if a.limit:
         songs = songs[:a.limit]
+    keys = (["took_song_db", "took_band_db", "acting_share"] if a.card
+            else ["lufs", "true_peak_dbtp", "gain_db", "shaped_share"])
     rows = []
+    if a.resume and os.path.isfile(a.out):
+        rows = [r for r in json.load(open(a.out, encoding="utf-8"))["rows"] if "result" in r]
+    done = {r.get("path") for r in rows}
+
+    def save() -> Dict[str, Any]:
+        out = {"args": vars(a), "rows": rows, "by_version": summarise(rows, keys)}
+        tmp = a.out + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(out, f, indent=1)
+        os.replace(tmp, a.out)
+        return out
+
     for i, s in enumerate(songs, 1):
         path = s["mp3"] if a.mp3 else s["wav"]
+        if path in done:
+            continue
         row = {k: s[k] for k in ("title", "style", "version")}
+        row["path"] = path
         if not path:
             row["error"] = "no MP3"
             rows.append(row)
@@ -233,13 +259,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             row["error"] = f"{type(e).__name__}: {e}"
         row["seconds"] = round(time.time() - t, 1)
         rows.append(row)
+        save()                                         # a crash keeps what is done
         print(f"[{i}/{len(songs)}] {s['version']:6s} {s['title'][:34]:34s} "
               f"{json.dumps(row.get('result', row.get('error')))[:110]}", flush=True)
-    keys = (["took_song_db", "took_band_db", "acting_share"] if a.card
-            else ["lufs", "true_peak_dbtp", "gain_db", "shaped_share"])
-    out = {"args": vars(a), "rows": rows, "by_version": summarise(rows, keys)}
-    with open(a.out, "w", encoding="utf-8") as f:
-        json.dump(out, f, indent=1)
+    out = save()
     print(json.dumps(out["by_version"], indent=1))
     return 0
 

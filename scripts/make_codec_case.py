@@ -24,7 +24,7 @@ own libraries:
 
   1. The codec pass, in the stems Python (torch, and `encodec` installed
      with the author's permission, 2026-09-13):
-         D:\\MusicVault\\Tools\\Shimmer\\.venv-stems\\Scripts\\python.exe
+         .venv-stems\\Scripts\\python.exe
              scripts/make_codec_case.py [--kbps 3,6,12] [--songs a.wav,b.wav]
   2. The sets, in the project's Python:
          .venv\\Scripts\\python.exe scripts/make_codec_case.py --sets-only
