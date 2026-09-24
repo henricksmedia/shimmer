@@ -367,7 +367,9 @@ def _fixes(s: Settings, notches: Optional[Sequence[Notch]], cards_on: List[str],
                     else "cuts the steady tones Analyze finds")
             d["paras"] = ["One tool runs for each card that is on under What do you hear? "
                           f"Fixed tones is on, so the notch filter {what}.",
-                          "Each notch is narrow, so the music on either side is kept."]
+                          "Each notch is narrow, so the music on either side is kept.",
+                          "A tone that sits on a musical note, off the generator’s usual "
+                          "pitches, is taken for a held note and left alone."]
     else:
         d["paras"] = ["One tool runs for each card that is on under What do you hear? "
                       + (built[:-1] + ": turn on Fixed tones to use it."
@@ -411,6 +413,9 @@ def _tone(s: Settings, reference: Optional[Mapping[str, Any]]) -> Dict[str, Any]
         paras=["Mastering shapes the tone toward Shimmer’s tone target: the middle of hundreds "
                "of finished masters, band by band.",
                f"No band is boosted more than {boost} dB or cut more than {cut} dB.",
+               "Nothing is boosted near or above the point where the song’s top end stops, "
+               "or above 16 kHz when that point can’t be found: there is only noise up "
+               "there.",
                "With a reference track loaded, it moves toward that track instead, by the Amount "
                f"you set, within ±{limit} dB."],
         action=act)
@@ -493,10 +498,15 @@ def _master(s: Settings, fmt: catalog.Format, changed: bool,
             steps=[[f"Low-cut at {cut} Hz", f"Removes rumble below {cut} Hz."],
                    [f"Gain to {lufs} LUFS",
                     (f"One static gain for the whole song: {gain}. It does not ride up and "
-                     "down." if gain else "One static gain for the whole song. It does not "
-                     f"ride up and down. {_UNKNOWN_GAIN}")],
-                   ["Peak shaper", "Softly rounds the tallest peaks, so the limiter has less "
-                                   "to do."],
+                     "down. It is checked against the finished song, after the peak shaper "
+                     "and limiter, so the song lands on its target." if gain else
+                     "One static gain for the whole song. It does not ride up and down. It is "
+                     "checked against the finished song, after the peak shaper and limiter, "
+                     f"so the song lands on its target. {_UNKNOWN_GAIN}")],
+                   ["Peak shaper", "A soft clipper that rounds off the tallest peaks, so the "
+                                   "limiter has less to do. It works at 4× the sample rate, "
+                                   "so it adds no harsh tones, and both channels get the same "
+                                   "gain."],
                    ["True-peak limiter", _ceiling_words(fmt)]],
             action=act)
     if s.preserve_volume:

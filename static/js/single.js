@@ -3165,7 +3165,10 @@ export async function initSingleTab() {
         const st = window.shimmerChainState ? window.shimmerChainState() : null;
         const masterOn = masterEnabled.checked;
         const set = new Set(['load', 'export', 'report']);
-        if (st && st.trim_armed) set.add('edit');
+        // shimmerChainState() sends the cuts as `trim` (null when none are
+        // placed); reading `trim_armed`, which it never sent, drew the Trim
+        // step as skipped even when the export cut the song.
+        if (st && st.trim) set.add('edit');
         if (outputFormat.value === 'wav16' || outputFormat.value === 'flac16') set.add('rate');
         const p = picker.payload();
         if (Object.values(p.fixes).some((v) => v > 0)
