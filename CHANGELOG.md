@@ -5,6 +5,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Taking turns on a shared GPU, for developer machines.** Some computers
+  run several AI tools on one graphics card, and the tools take turns
+  through a small "GPU lease" library. On a computer that has it, Shimmer's
+  stem split (the Remix tab, and Vocal grain's vocal mode) now waits its
+  turn, says which tool is using the card, and hands the card back when it
+  finishes or falls back to the CPU. On every other computer nothing
+  changes. Developer notes: docs/ARCHITECTURE.md, section 6.1.
+
 ## [2.3.4] — 2026-09-24
 
 ### Changed
