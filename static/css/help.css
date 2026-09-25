@@ -446,18 +446,3 @@
 @media (max-width: 720px) {
     .qs-two { grid-template-columns: 1fr; }
 }
-
-/* ── The start screen's three steps (index.html #master-empty) ──────── */
-
-.onboard { list-style: none; margin: 18px 0 0; padding: 0; display: grid;
-           grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.onboard li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px;
-              border: 1px solid var(--line); border-radius: 10px; background: var(--bg-1); }
-.ob-num { flex: none; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center;
-          justify-content: center; font-size: 12px; font-weight: 700; color: #fff; background: var(--purple); }
-.onboard b { display: block; font-size: 13.5px; color: var(--fg-0); margin-bottom: 2px; }
-.onboard span:not(.ob-num) { font-size: 12.5px; line-height: 1.45; color: var(--fg-2); }
-.onboard-more { margin: 10px 0 0; font-size: 12.5px; color: var(--fg-2); text-align: center; }
-@media (max-width: 720px) {
-    .onboard { grid-template-columns: 1fr; }
-}

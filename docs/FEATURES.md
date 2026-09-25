@@ -123,9 +123,13 @@ steps, shown at the top: **1 Upload**, **2 Analyze**, **3 Clean & Master**.
   a card), Controls, Troubleshoot, Setup and About. A **?** next to a card
   or control opens Help at that topic, with a **Back** button to where you
   were.
-- **The start screen** shows three steps under the drop area: drop a song,
-  check Quick master, Clean & Master. They go away once a song is loaded.
-  Nothing pops up on a first visit.
+- **The start screen** has the drop area and three steps on the left: drop
+  a song, check Quick master, Clean & Master. The steps sit on a wire lit in
+  the stage colours (teal, cyan, amber), like the chain in the processing
+  window. On the right are your recent sessions, or, before your first
+  song, the list of what Shimmer listens for. Under 1100 px it is one
+  column; under 720 px the steps become a numbered list. It goes away once
+  a song is loaded. Nothing pops up on a first visit.
 
 ### 2.2 Upload
 

@@ -5,6 +5,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **A new start screen.** The drop area and the three steps sit on the
+  left, with recent sessions on the right (or, before your first song, what
+  Shimmer listens for). The steps are lit in the stage colours on a wire,
+  like the chain in the processing window. Narrower windows stack it in one
+  column; on a phone the steps become a short numbered list.
+
 ### Fixed
 
 - **start.bat no longer flashes a second window after an update.** When it

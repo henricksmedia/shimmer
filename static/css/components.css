@@ -150,12 +150,129 @@
 
 /* ── Master screen layout ───────────────────────────────────────────── */
 
+/* The start screen: the drop area and how it works on the left, recent
+   sessions (or what Shimmer listens for) on the right; one column under
+   1100 px, tighter under 720 px. */
 .master-empty {
-    max-width: 760px;
-    margin: 6vh auto 0;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    max-width: 1180px;
+    margin: 4vh auto 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+.me-main, .me-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+/* Recent sessions win the side panel; with none, what Shimmer listens for. */
+.me-side #recents-card:not([hidden]) ~ .listens-card { display: none; }
+.master-empty .dropzone { padding: 44px 32px 38px; }
+
+/* How it works: a wire lit in the stage colours, three nodes on it and a
+   packet travelling along, as in the processing window (.pm-chain). */
+.onboard { --ob-1: var(--stage-1); --ob-2: var(--stage-2); --ob-3: var(--stage-3); }
+.ob-1 { --stage: var(--ob-1); }
+.ob-2 { --stage: var(--ob-2); }
+.ob-3 { --stage: var(--ob-3); }
+.ob-flow { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); height: 34px;
+           margin: 2px 0 10px; }
+.ob-wire {
+    position: absolute; left: 16.667%; right: 16.667%; top: 50%; height: 3px; margin-top: -1.5px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--ob-1), var(--ob-2), var(--ob-3));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--ob-2) 45%, transparent);
+    opacity: .85;
+}
+.ob-node {
+    position: relative; z-index: 1; justify-self: center; align-self: center;
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    font: 700 13px var(--font-mono); color: #0b0d10; background: var(--stage);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage) 25%, transparent), 0 0 14px var(--stage);
+    animation: ob-pulse 3.6s ease-in-out infinite;
+}
+.ob-node.ob-2 { animation-delay: 1.2s; }
+.ob-node.ob-3 { animation-delay: 2.4s; }
+@keyframes ob-pulse {
+    0%, 30%, 100% { transform: scale(1); box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage) 25%, transparent), 0 0 14px var(--stage); }
+    12% { transform: scale(1.18); box-shadow: 0 0 0 7px color-mix(in srgb, var(--stage) 14%, transparent), 0 0 24px var(--stage); }
+}
+.ob-packet {
+    position: absolute; top: 50%; left: 0; width: 24px; height: 17px; margin: -8.5px 0 0 -12px;
+    display: flex; align-items: center; justify-content: center; gap: 2px; pointer-events: none;
+    animation: ob-travel 3.6s cubic-bezier(.4, 0, .6, 1) infinite;
+}
+.ob-packet i { display: block; width: 4px; height: 8px; border-radius: 2px; background: #fff; box-shadow: 0 0 8px #fff; }
+.ob-packet i:nth-child(2) { height: 15px; }
+.ob-packet i:nth-child(3) { height: 10px; }
+@keyframes ob-travel {
+    0% { left: 0; opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { left: 100%; opacity: 0; }
+}
+
+.ob-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ob-step {
+    position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;
+    padding: 16px 14px 16px; border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--stage) 30%, var(--line));
+    background:
+        radial-gradient(90% 70% at 50% 0%, color-mix(in srgb, var(--stage) 14%, transparent), transparent 70%),
+        var(--bg-1);
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.ob-step:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--stage) 60%, var(--line));
+    box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--stage) 55%, transparent);
+}
+/* A short stem from the wire's node down to its card. */
+.ob-step::before {
+    content: ""; position: absolute; top: -11px; left: 50%; width: 2px; height: 10px; margin-left: -1px;
+    background: linear-gradient(var(--stage), transparent); opacity: .7;
+}
+.ob-chip { display: none; }
+.ob-icon { font-size: 24px; color: var(--stage); margin-bottom: 2px; }
+.ob-step b { font-size: 14px; font-weight: 650; color: var(--fg-0); }
+.ob-desc { font-size: 12.5px; line-height: 1.45; color: var(--fg-2); }
+.onboard-more { margin: 12px 0 0; font-size: 12.5px; color: var(--fg-2); text-align: center; }
+
+/* What Shimmer listens for (no recent sessions yet). */
+.listens { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.listens li { display: grid; grid-template-columns: 22px auto minmax(0, 1fr); align-items: baseline; gap: 10px;
+              padding: 8px 2px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.listens li:last-child { border-bottom: none; }
+.listens .ms { font-size: 17px; color: var(--cyan); align-self: center; }
+.listens b { color: var(--fg-0); font-weight: 600; white-space: nowrap; }
+.listens span:last-child { color: var(--fg-2); }
+.listens-foot { margin: 10px 2px 0; font-size: 12px; line-height: 1.5; color: var(--fg-3); }
+
+@media (max-width: 1100px) {
+    .master-empty { grid-template-columns: 1fr; max-width: 760px; }
+}
+@media (max-width: 720px) {
+    .master-empty { margin-top: 2vh; }
+    .master-empty .dropzone { padding: 30px 18px 26px; }
+    .master-empty .dropzone:not(.dropzone-compact) .btn.step-btn { min-width: 0; width: 100%; }
+    /* The wire runs across; stacked, each card carries its own number. */
+    .ob-flow { display: none; }
+    .ob-steps { grid-template-columns: 1fr; gap: 8px; }
+    /* Number on the left; the title above its line of text. */
+    .ob-step { display: grid; grid-template-columns: 26px minmax(0, 1fr); column-gap: 12px; row-gap: 2px;
+               text-align: left; align-items: center; padding: 12px 14px; }
+    .ob-step .ob-chip { grid-row: 1 / span 2; }
+    .ob-step::before { display: none; }
+    .ob-chip {
+        display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%;
+        font: 700 12px var(--font-mono); color: #0b0d10; background: var(--stage);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--stage) 22%, transparent);
+    }
+    .ob-icon { display: none; }
+    .ob-step b { display: block; }
+    .ob-step > b, .ob-step > .ob-desc { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ob-node, .ob-packet { animation: none; }
+    .ob-packet { display: none; }
+    .ob-step, .ob-step:hover { transition: none; transform: none; }
 }
 
 .master-3col {

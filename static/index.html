@@ -89,28 +89,66 @@
         </ol>
 
         <!-- Empty state: hero dropzone, exactly like the demo -->
+        <!-- The start screen. Wide: the drop area and how it works on the
+             left, recent sessions (or, with none, what Shimmer listens for)
+             on the right. One column under 1100 px. -->
         <div class="master-empty" id="master-empty">
-            <div class="dropzone" id="dropzone">
-                <input type="file" id="file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" hidden>
-                <div class="dropzone-inner">
-                    <div class="dropzone-primary">Drop a track to clean &amp; master</div>
-                    <div class="dropzone-secondary">AI song exports welcome — Shimmer removes AI artifacts, then masters for release.</div>
-                    <button type="button" class="btn btn-primary step-btn" data-step="1" id="pick-file-btn">Choose file…</button>
-                    <div class="dropzone-formats">.wav · .mp3 · .flac · .ogg · .m4a</div>
-                    <div class="selected-file" id="selected-file" hidden></div>
-                    <div class="prior-pass-note" id="prior-pass-note" hidden></div>
+            <div class="me-main">
+                <div class="dropzone" id="dropzone">
+                    <input type="file" id="file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" hidden>
+                    <div class="dropzone-inner">
+                        <div class="dropzone-primary">Drop a track to clean &amp; master</div>
+                        <div class="dropzone-secondary">AI song exports welcome — Shimmer removes AI artifacts, then masters for release.</div>
+                        <button type="button" class="btn btn-primary step-btn" data-step="1" id="pick-file-btn">Choose file…</button>
+                        <div class="dropzone-formats">.wav · .mp3 · .flac · .ogg · .m4a</div>
+                        <div class="selected-file" id="selected-file" hidden></div>
+                        <div class="prior-pass-note" id="prior-pass-note" hidden></div>
+                    </div>
+                </div>
+
+                <!-- How it works: the three stages on a lit wire, in their
+                     stage colours, like the processing window's chain. -->
+                <div class="onboard" aria-label="How it works">
+                    <div class="ob-flow" aria-hidden="true">
+                        <div class="ob-wire"><span class="ob-packet"><i></i><i></i><i></i></span></div>
+                        <span class="ob-node ob-1">1</span>
+                        <span class="ob-node ob-2">2</span>
+                        <span class="ob-node ob-3">3</span>
+                    </div>
+                    <ol class="ob-steps">
+                        <li class="ob-step ob-1"><span class="ob-chip">1</span><span class="ms ob-icon" aria-hidden="true">upload_file</span>
+                            <b>Drop a song</b><span class="ob-desc">Shimmer listens and finds what the AI added.</span></li>
+                        <li class="ob-step ob-2"><span class="ob-chip">2</span><span class="ms ob-icon" aria-hidden="true">tune</span>
+                            <b>Check Quick master</b><span class="ob-desc">Three sliders, already set for your song.</span></li>
+                        <li class="ob-step ob-3"><span class="ob-chip">3</span><span class="ms ob-icon" aria-hidden="true">download</span>
+                            <b>Clean &amp; Master</b><span class="ob-desc">Listen, then download.</span></li>
+                    </ol>
+                    <p class="onboard-more">More in <button type="button" class="qm-link" data-help-tab="quickstart">Help</button>, or switch to Advanced for every control.</p>
                 </div>
             </div>
-            <ol class="onboard" aria-label="How it works">
-                <li><span class="ob-num">1</span><div><b>Drop a song</b><span>Shimmer listens and finds what the AI added.</span></div></li>
-                <li><span class="ob-num">2</span><div><b>Check Quick master</b><span>Three sliders, already set for your song.</span></div></li>
-                <li><span class="ob-num">3</span><div><b>Clean &amp; Master</b><span>Listen, then download.</span></div></li>
-            </ol>
-            <p class="onboard-more">More in <button type="button" class="qm-link" data-help-tab="quickstart">Help</button>, or switch to Advanced for every control.</p>
-            <div class="card" id="recents-card" hidden>
-                <div class="card-head"><span class="title">Recent sessions</span><span class="gloss">click to reload — settings &amp; remix projects come back automatically</span></div>
-                <div class="card-body" id="recents-list"></div>
-            </div>
+
+            <aside class="me-side">
+                <div class="card" id="recents-card" hidden>
+                    <div class="card-head"><span class="title">Recent sessions</span><span class="gloss">click to reload — settings &amp; remix projects come back automatically</span></div>
+                    <div class="card-body" id="recents-list"></div>
+                </div>
+                <!-- With no recent sessions: what the detectors listen for. -->
+                <div class="card listens-card" id="listens-card">
+                    <div class="card-head"><span class="title">What Shimmer listens for</span></div>
+                    <div class="card-body">
+                        <ul class="listens">
+                            <li><span class="ms" aria-hidden="true">noise_aware</span><b>Vocal grain</b><span>grainy hiss riding on the voice</span></li>
+                            <li><span class="ms" aria-hidden="true">record_voice_over</span><b>Sibilance</b><span>harsh &ldquo;s&rdquo; and &ldquo;sh&rdquo;</span></li>
+                            <li><span class="ms" aria-hidden="true">graphic_eq</span><b>Harshness</b><span>piercing upper mids</span></li>
+                            <li><span class="ms" aria-hidden="true">sports</span><b>Fixed tones</b><span>a whistle that never changes</span></li>
+                            <li><span class="ms" aria-hidden="true">brightness_low</span><b>Lack of air</b><span>a dull top end</span></li>
+                            <li><span class="ms" aria-hidden="true">foggy</span><b>Low-mid build-up</b><span>muddy and boxy</span></li>
+                            <li><span class="ms" aria-hidden="true">volume_down</span><b>Loudness</b><span>quieter than released music</span></li>
+                        </ul>
+                        <p class="listens-foot">What it finds gets its fix turned on, at a strength you can change.</p>
+                    </div>
+                </div>
+            </aside>
         </div>
 
         <!-- Working state: preset browser | analysis + visualizer | inspector -->
