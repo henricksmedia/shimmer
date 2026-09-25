@@ -5,6 +5,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.3.2] — 2026-09-24
+
 ### Changed
 
 - **Mastering can brighten a dull song further.** The tone match could
