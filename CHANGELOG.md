@@ -5,6 +5,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.3.5] — 2026-09-25
+
 ### Added
 
 - **Taking turns on a shared GPU, for developer machines.** Some computers
