@@ -40,7 +40,7 @@ Both tone measures are the one mastering makes (`master/tone.py`,
 
 - **Lack of air** is fixed by mastering's tone, not a cleaning tool. The
   finding offers Tilt: Bright (some) or Brightest (a lot), unticked, since
-  the tone is the user's choice. Mastering boosts any band by 2 dB at most,
+  the tone is the user's choice. Mastering boosts any band by 5 dB at most (2 dB before 2.3.2),
   so a song 5 dB dull comes up only 2 dB. The finding says so.
 - **Low-mid build-up** turns on its dynamic EQ. How much that dynamic EQ
   acts does not follow the song's steady low-mid level (correlation 0.04

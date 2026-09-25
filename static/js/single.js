@@ -2391,7 +2391,7 @@ export async function initSingleTab() {
             let tiltBefore = null;
             items.push({
                 key: 'air', icon: 'brightness_low', title: 'Lack of air',
-                detail: `${air.detail}. Mastering lifts the top end by 2 dB at most.`,
+                detail: `${air.detail}. Mastering lifts any band by 5 dB at most.`,
                 action: want === 'brightest' ? 'Tilt: Brightest' : 'Tilt: Bright',
                 recommended: false,
                 isOn: () => masterEnabled.checked && (masterTilt.value === 'bright'

@@ -40,10 +40,13 @@ def _band(hz):
 
 # ── The target as an input ──────────────────────────────────────────────
 
-def test_the_default_target_is_1_1_1s_bit_for_bit():
+def test_the_default_target_is_1_1_1s_bit_for_bit(monkeypatch):
     # With a cutoff given, as render() gives it. With none found, 2.0.1 also
-    # boosts nothing above 16 kHz, which 1.1.1 did (CHAIN-AUDIT §4).
+    # boosts nothing above 16 kHz, which 1.1.1 did (CHAIN-AUDIT §4). 2.3.2
+    # raised the boost limit from 1.1.1's +2 dB to +5 dB; with 1.1.1's limit
+    # the curve is still 1.1.1's, bit for bit.
     from shimmer.core.master import tone
+    monkeypatch.setattr(tone, "_MAX_EQ_BOOST_DB", 2.0)
     x = _noise(1, -1.5)
     base = tone.compute_tone_curve(x, SR, strength=0.55, tilt="warm", cutoff_hz=19000.0)
     assert tone.compute_tone_curve(x, SR, strength=0.55, tilt="warm", cutoff_hz=19000.0,
@@ -197,3 +200,18 @@ def test_the_tilt_still_applies_on_top_of_a_match():
     ref = tone.reference_shape(x, SR)
     bright = tone.match_curve(x, SR, ref, tilt="bright")
     assert bright[_band(3150)] > 0.3 and bright[_band(63)] < -0.3
+
+
+def test_a_dull_song_is_lifted_past_the_old_two_db():
+    # 2.3.2: the built-in curve may boost up to +5 dB (a blind round chose it
+    # over +2 and +3.5), and never past it.
+    from shimmer.core.analyze.track import REF_FREQS
+    from shimmer.core.master import tone
+    from scipy import signal as ss
+    x = _noise(3, -1.5, seconds=4.0)
+    dull = ss.sosfilt(ss.butter(4, 3000, btype="lowpass", fs=SR, output="sos"), x, axis=0)
+    curve = np.array(tone.compute_tone_curve(dull, SR, strength=1.0, cutoff_hz=None))
+    assert tone._MAX_EQ_BOOST_DB == 5.0
+    assert 2.0 < curve.max() <= 5.0 + 1e-9
+    assert curve[REF_FREQS >= 16000].max() <= 0.0
+

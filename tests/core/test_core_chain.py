@@ -62,7 +62,7 @@ def test_typical_settings():
     assert st["fixes"]["band"] == {"notches": [3510.0, 5270.0, 11900.0]}
     assert st["fixes"]["band_text"] == "Notches at 3.51 kHz, 5.27 kHz and 11.9 kHz."
     assert st["tone"]["verdict"] == "On · Tone match Medium, Tilt Neutral"
-    assert st["tone"]["badges"] == ["Medium", "Neutral tilt", "+2 / −3 dB max"]
+    assert st["tone"]["badges"] == ["Medium", "Neutral tilt", "+5 / −3 dB max"]
     assert st["eq"]["off"] == "EQ is off"
     assert st["master"]["badges"] == ["−9 LUFS", "−1.0 dBTP", "25 Hz low-cut", "one static gain"]
     assert [t for t, _ in st["master"]["steps"]] == [
@@ -287,9 +287,9 @@ def test_master_shows_the_gain_once_a_render_has_worked_it_out():
 
 
 def test_tone_limits_are_the_engines():
-    p = inspect.signature(tone.tone_curve).parameters
-    assert p["max_boost_db"].default == TONE_MAX_BOOST_DB
-    assert p["max_cut_db"].default == TONE_MAX_CUT_DB
+    # The limits the built-in tone curve uses (compute_tone_curve).
+    assert tone._MAX_EQ_BOOST_DB == TONE_MAX_BOOST_DB == 5.0
+    assert tone._MAX_EQ_CUT_DB == TONE_MAX_CUT_DB
 
 
 def test_fades_show_with_the_cuts():

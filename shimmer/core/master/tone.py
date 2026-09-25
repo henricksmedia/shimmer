@@ -88,7 +88,13 @@ REF_TOL_DB = np.array([
 _MID_BANDS = (REF_FREQS >= 200.0) & (REF_FREQS <= 2000.0)
 REF_DB = REF_SHAPE_DB - np.median(REF_SHAPE_DB[_MID_BANDS])
 
-_MAX_EQ_BOOST_DB = 2.0    # static tone curve max boost
+# The static tone curve's largest boost. 1.1.1's +2 dB left most AI songs
+# dull: on the test library the typical song sits 4.7 dB under the target at
+# 8-16 kHz. Raised to +5 dB after a blind round (2026-09-24): on five songs
+# whose versions differed, the author never picked +2 and picked +5 on four
+# (+3.5 on the fifth). The target shape is unchanged; the cutoff guard below
+# still stops any boost above the song's own top end.
+_MAX_EQ_BOOST_DB = 5.0
 _MAX_EQ_CUT_DB = 3.0      # static tone curve max cut
 _HARSH_LO_HZ = 5000.0     # the band AI fizz lives in
 _HARSH_HI_HZ = 12000.0

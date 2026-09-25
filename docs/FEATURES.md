@@ -189,7 +189,7 @@ masters (docs/DETECTORS.md).
 - **Lack of air:** how far the top end (8-16 kHz) sits under the tone
   target: 3 dB or more is some, 6 dB or more a lot. The checklist offers
   Tilt: Bright or Brightest, unticked. Mastering lifts the top end by
-  2 dB at most.
+  5 dB at most.
 - **Low-mid build-up:** how far 200-500 Hz sits over the tone target: 2 dB
   or more. Its dynamic EQ turns on.
 - **Sibilance** and **Harshness:** how much of the song their fix acts on.
@@ -551,7 +551,8 @@ out once from the whole song.
   loudness.
 - **Tilt:** Brightest, Bright, Neutral (default), Warm or Warmer. Warm to
   bright, up to about 2 dB at the ends of the spectrum.
-- No band is boosted more than 2 dB or cut more than 3 dB.
+- No band is boosted more than 5 dB or cut more than 3 dB. (Until 2.3.2 the
+  most was 2 dB, which left most AI songs dull; a blind round chose 5.)
 - Where the song's top end stops (many AI renders stop at 12-15 kHz),
   nothing is boosted in the empty band above it.
 

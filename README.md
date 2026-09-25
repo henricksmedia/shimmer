@@ -358,7 +358,7 @@ through the tone target.
 - **Tone target.** With mastering on, Shimmer moves your song's tone toward a
   target: its built-in one, or a reference track you pick. **Tone match**
   (Low, Medium, High) sets how much. **Tone** (warmer to brightest) tilts
-  it. The built-in curve boosts at most +2 dB and cuts at most −3 dB, and it
+  it. The built-in curve boosts at most +5 dB and cuts at most −3 dB, and it
   never boosts above the point where your render's top end stops.
 - **Reference-track matching.** Pick a released song you like as the tone
   target. Shimmer compares the two tone shapes, level-matched, and moves

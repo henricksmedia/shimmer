@@ -5,6 +5,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Mastering can brighten a dull song further.** The tone match could
+  raise any band by 2 dB at most, which left most AI songs dull: the typical
+  song in a 284-song library sits almost 5 dB under the tone target at
+  8-16 kHz. It can now raise a band by up to 5 dB. The target is the same,
+  and nothing is boosted above the song's own top end. In a blind,
+  level-matched test, today's 2 dB never won; 5 dB won on four of five
+  songs. Songs that are already bright don't change.
+
 ## [2.3.1] — 2026-09-24
 
 ### Fixed

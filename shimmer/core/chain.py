@@ -27,7 +27,7 @@ from .settings import Settings
 
 # The built-in tone target's limits: master.tone.tone_curve's defaults (a
 # test holds them equal).
-TONE_MAX_BOOST_DB = 2.0
+TONE_MAX_BOOST_DB = tone._MAX_EQ_BOOST_DB
 TONE_MAX_CUT_DB = 3.0
 
 # Every row the release check can show (master.release; a test holds each
