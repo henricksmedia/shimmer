@@ -107,7 +107,11 @@ def _mid_side(x: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarr
 
 def _level_db(y: np.ndarray, sr: int) -> np.ndarray:
     n = max(1, int(round(ENV_MS * 1e-3 * sr)))
-    return 10.0 * np.log10(ndimage.uniform_filter1d(y * y, n, mode="nearest") + 1e-20)
+    # A running mean of squares can round a hair below zero in digital
+    # silence; floored at zero, the log never turns NaN (a NaN level once
+    # wrote NaN into a song's audio).
+    return 10.0 * np.log10(np.maximum(ndimage.uniform_filter1d(y * y, n, mode="nearest"), 0.0)
+                           + 1e-20)
 
 
 def _readings(m: np.ndarray, s: Optional[np.ndarray], sr: int):

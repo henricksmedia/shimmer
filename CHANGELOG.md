@@ -5,6 +5,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Sibilance could break a song's audio.** On a song with stretches of
+  exact silence, the de-esser's level reading could round a hair below zero,
+  and it wrote invalid samples into the audio. Harshness and Low-mid
+  build-up used the same reading. All three now stay clean; the sound is
+  otherwise unchanged. The new Sibilance detector, which runs on every
+  song, is what found it.
+
 ## [2.3.0] — 2026-09-24
 
 ### Added
