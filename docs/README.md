@@ -12,7 +12,10 @@ on a dimmed Processed or Removed turn on Live. 2.1.4 made the player
 bar a warm, amber-lit deck with a white Play button. 2.2.0 added fades in
 the Trim card, moved to the source-available Shimmer License, wrote tags
 with Shimmer's own code, and fixed the lossy exports (M4A pops, the release
-check's true-peak rule, MP3 above 48 kHz).
+check's true-peak rule, MP3 above 48 kHz). 2.3.0 added Quick master (a
+Quick | Advanced switch with Clean-up, Loudness and Tone sliders) and
+detectors for Vocal grain, Lack of air, Low-mid build-up, Sibilance and
+Harshness (docs/DETECTORS.md).
 
 For the user-facing introduction, see the [root README](../README.md).
 
