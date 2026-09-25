@@ -5,6 +5,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.3.4] — 2026-09-24
+
 ### Changed
 
 - **A new start screen.** The drop area and the three steps sit on the
