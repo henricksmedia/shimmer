@@ -3,7 +3,7 @@
 import { initSingleTab } from './single.js';
 import { initBatchTab }  from './batch.js';
 import { initRemixTab } from './remix.js';
-import { initHelp, openHelp } from './help.js';
+import { initHelp } from './help.js';
 import { initChainTab } from './chain.js';
 import { initPalette } from './palette.js';
 import { initPresetBrowser } from './preset-browser.js';
@@ -18,6 +18,7 @@ const VIEW_TITLES = {
     batch:  ['Batch', 'whole folders, one pass'],
     chain:  ['Signal Chain', 'what actually happens to your audio'],
     settings: ['Settings', 'downloads · where finished files go'],
+    help: ['Help', 'guides, controls and fixes'],
 };
 
 function wireTabs() {
@@ -75,13 +76,8 @@ async function boot() {
         initMasterView();
         initRecents();
 
-        // First visit: open the quick-start guide once.
-        try {
-            if (!localStorage.getItem('shimmer.quickstart-seen')) {
-                localStorage.setItem('shimmer.quickstart-seen', '1');
-                openHelp('quickstart');
-            }
-        } catch (_) { /* storage unavailable — skip */ }
+        // No first-visit pop-up: the start screen shows the three steps,
+        // and Help is a page in the rail.
     } catch (e) {
         console.error('Boot failed:', e);
         const box = document.getElementById('metrics-box');

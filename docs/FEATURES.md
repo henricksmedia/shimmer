@@ -118,9 +118,14 @@ steps, shown at the top: **1 Upload**, **2 Analyze**, **3 Clean & Master**.
 - **Keys:** Space plays and pauses. 1, 2 and 3 switch tracks. The left and
   right arrows skip 5 s. **Ctrl+K** opens a command palette that can switch
   tabs, play, switch tracks, run Analyze and open Help.
-- **Help** has six tabs: Quick start, What do you hear? (with a short quiz
-  that points you to a card), Controls, Troubleshoot, Setup and About. A
-  **?** next to a card or control opens help on that one.
+- **Help** is a page in the left rail, with six topics down its side:
+  Getting started, What do you hear? (with a short quiz that points you to
+  a card), Controls, Troubleshoot, Setup and About. A **?** next to a card
+  or control opens Help at that topic, with a **Back** button to where you
+  were.
+- **The start screen** shows three steps under the drop area: drop a song,
+  check Quick master, Clean & Master. They go away once a song is loaded.
+  Nothing pops up on a first visit.
 
 ### 2.2 Upload
 

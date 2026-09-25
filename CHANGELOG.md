@@ -5,6 +5,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Help is a page, not a pop-up.** It sits in the left rail like Signal
+  Chain and Settings, with its topics down the side. Its first topic,
+  **Getting started**, is rewritten for today's Shimmer: what it does, four
+  steps with Quick master, the keys, and where Advanced is. The **?** buttons
+  open it at their topic, with a **Back** button.
+- **A short start screen.** Three steps under the drop area show how
+  Shimmer works. The Help pop-up no longer opens on a first visit.
+
 ## [2.3.2] — 2026-09-24
 
 ### Changed

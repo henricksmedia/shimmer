@@ -19,7 +19,7 @@
 import { CONTROL_SPEC, GROUP_INTROS } from './controls.js';
 import { loadRules } from './rules.js';
 
-let _modal, _tabs, _panels, _lastFocus;
+let _page, _tabs, _panels, _back, _backTo = null;
 
 // ──────────────────────────────────────────────────────────────────────
 // The 1.x presets, and the card each one turns on
@@ -703,7 +703,7 @@ function renderControlsHelp(host) {
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// Modal mechanics
+// Page mechanics: Help is a tab in the rail (index.html #tab-help)
 // ──────────────────────────────────────────────────────────────────────
 
 function setActiveTab(tabId) {
@@ -715,45 +715,42 @@ function setActiveTab(tabId) {
     _panels.forEach(p => {
         p.classList.toggle('active', p.dataset.panel === tabId);
     });
+    const body = _page && _page.querySelector('.help-body');
+    if (body) body.scrollTop = 0;
 }
 
+function currentView() {
+    return document.body.dataset.tab || 'single';
+}
+
+/** Open the Help page at a topic (and a control's card, for Controls).
+ *  From another view, a Back button returns there. */
 export function openHelp(tabId = 'presets', anchorId = null) {
-    if (!_modal) return;
-    _lastFocus = document.activeElement;
-    _modal.hidden = false;
-    document.body.classList.add('help-open');
+    if (!_page) return;
+    const from = currentView();
+    if (from !== 'help') {
+        _backTo = from;
+        document.querySelector('.tab[data-tab="help"]')?.click();
+    }
+    if (_back) _back.hidden = !_backTo;
     setActiveTab(tabId);
-
-    // Focus the close button for accessibility.
     requestAnimationFrame(() => {
-        const closeBtn = _modal.querySelector('#help-close');
-        if (closeBtn) closeBtn.focus();
-
-        if (anchorId) {
-            const el = _modal.querySelector(`#help-control-${anchorId}`);
-            if (el) {
-                el.scrollIntoView({ block: 'start', behavior: 'instant' in window ? 'instant' : 'auto' });
-                el.classList.add('help-card-flash');
-                setTimeout(() => el.classList.remove('help-card-flash'), 1400);
-            }
+        if (!anchorId) return;
+        const el = _page.querySelector(`#help-control-${anchorId}`);
+        if (el) {
+            el.scrollIntoView({ block: 'start' });
+            el.classList.add('help-card-flash');
+            setTimeout(() => el.classList.remove('help-card-flash'), 1400);
         }
     });
 }
 
+/** Back to where Help was opened from. */
 export function closeHelp() {
-    if (!_modal || _modal.hidden) return;
-    _modal.hidden = true;
-    document.body.classList.remove('help-open');
-    if (_lastFocus && typeof _lastFocus.focus === 'function') {
-        _lastFocus.focus();
-    }
-}
-
-function onKeyDown(e) {
-    if (e.key === 'Escape' && !_modal.hidden) {
-        e.preventDefault();
-        closeHelp();
-    }
+    const to = _backTo || 'single';
+    _backTo = null;
+    if (_back) _back.hidden = true;
+    document.querySelector(`.tab[data-tab="${to}"]`)?.click();
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -764,26 +761,24 @@ function onKeyDown(e) {
 // it now (the quiz points at a card, not the hidden preset menu).
 // eslint-disable-next-line no-unused-vars
 export function initHelp({ presetSelect } = {}) {
-    _modal = document.getElementById('help-modal');
-    if (!_modal) return;
+    _page = document.getElementById('tab-help');
+    if (!_page) return;
 
-    _tabs = Array.from(_modal.querySelectorAll('.help-tab'));
-    _panels = Array.from(_modal.querySelectorAll('.help-panel'));
+    _tabs = Array.from(_page.querySelectorAll('.help-tab'));
+    _panels = Array.from(_page.querySelectorAll('.help-panel'));
+    _back = document.getElementById('help-back');
 
-    // Tab switching.
+    // Topic switching.
     _tabs.forEach(t => {
         t.addEventListener('click', () => setActiveTab(t.dataset.tab));
     });
-
-    // Close on backdrop click + close button.
-    _modal.addEventListener('click', (e) => {
-        if (e.target === _modal) closeHelp();
+    if (_back) _back.addEventListener('click', closeHelp);
+    // Leaving Help by the rail forgets where Back would go.
+    document.querySelectorAll('.tab[data-tab]').forEach(t => {
+        if (t.dataset.tab !== 'help') {
+            t.addEventListener('click', () => { _backTo = null; if (_back) _back.hidden = true; });
+        }
     });
-    const closeBtn = _modal.querySelector('#help-close');
-    if (closeBtn) closeBtn.addEventListener('click', closeHelp);
-
-    // Esc closes.
-    document.addEventListener('keydown', onKeyDown);
 
     // Build content.
     renderQuiz(document.getElementById('preset-quiz'));

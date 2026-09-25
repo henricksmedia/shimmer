@@ -48,7 +48,7 @@
         <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6" stroke-linecap="round"/></svg>
         <span class="txt">Settings<span class="sub">downloads</span></span>
     </button>
-    <button class="nav-btn" type="button" data-help-tab="quickstart" title="Open help">
+    <button class="tab nav-btn" role="tab" data-tab="help" aria-selected="false" title="Guides, controls and fixes">
         <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.8a2.2 2.2 0 1 1 3.1 2.6c-.6.4-.9.8-.9 1.6M10 14.6v.01" stroke-linecap="round"/></svg>
         <span class="txt">Help<span class="sub">guides &amp; fixes</span></span>
     </button>
@@ -101,6 +101,12 @@
                     <div class="prior-pass-note" id="prior-pass-note" hidden></div>
                 </div>
             </div>
+            <ol class="onboard" aria-label="How it works">
+                <li><span class="ob-num">1</span><div><b>Drop a song</b><span>Shimmer listens and finds what the AI added.</span></div></li>
+                <li><span class="ob-num">2</span><div><b>Check Quick master</b><span>Three sliders, already set for your song.</span></div></li>
+                <li><span class="ob-num">3</span><div><b>Clean &amp; Master</b><span>Listen, then download.</span></div></li>
+            </ol>
+            <p class="onboard-more">More in <button type="button" class="qm-link" data-help-tab="quickstart">Help</button>, or switch to Advanced for every control.</p>
             <div class="card" id="recents-card" hidden>
                 <div class="card-head"><span class="title">Recent sessions</span><span class="gloss">click to reload — settings &amp; remix projects come back automatically</span></div>
                 <div class="card-body" id="recents-list"></div>
@@ -1017,461 +1023,93 @@
         </div>
     </section>
 
-</main>
-
-<!-- ───────────── Transport bridge (persistent) ───────────── -->
-<footer class="bridge">
-    <div class="bridge-inner">
-        <div class="bz bz-transport player-transport">
-            <div class="bz-label">Transport</div>
-            <div class="bz-owner" data-owner="single">
-            <div class="bz-row tp-row">
-                <div class="tp-buttons">
-                    <button type="button" class="btn tp-btn" id="player-start" title="Back to the start" aria-label="Back to the start">
-                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="2.2" height="12" rx="0.6"/><path d="M14 2.5 5.5 8 14 13.5z"/></svg>
-                    </button>
-                    <button type="button" class="btn tp-btn" id="player-back" title="Back 5 seconds (←)" aria-label="Back 5 seconds">
-                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8.5 2.5 1.5 8l7 5.5z"/><path d="M15 2.5 8 8l7 5.5z" opacity=".5"/></svg>
-                    </button>
-                    <button type="button" class="btn btn-primary play-btn" id="player-play" aria-label="Play">▶</button>
-                    <button type="button" class="btn tp-btn" id="player-fwd" title="Forward 5 seconds (→)" aria-label="Forward 5 seconds">
-                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M7.5 2.5 14.5 8l-7 5.5z"/><path d="M1 2.5 8 8l-7 5.5z" opacity=".5"/></svg>
-                    </button>
-                </div>
-                <!-- Scrubber between the two halves of the clock; stretches to the
-                     zone's width. The amber band is the Live loop window. -->
-                <div class="tp-bar">
-                    <span class="tp-time" id="tp-cur">0:00</span>
-                    <div class="tp-seek" id="player-seek" role="slider" aria-label="Playback position"
-                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0" title="Click or drag to seek">
-                        <div class="tp-seek-track">
-                            <div class="tp-seek-loop" id="player-seek-loop" hidden></div>
-                            <div class="tp-seek-fill" id="player-seek-fill"></div>
-                            <div class="tp-seek-thumb" id="player-seek-thumb"></div>
-                        </div>
-                    </div>
-                    <span class="tp-time" id="tp-total">0:00</span>
-                </div>
-                <span class="player-time" id="player-time" hidden aria-live="off">0:00 / 0:00</span>
-            </div>
-            <div class="bz-sub tp-hint">Space play · ←/→ skip 5 s · 1 2 3 switch track</div>
-            </div>
-            <!-- Remix tab: the same transport, driving the A/B loop player. -->
-            <div class="bz-owner" data-owner="remix">
-            <div class="bz-row tp-row">
-                <div class="tp-buttons">
-                    <button type="button" class="btn tp-btn" id="remix-start" title="Back to the start" aria-label="Back to the start"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="2.2" height="12" rx="0.6"/><path d="M14 2.5 5.5 8 14 13.5z"/></svg></button>
-                    <button type="button" class="btn tp-btn" id="remix-back" title="Back 5 seconds (←)" aria-label="Back 5 seconds"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8.5 2.5 1.5 8l7 5.5z"/><path d="M15 2.5 8 8l7 5.5z" opacity=".5"/></svg></button>
-                    <button type="button" class="btn btn-primary play-btn" id="remix-play" aria-label="Play">▶</button>
-                    <button type="button" class="btn tp-btn" id="remix-fwd" title="Forward 5 seconds (→)" aria-label="Forward 5 seconds"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M7.5 2.5 14.5 8l-7 5.5z"/><path d="M1 2.5 8 8l-7 5.5z" opacity=".5"/></svg></button>
-                </div>
-                <div class="tp-bar">
-                    <span class="tp-time" id="remix-tp-cur">0:00</span>
-                    <div class="tp-seek" id="remix-seek" role="slider" aria-label="Playback position"
-                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0" title="Click or drag to seek · the amber band is the loop window">
-                        <div class="tp-seek-track">
-                            <div class="tp-seek-loop" id="remix-seek-loop" hidden></div>
-                            <div class="tp-seek-fill" id="remix-seek-fill"></div>
-                            <div class="tp-seek-thumb" id="remix-seek-thumb"></div>
-                        </div>
-                    </div>
-                    <span class="tp-time" id="remix-tp-total">0:00</span>
-                </div>
-                <span class="player-time" id="remix-time" hidden aria-live="off">0:00 / 0:00</span>
-            </div>
-            <div class="bz-sub tp-hint">Space play · ←/→ skip 5 s · 1 2 switch track · seeking outside the loop moves it</div>
-            </div>
-        </div>
-
-        <div class="bz-sep bz-sep-1"></div>
-
-        <div class="bz bz-monitor">
-            <div class="bz-label">Monitor</div>
-            <div class="bz-owner" data-owner="single">
-            <div class="bz-row">
-                <div class="player-tabs" id="track-tabs" role="tablist">
-                    <button type="button" class="track-tab active" data-track="original" title="Hear the untouched upload (key: 1)">
-                        <span class="track-key">1</span> Original
-                    </button>
-                    <button type="button" class="track-tab" data-track="processed" aria-disabled="true"
-                            data-title-ready="Hear the cleaned + mastered result (key: 2)"
-                            data-title-disabled="Not rendered yet. Click to turn on Live and hear the result on the loop, or run Clean & Master for the whole song (key: 2)"
-                            title="Not rendered yet. Click to turn on Live and hear the result on the loop, or run Clean & Master for the whole song (key: 2)">
-                        <span class="track-key">2</span> Processed
-                    </button>
-                    <button type="button" class="track-tab" data-track="removed" aria-disabled="true"
-                            data-title-ready="Hear only what Shimmer stripped away — boosted for monitoring, never in your export. If you hear vocals, snare snap, or musical detail, turn that fix's Amount down. (key: 3)"
-                            data-title-disabled="Not rendered yet. Click to turn on Live and hear what Shimmer removed on the loop, or run Clean & Master for the whole song (key: 3)"
-                            title="Not rendered yet. Click to turn on Live and hear what Shimmer removed on the loop, or run Clean & Master for the whole song (key: 3)">
-                        <span class="track-key">3</span> Removed <span class="hint">boosted</span>
-                    </button>
-                </div>
-            </div>
-            <div class="bz-sub">
-                <label class="transport-check" title="Attenuate the louder track so you judge quality, not volume">
-                    <input type="checkbox" id="ab-loudness-match" checked>
-                    <span>Loudness-matched A/B</span>
-                    <span class="ab-match-note" id="ab-match-note"></span>
-                </label>
-            </div>
-            </div>
-            <div class="bz-owner" data-owner="remix">
-            <div class="bz-row">
-                <div class="player-tabs" role="tablist">
-                    <button type="button" class="track-tab active" id="remix-tab-original" title="Hear the untouched upload (key: 1)">
-                        <span class="track-key">1</span> Original
-                    </button>
-                    <button type="button" class="track-tab" id="remix-tab-remix" disabled
-                            title="Hear the remix: every stem with its effects, summed (key: 2). Separate stems first.">
-                        <span class="track-key">2</span> Remix
-                    </button>
-                </div>
-            </div>
-            <div class="bz-sub">
-                <label class="transport-check" title="Attenuate the louder track so you judge the remix, not the volume difference — mastering makes the remix much louder than the original.">
-                    <input type="checkbox" id="remix-ab-match" checked>
-                    <span>Loudness-matched A/B</span>
-                    <span class="ab-match-note" id="remix-ab-match-note"></span>
-                </label>
-            </div>
-            </div>
-        </div>
-
-        <div class="bz-sep bz-sep-2"></div>
-
-        <div class="bz bz-loop">
-            <div class="bz-label">Preview loop</div>
-            <div class="bz-owner" data-owner="single">
-            <div class="bz-row player-preview-row" id="preview-bar">
-                <label class="preview-toggle-row" id="preview-toggle-row" title="Loop a short window and hear preset & slider edits instantly.">
-                    <input type="checkbox" id="preview-toggle">
-                    <span class="preview-toggle-label"><b>Live</b> · loop edits</span>
-                </label>
-                <div class="preview-controls" id="preview-controls" hidden>
-                    <select id="preview-window" class="select preview-select"
-                            title="Length of the looped preview window">
-                        <option value="10">10 s</option>
-                        <option value="20" selected>20 s</option>
-                        <option value="30">30 s</option>
-                    </select>
-                    <button type="button" class="btn btn-ghost preview-here-btn" id="preview-here-btn"
-                        title="Anchor the loop window at the current playhead">
-                        Set from playhead
-                    </button>
-                </div>
-            </div>
-            <div class="bz-sub">
-                <div class="preview-explainer" id="preview-explainer">Turn on Live to loop the worst section and hear edits instantly.</div>
-                <div class="preview-status" id="preview-status">Drop a file to start.</div>
-            </div>
-            </div>
-            <div class="bz-owner" data-owner="remix">
-            <div class="bz-row player-preview-row">
-                <span class="preview-toggle-label remix-live-pill" title="The Remix tab always previews live: every edit re-renders the loop."><b>Live</b> · always on</span>
-                <div class="preview-controls">
-                    <select id="remix-window" class="select preview-select" title="Length of the looped preview window">
-                        <option value="10" selected>10 s</option>
-                        <option value="15">15 s</option>
-                        <option value="20">20 s</option>
-                    </select>
-                    <button type="button" class="btn btn-ghost preview-here-btn" id="remix-loop-here"
-                        title="Anchor the loop window at the current playhead">
-                        Set from playhead
-                    </button>
-                </div>
-            </div>
-            <div class="bz-sub">
-                <div class="preview-status" id="remix-status">Drop a file to start.</div>
-            </div>
-            </div>
-        </div>
-
-    </div>
-</footer>
-
-</div><!-- /.app -->
-
-<!-- ───────────── Analysis workspace (slides up over the page) ───────────── -->
-<section id="analysis-sheet" class="analysis-sheet" hidden role="dialog" aria-labelledby="analysis-sheet-title">
-    <div class="analysis-sheet-head">
-        <span class="title" id="analysis-sheet-title">Analysis</span>
-        <span class="gloss">what Shimmer heard, and what to do about it</span>
-        <span class="analysis-status" id="analysis-sheet-status" hidden></span>
-        <span class="spacer"></span>
-        <button type="button" class="btn btn-ghost btn-sm" id="analysis-sheet-loop"
-                title="Turn on Live and loop the worst stretch, so you hear the noise the analysis found">Loop the worst part</button>
-        <button type="button" class="btn btn-ghost btn-sm" id="analysis-sheet-close">Close</button>
-    </div>
-    <div class="analysis-sheet-body" id="analysis-sheet-body"></div>
-</section>
-
-<!-- ───────────── Master-once reminder (second pass pending) ───────────── -->
-<div id="second-pass-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
-     aria-labelledby="second-pass-title">
-    <div class="process-modal card second-pass-card" role="document">
-        <div class="sp-kicker"><span class="sp-warn" aria-hidden="true">!</span>Decision needed</div>
-        <div class="process-modal-title sp-title" id="second-pass-title">Master once, at the end</div>
-        <p class="sp-lead">Analyze found a second pass worth running: <b id="second-pass-preset">Deep Scrub</b>.</p>
-        <div class="sp-state"><span class="sp-state-dot" aria-hidden="true"></span><span>Mastering is <b>on</b> for this pass</span></div>
-        <p class="sp-why">If you master now, the next pass cleans a file that is already limited and set to its final loudness, then masters it again. That hurts the sound.</p>
-        <div class="second-pass-actions">
-            <button type="button" class="btn btn-primary sp-primary" id="second-pass-off">
-                <span class="sp-btn-main">Turn mastering off for this pass</span>
-                <span class="sp-btn-sub">Recommended · keeps Preserve volume on</span>
-            </button>
-            <div class="sp-row">
-                <button type="button" class="btn btn-ghost" id="second-pass-cancel">Cancel</button>
-                <button type="button" class="btn btn-ghost" id="second-pass-master">Master anyway</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ───────────── Card caution (a fix that needs the right song) ───────────── -->
-<div id="card-caution-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
-     aria-labelledby="card-caution-title">
-    <div class="process-modal card second-pass-card" role="document">
-        <div class="sp-kicker"><span class="sp-warn" aria-hidden="true">!</span>Before you turn this on</div>
-        <div class="process-modal-title sp-title" id="card-caution-title"></div>
-        <p class="sp-lead" id="card-caution-lead"></p>
-        <p class="sp-why" id="card-caution-why"></p>
-        <div class="second-pass-actions">
-            <button type="button" class="btn btn-primary sp-primary" id="card-caution-on">
-                <span class="sp-btn-main">Turn it on</span>
-                <span class="sp-btn-sub">You can change its Amount after</span>
-            </button>
-            <div class="sp-row">
-                <button type="button" class="btn btn-ghost" id="card-caution-cancel">Cancel</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ───────────── Clean & Master progress modal ───────────── -->
-<div id="process-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
-     aria-labelledby="process-modal-title">
-    <div class="process-modal card" role="document">
-        <div class="process-modal-title" id="process-modal-title">Cleaning &amp; mastering</div>
-        <!-- The signal chain, live: audio comes in on the left, lights each
-             stage as it passes, and leaves on the right when the file is
-             written. Built by single.js from the Signal Chain phases. -->
-        <div class="pm-chain" id="process-modal-chain" aria-hidden="true"></div>
-        <!-- Between the passes of a two-pass plan: the big count into
-             pass 2, in front of its chain. Hidden until progress-chain.js
-             runs one; Stop here (or Esc) keeps the loaded result. -->
-        <div class="pm-countdown" id="process-modal-countdown" hidden>
-            <div class="pm-cd-kicker" id="process-modal-cd-kicker">Pass 2 of 2</div>
-            <div class="pm-cd-dial" aria-hidden="true">
-                <svg class="pm-cd-ring" viewBox="0 0 160 160" focusable="false">
-                    <circle class="pm-cd-ring-track" cx="80" cy="80" r="74"></circle>
-                    <circle class="pm-cd-ring-arc" cx="80" cy="80" r="74"></circle>
-                </svg>
-                <div class="pm-cd-num" id="process-modal-cd-num"><span id="process-modal-cd-digit">3</span></div>
-            </div>
-            <div class="pm-cd-title" id="process-modal-cd-title"></div>
-            <div class="pm-cd-sub" id="process-modal-cd-sub" aria-live="polite"></div>
-            <button type="button" class="btn btn-ghost pm-cd-stop" id="process-modal-cd-stop">Stop here</button>
-        </div>
-        <!-- The end of a run: the file is written and this is the Download
-             step. Hidden until progress-chain.js offers it; Download, Show in
-             folder, Close and Escape all take the window down. -->
-        <div class="pm-download" id="process-modal-download" hidden>
-            <div class="pm-dl-title" id="process-modal-dl-title">Your file is ready</div>
-            <div class="pm-dl-sub" id="process-modal-dl-sub" aria-live="polite"></div>
-            <!-- Over the size limit: the formats that fit (size-limit.js). -->
-            <div class="sl-dl-block" id="process-modal-dl-extra" hidden></div>
-            <div class="pm-dl-actions">
-                <button type="button" class="btn btn-primary pm-dl-primary" id="process-modal-dl-primary">Download</button>
-                <button type="button" class="btn btn-ghost pm-dl-secondary" id="process-modal-dl-secondary" hidden>Download a copy</button>
-                <button type="button" class="btn btn-ghost pm-dl-close" id="process-modal-dl-close">Close</button>
-            </div>
-        </div>
-        <div class="process-modal-stage" id="process-modal-stage" aria-live="polite">Preparing…</div>
-        <div class="process-modal-detail" id="process-modal-detail"></div>
-        <div class="process-modal-track" id="process-modal-track">
-            <div class="process-modal-fill" id="process-modal-fill"></div>
-        </div>
-        <div class="process-modal-pct" id="process-modal-pct" aria-live="polite">0%</div>
-        <div class="process-modal-error" id="process-modal-error" hidden></div>
-        <button type="button" class="btn btn-ghost process-modal-close" id="process-modal-close" hidden>Close</button>
-    </div>
-</div>
-
-<!-- ───────────── Advanced controls drawer ───────────── -->
-<div id="advanced-drawer-backdrop" class="adv-backdrop" hidden></div>
-<aside id="advanced-drawer" class="adv-sheet" hidden role="dialog" aria-modal="true"
-       aria-labelledby="advanced-drawer-title">
-    <header class="adv-head">
-        <div class="adv-head-main">
-            <div class="adv-title" id="advanced-drawer-title">Advanced artifact controls</div>
-            <div class="adv-context" id="adv-context">Preset values at the current strength. Move a slider to override it for this run.</div>
-        </div>
-        <div class="adv-head-actions">
-            <span class="adv-live" id="adv-live"></span>
-            <button type="button" class="btn btn-ghost btn-sm" id="adv-reset-all" hidden>Reset all to preset</button>
-            <button type="button" class="help-close" id="advanced-close" aria-label="Close advanced controls">&times;</button>
-        </div>
-    </header>
-    <div class="adv-body">
-        <div class="adv-controls" id="sliders-host"></div>
-        <aside class="adv-focus" id="adv-focus" aria-live="polite"></aside>
-    </div>
-</aside>
-
-<!-- ───────────── Help modal ───────────── -->
-<div id="help-modal" class="help-modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
-    <div class="help-modal" role="document">
-        <header class="help-modal-header">
-            <h2 id="help-modal-title">Shimmer help</h2>
-            <button type="button" class="help-close" id="help-close" aria-label="Close help">&times;</button>
-        </header>
-
-        <nav class="help-tabs" role="tablist">
-            <button type="button" class="help-tab active" role="tab" data-tab="quickstart" aria-selected="true">Quick start</button>
-            <button type="button" class="help-tab" role="tab" data-tab="presets" aria-selected="false">What do you hear?</button>
-            <button type="button" class="help-tab" role="tab" data-tab="controls" aria-selected="false">Controls</button>
-            <button type="button" class="help-tab" role="tab" data-tab="trouble" aria-selected="false">Troubleshoot</button>
-            <button type="button" class="help-tab" role="tab" data-tab="setup" aria-selected="false">Setup</button>
-            <button type="button" class="help-tab" role="tab" data-tab="about" aria-selected="false">About</button>
-        </nav>
-
+    <!-- ───────────── Help page ───────────── -->
+    <!-- Help is a page in the rail: topics on the left, one at a time on the
+         right (help.js). The ? buttons open it at their topic. -->
+    <section id="tab-help" class="tab-panel help-page" role="tabpanel">
+        <div class="help-layout">
+            <nav class="help-tabs" role="tablist" aria-label="Help topics">
+                <button type="button" class="help-back" id="help-back" hidden>&larr; Back</button>
+                <button type="button" class="help-tab active" role="tab" data-tab="quickstart" aria-selected="true">Getting started</button>
+                <button type="button" class="help-tab" role="tab" data-tab="presets" aria-selected="false">What do you hear?</button>
+                <button type="button" class="help-tab" role="tab" data-tab="controls" aria-selected="false">Controls</button>
+                <button type="button" class="help-tab" role="tab" data-tab="trouble" aria-selected="false">Troubleshoot</button>
+                <button type="button" class="help-tab" role="tab" data-tab="setup" aria-selected="false">Setup</button>
+                <button type="button" class="help-tab" role="tab" data-tab="about" aria-selected="false">About</button>
+            </nav>
         <div class="help-body">
-            <section class="help-panel active" data-panel="quickstart" role="tabpanel">
-                <h3>Quick start</h3>
-                <div class="help-intro-note">
-                    <b>What is shimmer?</b> It is the thin, fizzy, metallic noise
-                    that AI music tools can leave in the high end of a track. You
-                    hear it as sizzle on cymbals, a glassy sheen on vocals, or a
-                    busy hiss up top. The model added it; it is not part of your
-                    music. Shimmer helps you find that noise and turn it down, then
-                    masters the song for release.
+            <section class="help-panel active qs" data-panel="quickstart" role="tabpanel">
+                <h3>Getting started</h3>
+                <p class="qs-lede">Clean up and master an AI song in about a minute.
+                    Your original file is never changed.</p>
+
+                <h4 class="qs-h">What Shimmer does</h4>
+                <div class="qs-two">
+                    <div class="qs-what"><span class="ms" aria-hidden="true">cleaning_services</span>
+                        <div><b>Cleans</b><span>Takes out what the AI added: grain on the voice,
+                            fizzy hiss, steady whistles and harsh &ldquo;s&rdquo; sounds.</span></div></div>
+                    <div class="qs-what"><span class="ms" aria-hidden="true">tune</span>
+                        <div><b>Masters</b><span>Sets the loudness and tone for release, and keeps
+                            the peaks safe for streaming.</span></div></div>
                 </div>
 
-                <h4 class="help-section-head">Your first master, step by step</h4>
-                <ol class="workflow-list">
-                    <li><span class="step">1</span>
-                        <b>Drop your track in.</b> WAV, MP3, FLAC, OGG and M4A all
-                        work. MP3 and M4A need a free helper called ffmpeg (see
-                        <b>Setup</b>).</li>
-                    <li><span class="step">2</span>
-                        <b>Click Analyze</b> (in the Analysis card, or step 2 in the
-                        right column). Shimmer measures your song: its loudness, its
-                        tone, and any fixed tones (steady whistles at one pitch). It
-                        marks what it finds on the <b>What do you hear?</b> cards and
-                        turns on <b>Fixed tones</b> when it finds steady tones. The
-                        Analysis card then lists what it found as a checklist: tick
-                        what you want and press <b>Apply</b>. Each row says whether
-                        it is <b>On</b> now. It also
-                        moves the preview loop to where the top end is busiest, and
-                        plans a <b>Suggested EQ</b>: a ringing tone, mud or harshness
-                        first, then a few gentle balance moves. You can apply those
-                        moves in the <b>Parametric EQ</b> section, and every move stays
-                        editable. Analyze does not change your audio.</li>
-                    <li><span class="step">3</span>
-                        <b>Pick what you hear.</b> Turn on each card under <b>What do
-                        you hear?</b> that matches a problem you can hear. Each card
-                        turns on one fix, such as a de-esser or a notch filter. The fix
-                        shows under <b>Fixes on</b>, with an <b>Amount</b> slider. The
-                        <b>What do you hear?</b> tab in this Help explains every
-                        card.</li>
-                    <li><span class="step">4</span>
-                        <b>Listen.</b> Turn on <b>Live</b> in the Preview loop at the
-                        bottom, and a short section loops. Press <b>2</b> to hear the
-                        processed version, <b>1</b> to hear your original, and
-                        <b>3</b> to hear the Removed track. Switch back and forth
-                        &mdash; that is the only way to really judge it. The preview
-                        runs the same sound path as the export, level included, so the
-                        loop sounds like the file you will get.</li>
-                    <li><span class="step">5</span>
-                        <b>Adjust if you need to.</b> Move a card's <b>Amount</b> and
-                        the loop renders again. In <b>Mastering</b>, pick a
-                        <b>Loudness target</b>: <b>Commercial</b> (the default),
-                        <b>Balanced</b> or <b>Streaming standard</b>. Each choice shows
-                        its LUFS level. <b>Tone match</b> and <b>Tilt</b> shape the
-                        tone, or you can match a <b>Reference track</b> instead. The
-                        <b>EQ presets</b> menu in the Parametric EQ holds starting
-                        points, each one saying what it does.</li>
-                    <li><span class="step">6</span>
-                        <b>Click Clean &amp; Master</b> (it says <b>Clean</b> when
-                        mastering is off). The processing window ends on a
-                        <b>Download</b> step; you can also download from the green
-                        banner. In <b>Settings</b> you can have the file download by
-                        itself, or land straight in a folder of yours with a <b>Show in
-                        folder</b> button. The <b>What changed</b> chart under the
-                        player shows the spectrum before and after, and what was
-                        removed. The <b>Release check</b> card then measures the file
-                        itself (loudness, true peak, clipping, start and end, tags and
-                        more) and gives one verdict first: is it ready to upload? The
-                        file carries its tags: title, artist and album from the
-                        <b>Tags</b> section, plus a Shimmer note in the comment.</li>
+                <h4 class="qs-h">Your first master</h4>
+                <ol class="qs-steps">
+                    <li class="qs-step"><span class="qs-num">1</span><div>
+                        <h5>Drop your song in</h5>
+                        <p>WAV, MP3, FLAC, OGG or M4A. Shimmer listens right away and sets
+                            Quick master for this song.</p>
+                        <ul><li>MP3 and M4A need ffmpeg, a free helper. See <b>Setup</b>.</li></ul>
+                    </div></li>
+                    <li class="qs-step"><span class="qs-num">2</span><div>
+                        <h5>Check Quick master</h5>
+                        <p>Three sliders on the right. Most songs need no change.</p>
+                        <div class="qs-sliders">
+                            <div class="k">Clean-up</div><div class="v">Off, Light, <b>Recommended</b>, Strong. Recommended is what Analyze found in this song.</div>
+                            <div class="k">Loudness</div><div class="v">Streaming (&minus;14 LUFS), Balanced (&minus;11), <b>Commercial</b> (&minus;9)</div>
+                            <div class="k">Tone</div><div class="v">Warmer to Brighter. Analyze marks Bright when the top end is dull.</div>
+                        </div>
+                    </div></li>
+                    <li class="qs-step"><span class="qs-num">3</span><div>
+                        <h5>Listen</h5>
+                        <p>Moving a slider turns on <b>Live</b>, a short loop of the song.
+                            Switch tracks with the number keys:</p>
+                        <ul>
+                            <li><b>1</b> your original, <b>2</b> the result, <b>3</b> what was removed.</li>
+                            <li>Hear music in <b>Removed</b>? Turn Clean-up down.</li>
+                        </ul>
+                    </div></li>
+                    <li class="qs-step"><span class="qs-num">4</span><div>
+                        <h5>Clean &amp; Master</h5>
+                        <p>Press the orange button. When it finishes, download the file.</p>
+                        <ul><li>The <b>Release check</b> says if it is ready to upload.</li></ul>
+                    </div></li>
                 </ol>
 
-                <h4 class="help-section-head">Remix: split the song into stems</h4>
-                <ol class="workflow-list">
-                    <li><span class="step">1</span>
-                        <b>Drop the track on the Remix tab.</b> Recent sessions with
-                        finished stems say so and reload in a second.</li>
-                    <li><span class="step">2</span>
-                        <b>Pick how many stems.</b> The mixer asks first: <b>Fast</b>
-                        (4 stems, about 10 seconds on a GPU), <b>Best</b> (4 stems from
-                        the fine-tuned model, about 25 seconds), <b>6 stems</b> (adds
-                        guitar and piano), or the slower <b>Ultra</b> and <b>Studio</b>
-                        blends (see Setup). Clicking a card separates; the window shows
-                        the engine's real progress. Stems are kept per track and split,
-                        so a card marked "cached" loads instantly, and the dock's
-                        Separate button re-runs at another quality any time.</li>
-                    <li><span class="step">3</span>
-                        <b>Mix in the lanes.</b> One lane per stem with its own
-                        waveform, mute, solo, fader and an <b>FX</b> rack (formant,
-                        saturation, doubler, reverb), plus a <b>Residual</b> lane that
-                        holds whatever the separator dropped, so the untouched mix is
-                        your original. Every move re-renders the loop; press <b>1</b>
-                        for the original and <b>2</b> for the remix. The <b>Quick</b>
-                        buttons make an instrumental, an acapella or a vocal lift.</li>
-                    <li><span class="step">4</span>
-                        <b>Render &amp; Download</b> sums the lanes, runs the cleanup
-                        picked under <b>Artifact cleanup on export</b>, masters and
-                        writes the file. <b>Auto</b> cuts the steady tones it
-                        finds; a preset turns on its matching card (see the <b>What do
-                        you hear?</b> tab). <b>Stems</b> in the right column downloads
-                        the parts themselves as a ZIP of 24-bit WAVs, as separated or
-                        through your mix.</li>
-                </ol>
+                <div class="qs-more"><span class="ms" aria-hidden="true">tune</span>
+                    <p><b>Want more control?</b> Switch to <b>Advanced</b> at the top of the
+                        Master tab for every fix and its own Amount, the Analysis checklist,
+                        the EQ, a reference track, output and tags.</p></div>
 
-                <div class="help-tip">
-                    <b>The one habit worth building:</b> press <b>3</b> and listen to
-                    the <b>Removed</b> track. It plays exactly what the fixes took out,
-                    and nothing else: tone match, EQ and mastering are not in it. The
-                    player turns it up so you can hear it; that boost is never in your
-                    file. It should sound like hiss, fizz, whistles or sizzle. If you
-                    hear vocals, snare hits or melody in it, a fix is cutting into your
-                    music. Lower that card's <b>Amount</b> until the music is gone from
-                    Removed.
+                <h4 class="qs-h">Keys</h4>
+                <div class="qs-keys">
+                    <span><kbd>Space</kbd> play</span>
+                    <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> switch track</span>
+                    <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> skip 5 s</span>
+                    <span><kbd>Ctrl</kbd><kbd>K</kbd> find anything</span>
                 </div>
 
-                <h4 class="help-section-head">Good to know</h4>
-                <ul class="help-card-list">
-                    <li><b>Volume fools your ears.</b> Louder almost always sounds
-                    better, even when it is not. <b>Loudness-matched A/B</b> is on by
-                    default so you compare the sound, not the level.</li>
-                    <li><b>Each fix works in its own band.</b> The fixes for fizz,
-                        sibilance, clicks and harshness work in the upper mids and
-                        highs, well above the bass. <b>Low-mid build-up</b> works on the
-                        low mids. With mastering on, a low-cut (high-pass filter)
-                        removes only the deep rumble below the bass.</li>
-                    <li><b>The bar at the bottom is your transport.</b> Skip 5
-                        seconds either way, click or drag the scrubber to move, and
-                        press <b>Space</b> to play. The amber band on the scrubber is
-                        the Live loop.</li>
-                    <li><b>Nothing is permanent until you export.</b> Cards, sliders
-                    and EQ only change what you hear in the preview. Your original file
-                    is never changed.</li>
+                <h4 class="qs-h">Good to know</h4>
+                <ul class="qs-good">
+                    <li><b>Louder sounds better, even when it isn&rsquo;t.</b> The A/B plays both
+                        tracks at the same loudness, so you compare the sound.</li>
+                    <li><b>Nothing changes until you export.</b> Sliders only change what you
+                        hear.</li>
+                    <li><b>Stems:</b> the <b>Remix</b> tab splits a song into vocals, drums,
+                        bass and more, to rebalance or export.</li>
                 </ul>
-
-                <p class="help-lede">
-                    Tip: click the <span class="help-icon-inline">?</span> next to
-                    a card or control for help on that one.
-                </p>
+                <p class="qs-tip">Click the <span class="help-icon-inline">?</span> next to any
+                    card or control for help on that one.</p>
             </section>
 
             <section class="help-panel" data-panel="presets" role="tabpanel">
@@ -1944,8 +1582,310 @@
                 </div>
             </section>
         </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- ───────────── Transport bridge (persistent) ───────────── -->
+<footer class="bridge">
+    <div class="bridge-inner">
+        <div class="bz bz-transport player-transport">
+            <div class="bz-label">Transport</div>
+            <div class="bz-owner" data-owner="single">
+            <div class="bz-row tp-row">
+                <div class="tp-buttons">
+                    <button type="button" class="btn tp-btn" id="player-start" title="Back to the start" aria-label="Back to the start">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="2.2" height="12" rx="0.6"/><path d="M14 2.5 5.5 8 14 13.5z"/></svg>
+                    </button>
+                    <button type="button" class="btn tp-btn" id="player-back" title="Back 5 seconds (←)" aria-label="Back 5 seconds">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8.5 2.5 1.5 8l7 5.5z"/><path d="M15 2.5 8 8l7 5.5z" opacity=".5"/></svg>
+                    </button>
+                    <button type="button" class="btn btn-primary play-btn" id="player-play" aria-label="Play">▶</button>
+                    <button type="button" class="btn tp-btn" id="player-fwd" title="Forward 5 seconds (→)" aria-label="Forward 5 seconds">
+                        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M7.5 2.5 14.5 8l-7 5.5z"/><path d="M1 2.5 8 8l-7 5.5z" opacity=".5"/></svg>
+                    </button>
+                </div>
+                <!-- Scrubber between the two halves of the clock; stretches to the
+                     zone's width. The amber band is the Live loop window. -->
+                <div class="tp-bar">
+                    <span class="tp-time" id="tp-cur">0:00</span>
+                    <div class="tp-seek" id="player-seek" role="slider" aria-label="Playback position"
+                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0" title="Click or drag to seek">
+                        <div class="tp-seek-track">
+                            <div class="tp-seek-loop" id="player-seek-loop" hidden></div>
+                            <div class="tp-seek-fill" id="player-seek-fill"></div>
+                            <div class="tp-seek-thumb" id="player-seek-thumb"></div>
+                        </div>
+                    </div>
+                    <span class="tp-time" id="tp-total">0:00</span>
+                </div>
+                <span class="player-time" id="player-time" hidden aria-live="off">0:00 / 0:00</span>
+            </div>
+            <div class="bz-sub tp-hint">Space play · ←/→ skip 5 s · 1 2 3 switch track</div>
+            </div>
+            <!-- Remix tab: the same transport, driving the A/B loop player. -->
+            <div class="bz-owner" data-owner="remix">
+            <div class="bz-row tp-row">
+                <div class="tp-buttons">
+                    <button type="button" class="btn tp-btn" id="remix-start" title="Back to the start" aria-label="Back to the start"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="2.2" height="12" rx="0.6"/><path d="M14 2.5 5.5 8 14 13.5z"/></svg></button>
+                    <button type="button" class="btn tp-btn" id="remix-back" title="Back 5 seconds (←)" aria-label="Back 5 seconds"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8.5 2.5 1.5 8l7 5.5z"/><path d="M15 2.5 8 8l7 5.5z" opacity=".5"/></svg></button>
+                    <button type="button" class="btn btn-primary play-btn" id="remix-play" aria-label="Play">▶</button>
+                    <button type="button" class="btn tp-btn" id="remix-fwd" title="Forward 5 seconds (→)" aria-label="Forward 5 seconds"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M7.5 2.5 14.5 8l-7 5.5z"/><path d="M1 2.5 8 8l-7 5.5z" opacity=".5"/></svg></button>
+                </div>
+                <div class="tp-bar">
+                    <span class="tp-time" id="remix-tp-cur">0:00</span>
+                    <div class="tp-seek" id="remix-seek" role="slider" aria-label="Playback position"
+                         aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0" title="Click or drag to seek · the amber band is the loop window">
+                        <div class="tp-seek-track">
+                            <div class="tp-seek-loop" id="remix-seek-loop" hidden></div>
+                            <div class="tp-seek-fill" id="remix-seek-fill"></div>
+                            <div class="tp-seek-thumb" id="remix-seek-thumb"></div>
+                        </div>
+                    </div>
+                    <span class="tp-time" id="remix-tp-total">0:00</span>
+                </div>
+                <span class="player-time" id="remix-time" hidden aria-live="off">0:00 / 0:00</span>
+            </div>
+            <div class="bz-sub tp-hint">Space play · ←/→ skip 5 s · 1 2 switch track · seeking outside the loop moves it</div>
+            </div>
+        </div>
+
+        <div class="bz-sep bz-sep-1"></div>
+
+        <div class="bz bz-monitor">
+            <div class="bz-label">Monitor</div>
+            <div class="bz-owner" data-owner="single">
+            <div class="bz-row">
+                <div class="player-tabs" id="track-tabs" role="tablist">
+                    <button type="button" class="track-tab active" data-track="original" title="Hear the untouched upload (key: 1)">
+                        <span class="track-key">1</span> Original
+                    </button>
+                    <button type="button" class="track-tab" data-track="processed" aria-disabled="true"
+                            data-title-ready="Hear the cleaned + mastered result (key: 2)"
+                            data-title-disabled="Not rendered yet. Click to turn on Live and hear the result on the loop, or run Clean & Master for the whole song (key: 2)"
+                            title="Not rendered yet. Click to turn on Live and hear the result on the loop, or run Clean & Master for the whole song (key: 2)">
+                        <span class="track-key">2</span> Processed
+                    </button>
+                    <button type="button" class="track-tab" data-track="removed" aria-disabled="true"
+                            data-title-ready="Hear only what Shimmer stripped away — boosted for monitoring, never in your export. If you hear vocals, snare snap, or musical detail, turn that fix's Amount down. (key: 3)"
+                            data-title-disabled="Not rendered yet. Click to turn on Live and hear what Shimmer removed on the loop, or run Clean & Master for the whole song (key: 3)"
+                            title="Not rendered yet. Click to turn on Live and hear what Shimmer removed on the loop, or run Clean & Master for the whole song (key: 3)">
+                        <span class="track-key">3</span> Removed <span class="hint">boosted</span>
+                    </button>
+                </div>
+            </div>
+            <div class="bz-sub">
+                <label class="transport-check" title="Attenuate the louder track so you judge quality, not volume">
+                    <input type="checkbox" id="ab-loudness-match" checked>
+                    <span>Loudness-matched A/B</span>
+                    <span class="ab-match-note" id="ab-match-note"></span>
+                </label>
+            </div>
+            </div>
+            <div class="bz-owner" data-owner="remix">
+            <div class="bz-row">
+                <div class="player-tabs" role="tablist">
+                    <button type="button" class="track-tab active" id="remix-tab-original" title="Hear the untouched upload (key: 1)">
+                        <span class="track-key">1</span> Original
+                    </button>
+                    <button type="button" class="track-tab" id="remix-tab-remix" disabled
+                            title="Hear the remix: every stem with its effects, summed (key: 2). Separate stems first.">
+                        <span class="track-key">2</span> Remix
+                    </button>
+                </div>
+            </div>
+            <div class="bz-sub">
+                <label class="transport-check" title="Attenuate the louder track so you judge the remix, not the volume difference — mastering makes the remix much louder than the original.">
+                    <input type="checkbox" id="remix-ab-match" checked>
+                    <span>Loudness-matched A/B</span>
+                    <span class="ab-match-note" id="remix-ab-match-note"></span>
+                </label>
+            </div>
+            </div>
+        </div>
+
+        <div class="bz-sep bz-sep-2"></div>
+
+        <div class="bz bz-loop">
+            <div class="bz-label">Preview loop</div>
+            <div class="bz-owner" data-owner="single">
+            <div class="bz-row player-preview-row" id="preview-bar">
+                <label class="preview-toggle-row" id="preview-toggle-row" title="Loop a short window and hear preset & slider edits instantly.">
+                    <input type="checkbox" id="preview-toggle">
+                    <span class="preview-toggle-label"><b>Live</b> · loop edits</span>
+                </label>
+                <div class="preview-controls" id="preview-controls" hidden>
+                    <select id="preview-window" class="select preview-select"
+                            title="Length of the looped preview window">
+                        <option value="10">10 s</option>
+                        <option value="20" selected>20 s</option>
+                        <option value="30">30 s</option>
+                    </select>
+                    <button type="button" class="btn btn-ghost preview-here-btn" id="preview-here-btn"
+                        title="Anchor the loop window at the current playhead">
+                        Set from playhead
+                    </button>
+                </div>
+            </div>
+            <div class="bz-sub">
+                <div class="preview-explainer" id="preview-explainer">Turn on Live to loop the worst section and hear edits instantly.</div>
+                <div class="preview-status" id="preview-status">Drop a file to start.</div>
+            </div>
+            </div>
+            <div class="bz-owner" data-owner="remix">
+            <div class="bz-row player-preview-row">
+                <span class="preview-toggle-label remix-live-pill" title="The Remix tab always previews live: every edit re-renders the loop."><b>Live</b> · always on</span>
+                <div class="preview-controls">
+                    <select id="remix-window" class="select preview-select" title="Length of the looped preview window">
+                        <option value="10" selected>10 s</option>
+                        <option value="15">15 s</option>
+                        <option value="20">20 s</option>
+                    </select>
+                    <button type="button" class="btn btn-ghost preview-here-btn" id="remix-loop-here"
+                        title="Anchor the loop window at the current playhead">
+                        Set from playhead
+                    </button>
+                </div>
+            </div>
+            <div class="bz-sub">
+                <div class="preview-status" id="remix-status">Drop a file to start.</div>
+            </div>
+            </div>
+        </div>
+
+    </div>
+</footer>
+
+</div><!-- /.app -->
+
+<!-- ───────────── Analysis workspace (slides up over the page) ───────────── -->
+<section id="analysis-sheet" class="analysis-sheet" hidden role="dialog" aria-labelledby="analysis-sheet-title">
+    <div class="analysis-sheet-head">
+        <span class="title" id="analysis-sheet-title">Analysis</span>
+        <span class="gloss">what Shimmer heard, and what to do about it</span>
+        <span class="analysis-status" id="analysis-sheet-status" hidden></span>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="analysis-sheet-loop"
+                title="Turn on Live and loop the worst stretch, so you hear the noise the analysis found">Loop the worst part</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="analysis-sheet-close">Close</button>
+    </div>
+    <div class="analysis-sheet-body" id="analysis-sheet-body"></div>
+</section>
+
+<!-- ───────────── Master-once reminder (second pass pending) ───────────── -->
+<div id="second-pass-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
+     aria-labelledby="second-pass-title">
+    <div class="process-modal card second-pass-card" role="document">
+        <div class="sp-kicker"><span class="sp-warn" aria-hidden="true">!</span>Decision needed</div>
+        <div class="process-modal-title sp-title" id="second-pass-title">Master once, at the end</div>
+        <p class="sp-lead">Analyze found a second pass worth running: <b id="second-pass-preset">Deep Scrub</b>.</p>
+        <div class="sp-state"><span class="sp-state-dot" aria-hidden="true"></span><span>Mastering is <b>on</b> for this pass</span></div>
+        <p class="sp-why">If you master now, the next pass cleans a file that is already limited and set to its final loudness, then masters it again. That hurts the sound.</p>
+        <div class="second-pass-actions">
+            <button type="button" class="btn btn-primary sp-primary" id="second-pass-off">
+                <span class="sp-btn-main">Turn mastering off for this pass</span>
+                <span class="sp-btn-sub">Recommended · keeps Preserve volume on</span>
+            </button>
+            <div class="sp-row">
+                <button type="button" class="btn btn-ghost" id="second-pass-cancel">Cancel</button>
+                <button type="button" class="btn btn-ghost" id="second-pass-master">Master anyway</button>
+            </div>
+        </div>
     </div>
 </div>
+
+<!-- ───────────── Card caution (a fix that needs the right song) ───────────── -->
+<div id="card-caution-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
+     aria-labelledby="card-caution-title">
+    <div class="process-modal card second-pass-card" role="document">
+        <div class="sp-kicker"><span class="sp-warn" aria-hidden="true">!</span>Before you turn this on</div>
+        <div class="process-modal-title sp-title" id="card-caution-title"></div>
+        <p class="sp-lead" id="card-caution-lead"></p>
+        <p class="sp-why" id="card-caution-why"></p>
+        <div class="second-pass-actions">
+            <button type="button" class="btn btn-primary sp-primary" id="card-caution-on">
+                <span class="sp-btn-main">Turn it on</span>
+                <span class="sp-btn-sub">You can change its Amount after</span>
+            </button>
+            <div class="sp-row">
+                <button type="button" class="btn btn-ghost" id="card-caution-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ───────────── Clean & Master progress modal ───────────── -->
+<div id="process-modal" class="process-modal-backdrop" hidden role="dialog" aria-modal="true"
+     aria-labelledby="process-modal-title">
+    <div class="process-modal card" role="document">
+        <div class="process-modal-title" id="process-modal-title">Cleaning &amp; mastering</div>
+        <!-- The signal chain, live: audio comes in on the left, lights each
+             stage as it passes, and leaves on the right when the file is
+             written. Built by single.js from the Signal Chain phases. -->
+        <div class="pm-chain" id="process-modal-chain" aria-hidden="true"></div>
+        <!-- Between the passes of a two-pass plan: the big count into
+             pass 2, in front of its chain. Hidden until progress-chain.js
+             runs one; Stop here (or Esc) keeps the loaded result. -->
+        <div class="pm-countdown" id="process-modal-countdown" hidden>
+            <div class="pm-cd-kicker" id="process-modal-cd-kicker">Pass 2 of 2</div>
+            <div class="pm-cd-dial" aria-hidden="true">
+                <svg class="pm-cd-ring" viewBox="0 0 160 160" focusable="false">
+                    <circle class="pm-cd-ring-track" cx="80" cy="80" r="74"></circle>
+                    <circle class="pm-cd-ring-arc" cx="80" cy="80" r="74"></circle>
+                </svg>
+                <div class="pm-cd-num" id="process-modal-cd-num"><span id="process-modal-cd-digit">3</span></div>
+            </div>
+            <div class="pm-cd-title" id="process-modal-cd-title"></div>
+            <div class="pm-cd-sub" id="process-modal-cd-sub" aria-live="polite"></div>
+            <button type="button" class="btn btn-ghost pm-cd-stop" id="process-modal-cd-stop">Stop here</button>
+        </div>
+        <!-- The end of a run: the file is written and this is the Download
+             step. Hidden until progress-chain.js offers it; Download, Show in
+             folder, Close and Escape all take the window down. -->
+        <div class="pm-download" id="process-modal-download" hidden>
+            <div class="pm-dl-title" id="process-modal-dl-title">Your file is ready</div>
+            <div class="pm-dl-sub" id="process-modal-dl-sub" aria-live="polite"></div>
+            <!-- Over the size limit: the formats that fit (size-limit.js). -->
+            <div class="sl-dl-block" id="process-modal-dl-extra" hidden></div>
+            <div class="pm-dl-actions">
+                <button type="button" class="btn btn-primary pm-dl-primary" id="process-modal-dl-primary">Download</button>
+                <button type="button" class="btn btn-ghost pm-dl-secondary" id="process-modal-dl-secondary" hidden>Download a copy</button>
+                <button type="button" class="btn btn-ghost pm-dl-close" id="process-modal-dl-close">Close</button>
+            </div>
+        </div>
+        <div class="process-modal-stage" id="process-modal-stage" aria-live="polite">Preparing…</div>
+        <div class="process-modal-detail" id="process-modal-detail"></div>
+        <div class="process-modal-track" id="process-modal-track">
+            <div class="process-modal-fill" id="process-modal-fill"></div>
+        </div>
+        <div class="process-modal-pct" id="process-modal-pct" aria-live="polite">0%</div>
+        <div class="process-modal-error" id="process-modal-error" hidden></div>
+        <button type="button" class="btn btn-ghost process-modal-close" id="process-modal-close" hidden>Close</button>
+    </div>
+</div>
+
+<!-- ───────────── Advanced controls drawer ───────────── -->
+<div id="advanced-drawer-backdrop" class="adv-backdrop" hidden></div>
+<aside id="advanced-drawer" class="adv-sheet" hidden role="dialog" aria-modal="true"
+       aria-labelledby="advanced-drawer-title">
+    <header class="adv-head">
+        <div class="adv-head-main">
+            <div class="adv-title" id="advanced-drawer-title">Advanced artifact controls</div>
+            <div class="adv-context" id="adv-context">Preset values at the current strength. Move a slider to override it for this run.</div>
+        </div>
+        <div class="adv-head-actions">
+            <span class="adv-live" id="adv-live"></span>
+            <button type="button" class="btn btn-ghost btn-sm" id="adv-reset-all" hidden>Reset all to preset</button>
+            <button type="button" class="help-close" id="advanced-close" aria-label="Close advanced controls">&times;</button>
+        </div>
+    </header>
+    <div class="adv-body">
+        <div class="adv-controls" id="sliders-host"></div>
+        <aside class="adv-focus" id="adv-focus" aria-live="polite"></aside>
+    </div>
+</aside>
+
 
 <script type="module" src="/static/js/main.js"></script>
 </body>
