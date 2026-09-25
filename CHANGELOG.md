@@ -5,6 +5,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **start.bat no longer flashes a second window after an update.** When it
+  updated itself, it closed its window and opened a new one. It now carries
+  on in the same window, shows the banner once, and says it updated.
+
 ## [2.3.3] — 2026-09-24
 
 ### Changed

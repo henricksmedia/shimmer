@@ -2,6 +2,9 @@
 setlocal
 title Shimmer by The Treq
 color 0D
+REM After an update this file runs again in the same window (Step 0):
+REM clear the first run's banner so it shows once.
+if defined SHIMMER_UPDATED cls
 
 REM Banner: figlet-style wordmark. Pipes/angle brackets are caret-escaped
 REM (^| ^<) so cmd prints them literally — edit with care.
@@ -19,6 +22,8 @@ echo       de-artifact . restore . master . shine
 echo           treqmusic.com/tools/shimmer
 echo     -------------------------------------------------
 echo.
+if defined SHIMMER_UPDATED echo   Updated to the latest release.
+if defined SHIMMER_UPDATED echo.
 
 cd /d "%~dp0"
 
@@ -31,8 +36,9 @@ REM copy stays on its branch.
 REM The update can rewrite this very file, and cmd reads a batch file from
 REM disk as it goes. So the check and the restart are ONE line: cmd has
 REM read all of it before the update runs. Exit code 10 means "updated":
-REM start again in a new window from the new files, then close this one.
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\update-to-latest.ps1" & if errorlevel 10 (set "SHIMMER_UPDATED=1" & start "Shimmer by The Treq" cmd /c ""%~f0"" & exit /b 0)
+REM run the new file in this same window (cmd /c waits for it), then end
+REM this old one. A new window here used to flash: open, close, open again.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\update-to-latest.ps1" & if errorlevel 10 (set "SHIMMER_UPDATED=1" & cmd /c ""%~f0"" & exit /b 0)
 
 REM Port can be overridden:  set SHIMMER_PORT=7870 && start.bat
 if not defined SHIMMER_PORT set "SHIMMER_PORT=7860"
