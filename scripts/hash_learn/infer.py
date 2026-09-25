@@ -106,5 +106,24 @@ def main(argv):
     return 0
 
 
+def _gpu_lease():
+    """The machine-wide GPU lease while this runs on the GPU
+    (shimmer/gpu_lease_hook.py, loaded by its path: this script runs in the
+    stems environment). Nothing on the CPU or without the lease library."""
+    import contextlib
+    import importlib.util
+    if not torch.cuda.is_available():
+        return contextlib.nullcontext()
+    spec = importlib.util.spec_from_file_location(
+        "shimmer_gpu_lease_hook", os.path.join(ROOT, "shimmer", "gpu_lease_hook.py"))
+    hook = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(hook)
+    return hook.gpu_lease("hash mask network inference", 1.0, on_wait=print)
+
+
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    with _gpu_lease():
+        code = main(sys.argv[1:])
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()   # the network is gone with main(): free it before the lease goes back
+    sys.exit(code)

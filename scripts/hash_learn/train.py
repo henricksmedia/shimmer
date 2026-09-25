@@ -19,6 +19,10 @@ it:
   * priority          the process runs below normal; torch uses 2 CPU threads
   * checkpoint        every epoch to --out; --resume continues from it
   * wall clock        --max-minutes (default 45) stops the run cleanly
+  * GPU lease         on a machine with the GPU lease library
+                      (shimmer/gpu_lease_hook.py) it holds the lease while it
+                      trains, and gives it back every LEASE_MINUTES so other
+                      tools get a turn; nothing changes anywhere else
 
 Loss: L1 between the masked mixture log-magnitude and the clean
 log-magnitude over the hash band, plus a penalty on over-suppression. Each
@@ -57,6 +61,67 @@ def lower_priority():
             pass
 
 
+LEASE_MINUTES = 25   # give the GPU lease back at least this often (the agreement: 30)
+
+
+def _lease_hook():
+    """shimmer/gpu_lease_hook.py, loaded by its path: this script runs in the
+    stems environment, without the shimmer package's dependencies."""
+    import importlib.util
+    path = os.path.join(os.path.dirname(os.path.dirname(HERE)), "shimmer", "gpu_lease_hook.py")
+    spec = importlib.util.spec_from_file_location("shimmer_gpu_lease_hook", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class GpuTurn:
+    """The machine-wide GPU lease while training on the GPU; nothing on the
+    CPU or without the lease library. Every LEASE_MINUTES it moves the
+    network and the optimizer's state off the GPU, gives the lease back so
+    other tools get a turn, waits for it again and carries on."""
+
+    def __init__(self, dev: str, vram_gb: float):
+        hook = _lease_hook() if dev == "cuda" else None
+        self.hook = hook if hook is not None and hook.available() else None
+        self.vram_gb, self.lease, self.since = vram_gb, None, 0.0
+
+    def take(self):
+        if self.hook is None:
+            return
+        self.lease = self.hook.gpu_lease("training the hash mask network", self.vram_gb,
+                                         on_wait=lambda m: print("  " + m, flush=True))
+        self.lease.__enter__()
+        self.since = time.time()
+
+    def give_back(self, net=None):
+        if self.lease is None:
+            return
+        if net is not None:
+            net.to("cpu")
+        torch.cuda.empty_cache()
+        lease, self.lease = self.lease, None
+        lease.__exit__(None, None, None)
+
+    def due(self) -> bool:
+        return self.lease is not None and time.time() - self.since > LEASE_MINUTES * 60
+
+    def pause(self, net, opt):
+        """Off the GPU, lease back, wait for a turn, back on the GPU."""
+        print("  giving the GPU lease back for a turn", flush=True)
+        moved = []
+        for st in opt.state.values():
+            for k, v in st.items():
+                if torch.is_tensor(v) and v.is_cuda:
+                    st[k] = v.to("cpu")
+                    moved.append((st, k))
+        self.give_back(net)
+        self.take()
+        net.to("cuda")
+        for st, k in moved:
+            st[k] = st[k].to("cuda")
+
+
 def gpu_temp() -> float:
     try:
         out = subprocess.run(["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader"],
@@ -86,6 +151,20 @@ def main(argv):
     if dev == "cuda":
         torch.cuda.set_per_process_memory_fraction(gpu_mem, 0)
         torch.backends.cudnn.benchmark = False
+    total_gb = torch.cuda.get_device_properties(0).total_memory / 1e9 if dev == "cuda" else 0.0
+    turn = GpuTurn(dev, round(gpu_mem * total_gb, 1))
+    turn.take()
+    try:
+        return _train(dev, turn, data, epochs, batch, accum, duty, max_temp, gpu_mem,
+                      max_minutes, out, resume)
+    finally:
+        turn.give_back(_NET[0] if _NET else None)
+
+
+_NET: list = []   # the network, so a failed run still moves it off the GPU
+
+
+def _train(dev, turn, data, epochs, batch, accum, duty, max_temp, gpu_mem, max_minutes, out, resume):
 
     z = np.load(os.path.join(data, "shard_0.npz"))
     X, Y, band = z["X"], z["Y"], z["band"]
@@ -99,6 +178,7 @@ def main(argv):
     bandt = torch.from_numpy(band.astype(np.float32)).to(dev)[None, None, :, None]
 
     net = MaskNet().to(dev)
+    _NET.append(net)
     opt_ = torch.optim.AdamW(net.parameters(), lr=2e-3, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt_, T_max=epochs)
     scaler = torch.amp.GradScaler("cuda", enabled=(dev == "cuda"))
@@ -138,6 +218,8 @@ def main(argv):
             tl.append(float(loss) * accum)
             if ((i // batch) + 1) % accum == 0:
                 scaler.step(opt_); scaler.update(); opt_.zero_grad(set_to_none=True)
+                if turn.due():
+                    turn.pause(net, opt_)
             if dev == "cuda":
                 torch.cuda.synchronize()
             busy = time.time() - ts

@@ -244,6 +244,47 @@ def _separate_once(model, wav, device: str, shifts: int, segment,
         apply_mod.tqdm = real_tqdm
 
 
+def _lease_hook():
+    """shimmer/gpu_lease_hook.py, loaded by its path: this file may not
+    import the shimmer package (see the top of this file)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "shimmer_gpu_lease_hook", str(Path(__file__).with_name("gpu_lease_hook.py")))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class _GpuTurn:
+    """The machine-wide GPU lease around the GPU part of a run, on a machine
+    that has the lease library (gpu_lease_hook.py); nothing at all anywhere
+    else. It is given back once the model is off the GPU and the cache is
+    empty, as the lease agreement asks: before the CPU fallback, or at the
+    end of the run, however it ends."""
+
+    def __init__(self, torch, model) -> None:
+        self.torch, self.model, self._held = torch, model, None
+
+    def take(self, purpose: str, vram_gb: float) -> None:
+        hook = _lease_hook()
+        if not hook.available():
+            return
+        lease = hook.gpu_lease(purpose, vram_gb, on_wait=status)
+        lease.__enter__()
+        self._held = lease
+
+    def give_back(self) -> None:
+        lease, self._held = self._held, None
+        if lease is None:
+            return
+        try:
+            if hasattr(self.model, "cpu"):
+                self.model.cpu()
+            self.torch.cuda.empty_cache()
+        finally:
+            lease.__exit__(None, None, None)
+
+
 def cmd_separate(args: argparse.Namespace) -> int:
     t0 = time.time()
     try:
@@ -278,75 +319,87 @@ def cmd_separate(args: argparse.Namespace) -> int:
     overlap = min(0.9, max(0.05, float(args.overlap)))
 
     hybrid = args.engine == "hybrid"
-    rf_vocals = None
-    rf_sr = 0
-    vocal_s = 0.0
-    if hybrid:
-        # Stage one: the vocal specialist takes the vocals out; Demucs then
-        # splits only what is left, so its own vocal output is just bleed.
-        status(f"Separating the vocals ({args.vocal_model})…")
-        emit({"event": "progress", "fraction": 0.03})
-        t_voc = time.time()
-        try:
-            rf_vocals, instrumental, rf_sr = _roformer_vocals(
-                args.input, args.vocal_model, args.models_dir, args.out)
-        except Exception as e:  # noqa: BLE001
-            emit({"event": "error", "message": f"Vocal model failed: {type(e).__name__}: {e}"})
-            return 6
-        vocal_s = round(time.time() - t_voc, 2)
-        emit({"event": "progress", "fraction": 0.45})
-        status("Splitting the rest into drums, bass and other…")
-        wav = torch.from_numpy(np.ascontiguousarray(instrumental.T))
-        if wav.shape[0] == 1 and model.audio_channels == 2:
-            wav = wav.repeat(2, 1)
-        in_sr = rf_sr
-        if rf_sr != model.samplerate:
-            import julius
-            wav = julius.resample_frac(wav, rf_sr, model.samplerate)
-    else:
-        status("Reading the track…")
-        try:
-            wav, in_sr = _load_audio(args.input, model.samplerate, model.audio_channels)
-        except Exception as e:  # noqa: BLE001
-            emit({"event": "error", "message": f"Could not read '{args.input}': {e}"})
-            return 4
+    # The GPU lease (gpu_lease_hook.py), held while this run uses the GPU.
+    # The RoFormer stage takes the GPU by itself whenever there is one.
+    # VRAM figures are rough peaks: Demucs in segments, RoFormer on top.
+    gpu = _GpuTurn(torch, model)
+    if torch.cuda.is_available() and (device == "cuda" or hybrid):
+        what = f"{args.vocal_model} + {args.model}" if hybrid else args.model
+        gpu.take(f"stem split ({what})", 6.0 if hybrid else 4.0)
+    try:
+        rf_vocals = None
+        rf_sr = 0
+        vocal_s = 0.0
+        if hybrid:
+            # Stage one: the vocal specialist takes the vocals out; Demucs then
+            # splits only what is left, so its own vocal output is just bleed.
+            status(f"Separating the vocals ({args.vocal_model})…")
+            emit({"event": "progress", "fraction": 0.03})
+            t_voc = time.time()
+            try:
+                rf_vocals, instrumental, rf_sr = _roformer_vocals(
+                    args.input, args.vocal_model, args.models_dir, args.out)
+            except Exception as e:  # noqa: BLE001
+                emit({"event": "error", "message": f"Vocal model failed: {type(e).__name__}: {e}"})
+                return 6
+            vocal_s = round(time.time() - t_voc, 2)
+            emit({"event": "progress", "fraction": 0.45})
+            status("Splitting the rest into drums, bass and other…")
+            wav = torch.from_numpy(np.ascontiguousarray(instrumental.T))
+            if wav.shape[0] == 1 and model.audio_channels == 2:
+                wav = wav.repeat(2, 1)
+            in_sr = rf_sr
+            if rf_sr != model.samplerate:
+                import julius
+                wav = julius.resample_frac(wav, rf_sr, model.samplerate)
+        else:
+            status("Reading the track…")
+            try:
+                wav, in_sr = _load_audio(args.input, model.samplerate, model.audio_channels)
+            except Exception as e:  # noqa: BLE001
+                emit({"event": "error", "message": f"Could not read '{args.input}': {e}"})
+                return 4
 
-    # Demucs' own normalisation (see demucs.separate): the model expects a
-    # standardised mixture and the sources are scaled back afterwards.
-    ref = wav.mean(0)
-    mean, std = float(ref.mean()), float(ref.std())
-    if std < 1e-8:
-        std = 1.0
-    wav = (wav - mean) / std
+        # Demucs' own normalisation (see demucs.separate): the model expects a
+        # standardised mixture and the sources are scaled back afterwards.
+        ref = wav.mean(0)
+        mean, std = float(ref.mean()), float(ref.std())
+        if std < 1e-8:
+            std = 1.0
+        wav = (wav - mean) / std
 
-    status(f"Separating on {'the GPU' if device == 'cuda' else 'the CPU'}…")
-    sources = None
-    attempts = [(device, None)]
-    if device == "cuda":
-        # Out of VRAM: shorter segments halve the footprint; then the CPU.
-        attempts += [("cuda", 4.0), ("cpu", None)]
-    last_err: Exception | None = None
-    base, span = (0.45, 0.55) if hybrid else (0.0, 1.0)
-    for dev, seg in attempts:
-        try:
-            sources = _separate_once(model, wav, dev, shifts, seg, passes, overlap,
-                                     base, span)
-            device = dev
-            break
-        except RuntimeError as e:
-            msg = str(e).lower()
-            oom = ("out of memory" in msg) or ("cuda" in msg and "alloc" in msg)
-            if not oom or dev == "cpu":
-                last_err = e
+        status(f"Separating on {'the GPU' if device == 'cuda' else 'the CPU'}…")
+        sources = None
+        attempts = [(device, None)]
+        if device == "cuda":
+            # Out of VRAM: shorter segments halve the footprint; then the CPU.
+            attempts += [("cuda", 4.0), ("cpu", None)]
+        last_err: Exception | None = None
+        base, span = (0.45, 0.55) if hybrid else (0.0, 1.0)
+        for dev, seg in attempts:
+            if dev == "cpu":
+                gpu.give_back()  # no GPU from here on: other tools can have it
+            try:
+                sources = _separate_once(model, wav, dev, shifts, seg, passes, overlap,
+                                         base, span)
+                device = dev
                 break
-            last_err = e
-            if hasattr(torch, "cuda"):
-                torch.cuda.empty_cache()
-            status("GPU memory ran out — retrying with smaller segments"
-                   if seg is None else "Still out of GPU memory — falling back to the CPU")
-    if sources is None:
-        emit({"event": "error", "message": f"Separation failed: {last_err}"})
-        return 5
+            except RuntimeError as e:
+                msg = str(e).lower()
+                oom = ("out of memory" in msg) or ("cuda" in msg and "alloc" in msg)
+                if not oom or dev == "cpu":
+                    last_err = e
+                    break
+                last_err = e
+                if hasattr(torch, "cuda"):
+                    torch.cuda.empty_cache()
+                status("GPU memory ran out — retrying with smaller segments"
+                       if seg is None else "Still out of GPU memory — falling back to the CPU")
+        if sources is None:
+            emit({"event": "error", "message": f"Separation failed: {last_err}"})
+            return 5
+    finally:
+        gpu.give_back()
 
     sources = sources * std + mean
     out_dir = Path(args.out)

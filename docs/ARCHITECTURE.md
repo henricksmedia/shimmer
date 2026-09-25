@@ -297,6 +297,45 @@ lane makes the stems add back to the exact mix.
   - The reverb has no damping or tail.
   - By default the loop preview does not clean, but the render does.
 
+### 6.1 The GPU, and the optional GPU lease (developer machines)
+
+The stem split is the only part of the shipped app that uses the GPU
+(`shimmer/stems_runner.py`). It runs for the Remix tab, and for mastering when
+a fix mode needs the song's vocal (a tool's `STEM_MODES`, such as Vocal
+grain's vocal mode, through `core.set_vocal_splitter`). The rest of the chain
+runs on the CPU. The training scripts in `scripts/hash_learn/` also use the
+GPU.
+
+Some developer machines share one GPU between several AI tools, which take
+turns through a lease library, `gpu_lease.py`, kept outside Shimmer.
+`shimmer/gpu_lease_hook.py` wires Shimmer into it:
+
+- **Where it looks.** The folder named by the `GPU_LEASE_HOME` environment
+  variable, or `D:\LLMVault\GpuLease` when that is unset. To switch it off,
+  point `GPU_LEASE_HOME` at a folder without `gpu_lease.py`.
+- **Without the library** nothing changes: nothing is imported, and there is
+  no setting, message or wait. Public installs never see it.
+- **With the library:**
+  - **Stem split.** It holds the lease (tool "Shimmer") only while it uses
+    the GPU: CUDA, or the RoFormer vocal stage whenever a GPU is present.
+    While it waits, it shows who holds the GPU. It gives the lease back
+    after moving the model off the GPU and emptying the cache, before the
+    CPU fallback, and at the end of the run however it ends.
+  - **`train.py`.** It holds the lease while it trains on the GPU. Every 25
+    minutes it moves the network and the optimizer state to the CPU, gives
+    the lease back, and waits its turn again.
+  - **`infer.py`.** It holds the lease for its run.
+- **Code that cannot import the shimmer package** (the runner and the
+  training scripts run in the stems environment) loads the hook file by its
+  path with `importlib`.
+
+Tests: `tests/test_gpu_lease_hook.py` runs the real runner with stand-in
+torch, Demucs and lease libraries. It covers:
+- no library means no change, down to identical stems;
+- the order of acquire, clean-up and release;
+- the CPU fallback and a failed run;
+- a mastering render with Vocal grain in vocal mode.
+
 ---
 
 ## 7. Frontend
