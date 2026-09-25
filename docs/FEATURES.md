@@ -202,6 +202,44 @@ Change the Amount or turn the card off, and Analyze leaves it for that
 song. Every other card stays quiet until its detector passes its own tests.
 A card that cannot measure its problem does not guess.
 
+### 2.3a Quick and Advanced
+
+A switch at the top of the Master tab, **Quick | Advanced**, picks how
+much you see. Both are views of the same settings: Quick hides controls,
+it never turns them off. Your choice is remembered.
+
+**Quick** shows the song, the Trim card, the player, one line of what
+Analyze found (with **Details**), and **Quick master**: three sliders, set
+for the song by Analyze.
+
+- **Clean-up**, how much AI noise to take out: **Off**, **Light**,
+  **Recommended**, **Strong**.
+  - Recommended is what the detectors picked for this song. Light is half
+    of it, Strong one and a half times, and Off turns the fixes off.
+  - Strong never takes a fix past 100 %, or Vocal grain past 75 %.
+  - Under the slider, each fix and its Amount, for example "Vocal grain
+    40% (some), Sibilance 50% (some)".
+  - Move a card's Amount by hand in Advanced, and the middle stop becomes
+    **Your settings**: Light and Strong then scale yours. **Use
+    recommended** goes back.
+- **Loudness**: Streaming (−14 LUFS), Balanced (−11) or Commercial (−9).
+  The same setting as the Loudness target. Moving it turns mastering on.
+  With a level-matched A/B, it says you won't hear it as louder.
+- **Tone**: Warmer, Warm, Neutral, Bright or Brighter, the same setting as
+  Tilt. When the top end is dull, Analyze marks Bright or Brighter without
+  moving it.
+- **Also on from Advanced**: anything on that Quick doesn't show, such as
+  the EQ, a reference track or another format, is listed in one line.
+
+The first slider move on a song turns **Live** on, so you hear it. In
+Live, the loop's part of the waveform shows the track you are hearing
+there, drawn over the Original. After a Clean & Master, changing a setting
+marks the **Processed** track "out of date" and lights Clean & Master
+until you run it again.
+
+**Advanced** is the Master tab as it was: every card, the Analysis
+checklist, the EQ, Mastering, Output and Tags.
+
 ### 2.4 "What do you hear?" cards and their fixes
 
 The cards replace 1.x's 19 presets. You listen, then turn on a card for

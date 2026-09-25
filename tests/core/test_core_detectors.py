@@ -68,8 +68,30 @@ def test_the_slow_detectors_read_a_share():
     src = Source.from_array(_noise(8.0, seed=4), SR)
     got = D.slow(src)
     assert set(got) == {c for c, _, _ in D.SLOW}
-    for r in got.values():
-        assert 0.0 <= r.value <= 100.0 and r.unit == "%"
+    for card, r in got.items():
+        if card == "grain":
+            assert r.unit == "dB" and r.value >= 0.0
+        else:
+            assert 0.0 <= r.value <= 100.0 and r.unit == "%"
+
+
+def test_grain_is_the_spikes_on_the_voice():
+    # Sharp, short bursts in 4-8 kHz on a steady centre tone read as grain;
+    # the same tone without them does not.
+    rng = np.random.default_rng(5)
+    t = np.arange(int(60 * SR)) / SR
+    voice = 0.2 * np.sin(2 * np.pi * 220 * t) * (1 + 0.3 * np.sin(2 * np.pi * 3 * t))
+    hiss = ss.sosfilt(ss.butter(4, [4000, 8000], btype="bandpass", fs=SR, output="sos"),
+                      rng.standard_normal(t.size)) * 0.02
+    clean = np.stack([voice + hiss] * 2, axis=1).astype(np.float32)
+    bursts = np.zeros(t.size)
+    for s in rng.integers(0, t.size - 700, 3000):     # 12 ms bursts, as the grain step sees them
+        bursts[s:s + 600] += rng.standard_normal(600)
+    grit = ss.sosfilt(ss.butter(4, [4000, 8000], btype="bandpass", fs=SR, output="sos"), bursts)
+    gritty = np.stack([voice + hiss + grit] * 2, axis=1).astype(np.float32)
+    a = D.grain_db(D.grain_windows(Source.from_array(clean, SR)))
+    b = D.grain_db(D.grain_windows(Source.from_array(gritty, SR)))
+    assert b > a + 1.0, (a, b)
 
 
 @pytest.mark.skipif(not all(os.path.exists(p) for p in REFS) and not REQUIRE_CORPUS,
@@ -78,4 +100,4 @@ def test_the_slow_detectors_read_a_share():
 def test_a_finished_master_raises_nothing(path):
     src = Source.load(path)
     cards = {f.card for f in findings(src) + slow_findings(src)}
-    assert not cards & {"air", "mud", "sibilance", "harshness"}, cards
+    assert not cards & {"air", "mud", "grain", "sibilance", "harshness"}, cards

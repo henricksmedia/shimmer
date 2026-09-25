@@ -18,8 +18,15 @@ songs that stand out and leaves the rest alone:
             Those fixes only act when their band sticks out, so the share
             is the measure. Two finished masters read 0-5 %.
 
-The last two are slow (a whole-song render each, 5-15 s), so they run
-after the upload, in their own job (slow()).
+  grain     the grain on the voice: how much of the centre's 4-8 kHz the
+            Vocal grain fix's grain step takes out (sharp spots standing
+            above their neighbours in time and pitch), in the 15 s
+            stretches where the voice is strongest, as dB. Only that step:
+            the fix's two floor steps take as much or more from finished
+            masters, whose full top end is not grain.
+
+The last three are slow (a whole-song render or plan each, 5-15 s), so they
+run after the upload, in their own job (slow()).
 
 Measures only: nothing here changes the audio.
 """
@@ -52,10 +59,26 @@ SIBILANCE_SOME, SIBILANCE_A_LOT = 0.08, 0.14
 # top tenth 18 % or more; the finished masters read 0 and 1.5 %.
 HARSHNESS_SOME, HARSHNESS_A_LOT = 0.06, 0.15
 # The Amount Analyze recommends for a fix, by level. Every fix's 100 % was
-# set under its damage limit (docs/STEP6-FIXES.md).
+# set under its damage limit (docs/STEP6-FIXES.md), except Vocal grain's:
+# its 100 % is the author's "extra strong", so it starts at 40 % for some
+# and at his "strong", 75 %, for a lot.
 AMOUNT = {"some": 0.5, "a lot": 1.0}
+AMOUNTS = {"grain": {"some": 0.4, "a lot": 0.75}}
+
+
+def amount(card: str, level: str) -> float:
+    """The Amount Analyze recommends for this card's fix at this level."""
+    return AMOUNTS.get(card, AMOUNT)[level]
 _ACT_DB = 1.0            # a frame counts as acted on past this cut
 _ACT_FRAME_S = 0.05
+# Vocal grain: dB the fix's grain step takes from the centre's 4-8 kHz, in
+# the song's strongest voice stretches (grain_db). Set on the library's
+# spread (docs/DETECTORS.md).
+# Library: typical song 2.4 dB, top tenth 3.8 dB or more. Just Another Rain
+# 4.1-4.7 dB; the finished masters 1.0 and 1.7 dB.
+GRAIN_SOME_DB, GRAIN_A_LOT_DB = 2.5, 3.5
+GRAIN_WINDOW_S = 15.0
+GRAIN_LOUD_DB = -6.0     # a stretch this far under the song's loud level is left out
 
 
 @dataclass(frozen=True)
@@ -139,6 +162,74 @@ def acting_share(source, card: str) -> float:
     return source._remember(("detect", "acting", card), make)
 
 
+def grain_windows(source):
+    """Per 15 s stretch of the song: (centre_db, level_db, share), where
+    share is the part of the centre's 4-8 kHz energy the Vocal grain fix's
+    grain step takes, centre_db how much more of the 1-4 kHz energy sits in
+    the centre than the sides (a lead vocal sits in the centre), and
+    level_db the stretch's level against the song's loud parts."""
+    from scipy import signal as ss
+
+    from ..repair import vocal_grain as vg
+
+    def make():
+        sr = source.sr
+        x = np.asarray(source.audio, dtype=np.float64)
+        x = x[:, None] if x.ndim == 1 else x
+        if x.shape[1] == 1:
+            x = np.repeat(x, 2, axis=1)
+        mid, side = x.mean(axis=1), (x[:, 0] - x[:, 1]) / 2.0
+        if mid.size < vg.NPER:
+            return []
+        st = vg.steps(mid, sr)
+        core = (st.f >= vg.BAND_HZ[0]) & (st.f <= vg.BAND_HZ[1])
+        cb = core[st.band]
+        P0 = st.power[core]
+        before = P0 * st.g1[core] ** 2 * st.g2[cb] ** 2      # what the grain step works on
+        e0 = P0.sum(axis=0)
+        taken = (before * (1.0 - st.g3[cb] ** 2)).sum(axis=0)
+        f = np.fft.rfftfreq(vg.NPER, 1.0 / sr)
+
+        def power(sig):
+            return np.abs(ss.stft(sig, fs=sr, nperseg=vg.NPER, noverlap=vg.NPER - vg.HOP)[2]) ** 2
+
+        Pm, Ps = power(mid), power(side)
+        n = min(Pm.shape[1], e0.size)
+        e0, taken = e0[:n], taken[:n]
+        vb = (f >= 1000.0) & (f <= 4000.0)
+        em, es = Pm[vb, :n].sum(axis=0), Ps[vb, :n].sum(axis=0)
+        per = int(round(GRAIN_WINDOW_S * sr / vg.HOP))
+        loud = np.percentile(em, 90) + 1e-20
+        out = []
+        for k in range(0, n - per + 1, per):
+            s = slice(k, k + per)
+            out.append((float(10 * np.log10((em[s].sum() + 1e-20) / (es[s].sum() + 1e-20))),
+                        float(10 * np.log10(em[s].mean() / loud + 1e-20)),
+                        float(taken[s].sum() / (e0[s].sum() + 1e-20))))
+        return out
+    return source._remember(("detect", "grain_windows"), make)
+
+
+def grain_db(windows) -> Optional[float]:
+    """The song's grain score from its stretches: leave out the first and
+    last and the quiet ones, keep the half where the voice is most in the
+    centre, and take the middle share among them, as dB taken."""
+    w = [x for x in windows[1:-1] if x[1] >= GRAIN_LOUD_DB]
+    if not w:
+        return None
+    mid = float(np.median([x[0] for x in w]))
+    shares = [x[2] for x in w if x[0] >= mid]
+    share = float(np.median(shares))
+    return -10.0 * float(np.log10(max(1e-6, 1.0 - share)))
+
+
+def grain(source) -> Reading:
+    v = grain_db(grain_windows(source))
+    if v is None or GRAIN_SOME_DB is None:
+        return Reading(round(v or 0.0, 1), "dB", "")
+    return Reading(round(v, 1), "dB", _level(v, GRAIN_SOME_DB, GRAIN_A_LOT_DB))
+
+
 def sibilance(source) -> Reading:
     share = acting_share(source, "sibilance")
     return Reading(round(100 * share, 1), "%", _level(share, SIBILANCE_SOME, SIBILANCE_A_LOT))
@@ -152,6 +243,7 @@ def harshness(source) -> Reading:
 # The slow detectors, in the order the job runs them, with what each
 # finding says.
 SLOW = (
+    ("grain", grain, "Sharp grain rides on the voice ({v:.1f} dB in 4-8 kHz)"),
     ("sibilance", sibilance, "Harsh \u201cs\u201d sounds stick out {v:.0f} % of the song"),
     ("harshness", harshness, "The 2-5 kHz range sticks out {v:.0f} % of the song"),
 )

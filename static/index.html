@@ -67,6 +67,13 @@
     <span class="view-title" id="view-title">Master</span>
     <span class="view-sub" id="view-sub">clean AI artifacts · master for release</span>
     <span class="spacer"></span>
+    <!-- Quick | Advanced (quick-master.js): two views of the same settings. -->
+    <div class="player-view-toggle mode-toggle" id="master-mode" role="group" aria-label="Master view">
+        <button type="button" class="viz-mode-btn" id="mode-quick" aria-pressed="false"
+                title="Three choices, set for this song by Analyze">Quick</button>
+        <button type="button" class="viz-mode-btn" id="mode-advanced" aria-pressed="false"
+                title="Every card, the EQ, the tone target, output and tags">Advanced</button>
+    </div>
     <span class="kbd-hint"><kbd>Space</kbd> play · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> A/B · <kbd>Ctrl K</kbd> anything</span>
 </header>
 
@@ -269,6 +276,15 @@
                         </div>
                     </div>
 
+                    <div class="card verdict-line" id="quick-verdict" hidden>
+                        <span class="ms" aria-hidden="true">troubleshoot</span>
+                        <b id="qv-title">Analyze</b>
+                        <span id="qv-text"></span>
+                        <span class="spacer"></span>
+                        <button type="button" class="btn btn-ghost btn-sm" id="qv-details"
+                                title="Open the full analysis in Advanced">Details</button>
+                    </div>
+
                     <div class="card" id="analysis-card">
                         <div class="card-head">
                             <span class="title">Analysis</span><span class="gloss">listens for AI noise in your track</span>
@@ -307,7 +323,7 @@
                             <div class="analysis-busy" id="analysis-busy" hidden>
                                 <div class="ab-bar"><i></i></div>
                                 <div class="ab-text"><b>Analyzing…</b> measuring loudness and tone, looking for fixed
-                                    tones, sibilance and harshness, planning the EQ. About 10-30 seconds.</div>
+                                    tones, vocal grain, sibilance and harshness, planning the EQ. About 10-40 seconds.</div>
                             </div>
                         </div>
                     </div>
@@ -351,7 +367,7 @@
                 <div class="mcol" id="master-col-right">
                     <div class="process-dock" id="process-dock">
                         <button type="button" class="btn analyze-dock-btn" id="analyze-dock-btn" disabled
-                                title="Listens to your track: fixed tones, loudness, dull top end, low-mid build-up, sibilance and harshness. Marks the cards it finds and turns their fixes on. Jumps to the Analysis card.">
+                                title="Listens to your track: fixed tones, loudness, dull top end, low-mid build-up, vocal grain, sibilance and harshness. Marks the cards it finds and turns their fixes on. Jumps to the Analysis card.">
                             <span class="adb-step">2</span><span class="adb-text">Analyze</span>
                         </button>
                         <button type="button" class="btn btn-primary process-btn step-btn" data-step="3" id="process-btn" disabled>Clean &amp; Master</button>
@@ -359,6 +375,36 @@
                         <div class="dock-status" id="dock-status" hidden></div>
                         <progress id="progress" value="0" max="1" hidden></progress>
                     </div>
+
+                    <div class="card qm" id="quick-master" hidden>
+                        <div class="qm-head"><b>Quick master</b><span id="qm-sub">set for this song by Analyze</span></div>
+
+                        <div class="qm-row">
+                            <div class="qm-top"><b>Clean-up</b><span class="g">how much AI noise to take out</span><span class="v" id="qm-clean-v"></span></div>
+                            <input type="range" id="qm-clean" min="0" max="3" step="1" value="2" aria-label="Clean-up">
+                            <div class="qm-ticks"><span>Off</span><span>Light</span><span class="rec" id="qm-clean-mid">Recommended</span><span>Strong</span></div>
+                            <div class="qm-note" id="qm-clean-note"></div>
+                        </div>
+
+                        <div class="qm-row">
+                            <div class="qm-top"><b>Loudness</b><span class="g">how loud the finished song plays</span><span class="v" id="qm-loud-v"></span></div>
+                            <input type="range" id="qm-loud" min="0" max="2" step="1" value="2" aria-label="Loudness">
+                            <div class="qm-ticks"><span>Streaming</span><span>Balanced</span><span>Commercial</span></div>
+                            <div class="qm-note" id="qm-loud-note"></div>
+                        </div>
+
+                        <div class="qm-row">
+                            <div class="qm-top"><b>Tone</b><span class="g">darker or brighter</span><span class="v" id="qm-tone-v"></span></div>
+                            <input type="range" id="qm-tone" min="0" max="4" step="1" value="2" aria-label="Tone">
+                            <div class="qm-ticks" id="qm-tone-ticks"><span>Warmer</span><span>Warm</span><span>Neutral</span><span>Bright</span><span>Brighter</span></div>
+                            <div class="qm-note" id="qm-tone-note"></div>
+                        </div>
+
+                        <div class="qm-also" id="qm-also" hidden></div>
+                        <div class="qm-foot"><span class="ms" aria-hidden="true">tune</span>
+                            <span>To set each fix, the EQ or the tone target yourself, switch to <button type="button" class="qm-link" id="qm-advanced">Advanced</button>.</span></div>
+                    </div>
+
                     <div class="card insp">
 
                         <details class="acc-sec" open>

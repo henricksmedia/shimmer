@@ -7,6 +7,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Quick master.** The Master tab has a **Quick | Advanced** switch. Quick
+  shows three sliders, set for the song by Analyze:
+  - **Clean-up**, from Off to Light, Recommended and Strong, scales every
+    fix Analyze turned on.
+  - **Loudness** runs from Streaming to Commercial.
+  - **Tone** runs from Warmer to Brighter.
+
+  They are the same settings Advanced shows, so the two never disagree,
+  and anything else on in Advanced is listed under the sliders. The first
+  move turns Live on, the loop's waveform shows what you hear, and after a
+  Clean & Master a changed setting marks Processed "out of date".
+- **Vocal grain has a detector.** It measures the sharp grain on the voice
+  (not the steady top end, which finished masters have plenty of) and
+  starts the fix at 40 % for some or 75 % for a lot. Just Another Rain
+  scores a lot; the finished masters score none.
 - **Analyze finds more.** Four more cards get a detector: **Lack of air**,
   **Low-mid build-up**, **Sibilance** and **Harshness**. Each says how much
   it found, some or a lot, and turns its fix on at 50 % or 100 %. Lack of

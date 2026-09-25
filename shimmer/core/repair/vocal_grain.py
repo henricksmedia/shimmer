@@ -122,19 +122,36 @@ def plan(audio: np.ndarray, sr: int,
     return Plan(first, cuts, "vocal", v)
 
 
-def _cut(m: np.ndarray, sr: int, step: Optional[Callable[[float], None]]) -> np.ndarray:
-    """The three steps on one signal: its cut in dB from the first bin up."""
+@dataclass(frozen=True, eq=False)
+class Steps:
+    """The three steps' gains for one signal, from the first bin up: `g1`
+    the steady floor ([bins, frames]); `g2` the moving floor and `g3` the
+    grain, each already faded, for the bins in `band` (under FADE_HZ's
+    top). `f` holds the bins' frequencies and `power` the signal's power
+    before any step. The Vocal grain detector reads them apart
+    (analyze/detectors.py)."""
+    f: np.ndarray
+    power: np.ndarray
+    band: np.ndarray
+    g1: np.ndarray
+    g2: np.ndarray
+    g3: np.ndarray
+
+
+def steps(m: np.ndarray, sr: int, step: Optional[Callable[[float], None]] = None) -> Steps:
+    """The three steps on one signal (see the module's docstring)."""
     first = _first_bin(sr)
     f = np.fft.rfftfreq(NPER, 1.0 / sr)[first:]
-    P = (np.abs(_stft(m, sr)[first:]) ** 2 + 1e-20).astype(np.float32)
+    P0 = (np.abs(_stft(m, sr)[first:]) ** 2 + 1e-20).astype(np.float32)
+    P = P0.copy()
     if step is not None:
         step(0.1)
 
     # 1. The steady floor, above TOP_FROM_HZ.
     floor = np.percentile(P, FLOOR_PCT, axis=1, keepdims=True)
-    g = nd.uniform_filter(np.maximum(FLOOR_KEEP, 1.0 - FLOOR_OVER * floor / P), size=SMOOTH)
-    g[f < TOP_FROM_HZ] = 1.0
-    P *= g ** 2
+    g1 = nd.uniform_filter(np.maximum(FLOOR_KEEP, 1.0 - FLOOR_OVER * floor / P), size=SMOOTH)
+    g1[f < TOP_FROM_HZ] = 1.0
+    P *= g1 ** 2
     if step is not None:
         step(0.3)
 
@@ -147,18 +164,24 @@ def _cut(m: np.ndarray, sr: int, step: Optional[Callable[[float], None]]) -> np.
                            size=SMOOTH)
     g2 = 1.0 - fade * (1.0 - g2)
     P[band] *= g2 ** 2
-    g[band] *= g2
     if step is not None:
         step(0.7)
 
     # 3. The grain: spots standing above their neighbours, pulled back.
     L = 10.0 * np.log10(P[band])
     spike = L - nd.median_filter(L, size=GRAIN_SIZE, mode="nearest")
-    g3 = 10.0 ** (-np.maximum(0.0, spike - GRAIN_CAP_DB) / 20.0)
-    g[band] *= 1.0 - fade * (1.0 - g3)
+    g3 = 1.0 - fade * (1.0 - 10.0 ** (-np.maximum(0.0, spike - GRAIN_CAP_DB) / 20.0))
     if step is not None:
         step(1.0)
+    return Steps(f, P0, band, g1, g2, g3)
 
+
+def _cut(m: np.ndarray, sr: int, step: Optional[Callable[[float], None]]) -> np.ndarray:
+    """The three steps on one signal: its cut in dB from the first bin up."""
+    s = steps(m, sr, step)
+    g = s.g1.copy()
+    g[s.band] *= s.g2
+    g[s.band] *= s.g3
     cut = np.clip(20.0 * np.log10(np.maximum(g, 1e-6)), -_DEEPEST_DB, 0.0)
     return cut.astype(np.float16)
 

@@ -1858,6 +1858,52 @@ progress::-moz-progress-bar { background: var(--amber); }
     border: 1px solid rgba(167, 139, 250, .4);
 }
 
+/* ── Quick master (quick-master.js) ─────────────────────────────────── */
+/* Quick shows three choices; Advanced shows everything. Both are views of
+   the same settings: Quick hides controls, it never turns them off. */
+
+.mode-toggle { flex: none; }
+body:not([data-tab="single"]) .mode-toggle { display: none; }
+
+#tab-single.quick-mode .master-3col { grid-template-columns: minmax(0, 1fr) 360px; }
+/* The file chip, moved into the centre column: one quiet line, the song's
+   name and a small Change button. The whole window takes a dropped file. */
+#tab-single.quick-mode .dropzone-compact { padding: 0; border: none; }
+#tab-single.quick-mode .dropzone-compact .dropzone-inner { flex-wrap: nowrap; justify-content: flex-start; gap: 10px; }
+#tab-single.quick-mode .dropzone-compact .dropzone-primary { display: none; }
+#tab-single.quick-mode .dropzone-compact .selected-file { order: -1; flex: 0 1 auto; text-align: left; }
+#tab-single.quick-mode .dropzone-compact .btn { flex: 0 0 auto; }
+#tab-single.quick-mode #master-col-left,
+#tab-single.quick-mode #analysis-card,
+#tab-single.quick-mode #master-col-right > .card.insp { display: none; }
+
+.verdict-line { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+.verdict-line .ms { color: var(--cyan); }
+.verdict-line b { color: var(--fg-0); font-size: 13px; white-space: nowrap; }
+.verdict-line #qv-text { color: var(--fg-2); font-size: 12px; }
+
+.qm { padding: 14px 16px 16px; }
+.qm-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.qm-head b { font-size: 14px; color: var(--fg-0); font-weight: 600; }
+.qm-head span { font-size: 11.5px; color: var(--fg-2); }
+.qm-row { margin-top: 16px; }
+.qm-top { display: flex; align-items: baseline; gap: 8px; }
+.qm-top b { font-size: 13px; color: var(--fg-0); font-weight: 600; }
+.qm-top .g { font-size: 11.5px; color: var(--fg-2); }
+.qm-top .v { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--amber);
+             font-family: var(--font-mono); white-space: nowrap; }
+.qm-row input[type=range] { width: 100%; margin: 8px 0 2px; accent-color: var(--amber); }
+.qm-ticks { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--fg-3); }
+.qm-ticks .rec { color: var(--cyan); }
+.qm-note { margin-top: 6px; font-size: 11.5px; line-height: 1.5; color: var(--fg-2); }
+.qm-also { margin-top: 14px; font-size: 11.5px; line-height: 1.5; color: var(--fg-2); }
+.qm-also b { color: var(--fg-1); font-weight: 600; }
+.qm-foot { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11.5px;
+           color: var(--fg-2); display: flex; gap: 8px; align-items: flex-start; }
+.qm-foot .ms { font-size: 17px; color: var(--fg-3); }
+.qm-link { font: inherit; color: var(--cyan); background: none; border: none; padding: 0; cursor: pointer; }
+.qm-link:hover { text-decoration: underline; }
+
 /* ── Trim (top & tail) ──────────────────────────────────────────────── */
 
 .trim-state {

@@ -19,6 +19,7 @@ import { loadRules, loudnessLufs, stagePhases } from './rules.js';
 import { NAMES as SIZE_NAMES, downloadBlock, fitsSub, judge, mb as fmtMB, mmss,
          renderSizeLine, verdictTitle } from './size-limit.js';
 import { initReferenceMatch } from './reference-match.js';
+import { initQuickMaster } from './quick-master.js';
 
 // The progress window's colours for the engine's stages (the stage list
 // itself comes from /api/rules). Signal order runs around the colour wheel.
@@ -694,12 +695,14 @@ export async function initSingleTab() {
 
     // "What do you hear?": its picks go to the engine as fixes/auto. The
     // cards that live in Mastering (Loudness, Lack of air) set its controls.
+    let quick = null;           // Quick master (quick-master.js), set just below
     const picker = await initFaultPicker({
         onChange: () => {
             pushSettings();
             schedulePreviewRender();
             if (syncAnalysisChecklist) syncAnalysisChecklist();
         },
+        onUserEdit: () => { if (quick) quick.userEdit(); },
         onMasterCard: (key, on) => {
             if (!on && key === 'loudness') return;
             if (on && !masterEnabled.checked) {
@@ -713,6 +716,41 @@ export async function initSingleTab() {
                 masterTilt.value = on ? 'bright' : 'neutral';
                 masterTilt.dispatchEvent(new Event('change'));
             }
+        },
+    });
+
+    // Quick master: three sliders over the same settings (quick-master.js).
+    quick = initQuickMaster({
+        picker, masterEnabled, masterTarget, masterTilt,
+        lufsOf: (key) => loudnessLufs(RULES, key),
+        abMatched: () => abLoudnessMatch.checked,
+        // What is on in Advanced that Quick does not show.
+        advanced: () => {
+            const out = [];
+            let eq = null;
+            try { eq = eqPanel.getPayload(); } catch (_) { return out; }   // not built yet at startup
+            const bands = eq && eq.enabled ? (eq.bands || []).filter((b) => b.enabled !== false).length : 0;
+            if (bands) out.push(`EQ ${bands} band${bands === 1 ? '' : 's'}`);
+            if (refMatch && refMatch.payload().tone_target === 'reference') out.push('reference track');
+            if (masterEnabled.checked && masterIntensity.value !== 'med') {
+                out.push(`Tone match ${masterIntensity.value === 'low' ? 'Low' : 'High'}`);
+            }
+            if (trimSilence.checked) out.push('silence trim');
+            if (outputFormat.value !== 'wav') {
+                out.push(outputFormat.options[outputFormat.selectedIndex].text.split(' \u2014')[0]);
+            }
+            return out;
+        },
+        // The first slider move on a song turns Live on, so you hear it.
+        firstMove: () => {
+            if (currentFile && !previewState.active) {
+                previewToggle.checked = true;
+                applyPreviewToggle(true);
+            }
+        },
+        showAnalysis: () => {
+            const card = $('analysis-card');
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
         },
     });
 
@@ -827,6 +865,7 @@ export async function initSingleTab() {
     });
     player.attachKeyboard();
     player.setTargetLufs(loudnessLufs(RULES, masterTarget.value));
+    if (quick) quick.start();       // after the EQ and reference panels exist
 
     // Transport buttons and scrubber.
     const SKIP_S = 5;
@@ -1101,6 +1140,7 @@ export async function initSingleTab() {
 
     function adoptFile(file) {
         currentFile = file;
+        exportedSig = null;
         lastRun = null;
         if (!keepPlanOnAdopt) passPlan = null;
         priorPassPreset = detectPriorPass(file.name);
@@ -2330,6 +2370,7 @@ export async function initSingleTab() {
         // card on at the Amount Analyze recommends (the card is already on
         // at it, set by the finding).
         const FIX_ROWS = {
+            grain: {icon: 'noise_aware', title: 'Vocal grain'},
             sibilance: {icon: 'record_voice_over', title: 'Sibilance'},
             harshness: {icon: 'graphic_eq', title: 'Harshness'},
             mud: {icon: 'foggy', title: 'Low-mid build-up'},
@@ -2758,8 +2799,10 @@ export async function initSingleTab() {
             }
             lastFollowUp = (r.follow_up && r.follow_up.name) ? r.follow_up : null;
             if (r.repair_plan) setRepairPlan(r.repair_plan);
-            if (r.findings) picker.setFindings(r.findings);
-            else applyDetectedPreset(r.preset, r.strength);
+            if (r.findings) {
+                picker.setFindings(r.findings);
+                if (quick) quick.setFindings(r.findings);
+            } else applyDetectedPreset(r.preset, r.strength);
             renderAutoDetect(r);
             const pct = Math.round((Number(r.strength) || 1) * 100);
             setAnalyzeDock('done', r.findings
@@ -2819,7 +2862,42 @@ export async function initSingleTab() {
         };
     };
 
+    // The Processed track is the last export: a file that does not change
+    // when a setting does. Once a setting differs from the one that export
+    // used, the Processed tab says it is out of date and Clean & Master
+    // glows until it is run again. (The Live loop is always current.)
+    let exportedSig = null;
+    function settingsSig() {
+        const s = window.shimmerChainState ? { ...window.shimmerChainState() } : {};
+        delete s.session_id;
+        delete s.save_folder;
+        delete s.cards;          // noted cards change nothing
+        return JSON.stringify(s);
+    }
+    function syncStale() {
+        const tabEl = document.querySelector('#track-tabs .track-tab[data-track="processed"]');
+        if (!tabEl) return;
+        const stale = !!(exportedSig && currentFile && settingsSig() !== exportedSig);
+        tabEl.classList.toggle('stale', stale);
+        let tag = tabEl.querySelector('.stale-tag');
+        if (stale && !tag) {
+            tag = document.createElement('span');
+            tag.className = 'hint stale-tag';
+            tag.textContent = 'out of date';
+            tabEl.appendChild(tag);
+        } else if (!stale && tag) {
+            tag.remove();
+        }
+        tabEl.title = stale
+            ? 'The last Clean & Master, with the settings it had. A setting has changed since: run Clean & Master again, or listen on the Live loop (key: 2)'
+            : (tabEl.getAttribute('aria-disabled') === 'true' ? tabEl.dataset.titleDisabled : tabEl.dataset.titleReady);
+        if (stale) processBtn.classList.add('is-next');
+        else if (exportedSig) processBtn.classList.remove('is-next');
+    }
+
     function pushSettings() {
+        if (quick) quick.render();
+        syncStale();
         if (advDrawer && !advDrawer.hidden) syncAdvancedHeader();
         // The Signal Chain view re-renders from live settings on this.
         document.dispatchEvent(new CustomEvent('shimmer:settings-changed'));
@@ -3047,12 +3125,15 @@ export async function initSingleTab() {
             lastEdges = r.edges || null;
             if (r.repair && r.repair.plan) setRepairPlan(r.repair.plan);
             uploadFindings = r.findings || [];
+            if (quick) quick.newSong();
             picker.setFindings(uploadFindings);
+            if (quick) quick.setFindings(uploadFindings);
             {
                 const sid = r.session_id;
                 slowDetect(sid).then((slow) => {
                     if (slow.length && previewState.sessionId === sid) {
                         picker.setFindings([...uploadFindings, ...slow]);
+                        if (quick) quick.setFindings([...uploadFindings, ...slow]);
                     }
                 });
             }
@@ -3570,6 +3651,7 @@ export async function initSingleTab() {
             // folder. Pass 2, and any single-pass run, is saved.
             const isPassOneOfTwo = !!(lastFollowUp && !ranWithMastering && !priorPassPreset);
             const saveTo = isPassOneOfTwo ? '' : activeSaveFolder();
+            const runSig = settingsSig();      // the settings this export uses
             const job = await submitProcess(
                 currentFile,
                 paramsBody,
@@ -3598,6 +3680,8 @@ export async function initSingleTab() {
 
             await player.loadFromJob(job.job_id);
             player.setTrack('processed');
+            exportedSig = runSig;
+            syncStale();
 
             downloadLink.href = resultUrl(
                 job.job_id, wantTrim ? 'trimmed' : 'processed');

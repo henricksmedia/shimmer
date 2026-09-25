@@ -216,8 +216,8 @@ change.
 
 **`POST /api/detect`** — New (2.3.0).
 
-- **Why:** the Sibilance and Harshness detectors each render the whole song
-  (about 5-15 s). The upload stays quick: its findings are the fast ones,
+- **Why:** the Vocal grain, Sibilance and Harshness detectors each read or
+  render the whole song (about 5-25 s each). The upload stays quick: its findings are the fast ones,
   and the screen asks for these right after it.
 - **Sends:** `{session_id}`.
 - **Returns:**

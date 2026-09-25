@@ -867,6 +867,33 @@ export function createUnifiedPlayer({
                 const r = peaks.rms[x] * mid;
                 ctx.fillRect(x, mid - r, 1, Math.max(1, r * 2));
             }
+            // In Live, the loop window shows the track you hear there: the
+            // Processed (or Removed) slice at its own level, drawn over the
+            // Original, so a change you make is a change you see.
+            const slice = state.preview && state.loop && state.active !== 'original'
+                ? prev.buffers[state.active] : null;
+            const dur = buf.duration;
+            if (slice && dur > 0) {
+                const x0 = Math.max(0, Math.floor((state.loop.start / dur) * w));
+                const x1 = Math.min(w, Math.ceil((state.loop.end / dur) * w));
+                if (x1 - x0 >= 2) {
+                    const sp = computePeaks(slice, x1 - x0);
+                    const sc = TRACK_WAVE[state.active] || tc;
+                    ctx.fillStyle = C.waveBg;
+                    ctx.fillRect(x0, 0, x1 - x0, h);
+                    ctx.fillStyle = overlay ? C.overlayTop : sc.top;
+                    for (let i = 0; i < x1 - x0; i++) {
+                        const y1 = mid - sp.max[i] * mid;
+                        const y2 = mid - sp.min[i] * mid;
+                        ctx.fillRect(x0 + i, Math.min(y1, y2), 1, Math.max(1, Math.abs(y2 - y1)));
+                    }
+                    ctx.fillStyle = overlay ? C.overlayRms : sc.rms;
+                    for (let i = 0; i < x1 - x0; i++) {
+                        const r = sp.rms[i] * mid;
+                        ctx.fillRect(x0 + i, mid - r, 1, Math.max(1, r * 2));
+                    }
+                }
+            }
         }
         baseValid = true;
     }

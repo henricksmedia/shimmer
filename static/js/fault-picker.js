@@ -98,6 +98,7 @@ function foundText(card, list) {
     if (card === 'loudness') return `${list[0].value.toFixed(1)} dB under`;
     if (card === 'air') return `${list[0].value.toFixed(1)} dB dull`;
     if (card === 'mud') return `${list[0].value.toFixed(1)} dB over`;
+    if (card === 'grain') return list[0].level;
     return `${list[0].value} ${list[0].unit}`;
 }
 
@@ -113,9 +114,12 @@ function countNoted(key) {
  * Build the card inside the elements #hear-verdict, #hear-g1, #hear-g2 and
  * #hear-fixes. `onChange()` runs when a pick or an amount changes;
  * `onMasterCard(key, on)` runs when a card that lives in Mastering
- * (Loudness, Lack of air) is turned on or off.
+ * (Loudness, Lack of air) is turned on or off. `onUserEdit(key)` runs when
+ * the user turns a fix card on or off or moves its Amount by hand (not
+ * when code does), so Quick master can follow (quick-master.js).
  */
-export async function initFaultPicker({ onChange = () => {}, onMasterCard = () => {} } = {}) {
+export async function initFaultPicker({ onChange = () => {}, onMasterCard = () => {},
+                                        onUserEdit = () => {} } = {}) {
     const $ = (id) => document.getElementById(id);
     const rules = await fetch('/api/rules').then((r) => r.json());
     const ready = new Set(rules.tools_ready || []);
@@ -160,6 +164,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
                 c.by = c.on ? 'you' : null;
                 c.userOff = !c.on;
                 if (c.master) onMasterCard(c.key, c.on);
+                else onUserEdit(c.key);
                 onChange();
             }
             render();
@@ -200,7 +205,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
             c.amount = Math.round(+rng.value);
             r.querySelector(`#val-${c.key}`).textContent = `${c.amount}%`;
         };
-        rng.onchange = () => onChange();
+        rng.onchange = () => { c.by = 'you'; onUserEdit(c.key); onChange(); };
         return r;
     }
 
@@ -339,6 +344,34 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         return !!(c && c.on);
     }
 
+    /** The fix cards that are on, card to Amount in %. */
+    function amounts() {
+        const out = {};
+        cards.forEach((c) => { if (c.on && c.ready && !c.master) out[c.key] = c.amount; });
+        return out;
+    }
+
+    /** Set fix cards' Amounts at once (card to %; 0 turns the card off),
+     *  as Quick master's Clean-up does. `by` says who set them. Cards not
+     *  in the map are left alone. */
+    function setAmounts(map, by = 'Analyze') {
+        Object.entries(map || {}).forEach(([key, pct]) => {
+            const c = byKey.get(key);
+            if (!c || !c.ready || c.master) return;
+            const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+            if (v <= 0) {
+                c.on = false;
+            } else {
+                c.on = true;
+                c.amount = v;
+                c.by = by;
+                c.userOff = false;
+            }
+        });
+        render();
+        onChange();
+    }
+
     /** Keep a Mastering card in step when its control changes elsewhere. */
     function setMasterCard(key, on) {
         const c = byKey.get(key);
@@ -350,5 +383,6 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
 
     render();
     return { setFindings, payload, state, reset, setMasterCard, picks, modes, restore,
-             setOn, isOn };
+             setOn, isOn, amounts, setAmounts,
+             label: (key) => (byKey.get(key) || {}).label || key };
 }

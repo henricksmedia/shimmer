@@ -262,6 +262,12 @@ button is the same as the **Clean & Master** button at the top of the
 right-hand panel, which glows until you press it. Everything under the bar
 is optional.
 
+**Quick or Advanced.** The switch at the top of the Master tab picks how
+much you see. **Quick** gives three sliders, set for your song by
+Analyze: **Clean-up** (Off, Light, Recommended, Strong), **Loudness**
+(Streaming, Balanced, Commercial) and **Tone** (Warmer to Brighter).
+**Advanced** shows every card and control. Both change the same settings.
+
 These cards can get a **Found** note, with how much: **some** or **a lot**:
 
 - **Fixed tones:** each tone found, with its pitch.
@@ -269,8 +275,9 @@ These cards can get a **Found** note, with how much: **some** or **a lot**:
   1 dB or more.
 - **Lack of air:** how many dB the top end sits under the tone target. The
   checklist offers a brighter Tilt; it starts unticked.
-- **Low-mid build-up**, **Sibilance** and **Harshness:** how much of the
-  problem is there. Their fix turns on, at 50 % for some and 100 % for a
+- **Vocal grain**, **Low-mid build-up**, **Sibilance** and **Harshness:**
+  how much of the problem is there. Vocal grain starts at 40 % for some and
+  75 % for a lot. Their fix turns on, at 50 % for some and 100 % for a
   lot. Sibilance and Harshness take a few seconds more, so they listen in
   the background as soon as the song is loaded.
 

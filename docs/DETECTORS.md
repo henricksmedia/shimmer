@@ -62,12 +62,41 @@ how often they act is the measure. A finished master with real singing
 still has "s" sounds: "Hey" reads 5 %, which is why the Sibilance line sits
 above it.
 
-## Still to come
+### Vocal grain
 
-- **Vocal grain.** Its fix takes something from almost every song, so the
-  detector measures how much of the voice's 4-8 kHz is grain and moving hiss
-  floor. Its line comes from the library's spread.
-- **Shimmer.** How much of the song its model hears the flicker in.
-- **Clicks and crackle.** The de-click's own detection, once it passes its
-  tests.
+- **Measure:** how much of the centre's 4-8 kHz the Vocal grain fix's
+  **grain step** takes out: sharp spots standing more than 0.75 dB above
+  their neighbours (7 bins by 9 frames).
+  - Taken in 15 s stretches, leaving out the first, the last and quiet
+    ones.
+  - The half with the most voice in the centre counts (the 1-4 kHz
+    energy of the mid against the side). The middle of those, in dB, is
+    the score.
+- **Lines:** 2.5 dB is some, 3.5 dB is a lot.
+- **Starting Amount:** 40 % for some, and 75 % for a lot, the author's
+  "strong" from the listening rounds. The fix's 100 % is "extra strong",
+  over the damage limit, so Analyze never starts there.
+
+| | Grain score |
+|---|---|
+| Library, typical song | 2.4 dB |
+| Library, top tenth | 3.8 dB or more |
+| Just Another Rain, the known worst case | 4.1 and 4.7 dB |
+| Finished masters | 1.7 and 1.0 dB |
+
+**Only the grain step counts.** The fix also takes a steady floor and a
+moving floor, and on finished masters those take as much as or more than
+on AI songs: a full, clean top end has a lot of steady high-frequency
+sound. The whole fix's share scored the masters in the top third of the
+library, so it could not tell grain apart. The grain step alone put them
+in its bottom 20 % and 3 %.
+
+## Not yet
+
+- **Shimmer.** On the core set its fix acts on a typical song 1.4 % of the
+  time, and it takes about 100 s a song. The fix itself is still waiting on
+  its blind round. The author's "shimmer" was vocal grain, which has a
+  detector.
+- **Clicks and crackle.** The de-click still finds too few pops in dense
+  music (docs/STEP6-FIXES.md). Its detector comes with that work.
 - **Phasiness** has no fix, and so no detector.

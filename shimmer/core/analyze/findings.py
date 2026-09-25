@@ -12,6 +12,8 @@ What reports:
 - **Loudness:** how far the song sits under the chosen Loudness target.
 - **Lack of air, Low-mid build-up:** the song's tone against the tone
   target (analyze/detectors.py).
+- **Vocal grain, Sibilance, Harshness:** slow_findings(), run after the
+  upload in their own job (POST /api/detect).
 
 Every other card reports nothing until its detector passes its own tests.
 A card that cannot measure its fault stays quiet rather than guess: the old
@@ -72,7 +74,7 @@ def findings(source, loudness_target: str = catalog.DEFAULT_LOUDNESS) -> List[Fi
         out.append(Finding(
             "mud", mud.value, mud.unit,
             f"The low mids (200-500 Hz) sit {mud.value:.1f} dB over the tone target",
-            level=mud.level, amount=detectors.AMOUNT[mud.level]))
+            level=mud.level, amount=detectors.amount("mud", mud.level)))
     return out
 
 
@@ -85,5 +87,5 @@ def slow_findings(source, step=None) -> List[Finding]:
         r = readings[card]
         if r.level:
             out.append(Finding(card, r.value, r.unit, text.format(v=r.value),
-                               level=r.level, amount=detectors.AMOUNT[r.level]))
+                               level=r.level, amount=detectors.amount(card, r.level)))
     return out
