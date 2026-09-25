@@ -5,6 +5,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.3.3] — 2026-09-24
+
 ### Changed
 
 - **Help is a page, not a pop-up.** It sits in the left rail like Signal
