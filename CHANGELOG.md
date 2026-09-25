@@ -5,6 +5,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.3.1] — 2026-09-24
+
 ### Fixed
 
 - **Sibilance could break a song's audio.** On a song with stretches of
