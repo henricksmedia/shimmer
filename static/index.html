@@ -209,7 +209,7 @@
                          visible as a detection. Never edits on its own. -->
                     <div class="card trim-card" id="trim-card" hidden>
                         <div class="card-head">
-                            <span class="title">Trim</span><span class="gloss">top &amp; tail — where the track starts and ends</span>
+                            <span class="title">Trim</span><span class="gloss">Set where the song starts and ends. Cut a bad intro or ending, and fade in or out.</span>
                             <span class="spacer"></span>
                             <span class="trim-state" id="trim-state">scanning…</span>
                             <button type="button" class="btn btn-ghost btn-sm" id="trim-toggle"
@@ -230,6 +230,26 @@
                         </div>
 
                         <div class="card-body" id="trim-body" hidden>
+                            <!-- The whole song: drag IN / OUT, drag the
+                                 round knob to set the fade. Pins are level
+                                 dips (snap points, not advice). -->
+                            <div class="trim-toolbar">
+                                <span class="trim-fade-label">Whole song</span>
+                                <span class="trim-fade-note">The full song at a glance. Drag OUT to end the song early, and drag the round knob to fade out.</span>
+                                <span class="spacer"></span>
+                                <button type="button" class="btn btn-sm" id="trim-in-here"
+                                        title="Set the in point where the player is">In at playhead</button>
+                                <button type="button" class="btn btn-sm" id="trim-out-here"
+                                        title="Set the out point where the player is. Snaps to a pin just before it.">Out at playhead</button>
+                            </div>
+                            <canvas id="trim-overview" class="trim-canvas trim-overview"
+                                    aria-label="The whole song. Drag the IN and OUT handles to set where it starts and ends."></canvas>
+                            <div class="trim-pins" id="trim-pins" hidden>
+                                <span class="trim-fade-label">Level dips</span>
+                                <span class="trim-pin-list" id="trim-pin-list"></span>
+                                <span class="trim-fade-note">Where the level drops, then comes back. Handles snap to them.</span>
+                            </div>
+
                             <div class="trim-toolbar">
                                 <div class="player-view-toggle trim-edge-toggle">
                                     <button type="button" class="viz-mode-btn active" id="trim-edge-head"
@@ -244,6 +264,7 @@
                                     <option value="10">10 s</option>
                                     <option value="30">30 s</option>
                                 </select>
+                                <span class="trim-fade-note">A close-up of the cut, for exact placement down to the millisecond.</span>
                                 <span class="spacer"></span>
                                 <button type="button" class="btn btn-sm" id="trim-audition"
                                         title="Play from the marker so you hear the track as it will export">Audition</button>
@@ -276,10 +297,12 @@
                                 <span class="trim-hint">Click to place · ←/→ nudge 1 ms · Shift 10 ms</span>
                                 <span class="spacer"></span>
                                 <label class="trim-num">in
-                                    <input type="number" id="trim-in-ms" step="1" min="0" value="0"> ms
+                                    <input type="text" id="trim-in-ms" inputmode="decimal" value="0:00.000"
+                                           title="Minutes:seconds, like 0:00.025">
                                 </label>
                                 <label class="trim-num">out
-                                    <input type="number" id="trim-out-ms" step="1" min="0" placeholder="end"> ms
+                                    <input type="text" id="trim-out-ms" inputmode="decimal" placeholder="end"
+                                           title="Minutes:seconds, like 1:58.4. Empty means the end of the file.">
                                 </label>
                             </div>
                         </div>
@@ -287,6 +310,10 @@
 
                     <div class="card viz-card">
                         <div class="player-card" id="player-card">
+                            <div class="card-head">
+                                <span class="title">Player</span>
+                                <span class="gloss">Waveform shows how loud the song is over time. Spectrogram shows which pitches play, and noise shows up as bright streaks.</span>
+                            </div>
                             <div class="done-banner" id="done-banner" hidden>
                                 <div class="done-info">
                                     <div class="done-title">✓ Ready to download</div>
@@ -376,7 +403,7 @@
                     <div class="card spectrum-card" id="spectrum-card" hidden>
                         <div class="card-head">
                             <span class="title">What changed</span>
-                            <span class="gloss">whole-file spectrum, before and after this pass</span>
+                            <span class="gloss">How the tone of the whole song changed: bass on the left, treble on the right.</span>
                         </div>
                         <div class="card-body">
                             <div class="sc-headline" id="spectrum-headline"></div>

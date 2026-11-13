@@ -5,6 +5,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **End a song early, by eye or by ear.** The Trim card now shows the whole
+  song as a strip above the zoomed view. Drag **OUT** to where the song
+  should stop and drag the round knob to set the fade out; the faded part
+  is shaded so you can see what gets quieter. **Out at playhead** sets the
+  end where the player is. In and out points can be typed as
+  minutes:seconds, like `1:58.4`.
+- **Level dips.** Pins mark up to three places where the level drops well
+  under the rest of the song, then comes back. They are a measurement, not
+  advice: the handles snap to them so a cut lands on the exact low point.
+
 ## [2.3.5] — 2026-09-25
 
 ### Added

@@ -97,9 +97,9 @@ still works, and its tags still say "pass 2".
 
 | Route | Fate | UI sends | UI reads |
 |---|---|---|---|
-| `POST /api/upload` | Keep | multipart `file` | `session_id`, `duration_s`, `digest`, `stems_tiers`, `title_hint`, `project.remix.*`; `edges.{found,head,tail}` (each edge: `artifact_ms`, `artifact_peak_db`, `gap_ms`, `suggested_s`, `artifact_start_s`, `artifact_end_s`); `repair.plan.notches[].{hz,depth_db,bw_hz,kind,excess_db,duty}`; `analysis.loudness.{lufs_i,true_peak_dbtp,lra}`, `analysis.spectrum.{freqs_hz,band_db}`, `analysis.cutoff_hz`; `source_tags.{title,track,artist,album_artist,album,genre,year,copyright,isrc}` |
+| `POST /api/upload` | Keep | multipart `file` | `session_id`, `duration_s`, `digest`, `stems_tiers`, `title_hint`, `project.remix.*`; `edges.{found,head,tail}` (each edge: `artifact_ms`, `artifact_peak_db`, `gap_ms`, `suggested_s`, `artifact_start_s`, `artifact_end_s`); `level_dips[].{at_s,level_db,dip_db,rise_db}` (Trim snap points, deepest first, at most 3); `repair.plan.notches[].{hz,depth_db,bw_hz,kind,excess_db,duty}`; `analysis.loudness.{lufs_i,true_peak_dbtp,lra}`, `analysis.spectrum.{freqs_hz,band_db}`, `analysis.cutoff_hz`; `source_tags.{title,track,artist,album_artist,album,genre,year,copyright,isrc}` |
 | `DELETE /api/upload/{session_id}` | Keep | — | nothing |
-| `GET /api/envelope/{session_id}?start_s&end_s&points` | Keep | query (points 16-4000) | `start_s`, `end_s`, `db[]` |
+| `GET /api/envelope/{session_id}?start_s&end_s&points&kind` | Keep | query (points 16-4000; kind `peak` (default) or `rms`) | `start_s`, `end_s`, `db[]` |
 
 The whole `analysis` object goes back to the server as
 `params.mastering_analysis` on export. With the session reused (decision 1),

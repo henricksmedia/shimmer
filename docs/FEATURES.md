@@ -435,9 +435,24 @@ visible.
   cut reverb tail, a DC step) that a silence trim cannot catch. When it
   finds one, the card says so and offers **Use suggested cut** or
   **Review**. It never cuts anything by itself.
-- **Edge cuts.** Pick **Head** or **Tail**, then click to place the in or
-  out point. Arrow keys nudge it by 1 ms (10 ms with Shift). You can also
-  type the in and out points in ms. Zoom: 250 ms, 1 s, 3 s, 10 s or 30 s.
+- **Whole song.** A strip at the top shows the whole song's level, so you
+  can end a song early, before a part you don't want. Drag **IN** or
+  **OUT** to move the start or end, and drag the round knob next to a
+  handle to set that end's fade. The faded part is shaded by how much it is
+  turned down, and the cut parts are dark. **In at playhead** and **Out at
+  playhead** set a point where the player is.
+- **Level dips.** Pins on the strip mark up to three places where the level
+  drops at least 8 dB under the rest of the song, then comes back. This is
+  a measurement, not advice: a dip can be a breakdown, a held note or a
+  part that ran on too long, and the music is still playing in most of
+  them. The handles snap to a pin when you drag close (hold Alt to place
+  freely), so a cut lands on the exact low point. **Out at playhead** snaps
+  back to a pin up to 1.5 s before the playhead, since people press just
+  after they hear the spot. Click a pin's time to set OUT there.
+- **Edge cuts.** Pick **Head** or **Tail** to zoom in on the in or out
+  point, then click to place it. Arrow keys nudge it by 1 ms (10 ms with
+  Shift). You can also type the in and out points as minutes:seconds
+  (`1:58.4`) or seconds (`118.4`). Zoom: 250 ms, 1 s, 3 s, 10 s or 30 s.
   **Audition** plays from the marker. **Clear** removes the cuts and fades.
 - **Fades.** Head shows **Fade in** (Off, 0.5 s, 1 s, 2 s). Tail shows
   **Fade out** (Off, 2 s, 4 s, 8 s, or **Custom** up to 30 s). The fade is

@@ -649,6 +649,7 @@ export async function initSingleTab() {
     // server scan and decide.
     let lastRepair = null;
     let lastEdges = null;    // head/tail scan from the last upload
+    let lastDips = [];       // level dips from the last upload (Trim snap points)
     let lastMasteringReport = null;
     // Match deltas (processed LUFS minus original LUFS). Preview uses
     // per-render slice loudness; full uses whole-file metrics. `null`
@@ -795,7 +796,7 @@ export async function initSingleTab() {
 
     // Top & tail. Detection is reported here, never applied on its own —
     // the trim only reaches the export because the user armed it.
-    const trimPanel = initTrim({});
+    const trimPanel = initTrim({ getPlayhead: () => (player ? player.getTime() : null) });
     // Report stage: the "What changed" spectrum card (report.js draws,
     // shimmer/report.py measures).
     const report = initReport({
@@ -1206,7 +1207,7 @@ export async function initSingleTab() {
         trimPanel?.reset(previewState.originalBlobUrl);
         ensurePreviewSession({quiet: true}).then((sid) => {
             if (currentFile !== file) return;      // superseded by a newer drop
-            if (sid) trimPanel?.setSession(sid, previewState.durationS, lastEdges);
+            if (sid) trimPanel?.setSession(sid, previewState.durationS, lastEdges, lastDips);
             else trimPanel?.setScanFailed();
         });
     }
@@ -3123,6 +3124,7 @@ export async function initSingleTab() {
                 digest: r.digest || null, stems_tiers: r.stems_tiers || [],
             } }));
             lastEdges = r.edges || null;
+            lastDips = r.level_dips || [];
             if (r.repair && r.repair.plan) setRepairPlan(r.repair.plan);
             uploadFindings = r.findings || [];
             if (quick) quick.newSong();

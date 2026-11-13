@@ -94,9 +94,11 @@ export async function uploadFile(file) {
 // Peak envelope in dBFS over a time range of the resident session — the
 // Trim view's drawing data. dB, not linear: the head artifacts this view
 // exists to show sit near -50 dBFS and are invisible on a linear waveform.
-export async function fetchEnvelope(sessionId, startS, endS, points = 600) {
+// kind 'rms' for the whole-song strip, where level dips matter more than
+// single peaks.
+export async function fetchEnvelope(sessionId, startS, endS, points = 600, kind = 'peak') {
     const q = new URLSearchParams({
-        start_s: String(startS), end_s: String(endS), points: String(points),
+        start_s: String(startS), end_s: String(endS), points: String(points), kind,
     });
     const res = await fetch(`/api/envelope/${sessionId}?${q}`);
     if (!res.ok) throw new Error(`Envelope fetch failed (${res.status})`);
