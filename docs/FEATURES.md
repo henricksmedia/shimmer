@@ -426,10 +426,11 @@ with a live spectrum and a loudness meter.
 
 ### 2.8 Trim
 
-The **Trim** card shows the start and end of the song ("top and tail") on a
-level scale in dB. Short glitches at the edges are around -50 dBFS, which is
-a flat line on a normal waveform, so the dB scale is what makes them
-visible.
+The **Trim** card sets where the song starts and ends ("top and tail"), and
+its fades. It shows the whole song as a strip, for ending a song early, and
+a close-up of the start or end on a level scale in dB. Short glitches at the
+edges are around -50 dBFS, which is a flat line on a normal waveform, so the
+dB scale is what makes them visible.
 
 - **Edge glitches.** Shimmer scans both ends for a short burst (a click, a
   cut reverb tail, a DC step) that a silence trim cannot catch. When it
