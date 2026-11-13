@@ -90,8 +90,9 @@ function bandStrip(c) {
     // turned off keeps a cyan "Off", so its suggestion stays in sight.
     let state = '';
     if (c.on) {
-        state = c.by === 'Analyze' ? '<span class="bst on an">Analyze</span>'
-                                   : '<span class="bst on">You</span>';
+        state = c.by === 'Analyze'
+            ? '<span class="bst on an"><span class="ms" aria-hidden="true">troubleshoot</span>Analyze</span>'
+            : '<span class="bst on"><span class="ms" aria-hidden="true">person</span>You</span>';
     } else if (c.rec != null) {
         state = '<span class="bst an off">Off</span>';
     } else if (c.noted) {
@@ -192,7 +193,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
 
     function fixRow(c) {
         const r = document.createElement('div');
-        r.className = 'fx-row';
+        r.className = 'fx-row' + (c.by === 'Analyze' ? ' by-analyze' : '');
         const src = c.by === 'Analyze' ? 'by Analyze' : 'by you';
         if (c.master) {
             const note = c.key === 'loudness'

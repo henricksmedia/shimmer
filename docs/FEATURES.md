@@ -282,8 +282,10 @@ was measured, and what it takes from a clean song:
 - A card Analyze measured shows **Found** and what it found: a tone's pitch
   in kHz (or how many tones), or how many dB under the target.
 - Click a card to turn it on. Click again to turn it off.
-- Each card that is on is tagged with who turned it on: **Analyze** (cyan)
-  or **You** (amber). Moving an Analyze card's Amount makes it yours. A card
+- A card that is on shows who turned it on. Analyze's light up cyan (the
+  Analyze button's colour) with an **Analyze** tag; yours light up amber
+  with a **You** tag. Its row under **Fixes on** uses the same colour.
+  Moving an Analyze card's Amount makes it yours. A card
   Analyze picked that you turned off keeps a dashed cyan outline and an
   **Off** tag, so its pick stays in sight.
 - **Reset** (the round arrow next to **?**) puts the fix cards back to
