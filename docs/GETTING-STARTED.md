@@ -635,7 +635,8 @@ size limit. Use MP3, OGG and M4A for listening and sharing.
 - [ ] You played the whole finished song once, not only the loop.
 - [ ] There is no click or cut-off at the very start or end. If there is,
       use the **Trim** card on the Master tab. It can also fade the song in
-      or out.
+      or out, or end it early: drag **OUT** on the whole-song strip to
+      where it should stop.
 - [ ] The file is under your upload site's size limit, if it has one.
 
 ---

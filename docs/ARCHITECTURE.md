@@ -1228,6 +1228,7 @@ shimmer/
       findings.py        what Analyze reports, card by card
       tones.py           fixed-tone and bandwidth-cutoff scan
       edges.py           head and tail glitches
+      dips.py            level dips: Trim snap points for ending a song early
     repair/              one file per tool
       notch.py
       declick.py

@@ -2031,6 +2031,8 @@ body:not([data-tab="single"]) .mode-toggle { display: none; }
     border-radius: 999px;
     background: var(--bg-4);
     border: 1px solid var(--line);
+    white-space: nowrap;
+    flex: none;
 }
 /* An armed edit is stated in the header, not just inside the panel, so a
    pending cut is impossible to miss with the panel closed. */
@@ -2071,6 +2073,21 @@ body:not([data-tab="single"]) .mode-toggle { display: none; }
     cursor: crosshair;
 }
 .trim-canvas:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+/* The whole-song strip above the zoomed view. */
+.trim-overview { height: 76px; margin-bottom: 8px; cursor: ew-resize; touch-action: none; }
+.trim-pins {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    font-size: 11.5px;
+    color: var(--fg-2);
+}
+.trim-pins[hidden] { display: none; }
+.trim-pin-list { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.trim-pin-list .btn { font-family: var(--font-mono); }
+.trim-pin-list .btn.active { color: var(--amber); border-color: rgba(245,165,36,.45); background: var(--amber-soft); }
 
 .trim-fade {
     display: flex;
@@ -2096,7 +2113,7 @@ body:not([data-tab="single"]) .mode-toggle { display: none; }
 .trim-hint { font-size: 11px; color: var(--fg-3); }
 .trim-num { display: inline-flex; align-items: center; gap: 5px; color: var(--fg-2); }
 .trim-num input {
-    width: 76px;
+    width: 84px;
     padding: 3px 6px;
     font-family: var(--font-mono);
     font-size: 11.5px;

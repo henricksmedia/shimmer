@@ -5,6 +5,34 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **End a song early, by eye or by ear.** The Trim card now shows the whole
+  song as a strip above the zoomed view. Drag **OUT** to where the song
+  should stop and drag the round knob to set the fade out; the faded part
+  is shaded so you can see what gets quieter. **Out at playhead** sets the
+  end where the player is. In and out points can be typed as
+  minutes:seconds, like `1:58.4`.
+- **Level dips.** Pins mark up to three places where the level drops well
+  under the rest of the song, then comes back. They are a measurement, not
+  advice: the handles snap to them so a cut lands on the exact low point.
+- **Help for the start and end of a song.** Troubleshoot in Help now covers
+  a bad ending and a click at the very start or end.
+
+### Changed
+
+- **Times in Trim are minutes:seconds.** The in and out boxes take and show
+  times like `1:58.4` (plain seconds work too). They used to take
+  milliseconds.
+- **Each section says what it is for.** Trim, Whole song, the close-up,
+  the player and What changed each have a short line under the name, and
+  the player now has a **Player** heading.
+
+### Fixed
+
+- **Trim showed the wrong end.** When Shimmer found a glitch at the end of
+  a song, the close-up showed the end but the **Head** button stayed lit.
+
 ## [2.3.5] — 2026-09-25
 
 ### Added

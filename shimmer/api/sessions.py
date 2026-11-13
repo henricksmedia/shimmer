@@ -187,6 +187,9 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
     # Both edges are scanned for render glitches. Reported, never applied:
     # the screen raises it and the user decides.
     edges = await loop.run_in_executor(None, core.detect_edge_artifacts, x, sr)
+    # Level dips: where the level drops well under the rest of the song,
+    # then comes back. Snap points on the Trim card; measured, never applied.
+    level_dips = await loop.run_in_executor(None, core.level_dips, x, sr)
     digest = await loop.run_in_executor(None, core.file_digest, original)
     lines = await loop.run_in_executor(None, core.scan_fixed_lines, x, sr)
     source_tags = await loop.run_in_executor(None, core.tags.read_tags, original)
@@ -209,6 +212,7 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
         "name": name,
         "analysis": analysis,
         "edges": edges,
+        "level_dips": level_dips,
         "repair": {"lines": lines, "plan": core.plan_from_lines(lines, sr).as_dict()},
         "findings": [dataclasses.asdict(f) for f in found],
         "digest": digest,
@@ -222,12 +226,16 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
 
 @router.get("/api/envelope/{session_id}")
 async def envelope(session_id: str, start_s: float = 0.0, end_s: float = 1.0,
-                   points: int = 600) -> JSONResponse:
-    """Peak envelope in dBFS over a time range, for the Trim view.
+                   points: int = 600, kind: str = "peak") -> JSONResponse:
+    """Level envelope in dBFS over a time range, for the Trim view.
 
     In dB rather than linear amplitude on purpose: the artifacts this view
     exists to show sit near -50 dBFS, which is a flat line on a linear
     waveform. Served from the session, so zooming costs no upload.
+
+    kind="peak" (the zoomed view) keeps one-sample clicks visible;
+    kind="rms" (the whole-song strip) shows level dips, which a peak
+    envelope hides behind the odd loud hit.
     """
     sess = SESSIONS.get(session_id)
     if sess is None:
@@ -237,13 +245,18 @@ async def envelope(session_id: str, start_s: float = 0.0, end_s: float = 1.0,
     a = int(np.clip(round(start_s * sr), 0, n))
     b = int(np.clip(round(end_s * sr), a + 1, n))
     points = int(np.clip(points, 16, 4000))
-    seg = np.max(np.abs(sess.samples[a:b]), axis=1)
-    # One bucket per output point; peak within each so a single-sample
-    # click survives downsampling instead of averaging away.
-    idx = np.linspace(0, seg.shape[0], points + 1).astype(np.int64)
-    peaks = np.array([seg[idx[i]:max(idx[i] + 1, idx[i + 1])].max() for i in range(points)],
-                     dtype=np.float64)
-    db = 20.0 * np.log10(peaks + 1e-9)
+    idx = np.linspace(0, b - a, points + 1).astype(np.int64)
+    if kind == "rms":
+        sq = np.mean(np.square(sess.samples[a:b], dtype=np.float64), axis=1)
+        vals = np.sqrt(np.array([sq[idx[i]:max(idx[i] + 1, idx[i + 1])].mean()
+                                 for i in range(points)], dtype=np.float64))
+    else:
+        seg = np.max(np.abs(sess.samples[a:b]), axis=1)
+        # One bucket per output point; peak within each so a single-sample
+        # click survives downsampling instead of averaging away.
+        vals = np.array([seg[idx[i]:max(idx[i] + 1, idx[i + 1])].max() for i in range(points)],
+                        dtype=np.float64)
+    db = 20.0 * np.log10(vals + 1e-9)
     return JSONResponse({"start_s": a / sr, "end_s": b / sr, "sample_rate": sr,
                          "db": [round(float(v), 2) for v in db]})
 
