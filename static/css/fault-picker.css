@@ -37,6 +37,15 @@
 .hear-tile .bst{padding:1px 5px;border-radius:4px;font-size:8.5px;font-weight:700;letter-spacing:.08em;
   text-transform:uppercase;color:var(--fg-2);border:1px solid var(--line-2)}
 .hear-tile .bst.on{color:var(--amber);border-color:rgba(245,165,36,.5)}
+/* Who picked it: Analyze in cyan (the Analyze button's colour), you in amber.
+   An Analyze pick you turned off keeps a dashed cyan outline. */
+.hear-tile .bst.an{color:var(--cyan);border-color:rgba(56,189,248,.5);background:rgba(56,189,248,.08)}
+.hear-tile .bst.an.off{border-style:dashed;background:none}
+.hear-tile.rec-off{border-style:dashed;border-color:rgba(56,189,248,.55)}
+/* Reset to Analyze's picks: the round help-icon button, with an icon. */
+.hear-reset{margin-right:6px}
+.hear-reset .ms{font-size:13px}
+.hear-reset:disabled{opacity:.35;cursor:default;pointer-events:none}
 .hear-tile.on{--phase:var(--amber)}
 .hear-tile.on .hz{color:var(--amber)}
 .hear-tile:has(.st.found):not(.on){--phase:var(--cyan)}

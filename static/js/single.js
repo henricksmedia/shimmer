@@ -704,6 +704,9 @@ export async function initSingleTab() {
             if (syncAnalysisChecklist) syncAnalysisChecklist();
         },
         onUserEdit: () => { if (quick) quick.userEdit(); },
+        // The card's Reset put Analyze's picks back: Quick master's
+        // Clean-up follows them again.
+        onResetToAnalyze: () => { if (quick) quick.useRecommended({ apply: false }); },
         onMasterCard: (key, on) => {
             if (!on && key === 'loudness') return;
             if (on && !masterEnabled.checked) {
