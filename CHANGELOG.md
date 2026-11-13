@@ -19,8 +19,9 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - **Help for the start and end of a song.** Troubleshoot in Help now covers
   a bad ending and a click at the very start or end.
 - **See who picked each card, and reset to Analyze.** In **What do you
-  hear?**, each card that is on is tagged **Analyze** (blue) or **You**
-  (orange). A card Analyze picked that you turned off keeps a dashed blue
+  hear?**, a card Analyze turned on lights up blue with an **Analyze** tag,
+  and a card you turned on lights up orange with a **You** tag. A card
+  Analyze picked that you turned off keeps a dashed blue
   outline and says **Off**. The line above the cards says it plainly, for
   example "Analyze picked 3 · you added 1 · you turned off 1". The round
   arrow next to **?** puts the cards back to Analyze's picks.
