@@ -277,10 +277,22 @@ was measured, and what it takes from a clean song:
 **How the cards look and work:**
 
 - The cards come in two groups: **Artifacts** and **Tone and level**. A line
-  at the top counts them, for example "Analyze found 1 · 2 fixes on".
+  at the top says who picked what, for example "Analyze picked 3 · you added
+  1 · you turned off 1".
 - A card Analyze measured shows **Found** and what it found: a tone's pitch
   in kHz (or how many tones), or how many dB under the target.
 - Click a card to turn it on. Click again to turn it off.
+- Each card that is on is tagged with who turned it on: **Analyze** (cyan)
+  or **You** (amber). Moving an Analyze card's Amount makes it yours. A card
+  Analyze picked that you turned off keeps a dashed cyan outline and an
+  **Off** tag, so its pick stays in sight.
+- **Reset** (the round arrow next to **?**) puts the fix cards back to
+  Analyze's picks at its Amounts and turns your extra fix cards off. Quick
+  master's Clean-up goes back to **Recommended**. Loudness and Lack of air
+  stay as they are, since they live in Mastering. It is dimmed when the
+  cards already match Analyze.
+- A new song clears every card: Analyze's picks and its findings go, and so
+  do your picks unless **Remember settings** is on.
 - Each card that is on adds a row under **Fixes on**: the tool's name, the
   card, who turned it on ("by you" or "by Analyze") and an **Amount**
   slider. A card Analyze did not measure says "Starting gentle — check the

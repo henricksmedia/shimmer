@@ -86,7 +86,17 @@ function bandStrip(c) {
         cls = ' whole';
         fill = '<i style="left:0;width:100%"></i>';
     }
-    const state = c.on ? '<span class="bst on">On</span>' : (c.noted ? '<span class="bst">Noted</span>' : '');
+    // Who turned it on: Analyze (cyan) or you (amber). An Analyze pick you
+    // turned off keeps a cyan "Off", so its suggestion stays in sight.
+    let state = '';
+    if (c.on) {
+        state = c.by === 'Analyze' ? '<span class="bst on an">Analyze</span>'
+                                   : '<span class="bst on">You</span>';
+    } else if (c.rec != null) {
+        state = '<span class="bst an off">Off</span>';
+    } else if (c.noted) {
+        state = '<span class="bst">Noted</span>';
+    }
     return `<span class="bnd"><span class="m-band${cls}"><span class="m-band-track">${fill}</span></span><span class="bl"><span class="hz">${label}</span>${state}</span></span>`;
 }
 
@@ -119,8 +129,10 @@ function countNoted(key) {
  * when code does), so Quick master can follow (quick-master.js).
  */
 export async function initFaultPicker({ onChange = () => {}, onMasterCard = () => {},
-                                        onUserEdit = () => {} } = {}) {
+                                        onUserEdit = () => {},
+                                        onResetToAnalyze = () => {} } = {}) {
     const $ = (id) => document.getElementById(id);
+    let analyzed = false;   // findings have arrived for this song
     const rules = await fetch('/api/rules').then((r) => r.json());
     const ready = new Set(rules.tools_ready || []);
     const cards = rules.cards.map((c) => ({
@@ -134,16 +146,22 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         modes: c.modes || [], mode: (c.modes && c.modes.length) ? c.modes[0][0] : null,
         caution: c.caution || null,
         on: false, by: null, found: null, foundHz: null, noted: false, userOff: false,
+        rec: null,   // Analyze's pick for this song: its Amount in %, or null
     }));
     const byKey = new Map(cards.map((c) => [c.key, c]));
 
     function tile(c) {
         const b = document.createElement('button');
         b.type = 'button';
-        b.className = 'hear-tile' + (c.on ? ' on' : (c.noted ? ' noted' : ''));
+        const recOff = !c.on && c.rec != null;
+        b.className = 'hear-tile' + (c.on ? ' on' : (c.noted ? ' noted' : ''))
+            + (c.on && c.by === 'Analyze' ? ' by-analyze' : '') + (recOff ? ' rec-off' : '');
         b.setAttribute('aria-pressed', c.on || c.noted ? 'true' : 'false');
+        let who = '';
+        if (c.on) who = c.by === 'Analyze' ? '\nTurned on by Analyze.' : '\nTurned on by you.';
+        else if (recOff) who = `\nAnalyze picked this at ${c.rec}%. You turned it off.`;
         b.title = c.tip + (c.ready ? `\nFix: ${c.toolLabel}`
-            : (c.tool ? `\n${c.toolLabel}: not built yet` : '\nNo tested fix yet'));
+            : (c.tool ? `\n${c.toolLabel}: not built yet` : '\nNo tested fix yet')) + who;
         let chip = '';
         if (c.found) chip = `<span class="st found">Found · ${c.found}</span>`;
         else if (!c.tool) chip = '<span class="st nofix">No fix yet</span>';
@@ -213,11 +231,16 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
         $('hear-g1').innerHTML = '';
         $('hear-g2').innerHTML = '';
         cards.forEach((c) => $(c.group === 'artifacts' ? 'hear-g1' : 'hear-g2').appendChild(tile(c)));
-        const found = cards.filter((c) => c.found).length;
         const on = cards.filter((c) => c.on);
         const noted = cards.filter((c) => c.noted);
         $('hear-verdict').innerHTML = `<span class="ms" aria-hidden="true">troubleshoot</span>`
-            + `Analyze found ${found} · ${on.length} fix${on.length === 1 ? '' : 'es'} on`;
+            + `<span>${verdictText()}</span>`;
+        if (resetBtn) {
+            const off = !differsFromAnalyze();
+            resetBtn.disabled = off;
+            resetBtn.title = off ? 'The cards are as Analyze picked them.'
+                : 'Back to Analyze’s picks: its fix cards at its Amounts, your extra fix cards off. Loudness and Lack of air stay as they are.';
+        }
         const fx = $('hear-fixes');
         fx.innerHTML = '<div class="pb-effect-label">Fixes on</div>';
         if (!on.length) fx.insertAdjacentHTML('beforeend', '<div class="fx-note">Nothing on yet. Pick what you hear above.</div>');
@@ -227,12 +250,69 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
              <div class="fx-note">No tested fix yet. Your pick is saved on this computer to help test new fixes.</div></div>`));
     }
 
+    // ── Who picked what ─────────────────────────────────────────────
+    //
+    // c.rec is Analyze's pick for this song (its Amount), set by the
+    // findings. It stays when you change a card, so the card, the line above
+    // the cards and Reset can always tell Analyze's picks from yours.
+
+    const fixCard = (c) => c.ready && !c.master;
+
+    function verdictText() {
+        const picked = cards.filter((c) => c.rec != null).length;
+        const added = cards.filter((c) => c.on && c.rec == null).length;
+        const off = cards.filter((c) => !c.on && c.rec != null).length;
+        const found = cards.filter((c) => c.found).length;
+        if (!analyzed) {
+            return added ? `${added} fix${added === 1 ? '' : 'es'} on` : 'Pick what you hear, or run Analyze.';
+        }
+        const parts = [];
+        if (picked) parts.push(`Analyze picked ${picked}`);
+        else if (found) parts.push(`Analyze found ${found}, picked none`);
+        else parts.push('Analyze found nothing to fix');
+        if (added) parts.push(`you added ${added}`);
+        if (off) parts.push(`you turned off ${off}`);
+        return parts.join(' · ');
+    }
+
+    // Do the fix cards differ from Analyze's picks?
+    function differsFromAnalyze() {
+        if (!analyzed) return false;
+        return cards.some((c) => fixCard(c)
+            && (c.rec != null ? !(c.on && c.amount === c.rec) : c.on));
+    }
+
+    /** Put the fix cards back to Analyze's picks. The Mastering cards
+     *  (Loudness, Lack of air) and noted cards are left alone. */
+    function resetToAnalyze() {
+        cards.forEach((c) => {
+            if (!fixCard(c)) return;
+            if (c.rec != null) {
+                c.on = true;
+                c.amount = c.rec;
+                c.by = 'Analyze';
+            } else {
+                c.on = false;
+                c.by = null;
+            }
+            c.userOff = false;
+        });
+        onResetToAnalyze();
+        render();
+        onChange();
+    }
+
+    const resetBtn = $('hear-reset');
+    if (resetBtn) resetBtn.addEventListener('click', resetToAnalyze);
+
     /** Findings from the upload or Analyze: [{card, value, unit, detail}]. */
     function setFindings(findings) {
+        analyzed = true;
         cards.forEach((c) => {
             c.found = null;
             c.foundHz = null;
             c.level = '';
+            c.rec = null;
             if (c.by === 'Analyze') { c.on = false; c.by = null; }
         });
         const groups = new Map();
@@ -250,6 +330,7 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
             // Amount (Fixed tones always does), unless the user turned it
             // off for this song or set it themselves.
             const amt = list.reduce((m, f) => (f.amount != null ? Math.max(m, f.amount) : m), -1);
+            if (amt >= 0 && fixCard(c)) c.rec = Math.round(amt * 100);
             if (amt >= 0 && c.ready && !c.master && !c.userOff && !(c.on && c.by === 'you')) {
                 c.on = true;
                 c.by = 'Analyze';
@@ -316,7 +397,9 @@ export async function initFaultPicker({ onChange = () => {}, onMasterCard = () =
     /** Start over for a new song. With keepPicks ("Remember settings" on),
      *  your own picks stay; what Analyze found goes. */
     function reset({ keepPicks = false } = {}) {
+        analyzed = false;
         cards.forEach((c) => {
+            c.rec = null;
             const keep = keepPicks && c.on && c.by === 'you';
             if (!keep) { c.on = false; c.by = null; }
             c.found = null; c.foundHz = null; c.noted = false; c.userOff = false;

@@ -163,6 +163,8 @@
                         <div class="card-head">
                             <span class="title">What do you hear?</span><span class="gloss">pick any</span>
                             <span class="spacer"></span>
+                            <button type="button" class="help-icon hear-reset" id="hear-reset" disabled
+                                    title="The cards are as Analyze picked them." aria-label="Back to Analyze’s picks"><span class="ms" aria-hidden="true">restart_alt</span></button>
                             <button type="button" class="help-icon" data-help-tab="presets" title="Pick what you hear. Each card turns on its fix. Click for help on every card." aria-label="Help: what do you hear?">?</button>
                         </div>
                         <div class="card-body">
@@ -1195,6 +1197,11 @@
                     <b>Found</b> and what it found, such as the pitch of a steady
                     tone. Analyze measures fixed tones and loudness. The other cards
                     are up to your ears.</li>
+                    <li><b>Analyze or You.</b> Each card that is on says who turned
+                    it on: <b>Analyze</b> in blue, <b>You</b> in orange. If you turn
+                    off a card Analyze picked, it keeps a dashed blue outline and
+                    says <b>Off</b>. The round arrow next to <b>?</b> puts the
+                    cards back to what Analyze picked.</li>
                     <li><b>Fixes on.</b> Each card you turn on adds a row under
                     <b>Fixes on</b>, with its fix and an <b>Amount</b> slider. Amount
                     sets how deep the fix may cut: 0% changes nothing, and 100% is the

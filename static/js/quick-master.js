@@ -165,6 +165,19 @@ export function initQuickMaster({ picker, masterEnabled, masterTarget, masterTil
         firstMove();
     }
 
+    /** Back to Analyze's recommended Clean-up. With apply false the cards
+     *  are already set (the What do you hear? card's Reset did it). */
+    function useRecommended({ apply = true } = {}) {
+        state.base = { ...state.recommended };
+        state.mine = false;
+        if (apply) {
+            const zero = {};
+            Object.keys(picker.amounts()).forEach((k) => { if (!(k in state.base)) zero[k] = 0; });
+            picker.setAmounts({ ...zero, ...state.base }, 'Analyze');
+        }
+        render();
+    }
+
     // ── Drawing ──────────────────────────────────────────────────────
     function render() {
         const map = picker.amounts();
@@ -180,14 +193,7 @@ export function initQuickMaster({ picker, masterEnabled, masterTarget, masterTil
             back.type = 'button';
             back.className = 'qm-link';
             back.textContent = 'Use recommended';
-            back.addEventListener('click', () => {
-                state.base = { ...state.recommended };
-                state.mine = false;
-                const zero = {};
-                Object.keys(map).forEach((k) => { if (!(k in state.base)) zero[k] = 0; });
-                picker.setAmounts({ ...zero, ...state.base }, 'Analyze');
-                render();
-            });
+            back.addEventListener('click', () => useRecommended());
             note.append(' ', back);
         }
 
@@ -282,6 +288,7 @@ export function initQuickMaster({ picker, masterEnabled, masterTarget, masterTil
             render();
         },
         render,
+        useRecommended,
         mode: () => (tab.classList.contains('quick-mode') ? 'quick' : 'advanced'),
         start() { setMode(readMode()); },
     };
