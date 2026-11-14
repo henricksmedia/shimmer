@@ -478,8 +478,8 @@
                             <span>To set each fix, the EQ or the tone target yourself, switch to <button type="button" class="qm-link" id="qm-advanced">Advanced</button>.</span></div>
                     </div>
 
+                    <!-- One card per section, so each reads on its own. -->
                     <div class="card insp">
-
                         <details class="acc-sec" open>
                             <summary><span class="a-title">Parametric EQ</span><span class="a-gloss">suggested moves and your own</span><span class="a-state" id="state-eq"></span></summary>
                             <div class="acc-body">
@@ -488,7 +488,9 @@
                                 <div class="eq-card" id="eq-card"></div>
                             </div>
                         </details>
+                    </div>
 
+                    <div class="card insp">
                         <details class="acc-sec" open>
                             <summary><span class="a-title">Mastering</span><span class="a-gloss">loudness &amp; tone for release</span><span class="a-state" id="state-master"></span></summary>
                             <div class="acc-body">
@@ -498,22 +500,23 @@
                                         <span><b>Master for release</b> — LUFS target, tone match, true-peak limiter</span>
                                     </label>
                                     <div id="mastering-options">
+                                        <div class="ins-group">Loudness</div>
+                                        <div class="mastering-readout" id="mastering-readout" hidden></div>
+                                        <label class="label" for="master-target">Loudness target</label>
+                                        <!-- Choices come from /api/rules (loudness-cards.js). -->
+                                        <select id="master-target" class="select"></select>
+                                        <div class="ins-group">Tone</div>
                                         <div class="master-grid-fields">
-                                            <div class="master-grid-span">
-                                                <label class="label" for="master-target">Loudness target</label>
-                                                <!-- Choices come from /api/rules (loudness-cards.js). -->
-                                                <select id="master-target" class="select"></select>
-                                            </div>
                                             <!-- Tone target: Standard, built-in or a reference track (reference-match.js). -->
                                             <div class="master-grid-span" id="tone-target-field">
                                                 <div class="label" id="tone-target-label">Tone target <span class="rm-sub">what the tone moves toward</span></div>
                                                 <div class="rm-tt" role="radiogroup" aria-labelledby="tone-target-label">
                                                     <button type="button" class="loud-card on" role="radio" aria-checked="true" id="tt-standard" title="Masters the way online mastering services do: a gentle tone EQ, multiband and glue compression, tape saturation, mono bass and width, then loudness and the limiter. Tone match sets how much EQ."><span class="t">Standard<span class="def">DEFAULT</span></span>
-                                                        <span class="d">Like online mastering services</span></button>
+                                                        <span class="d">Full mastering chain</span></button>
                                                     <button type="button" class="loud-card" role="radio" aria-checked="false" id="tt-builtin" title="Shimmer's own tone target, measured from finished masters, with no compression. Tone match sets how far to move toward it."><span class="t">Built-in</span>
                                                         <span class="d">Shimmer's tone, no compression</span></button>
                                                     <button type="button" class="loud-card" role="radio" aria-checked="false" id="tt-reference" title="Match the tone of a released song you pick. Loudness does not change."><span class="t">Reference track</span>
-                                                        <span class="d">A released song you pick</span></button>
+                                                        <span class="d">Match a song you pick</span></button>
                                                 </div>
                                                 <input type="file" id="ref-file-input" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a" hidden>
                                                 <div class="rm-ref" id="ref-box" hidden>
@@ -555,66 +558,31 @@
                                             </div>
                                         </div>
                                         <div class="rm-limits" id="ref-limits" hidden><b>Limits.</b> Both songs are level-matched before they are compared. The EQ is smoothed over about an octave, and no band moves more than ±3 dB. Boosts in 5–12 kHz, where AI fizz lives, stop at +2 dB. Loudness still follows the Loudness target.</div>
-                                        <div class="mastering-readout" id="mastering-readout" hidden></div>
                                     </div>
                                 </div>
                             </div>
                         </details>
+                    </div>
 
-
-                        <details class="acc-sec">
-                            <summary><span class="a-title">Output</span><span class="a-gloss">format &amp; export options</span><span class="a-state" id="state-output"></span></summary>
-                            <div class="acc-body">
-                                <div class="inline-field">
-                                    <label class="label" for="output-format">Format</label>
-                                    <!-- Each option's true-peak ceiling comes from /api/rules (rules.js). -->
-                                    <select id="output-format" class="select"
-                                            title="Each format has its own true-peak ceiling, shown beside it. Lossy formats sit lower so the encoder can't push peaks past it on decode.">
-                                        <option value="wav" selected>WAV (24-bit PCM)</option>
-                                        <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered)</option>
-                                        <option value="flac">FLAC (24-bit)</option>
-                                        <option value="flac16" title="The release copy as FLAC: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither. The same audio as the WAV release copy, about half the size.">FLAC release copy (16-bit · 44.1 kHz · dithered)</option>
-                                        <option value="mp3">MP3 (320 kbps)</option>
-                                        <option value="ogg">OGG Vorbis</option>
-                                        <option value="m4a">M4A (AAC)</option>
-                                    </select>
-                                </div>
-                                <!-- The size limit: how big the file will be (size-limit.js). -->
-                                <div class="sl-size" id="size-line" role="status" hidden></div>
-                                <label class="checkbox-row loudness-line" id="preserve-vol-card"
-                                       title="Keeps the cleaned file at the same level as the original, so a cleaning-only pass is not quieter and A/B is fair. Only applies when mastering is off; with mastering on, the loudness target sets the level.">
-                                    <input type="checkbox" id="preserve-vol" checked>
-                                    <span>Preserve volume <small class="pv-note">keeps the level the same on a cleaning-only pass</small></span>
-                                </label>
-                                <label class="checkbox-row"
-                                       title="Removes silence below −60 dBFS from the start and end of the downloaded file, keeping a short natural pad. Playback here stays full-length so A/B comparison remains in sync.">
-                                    <input type="checkbox" id="trim-silence">
-                                    <span>Trim leading/trailing silence on export</span>
-                                </label>
-                                <div class="settings-pointer">Where the finished file goes, whether it downloads by itself, and the size limit are in
-                                    <button type="button" class="linklike" data-open-tab="settings">Settings</button>.</div>
-                                <label class="checkbox-row"
-                                       title="When on, your card picks, mastering, EQ, and other Master choices come back on the next visit, and your own card picks stay when you load a new song. When off, each page load starts from defaults.">
-                                    <input type="checkbox" id="remember-settings">
-                                    <span>Remember settings next time</span>
-                                </label>
+                    <!-- Tags: the title changes with every song, so it always shows;
+                         the rest mostly stays the same and sits under More tags. -->
+                    <div class="card insp tags-card" id="tags-sec">
+                        <div class="card-head"><span class="title">Tags</span><span class="gloss">title, artist, album on the export</span></div>
+                        <div class="card-body tags-body">
+                            <div class="inline-field">
+                                <label class="label" for="tag-title">Title</label>
+                                <input id="tag-title" class="input" type="text" autocomplete="off" spellcheck="false"
+                                       placeholder="The song's real title">
+                                <div class="tag-hint" id="tag-title-hint">Filled from the file. Edit it if the real title differs.</div>
                             </div>
-                        </details>
-
-                        <details class="acc-sec" id="tags-sec">
-                            <summary><span class="a-title">Tags</span><span class="a-gloss">title, artist, album on the export</span><span class="a-state" id="state-tags"></span></summary>
-                            <div class="acc-body tags-body">
+                            <details class="tags-more">
+                                <summary><span>More tags</span><span class="a-state" id="state-tags"></span></summary>
+                                <div class="tags-more-body">
                                 <label class="checkbox-row"
                                        title="Writes the fields below into the exported file, in the form each format uses: RIFF INFO plus an ID3 chunk for WAV, Vorbis comments for FLAC and OGG, ID3v2.3 for MP3, iTunes atoms for M4A. Players, stores and DAWs read these, not the filename.">
                                     <input type="checkbox" id="tags-enabled" checked>
                                     <span>Write tags on the export</span>
                                 </label>
-                                <div class="inline-field">
-                                    <label class="label" for="tag-title">Title</label>
-                                    <input id="tag-title" class="input" type="text" autocomplete="off" spellcheck="false"
-                                           placeholder="The song's real title">
-                                    <div class="tag-hint" id="tag-title-hint">Filled from the file. Edit it if the real title differs.</div>
-                                </div>
                                 <div class="tags-grid">
                                     <div class="inline-field">
                                         <label class="label" for="tag-artist">Artist</label>
@@ -659,16 +627,59 @@
                                     <input type="checkbox" id="tags-notes" checked>
                                     <span>Add a Shimmer note to the comment <small class="pv-note">fixes, pass, loudness</small></span>
                                 </label>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+
+                    <div class="card insp">
+                        <details class="acc-sec">
+                            <summary><span class="a-title">Output</span><span class="a-gloss">format &amp; export options</span><span class="a-state" id="state-output"></span></summary>
+                            <div class="acc-body">
+                                <div class="inline-field">
+                                    <label class="label" for="output-format">Format</label>
+                                    <!-- Each option's true-peak ceiling comes from /api/rules (rules.js). -->
+                                    <select id="output-format" class="select"
+                                            title="Each format has its own true-peak ceiling, shown beside it. Lossy formats sit lower so the encoder can't push peaks past it on decode.">
+                                        <option value="wav" selected>WAV (24-bit PCM)</option>
+                                        <option value="wav16" title="The release copy the stores ask for: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither.">WAV release copy (16-bit · 44.1 kHz · dithered)</option>
+                                        <option value="flac">FLAC (24-bit)</option>
+                                        <option value="flac16" title="The release copy as FLAC: the whole chain runs at 44.1 kHz, then the file is written as 16-bit with TPDF dither. The same audio as the WAV release copy, about half the size.">FLAC release copy (16-bit · 44.1 kHz · dithered)</option>
+                                        <option value="mp3">MP3 (320 kbps)</option>
+                                        <option value="ogg">OGG Vorbis</option>
+                                        <option value="m4a">M4A (AAC)</option>
+                                    </select>
+                                </div>
+                                <!-- The size limit: how big the file will be (size-limit.js). -->
+                                <div class="sl-size" id="size-line" role="status" hidden></div>
+                                <label class="checkbox-row loudness-line" id="preserve-vol-card"
+                                       title="Keeps the cleaned file at the same level as the original, so a cleaning-only pass is not quieter and A/B is fair. Only applies when mastering is off; with mastering on, the loudness target sets the level.">
+                                    <input type="checkbox" id="preserve-vol" checked>
+                                    <span>Preserve volume <small class="pv-note">keeps the level the same on a cleaning-only pass</small></span>
+                                </label>
+                                <label class="checkbox-row"
+                                       title="Removes silence below −60 dBFS from the start and end of the downloaded file, keeping a short natural pad. Playback here stays full-length so A/B comparison remains in sync.">
+                                    <input type="checkbox" id="trim-silence">
+                                    <span>Trim leading/trailing silence on export</span>
+                                </label>
+                                <div class="settings-pointer">Where the finished file goes, whether it downloads by itself, and the size limit are in
+                                    <button type="button" class="linklike" data-open-tab="settings">Settings</button>.</div>
+                                <label class="checkbox-row"
+                                       title="When on, your card picks, mastering, EQ, and other Master choices come back on the next visit, and your own card picks stay when you load a new song. When off, each page load starts from defaults.">
+                                    <input type="checkbox" id="remember-settings">
+                                    <span>Remember settings next time</span>
+                                </label>
                             </div>
                         </details>
+                    </div>
 
+                    <div class="card insp adv-card">
                         <div class="acc-foot">
                             <button type="button" class="btn btn-ghost advanced-open-btn" id="advanced-open-btn">
                                 <span>Advanced artifact controls</span>
                                 <span class="advanced-open-arrow" aria-hidden="true">›</span>
                             </button>
                         </div>
-
                     </div>
                 </div>
 

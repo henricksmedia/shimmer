@@ -369,6 +369,7 @@ export async function initSingleTab() {
     };
     const tagsKeep = $('tags-keep');
     const tagsNotes = $('tags-notes');
+    const tagsCard = $('tags-sec');
     const repairListHost = $('repair-list');
     let sheetCloseTimer = null;
 
@@ -2260,7 +2261,7 @@ export async function initSingleTab() {
         if (!tagTitle) return;
         tagTitle.dataset.user = '0';
         tagTitle.value = titleFromName(file.name);
-        if (tagTitleHint) tagTitleHint.textContent = 'From the filename. Edit it if the real title differs.';
+        setTitleHint(false);
         if (tagFields.track) tagFields.track.value = '';
         Object.values(tagFields).forEach((el) => { if (el) el.placeholder = ''; });
     }
@@ -2270,11 +2271,7 @@ export async function initSingleTab() {
         if (tagTitle.dataset.user !== '1') {
             const auto = src.title || hint || (currentFile ? titleFromName(currentFile.name) : '');
             if (auto) tagTitle.value = auto;
-            if (tagTitleHint) {
-                tagTitleHint.textContent = src.title
-                    ? "From the file's own tags."
-                    : 'From the filename. Edit it if the real title differs.';
-            }
+            setTitleHint(!!src.title);
         }
         for (const [key, el] of Object.entries(tagFields)) {
             if (!el) continue;
@@ -2282,11 +2279,29 @@ export async function initSingleTab() {
         }
         if (tagFields.track && !tagFields.track.value && src.track) tagFields.track.value = src.track;
     }
+    // A title from the file name is often messy ("alive-again_v3"), so its
+    // hint turns amber until the title is edited.
+    function setTitleHint(fromTags) {
+        if (!tagTitleHint) return;
+        tagTitleHint.textContent = fromTags
+            ? "From the file's own tags."
+            : 'From the file name. Check the title before export.';
+        tagTitleHint.classList.toggle('warn', !fromTags);
+    }
     if (tagTitle) {
         tagTitle.addEventListener('input', () => {
             tagTitle.dataset.user = tagTitle.value.trim() ? '1' : '0';
+            if (tagTitleHint && tagTitle.dataset.user === '1') {
+                tagTitleHint.textContent = 'Your title.';
+                tagTitleHint.classList.remove('warn');
+            }
         });
     }
+    // With tags off, the title box dims: nothing is written.
+    function syncTagsOff() {
+        if (tagsCard && tagsEnabled) tagsCard.classList.toggle('tags-off', !tagsEnabled.checked);
+    }
+    if (tagsEnabled) tagsEnabled.addEventListener('change', syncTagsOff);
     function tagsDefaults() {
         const g = (el) => (el ? el.value.trim() : '');
         return {
@@ -2318,6 +2333,7 @@ export async function initSingleTab() {
         }
         if (tagsKeep && typeof t.keep === 'boolean') tagsKeep.checked = t.keep;
         if (tagsNotes && typeof t.notes === 'boolean') tagsNotes.checked = t.notes;
+        syncTagsOff();
     }
     [tagsEnabled, tagsKeep, tagsNotes, ...Object.values(tagFields)].forEach((el) => {
         if (!el) return;

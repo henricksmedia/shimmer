@@ -558,15 +558,23 @@
 }
 .master-grid-fields .master-grid-span { grid-column: 1 / -1; }
 
+/* The song's own levels: information, not a control, so no box. */
 .mastering-readout {
-    margin-top: 9px;
+    margin: 2px 0 0;
     font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--fg-1);
-    background: var(--bg-2);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-s);
-    padding: 6px 9px;
+    color: var(--fg-2);
+}
+/* Group labels inside an inspector card (Loudness, Tone). */
+.ins-group {
+    margin: 14px 0 2px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--fg-3);
 }
 
 /* ── Range sliders (strength etc.) ──────────────────────────────────── */
@@ -662,6 +670,7 @@ input[type=range]::-moz-range-thumb {
 .acc-sec .a-gloss { color: var(--fg-2); font-size: 11px; }
 .acc-body { padding: 4px 14px 14px; }
 .acc-foot { padding: 10px 14px; border-top: 1px solid var(--line); }
+.adv-card .acc-foot { border-top: 0; }
 .advanced-open-btn { width: 100%; justify-content: space-between; }
 .advanced-open-arrow { color: var(--fg-2); }
 
@@ -2255,6 +2264,31 @@ body:not([data-tab="single"]) .mode-toggle { display: none; }
 .tags-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
 .tags-grid .inline-field { min-width: 0; }
 .tag-hint { font-size: 11px; color: var(--fg-3); margin-top: 4px; line-height: 1.4; }
+/* The title came from the file name: worth a look before export. */
+.tag-hint.warn { color: var(--amber); }
+.tags-card .card-body { padding-top: 4px; }
+.tags-card .inline-field .label { margin-top: 4px; }
+.tags-card.tags-off .inline-field:first-child { opacity: .5; }
+.tags-card.tags-off .tag-hint.warn { color: var(--fg-3); }
+.tags-more { margin-top: 10px; }
+.tags-more > summary {
+    list-style: none; display: flex; align-items: baseline; gap: 8px;
+    cursor: pointer; user-select: none; font-size: 12px; color: var(--fg-1);
+}
+.tags-more > summary::-webkit-details-marker { display: none; }
+.tags-more > summary::before {
+    content: "▸"; color: var(--fg-2); font-size: 11px;
+    transition: transform 220ms ease; align-self: center;
+}
+.tags-more[open] > summary::before { transform: rotate(90deg); }
+.tags-more > summary:hover { color: var(--fg-0); }
+.tags-more .a-state {
+    margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;
+}
+.tags-more .a-state:empty { display: none; }
+.tags-more-body { padding-top: 8px; }
+.tags-more-body .checkbox-row + .tags-grid { margin-top: 8px; }
 .tags-body .checkbox-row + .inline-field { margin-top: 8px; }
 .tags-body .tags-grid + .checkbox-row { margin-top: 10px; }
 .batch-family { margin: 6px 0 4px; }
