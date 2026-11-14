@@ -11,7 +11,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
   **Standard**, and it is now the default. It masters the way online
   mastering services such as DistroKid's Mixea, LANDR and eMastered do:
   a gentle tone EQ toward finished masters, a three-band multiband
-  compressor, a glue compressor, soft tape saturation, mono bass below
+  compressor, a glue compressor that listens above 100 Hz (so the kick
+  does not pump the mix), soft tape saturation above 120 Hz, mono bass below
   120 Hz and a little width for narrow mixes, then the usual loudness
   target and true-peak limiter. Built-in (Shimmer's own tone, no
   compression) and Reference track work as before. The Signal Chain view

@@ -644,11 +644,13 @@ def _standard_steps() -> List[List[str]]:
                             f"({_num(standard.GLUE.ratio)}:1, "
                             f"{_num(standard.GLUE.attack_s * 1000, 0)} ms attack, "
                             f"{_num(standard.GLUE.release_s * 1000, 0)} ms release). It turns "
-                            "the loud parts down by 1-2 dB, so the parts sit together."],
+                            "the loud parts down by 1-2 dB, so the parts sit together. It "
+                            f"listens above {_hz(standard.GLUE_DETECT_HP_HZ)}, so the kick "
+                            "and bass do not make the whole mix pump."],
         ["Saturation", f"A soft tape-style curve, mixed in at "
-                       f"{round(standard.SAT_MIX * 100)}%. It adds warmth and rounds the "
-                       "peaks a little. It works at 2× the sample rate, so it adds no "
-                       "off-key tones."],
+                       f"{round(standard.SAT_MIX * 100)}%, above {lo} only, so the bass "
+                       "stays clean. It adds warmth and rounds the peaks a little. It "
+                       "works at 2× the sample rate, so it adds no off-key tones."],
         ["Mono bass and width", f"Below {_hz(standard.MONO_BASS_HZ)} the song is made "
                                 "mono, so the low end stays solid on any speaker. A narrow "
                                 f"mix gets up to {_num(standard.WIDTH_MAX_DB)} dB more side "

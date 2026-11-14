@@ -615,10 +615,14 @@ order, after the fixes and your EQ. It lives in
    | High, over 4 kHz | 2:1 | 5 ms | 100 ms |
 
 4. **Glue compressor.** One gentle compressor on the whole mix: 2:1, 30 ms
-   attack, 300 ms release. About 1-2 dB on the loud parts.
-5. **Saturation.** A soft tape-style curve, mixed in at 30 %. It adds a
-   little warmth and rounds the peaks by about 1 dB. It runs at 2x the
-   sample rate, so it adds no off-key tones.
+   attack, 300 ms release. About 1-2 dB on the loud parts. It listens
+   through a 100 Hz high-pass (12 dB/octave), so the kick and bass do not
+   make the whole mix pump. The high-pass changes only what it hears, not
+   the sound.
+5. **Saturation.** A soft tape-style curve, mixed in at 30 %, on the
+   bands above 120 Hz only, so the bass stays clean. It adds a little
+   warmth and rounds the peaks. It runs at 2x the sample rate, so it adds
+   no off-key tones.
 6. **Mono bass and width.** Below 120 Hz the song is made mono. Above it, a
    narrow mix (side more than 14 dB under the mid) gets back half the gap,
    at most +1.5 dB of side. A wide mix is left alone.
@@ -646,6 +650,14 @@ at Commercial (-9 LUFS):
 - The compressors move each octave's level by at most 0.5 dB.
 - Standard adds about 3 s to the first preview and to the export of a
   3-minute song.
+
+The glue high-pass and the clean low band came from published mastering
+practice ([MASTERING-SOURCES.md](MASTERING-SOURCES.md), topics 9 and 10).
+On three songs (2026-11-14) they changed the master by about 30 dB below
+the signal: the lowest octaves 0.1-0.26 dB fuller, nothing else more than
+0.1 dB. The link between the glue's turn-down and the bass level dropped
+from -0.51 to -0.20 and from -0.71 to -0.52. Loudness, peaks and the
+preview match did not change.
 
 ### 3.2 Tone target: Built-in
 
