@@ -71,8 +71,8 @@ export async function initSingleTab() {
     // compares the result with the limit. Asked again when settings change;
     // a format change only re-judges, since every format comes back at once.
     const sizeState = { timer: null, key: '', sizes: null, durationS: 0, judged: null };
-    // Tone target (built-in or a reference track), set up with the cards
-    // below; null until then, so early calls see "built-in".
+    // Tone target (Standard, built-in or a reference track), set up with the
+    // cards below; null until then, so early calls see the default.
     let refMatch = null;
     function sizeLimit() {
         const n = Math.round(Number(sizeLimitMb && sizeLimitMb.value));
@@ -735,7 +735,8 @@ export async function initSingleTab() {
             try { eq = eqPanel.getPayload(); } catch (_) { return out; }   // not built yet at startup
             const bands = eq && eq.enabled ? (eq.bands || []).filter((b) => b.enabled !== false).length : 0;
             if (bands) out.push(`EQ ${bands} band${bands === 1 ? '' : 's'}`);
-            if (refMatch && refMatch.payload().tone_target === 'reference') out.push('reference track');
+            if (refMatch && refMatch.mode() === 'reference') out.push('reference track');
+            if (refMatch && refMatch.mode() === 'builtin') out.push('Built-in tone');
             if (masterEnabled.checked && masterIntensity.value !== 'med') {
                 out.push(`Tone match ${masterIntensity.value === 'low' ? 'Low' : 'High'}`);
             }
@@ -758,7 +759,7 @@ export async function initSingleTab() {
         },
     });
 
-    // Tone target: built-in or a reference track. The view asks the engine
+    // Tone target: Standard, built-in or a reference track. The view asks the engine
     // what the match will do, with the preview's settings.
     refMatch = initReferenceMatch({
         getSessionId: () => previewState.sessionId,
@@ -987,6 +988,7 @@ export async function initSingleTab() {
             player.setTargetLufs(loudnessLufs(RULES, masterTarget.value));
             if (saved.mastering.intensity) masterIntensity.value = saved.mastering.intensity;
             if (saved.mastering.tilt) masterTilt.value = saved.mastering.tilt;
+            if (refMatch && saved.mastering.tone_target) refMatch.setMode(saved.mastering.tone_target);
         }
     }
 
@@ -1040,7 +1042,7 @@ export async function initSingleTab() {
             target: masterTarget.value,
             intensity: masterIntensity.value,
             tilt: masterTilt.value,
-            // With a reference track: tone_target "reference" and its Amount.
+            // tone_target: "standard", "builtin", or "reference" with its Amount.
             ...(refMatch ? refMatch.payload() : {}),
         };
     }
@@ -2167,8 +2169,9 @@ export async function initSingleTab() {
                 const short = t.includes('(') ? t.slice(t.indexOf('(') + 1, t.indexOf(')')) : t;
                 const iOpt = masterIntensity.options[masterIntensity.selectedIndex];
                 const intensity = iOpt ? iOpt.text.split(' ')[0] : '';
-                stateEls.master.textContent = (refMatch && refMatch.isOn())
-                    ? `${short} · reference` : `${short} · match ${intensity.toLowerCase()}`;
+                const mode = refMatch ? refMatch.mode() : 'standard';
+                stateEls.master.textContent = mode === 'reference' ? `${short} · reference`
+                    : `${short} · ${mode === 'builtin' ? 'built-in' : 'standard'} ${intensity.toLowerCase()}`;
             }
         }
         if (stateEls.output) {

@@ -68,11 +68,15 @@ flowchart TD
   G --> H["Dynamic EQ, 2-5 kHz: Harshness"]
   H --> I["Dynamic EQ, 200-500 Hz: Low-mid build-up"]
   I --> J{"Mastering on?"}
-  J -- yes --> K["Tone curve: tone target, or reference-track match"]
+  J -- yes --> K["Tone curve: Standard tone EQ, Built-in target, or reference-track match"]
   J -- no --> L
   K --> L["Parametric EQ: your bands and Suggested EQ moves"]
   L --> M{"Mastering on?"}
-  M -- yes --> N["25 Hz low-cut, one static gain, peak shaper, true-peak limiter"]
+  M -- yes --> LC["25 Hz low-cut"]
+  LC --> SM{"Tone target Standard?"}
+  SM -- yes --> SC["Multiband compressor, glue compressor, saturation, mono bass and width"]
+  SM -- no --> N
+  SC --> N["One static gain, peak shaper, true-peak limiter"]
   M -- no --> O["Preserve volume: one gain back to the song's own level"]
   N --> FD["Fades you set in Trim (Master tab)"]
   O --> FD
@@ -89,6 +93,7 @@ Some work is done once for the whole song and kept:
 - the scan for fixed tones
 - each fix's plan (for example, which bands the dynamic EQ watches)
 - the mastering tone curve
+- Standard mastering's compressor gains
 - the loudness gain
 
 So a preview window uses the same notches, the same gains and the same
@@ -549,6 +554,14 @@ Mastering sets the release level, shapes the tone and holds the peaks under
 a ceiling. In the app, **Master for release** is on by default. (On the
 command line it is off unless you ask for it, as in 1.x.)
 
+**Tone target** picks how Shimmer masters. It has three choices:
+
+| Choice | What it does |
+|---|---|
+| **Standard** (default) | Masters the way online mastering services do (DistroKid's Mixea, LANDR, eMastered and the like): a gentle tone EQ, then compression, saturation and stereo, then loudness and the limiter. See [3.1a](#31a-standard-mastering) |
+| **Built-in** | Shimmer's own tone target, then loudness and the limiter. No compression. See [3.2](#32-tone-target-built-in) |
+| **Reference track** | Moves the tone toward a song you load, then loudness and the limiter. See [3.3](#33-tone-target-reference-track) |
+
 ### 3.1 Loudness targets
 
 From `LOUDNESS_TARGETS` in `shimmer/core/catalog.py`:
@@ -576,11 +589,69 @@ How the level is set, in order:
    (see [4.1](#41-formats)). It finds peaks at 8x and aims 0.17 dB under
    the ceiling, the most a peak can hide between readings.
 
+### 3.1a Standard mastering
+
+The default. It runs the chain online mastering services run, in this
+order, after the fixes and your EQ. It lives in
+`shimmer/core/master/standard.py`.
+
+1. **Tone EQ.** A broad move toward the tone of finished masters (the same
+   measured shape as Built-in), made the way match EQs make it: smoothed
+   over about an octave, within ±3 dB, and boosts in 5-12 kHz, where AI
+   fizz lives, kept to +2 dB. **Tone match** sets how much of the move:
+   Low 30 %, Medium 50 % (default), High 70 %. **Tilt** works as it does
+   for Built-in. Nothing is boosted above the song's own top end.
+2. **Low-cut at 25 Hz**, as for every target.
+3. **Multiband compressor.** Three bands, split at 120 Hz and 4 kHz
+   (Linkwitz-Riley crossovers, which add back to a flat level). Each band
+   is turned down while it is louder than usual for this song, then given
+   back its usual level, so the tone stays put and only the loud moments
+   are held in.
+
+   | Band | Ratio | Attack | Release |
+   |---|---|---|---|
+   | Low, under 120 Hz | 2:1 | 30 ms | 250 ms |
+   | Mid, 120 Hz-4 kHz | 1.5:1 | 15 ms | 150 ms |
+   | High, over 4 kHz | 2:1 | 5 ms | 100 ms |
+
+4. **Glue compressor.** One gentle compressor on the whole mix: 2:1, 30 ms
+   attack, 300 ms release. About 1-2 dB on the loud parts.
+5. **Saturation.** A soft tape-style curve, mixed in at 30 %. It adds a
+   little warmth and rounds the peaks by about 1 dB. It runs at 2x the
+   sample rate, so it adds no off-key tones.
+6. **Mono bass and width.** Below 120 Hz the song is made mono. Above it, a
+   narrow mix (side more than 14 dB under the mid) gets back half the gap,
+   at most +1.5 dB of side. A wide mix is left alone.
+7. **Loudness and the limiter**, as in [3.1](#31-loudness-targets).
+
+How the levels are set:
+
+- Each compressor's threshold comes from the song: just under the level
+  its band stays below 90 % of the time (the glue compressor: 95 %). So a
+  quiet mix and a loud one get the same amount of work.
+- No compressor ever turns down more than 6 dB.
+- The saturation bends at about 12 dB over the song's average level.
+
+All the compressor gains are worked out once from the whole song and kept.
+A preview window uses the same gains as the export, so it matches the
+export (on two test songs, 96-98 dB below the signal; the rule is 60).
+
+Measured on two songs from `assets/songs` (2026-11-13), against Built-in
+at Commercial (-9 LUFS):
+
+- Both land on -9.0 LUFS and -1.17 dBTP.
+- The short-term loudness spread (3 s blocks, 10th to 90th percentile)
+  drops from 2.6 to 1.8 LU and from 2.3 to 1.4 LU: the song holds a steadier
+  level.
+- The compressors move each octave's level by at most 0.5 dB.
+- Standard adds about 3 s to the first preview and to the export of a
+  3-minute song.
+
 ### 3.2 Tone target: Built-in
 
-With mastering on, a tone curve moves the song toward a tone target, band
-by band. **Tone target** has two choices: **Built-in** (the default,
-measured from finished masters) or **Reference track**.
+With **Built-in**, a tone curve moves the song toward Shimmer's own tone
+target, band by band, measured from finished masters. There is no
+compression, saturation or stereo work.
 
 The built-in target is 1.1.1's tone curve, ported bit for bit. It is worked
 out once from the whole song.
@@ -616,7 +687,8 @@ tone then moves toward it instead of toward the built-in target.
   applies**, from 31.5 Hz to 20 kHz. A line above it names the biggest move
   in the low end, the mids and the top end.
 - **Remove** drops the reference, and the tone target goes back to
-  Built-in. The reference is also removed with the song's session.
+  Standard or Built-in, whichever you had. The reference is also removed
+  with the song's session.
 
 ### 3.4 Mastering off: Preserve volume
 
@@ -1072,6 +1144,7 @@ it here. The screens do not offer it.
 | `--master` | Master to the default target (Commercial, -9 LUFS) |
 | `--target cd\|loud\|streaming` | Master to this target: Commercial (-9), Balanced (-11) or Streaming standard (-14 LUFS) |
 | `--no-master` | No mastering |
+| `--tone standard\|builtin` | How to master: Standard (the default) or Built-in (see [3](#3-mastering)) |
 | `--intensity low\|med\|high` | How much of the tone correction to make (Tone match) |
 | `--tilt warmer\|warm\|neutral\|bright\|brightest` | Warm to bright |
 | `--reference FILE` | Move the tone toward this reference track (mastering only) |

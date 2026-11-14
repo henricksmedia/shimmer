@@ -45,9 +45,9 @@ def test_nine_stages_in_signal_order():
 
 def test_typical_settings():
     """Mastering on (Commercial), Fixed tones with 3 notches, EQ off, WAV
-    24-bit: the mockup's first state."""
-    view = describe_chain(Settings(fixes={"tones": 1.0}), song=SONG, notches=THREE,
-                          cards_on=["tones"])
+    24-bit: the mockup's first state, with the Built-in tone target."""
+    view = describe_chain(Settings(fixes={"tones": 1.0}, tone_target="builtin"), song=SONG,
+                          notches=THREE, cards_on=["tones"])
     st = _stages(view)
     assert view["summary"]["on"] == 6
     assert view["summary"]["text"] == "The sound changes in Fixes, Tone and Master."
@@ -70,6 +70,26 @@ def test_typical_settings():
     assert st["export"]["verdict"] == "On · WAV 24-bit at 44.1 kHz"
     assert st["export"]["badges"] == ["44.1 kHz", "tags on", "silence trim off"]
     assert st["report"]["checks"] == list(CHECKS)
+
+
+def test_standard_mastering_lists_its_steps():
+    """The default tone target, Standard: its tone EQ, and the compressors,
+    saturation and stereo before the gain."""
+    st = _stages(describe_chain(Settings(fixes={"tones": 1.0}), song=SONG, notches=THREE,
+                                cards_on=["tones"]))
+    assert st["tone"]["verdict"] == "On · Standard, Tone match Medium, Tilt Neutral"
+    assert st["tone"]["badges"] == ["Standard", "Medium", "Neutral tilt", "±3 dB max"]
+    assert st["master"]["name"] == "Compression, loudness and limiter"
+    assert [t for t, _ in st["master"]["steps"]] == [
+        "Low-cut at 25 Hz", "Multiband compressor", "Glue compressor", "Saturation",
+        "Mono bass and width", "Gain to −9 LUFS", "Peak shaper", "True-peak limiter"]
+    # A reference track masters without them.
+    ref = _stages(describe_chain(Settings(), reference={"name": "ref.wav"}))
+    assert ref["master"]["name"] == "Loudness and limiter"
+
+
+def _gain_step(master):
+    return next(text for title, text in master["steps"] if title.startswith("Gain to"))
 
 
 def test_mastering_off_shows_preserve_volume_in_masters_place():
@@ -265,7 +285,7 @@ def test_master_shows_the_gain_once_a_render_has_worked_it_out():
     s = Settings(fixes={"tones": 1.0})
     assert known_gain(src, s, notches=THREE) is None          # nothing rendered yet
     unknown = _stages(describe_chain(s, notches=THREE))["master"]
-    assert "once the preview has played" in unknown["steps"][1][1]
+    assert "once the preview has played" in _gain_step(unknown)
     r = render_window(src, s, window=(0.0, 2.0), notches=THREE)
     g = known_gain(src, s, notches=THREE)
     assert g == pytest.approx(r.report["mastering"]["gain_db"])

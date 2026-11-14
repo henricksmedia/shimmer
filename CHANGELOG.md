@@ -7,6 +7,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Standard mastering, the new default.** Tone target has a third choice,
+  **Standard**, and it is now the default. It masters the way online
+  mastering services such as DistroKid's Mixea, LANDR and eMastered do:
+  a gentle tone EQ toward finished masters, a three-band multiband
+  compressor, a glue compressor, soft tape saturation, mono bass below
+  120 Hz and a little width for narrow mixes, then the usual loudness
+  target and true-peak limiter. Built-in (Shimmer's own tone, no
+  compression) and Reference track work as before. The Signal Chain view
+  lists each new step. On the command line: `--tone standard|builtin`.
 - **End a song early, by eye or by ear.** The Trim card now shows the whole
   song as a strip above the zoomed view. Drag **OUT** to where the song
   should stop and drag the round knob to set the fade out; the faded part
@@ -28,6 +37,10 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Mastering now defaults to Standard.** Songs mastered with default
+  settings, in the Master, Batch and Remix tabs and on the command line,
+  now get compression, saturation and mono bass. Pick **Built-in** under
+  Tone target to master as before.
 - **Times in Trim are minutes:seconds.** The in and out boxes take and show
   times like `1:58.4` (plain seconds work too). They used to take
   milliseconds.

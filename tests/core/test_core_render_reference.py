@@ -31,12 +31,25 @@ def _sources():
     return song, ref
 
 
-def test_without_a_reference_the_target_is_shimmers():
+def test_without_a_reference_the_default_is_standard():
     from shimmer.core import Settings, render
     from shimmer.core.master import tone
     song, _ = _sources()
     r = render(song, Settings())
+    m = r.report["mastering"]
+    assert m["tone_target"] == "standard"
+    assert "match_amount" not in m and "standard" in m
+    expected = tone.standard_curve(song.audio, SR, "med", tilt="neutral", cutoff_hz=None)
+    assert m["tone_curve_db"] == [round(v, 2) for v in expected]
+
+
+def test_built_in_target_is_shimmers():
+    from shimmer.core import Settings, render
+    from shimmer.core.master import tone
+    song, _ = _sources()
+    r = render(song, Settings(tone_target="builtin"))
     assert r.report["mastering"]["tone_target"] == "shimmer"
+    assert "standard" not in r.report["mastering"]
     assert "match_amount" not in r.report["mastering"]
     expected = tone.compute_tone_curve(song.audio, SR, strength=tone.intensity_to_strength("med"),
                                        tilt="neutral", cutoff_hz=None)

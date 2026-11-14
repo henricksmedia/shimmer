@@ -6,7 +6,7 @@
 .rm-sub{font-weight:400;font-size:11px;color:var(--fg-2)}
 
 /* Tone target: two cards in the Loudness card language. */
-.rm-tt{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px}
+.rm-tt{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:2px}
 .rm-tt .loud-card{align-content:start}
 
 /* The loaded reference: file, message, verdict, chart. */
