@@ -5,9 +5,12 @@
 /* Label with a friendly descriptor after the industry term. */
 .rm-sub{font-weight:400;font-size:11px;color:var(--fg-2)}
 
-/* Tone target: two cards in the Loudness card language. */
-.rm-tt{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:2px}
-.rm-tt .loud-card{align-content:start}
+/* Tone target: three cards in the Loudness card language, all one width
+   (minmax(0,1fr), so a long word cannot widen its column). DEFAULT sits
+   under the title, so the title line stays short. */
+.rm-tt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:2px}
+.rm-tt .loud-card{align-content:start;min-width:0}
+.rm-tt .loud-card .t .def{display:table;margin:3px 0 0}
 
 /* The loaded reference: file, message, verdict, chart. */
 .rm-ref{margin-top:8px;padding:9px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-s)}
