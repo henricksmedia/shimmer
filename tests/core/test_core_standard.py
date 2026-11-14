@@ -73,6 +73,42 @@ def test_mono_bass_takes_the_side_out_of_the_low_end():
     assert _rms_db(side[SR:]) - _rms_db(x[SR:, 0]) < -15.0
 
 
+def _bass_and_tone(seconds=8.0, kick=True):
+    """A 1 kHz tone with 50 Hz under it: kicks every half second about
+    10 dB over the tone, or a steady bass note."""
+    t = np.arange(int(SR * seconds)) / SR
+    tone = 0.1 * np.sin(2 * np.pi * 1000 * t)
+    env = np.exp(-((t % 0.5) / 0.08)) if kick else 1.0
+    m = tone + 0.3 * env * np.sin(2 * np.pi * 50 * t)
+    return np.stack([m, m], axis=1)
+
+
+def test_the_glue_compressor_listens_above_the_bass():
+    """The glue compressor hears the mix through a 100 Hz high-pass, so the
+    kick moves it much less than it would with no filter."""
+    from shimmer.core.master import standard
+    x = _bass_and_tone()
+    p, _ = standard.plan_and_run(x, SR)
+    skip = SR // standard._STEP                        # past the first second
+    bands = standard.split_bands(x, SR)
+    low, upper = standard._compress(bands, p.band_gain_db, 0)
+    unfiltered, _ = standard._comp_gain(low + upper, SR, standard.GLUE, makeup=False)
+    pumping = lambda g: float(np.ptp(g[skip:]))
+    assert pumping(p.glue_gain_db) < 0.5 * pumping(unfiltered)
+
+
+def test_the_saturation_leaves_the_bass_clean():
+    """Saturation runs above 120 Hz only: a loud, steady bass note gets no
+    added harmonics (its third, 150 Hz, stays down at the noise floor)."""
+    from scipy.signal import welch
+    from shimmer.core.master import standard
+    x = _bass_and_tone(kick=False)
+    _, y = standard.plan_and_run(x, SR)
+    f, p = welch(y[SR:, 0], SR, nperseg=SR)
+    level = lambda hz: 10 * np.log10(p[np.argmin(np.abs(f - hz))] + 1e-30)
+    assert level(150) - level(50) < -70.0
+
+
 def test_silence_and_mono_pass_through():
     from shimmer.core.master import standard
     z = np.zeros((SR, 2), dtype=np.float32)

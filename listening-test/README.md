@@ -48,6 +48,16 @@ different from the last one.
 - **round-7** — the second learned remover (trained on both hash models,
   louder hash, 2494 pairs) on the same six renders as round 6, same layout.
 
+- **round-8** — Standard mastering, round 1 of the research-backed changes
+  (`docs/MASTERING-SOURCES.md`, topics 7–11). Per song: the default master
+  as it was at a5fc499, and with the glue compressor listening above
+  100 Hz and no saturation under 120 Hz. Loudest 30 s, -18 LUFS, blind, two
+  letters per song. Listen to the low end and the beat. Built by
+  `scripts/make_round8.py`. **Result (2026-11-14):** no audible difference
+  on any of the three songs (Hey, Algorithm's Lure, Alive Again), on
+  speakers with a subwoofer. Kept: no harm heard or measured, and it is
+  standard practice for kick-heavy mixes these songs do not test.
+
 ## How to listen
 
 1. Play a song's four `*-master-*.wav` back to back. They are level-matched to

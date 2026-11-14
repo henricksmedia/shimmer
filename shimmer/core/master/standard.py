@@ -8,9 +8,11 @@ mastering software all run much the same chain after a gentle tone EQ:
      louder than usual for this song, then given back its usual level, so
      the tone stays put and only the loud moments are held in.
   2. Glue compressor. One gentle compressor on the whole mix (2:1, slow
-     attack, medium release), about 1-2 dB on the loud parts.
+     attack, medium release), about 1-2 dB on the loud parts. It listens
+     through a 100 Hz high-pass, so the kick and bass do not pump the mix.
   3. Saturation. A soft tape-style curve, mixed in at 30 %, run at 2x so it
-     folds no off-key tones back into the audible range.
+     folds no off-key tones back into the audible range. It runs above
+     120 Hz only; the low band stays clean.
   4. Stereo. Mono bass below 120 Hz, so the low end is solid on any
      system. A narrow mix is widened a little above that (at most +1.5 dB
      of side), a wide one is left alone.
@@ -69,8 +71,15 @@ BAND_COMPS: Tuple[Comp, ...] = (
     Comp(ratio=2.0, attack_s=0.005, release_s=0.100, under_db=3.0),
 )
 GLUE = Comp(ratio=2.0, attack_s=0.030, release_s=0.300, pct=95.0, under_db=3.0)
+# The glue compressor listens through a high-pass, so kick and bass do not
+# turn the whole mix down (pumping). It changes only what the compressor
+# hears, not the sound it turns down. 12 dB/octave, in the middle of the
+# range bus compressors offer (docs/MASTERING-SOURCES.md, topic 9).
+GLUE_DETECT_HP_HZ = 100.0
 
-# Saturation: tanh at this many times the song's RMS level, mixed in.
+# Saturation: tanh at this many times the song's RMS level, mixed in. It
+# runs on the bands above XOVER_LOW_HZ only: the low band stays clean, so
+# the bass keeps its weight (MASTERING-SOURCES.md, topic 10).
 SAT_HEADROOM = 4.0             # the curve bends at about RMS + 12 dB
 SAT_MIX = 0.3
 _SAT_OVERSAMPLE = 2
@@ -261,12 +270,21 @@ def _side_gain_db(x: np.ndarray, sr: int) -> Tuple[float, Optional[float]]:
 # ── The chain ───────────────────────────────────────────────────────────
 
 def _compress(bands: Tuple[np.ndarray, ...], gains: Tuple[np.ndarray, ...],
-              start: int) -> np.ndarray:
+              start: int) -> Tuple[np.ndarray, np.ndarray]:
+    """The bands with their gains: the low band, and the mid and high bands
+    together (which the saturation runs on)."""
     n = bands[0].shape[0]
-    out = np.zeros_like(bands[0])
-    for b, g in zip(bands, gains):
-        out += b * _gain_at(g, start, n)[:, None]
-    return out
+    low = bands[0] * _gain_at(gains[0], start, n)[:, None]
+    upper = np.zeros_like(bands[1])
+    for b, g in zip(bands[1:], gains[1:]):
+        upper += b * _gain_at(g, start, n)[:, None]
+    return low, upper
+
+
+def _glue_detect(x: np.ndarray, sr: int) -> np.ndarray:
+    """What the glue compressor hears: the mix through a 12 dB/octave
+    high-pass at GLUE_DETECT_HP_HZ."""
+    return _filt(butter(2, GLUE_DETECT_HP_HZ, btype="highpass", fs=sr, output="sos"), x)
 
 
 def plan(x: np.ndarray, sr: int) -> Plan:
@@ -286,19 +304,24 @@ def plan_and_run(x: np.ndarray, sr: int) -> Tuple[Plan, np.ndarray]:
         g, info = _comp_gain(b, sr, comp, makeup=True)
         band_gains.append(g)
         band_info.append(info)
-    mb = _compress(bands, tuple(band_gains), 0)
-    glue_gain, glue_info = _comp_gain(mb, sr, GLUE, makeup=False)
-    glued = mb * _gain_at(glue_gain, 0, mb.shape[0])[:, None]
-    rms = float(np.sqrt(np.mean(glued ** 2))) if glued.size else 0.0
+    low, upper = _compress(bands, tuple(band_gains), 0)
+    glue_gain, glue_info = _comp_gain(_glue_detect(low + upper, sr), sr, GLUE, makeup=False)
+    glue = _gain_at(glue_gain, 0, low.shape[0])[:, None]
+    low, upper = low * glue, upper * glue
+    # The drive is set from the whole mix, as before, so the mid and high
+    # bands are saturated as much as they were; only the bass is left out.
+    rms = float(np.sqrt(np.mean((low + upper) ** 2))) if upper.size else 0.0
     sat_scale = SAT_HEADROOM * rms if rms > 1e-6 else 0.0
-    saturated = saturate(glued, sat_scale)
+    saturated = low + saturate(upper, sat_scale)
     side_db, side_ratio = _side_gain_db(saturated, sr)
     summary = {
         "bands_hz": [XOVER_LOW_HZ, XOVER_HIGH_HZ],
         "band_most_db": [i["most_db"] for i in band_info],
         "glue_typical_db": glue_info["typical_db"],
         "glue_most_db": glue_info["most_db"],
+        "glue_detect_hp_hz": GLUE_DETECT_HP_HZ,
         "saturation_mix": SAT_MIX,
+        "saturation_above_hz": XOVER_LOW_HZ,
         "mono_bass_hz": MONO_BASS_HZ if a.shape[1] == 2 else None,
         "side_to_mid_db": None if side_ratio is None else round(float(side_ratio), 1),
         "width_db": round(side_db, 2),
@@ -313,7 +336,7 @@ def apply(x: np.ndarray, sr: int, p: Plan, offset: int = 0) -> np.ndarray:
     a = a[:, None] if a.ndim == 1 else a
     if a.shape[0] == 0:
         return a
-    y = _compress(split_bands(a, sr), p.band_gain_db, offset)
-    y = y * _gain_at(p.glue_gain_db, offset, y.shape[0])[:, None]
-    y = saturate(y, p.sat_scale)
+    low, upper = _compress(split_bands(a, sr), p.band_gain_db, offset)
+    glue = _gain_at(p.glue_gain_db, offset, low.shape[0])[:, None]
+    y = low * glue + saturate(upper * glue, p.sat_scale)
     return stereo(y, sr, p.side_gain_db)
