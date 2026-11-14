@@ -66,6 +66,11 @@ class Settings:
     intensity        mastering tone: how much of the corrective move to make
                      (catalog.TONE_INTENSITIES)
     tilt             mastering tone: warm to bright (catalog.TONE_TILTS)
+    tone_target      how mastering shapes the song (catalog.TONE_TARGETS):
+                     "standard" (the default) runs the chain online mastering
+                     services run; "builtin" moves the tone toward 1.1.1's
+                     target; "reference" toward the reference track render()
+                     is given (without one, the default is used)
     match_amount     mastering tone with a reference track: how much of the
                      difference to take, 0-1 (catalog.MATCH_AMOUNT); used in
                      place of intensity when render() is given a reference
@@ -85,6 +90,7 @@ class Settings:
     intensity: str = "med"
     tilt: str = "neutral"
     match_amount: float = catalog.MATCH_AMOUNT
+    tone_target: str = catalog.DEFAULT_TONE_TARGET
     fix_modes: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -109,6 +115,9 @@ class Settings:
         self.tilt = str(self.tilt or "").lower()
         if self.tilt not in catalog.TONE_TILTS:
             self.tilt = "neutral"
+        self.tone_target = str(self.tone_target or "").lower()
+        if self.tone_target not in catalog.TONE_TARGETS:
+            self.tone_target = catalog.DEFAULT_TONE_TARGET
         try:
             self.match_amount = _clamp(float(self.match_amount), 0.0, 1.0)
         except (TypeError, ValueError):
@@ -145,6 +154,7 @@ class Settings:
             "intensity": self.intensity,
             "tilt": self.tilt,
             "match_amount": self.match_amount,
+            "tone_target": self.tone_target,
             "fix_modes": dict(self.fix_modes),
         }
 
@@ -166,6 +176,7 @@ class Settings:
             intensity=d.get("intensity", "med"),
             tilt=d.get("tilt", "neutral"),
             match_amount=d.get("match_amount", catalog.MATCH_AMOUNT),
+            tone_target=d.get("tone_target", catalog.DEFAULT_TONE_TARGET),
             fix_modes=d.get("fix_modes") if isinstance(d.get("fix_modes"), Mapping) else {},
         )
 
@@ -232,4 +243,5 @@ def migrate(old: Optional[Mapping[str, Any]]) -> Settings:
         preserve_volume=old.get("preserve_volume", True),
         intensity=master.get("intensity", "med"),
         tilt=master.get("tilt", "neutral"),
+        tone_target=master.get("tone_target", catalog.DEFAULT_TONE_TARGET),
     )

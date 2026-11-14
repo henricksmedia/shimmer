@@ -355,11 +355,15 @@ through the tone target.
   limiter holds the ceiling. It finds peaks at 8×
   oversampling and eases the gain down across a 2 ms lookahead, so it does
   not click.
-- **Tone target.** With mastering on, Shimmer moves your song's tone toward a
-  target: its built-in one, or a reference track you pick. **Tone match**
-  (Low, Medium, High) sets how much. **Tone** (warmer to brightest) tilts
-  it. The built-in curve boosts at most +5 dB and cuts at most −3 dB, and it
-  never boosts above the point where your render's top end stops.
+- **Tone target.** With mastering on, Shimmer masters one of three ways.
+  **Standard** (the default) works like online mastering services: a gentle
+  tone EQ toward finished masters, a multiband compressor, a glue
+  compressor, soft tape saturation, and mono bass below 120 Hz. **Built-in**
+  moves the tone toward Shimmer's own target, with no compression. Or pick
+  a **reference track**. **Tone match** (Low, Medium, High) sets how much
+  tone EQ. **Tone** (warmer to brightest) tilts it. The built-in curve
+  boosts at most +5 dB and cuts at most −3 dB; Standard's stays within
+  ±3 dB. Neither boosts above the point where your render's top end stops.
 - **Reference-track matching.** Pick a released song you like as the tone
   target. Shimmer compares the two tone shapes, level-matched, and moves
   your song part of the way: 50 % of the difference by default, smoothed
@@ -514,9 +518,11 @@ Every tab sends your song through one function, `render()`, in this order:
    the spectral de-noise, the de-esser, and the dynamic EQ. Each tool works
    out its plan once from the whole song, so a preview window gets the same
    treatment as the export.
-3. **Tone.** With mastering on, the tone curve moves the song toward the
-   built-in target or your reference track.
-4. **EQ.** Your parametric EQ.
+3. **Tone.** With mastering on, the tone curve moves the song toward
+   finished masters (Standard), the built-in target, or your reference
+   track.
+4. **EQ.** Your parametric EQ. With Standard, the multiband and glue
+   compressors, saturation, and mono bass come next.
 5. **Level.** With mastering on: the 25 Hz low-cut, one loudness gain worked
    out from the whole song, the peak shaper, and the true-peak limiter. With
    mastering off and **Preserve volume** on: one gain that puts the song back

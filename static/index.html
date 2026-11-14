@@ -504,12 +504,14 @@
                                                 <!-- Choices come from /api/rules (loudness-cards.js). -->
                                                 <select id="master-target" class="select"></select>
                                             </div>
-                                            <!-- Tone target: built-in or a reference track (reference-match.js). -->
+                                            <!-- Tone target: Standard, built-in or a reference track (reference-match.js). -->
                                             <div class="master-grid-span" id="tone-target-field">
                                                 <div class="label" id="tone-target-label">Tone target <span class="rm-sub">what the tone moves toward</span></div>
                                                 <div class="rm-tt" role="radiogroup" aria-labelledby="tone-target-label">
-                                                    <button type="button" class="loud-card on" role="radio" aria-checked="true" id="tt-builtin" title="The tone shape measured from finished masters. Tone match sets how far to move toward it."><span class="t">Built-in<span class="def">DEFAULT</span></span>
-                                                        <span class="d">Measured from finished masters</span></button>
+                                                    <button type="button" class="loud-card on" role="radio" aria-checked="true" id="tt-standard" title="Masters the way online mastering services do: a gentle tone EQ, multiband and glue compression, tape saturation, mono bass and width, then loudness and the limiter. Tone match sets how much EQ."><span class="t">Standard<span class="def">DEFAULT</span></span>
+                                                        <span class="d">Like online mastering services</span></button>
+                                                    <button type="button" class="loud-card" role="radio" aria-checked="false" id="tt-builtin" title="Shimmer's own tone target, measured from finished masters, with no compression. Tone match sets how far to move toward it."><span class="t">Built-in</span>
+                                                        <span class="d">Shimmer's tone, no compression</span></button>
                                                     <button type="button" class="loud-card" role="radio" aria-checked="false" id="tt-reference" title="Match the tone of a released song you pick. Loudness does not change."><span class="t">Reference track</span>
                                                         <span class="d">A released song you pick</span></button>
                                                 </div>
@@ -518,7 +520,7 @@
                                                     <div class="rm-file">
                                                         <span class="ms" aria-hidden="true">album</span>
                                                         <div class="rm-file-txt"><b id="ref-name"></b><span id="ref-meta"></span></div>
-                                                        <button type="button" class="btn btn-ghost btn-sm" id="ref-remove" title="Remove the reference. Tone target goes back to Built-in.">Remove</button>
+                                                        <button type="button" class="btn btn-ghost btn-sm" id="ref-remove" title="Remove the reference. Tone target goes back to Standard.">Remove</button>
                                                     </div>
                                                     <div id="ref-msgs"></div>
                                                     <div class="rm-verdict" id="ref-verdict"></div>

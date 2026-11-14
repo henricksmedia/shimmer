@@ -248,7 +248,9 @@ const TOOL_HELP = {
     spectral_denoise: 'Spectral de-noise turns down fizzy, flickering hiss, ' +
                       'band by band, only where a trained model hears it.',
     tone_target: 'The tone target is part of mastering. Tone match and Tilt ' +
-                 'shape the tone of the whole song.',
+                 'shape the tone of the whole song. With Standard (the ' +
+                 'default), mastering also works like online mastering ' +
+                 'services: compression, tape saturation and mono bass.',
     loudness_target: 'The loudness target is part of mastering. It sets how ' +
                      'loud the song plays.',
 };

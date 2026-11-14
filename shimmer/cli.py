@@ -111,9 +111,14 @@ def _build_parser() -> argparse.ArgumentParser:
                      help="How much of the tone correction to make")
     mst.add_argument("--tilt", "--master-tilt", dest="tilt", type=str, default=None,
                      choices=list(core.catalog.TONE_TILTS), help="Warm to bright")
+    mst.add_argument("--tone", type=str, default=None, choices=["standard", "builtin"],
+                     help="How to master: standard (the default) runs the chain online "
+                          "mastering services run: a gentle tone EQ, multiband and glue "
+                          "compression, saturation, mono bass and width; builtin moves the "
+                          "tone toward Shimmer's built-in target, with no compression")
     mst.add_argument("--reference", type=str, default=None, metavar="FILE",
-                     help="Move the tone toward this reference track instead of "
-                          "the built-in target (mastering only)")
+                     help="Move the tone toward this reference track instead "
+                          "(mastering only)")
     mst.add_argument("--match-amount", type=float, default=None, metavar="0-1",
                      help=f"How much of the reference's difference to take "
                           f"(default {core.catalog.MATCH_AMOUNT:g}; at most ±3 dB either way)")
@@ -183,6 +188,8 @@ def settings_from_args(args: argparse.Namespace) -> core.Settings:
     master = {"enabled": mastering}
     if args.target:
         master["target"] = args.target
+    if getattr(args, "tone", None):
+        master["tone_target"] = args.tone
     for key in ("intensity", "tilt"):
         if getattr(args, key):
             master[key] = getattr(args, key)
@@ -246,7 +253,8 @@ def _mastering_lines(rendered: core.Rendered, source: core.Source, exp: Dict) ->
     if not m.get("enabled"):
         return []
     before = core.meters.loudness(source.at_rate(rendered.sr), rendered.sr)
-    target = "a reference track" if m.get("tone_target") == "reference" else "the built-in target"
+    target = {"reference": "a reference track", "standard": "finished masters (Standard)"}.get(
+        m.get("tone_target"), "the built-in target")
     return [f"  Loudness:  {before:.1f} -> {exp['lufs']:.1f} LUFS (target {m['target_lufs']:g})",
             f"  True peak: {exp['true_peak_dbtp']:.1f} dBTP (ceiling {m['ceiling_dbtp']:g})",
             f"  Tone:      toward {target}"]

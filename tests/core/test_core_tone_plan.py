@@ -30,13 +30,19 @@ def test_with_mastering_on_the_plan_is_judged_after_the_tone_curve():
     from shimmer.core.analyze.tones import estimate_cutoff_hz
     from shimmer.core.master import tone
     src = core.Source.from_array(_song(), SR)
-    on = core.tone_plan(src, core.Settings(auto=False))
+    cut = estimate_cutoff_hz(src.audio, SR).get("cutoff_hz")
+    on = core.tone_plan(src, core.Settings(auto=False, tone_target="builtin"))
     off = core.tone_plan(src, core.Settings(auto=False, mastering=False))
     assert on["mastering_on"] and on["analysis"]["tone_curve_applied"]
     assert not off["mastering_on"] and not off["analysis"]["tone_curve_applied"]
     curve = tone.compute_tone_curve(src.audio, SR, strength=tone.intensity_to_strength("med"),
-                                    cutoff_hz=estimate_cutoff_hz(src.audio, SR).get("cutoff_hz"))
+                                    cutoff_hz=cut)
     judged = np.array(on["shape"]["judged_db"]) - np.array(on["shape"]["measured_db"])
+    assert np.allclose(judged, curve, atol=0.02)
+    # Standard (the default): judged after its own tone EQ.
+    std = core.tone_plan(src, core.Settings(auto=False))
+    curve = tone.standard_curve(src.audio, SR, "med", cutoff_hz=cut)
+    judged = np.array(std["shape"]["judged_db"]) - np.array(std["shape"]["measured_db"])
     assert np.allclose(judged, curve, atol=0.02)
 
 

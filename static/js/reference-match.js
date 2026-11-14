@@ -1,6 +1,7 @@
 // reference-match.js — Tone target in the Master tab's Mastering section:
-// Shimmer's built-in target, or a reference track the user picks. From the
-// approved mockup, static/tmp/shimmer-reference-match-mockup.html.
+// Standard (the default: mastering the way online services do), Shimmer's
+// built-in target, or a reference track the user picks. From the approved
+// mockup, static/tmp/shimmer-reference-match-mockup.html.
 //
 // The reference is loaded into the song's session (POST /api/reference).
 // What the match will do comes from the engine (POST /api/reference/view):
@@ -107,31 +108,38 @@ function message(kind, title, body, action) {
 }
 
 /**
- * Wire the Tone target cards and the reference box.
+ * Wire the Tone target cards (Standard, Built-in, Reference track) and the
+ * reference box.
  *   getSessionId()  the song's session, or null
  *   basePayload()   the preview's body (session and settings), for the view
  *   onChange()      settings changed: save them and render the preview
- * Returns { payload(), isOn(), refresh(), reset(), setAmount(pct) }.
+ * Returns { payload(), isOn(), mode(), setMode(m), refresh(), reset(),
+ * setAmount(pct) }. isOn() is true while a reference track is in use.
  */
 export function initReferenceMatch({ getSessionId, basePayload, onChange }) {
     const $ = (id) => document.getElementById(id);
     const els = {
-        builtin: $('tt-builtin'), reference: $('tt-reference'), input: $('ref-file-input'),
+        standard: $('tt-standard'), builtin: $('tt-builtin'), reference: $('tt-reference'), input: $('ref-file-input'),
         box: $('ref-box'), name: $('ref-name'), meta: $('ref-meta'), remove: $('ref-remove'),
         msgs: $('ref-msgs'), verdict: $('ref-verdict'), chart: $('ref-chart'),
         matchField: $('tone-match-field'), amountField: $('ref-amount-field'),
         amount: $('ref-amount'), amountVal: $('ref-amount-val'), hint: $('ref-amount-hint'),
         limits: $('ref-limits'),
     };
-    const api = { payload: () => ({}), isOn: () => false, refresh() {}, reset() {}, setAmount() {} };
-    if (!els.builtin || !els.reference) return api;
-    const st = { on: false, info: null, view: null, timer: null, seq: 0, note: '' };
+    const api = {
+        payload: () => ({}), isOn: () => false, mode: () => 'standard', setMode() {},
+        refresh() {}, reset() {}, setAmount() {},
+    };
+    if (!els.standard || !els.builtin || !els.reference) return api;
+    // mode: the choice when no reference is in use, 'standard' or 'builtin'.
+    const st = { on: false, mode: 'standard', info: null, view: null, timer: null, seq: 0, note: '' };
 
     const amount = () => Math.max(0, Math.min(100, Number(els.amount.value) || 0));
 
     function sync() {
         const on = st.on && !!st.info;
-        [[els.builtin, !on], [els.reference, on]].forEach(([b, sel]) => {
+        [[els.standard, !on && st.mode === 'standard'], [els.builtin, !on && st.mode === 'builtin'],
+         [els.reference, on]].forEach(([b, sel]) => {
             b.classList.toggle('on', sel);
             b.setAttribute('aria-checked', sel ? 'true' : 'false');
         });
@@ -232,13 +240,16 @@ export function initReferenceMatch({ getSessionId, basePayload, onChange }) {
         if (st.on) { refresh(0); onChange(); }
     }
 
-    els.builtin.addEventListener('click', () => {
-        if (!st.on && !st.note) return;
+    function pick(mode) {
+        if (!st.on && !st.note && st.mode === mode) return;
         st.on = false;
+        st.mode = mode;
         st.note = '';
         sync();
         onChange();
-    });
+    }
+    els.standard.addEventListener('click', () => pick('standard'));
+    els.builtin.addEventListener('click', () => pick('builtin'));
     els.reference.addEventListener('click', () => {
         if (st.info) {
             st.on = true;
@@ -271,8 +282,15 @@ export function initReferenceMatch({ getSessionId, basePayload, onChange }) {
     els.amount.addEventListener('change', () => onChange());
 
     api.payload = () => (st.on && st.info
-        ? { tone_target: 'reference', match_amount: amount() / 100 } : {});
+        ? { tone_target: 'reference', match_amount: amount() / 100 } : { tone_target: st.mode });
     api.isOn = () => !!(st.on && st.info);
+    api.mode = () => (st.on && st.info ? 'reference' : st.mode);
+    // Saved settings: Standard or Built-in (a reference needs its file again).
+    api.setMode = (m) => {
+        if (m !== 'standard' && m !== 'builtin') return;
+        st.mode = m;
+        sync();
+    };
     api.refresh = () => refresh();
     // A new song: the reference lived in the old song's session.
     api.reset = () => {

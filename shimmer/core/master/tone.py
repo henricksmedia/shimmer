@@ -274,6 +274,28 @@ def match_curve(x_raw: np.ndarray, sr: int, reference_db, amount: float = MATCH_
     return delta.tolist()
 
 
+# ── Standard mastering's tone EQ (master.standard) ──────────────────────
+
+# How much of the move toward a finished master's tone the Standard tone EQ
+# makes, by Tone match. Online mastering services make a broad, gentle
+# move: about half the gap, and never a sharp one.
+STANDARD_STRENGTH: Dict[str, float] = {"low": 0.3, "med": 0.5, "high": 0.7}
+
+
+def standard_curve(x_raw: np.ndarray, sr: int, intensity: str = "med",
+                   tilt: str = "neutral", cutoff_hz: Optional[float] = None,
+                   raw_spectrum: Optional[Dict[str, Any]] = None) -> List[float]:
+    """The Standard tone EQ: a broad move toward the tone of finished
+    masters (REF_DB, the same measured shape as the built-in target), made
+    the way online mastering services and match EQs make it: smoothed over
+    about an octave, half the gap at Medium, within ±3 dB, and boosts in
+    5-12 kHz, where AI fizz lives, kept to +2 dB. It is match_curve with
+    finished masters as the reference."""
+    amount = STANDARD_STRENGTH.get(str(intensity).lower(), STANDARD_STRENGTH["med"])
+    return match_curve(x_raw, sr, REF_DB, amount=amount, tilt=tilt, cutoff_hz=cutoff_hz,
+                       raw_spectrum=raw_spectrum)
+
+
 def boost_limit_hz(cutoff_hz: Optional[float]) -> float:
     """Nothing at or above this is boosted: 90 % of the song's bandwidth
     cutoff, or _NO_CUTOFF_TOP_HZ when none was found."""

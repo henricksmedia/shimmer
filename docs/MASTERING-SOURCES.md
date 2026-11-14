@@ -132,6 +132,11 @@ and treble for how percussive the track is, as Elowsson & Friberg suggest.
 - Flag side-channel energy below about 100 Hz.
 - Offer mono bass only as a vinyl option.
 
+**Update 2026-11-13:** Standard mastering, now the default, makes the bass
+mono below 120 Hz, as online mastering services do; the author asked for
+their usual chain. Built-in and Reference track leave the stereo image as
+it is.
+
 ## 6. Tone-correction tolerance (deadband)
 
 - **Mastering The Mix.** Within ±3 dB is "a very similar tonal balance";

@@ -243,6 +243,17 @@ STAGES = (
 TONE_INTENSITIES = ("low", "med", "high")
 TONE_TILTS = ("warmer", "warm", "neutral", "bright", "brightest")
 
+# What mastering's tone moves toward, and how it masters:
+#   standard   the chain online mastering services run (Mixea, LANDR,
+#              eMastered): a gentle tone EQ toward a finished-master
+#              curve, multiband and glue compression, saturation, mono bass
+#              and width, then loudness and the limiter (master.standard)
+#   builtin    1.1.1's tone target, then loudness and the limiter
+#   reference  a reference track the user loads (needs one; without it,
+#              the default is used)
+TONE_TARGETS = ("standard", "builtin", "reference")
+DEFAULT_TONE_TARGET = "standard"
+
 # Matching a reference track: how much of the difference to take by
 # default. iZotope's Match EQ manual advises "under 50%"; Sound On Sound
 # (Bazil, 2017) keeps the result within ±3 dB (docs/MASTERING-SOURCES.md §4).

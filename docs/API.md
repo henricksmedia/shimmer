@@ -326,8 +326,11 @@ match will do: `freqs_hz`, `song_db`, `reference_db` (both level-matched),
 `match_amount`, `tilt`, `limit_db`, `matched_up_to_hz`, `percussive{song,
 reference, differs}`, and `reference`.
 
-A render request uses the reference when its mastering block has
-`tone_target: "reference"`, with `match_amount` (0-1). Preview, size and
+A render request's mastering block picks how to master with
+`tone_target`: `"standard"` (the default when left out), `"builtin"`, or
+`"reference"`, which uses the reference with `match_amount` (0-1); without
+a loaded reference it masters as `"standard"`. Every route that takes a
+mastering block reads it (preview, size, process, chain, batch, remix). Preview, size and
 process all use it; the export's metrics carry `mastering.tone_target` and
 `mastering.match_amount`.
 

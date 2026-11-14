@@ -19,7 +19,7 @@ from . import catalog
 from .analyze.edges import FADE_OUT_RANGE_DB, TRIM_FADE_MS
 from .audio import eq as user_eq
 from .audio import trim as silence
-from .master import tone
+from .master import standard, tone
 from .render import _FIX_TOOLS, _PRESERVE_MAX_SCALE, _PRESERVE_PEAK, LOW_CUT_HZ, _tones_amount
 from .repair import notch as notch_mod
 from .repair.notch import Notch
@@ -528,6 +528,26 @@ def _tone(s: Settings, reference: Optional[Mapping[str, Any]]) -> Dict[str, Any]
             + ([tilt_words] if tilt_words else []),
             action=act)
     inten = _INTENSITY.get(s.intensity, s.intensity.title())
+    if s.tone_target != "builtin":
+        share = round(tone.STANDARD_STRENGTH.get(s.intensity, 0.5) * 100)
+        lo, med, hi = (round(tone.STANDARD_STRENGTH[k] * 100) for k in ("low", "med", "high"))
+        return _stage(
+            "tone", "Tone match", "Moves the tone toward the tone of finished masters.",
+            on=True, verdict=f"On · Standard, Tone match {inten}, Tilt {tilt}",
+            badges=["Standard", inten, f"{tilt} tilt", f"±{limit} dB max"],
+            band=band, band_text=band_text,
+            paras=["Standard mastering starts the way online mastering services do: a broad, "
+                   "gentle EQ toward the tone of finished masters. The curve is worked out "
+                   "from the song as it came in, before the fixes, and smoothed over about "
+                   "an octave, so it never makes a sharp move.",
+                   f"Tone match {inten} makes {share}% of the move (Low {lo}%, Medium {med}%, "
+                   f"High {hi}%). No band moves more than {limit} dB either way. In 5–12 kHz, "
+                   f"where fizz lives, no band is boosted more than "
+                   f"{_num(tone._HARSH_MAX_BOOST_DB)} dB.",
+                   top]
+            + ([tilt_words] if tilt_words else [])
+            + ["Compression, saturation and stereo come after the EQ, in the Master stage."],
+            action=act)
     share = round(tone.INTENSITY_STRENGTH.get(s.intensity, 0.55) * 100)
     boost, cut = _num(TONE_MAX_BOOST_DB), _num(TONE_MAX_CUT_DB)
     return _stage(
@@ -612,27 +632,57 @@ def _signed(v: float) -> str:
 _UNKNOWN_GAIN = "The amount shows here once the preview has played with these settings."
 
 
+def _standard_steps() -> List[List[str]]:
+    """Standard mastering's steps before the gain (master.standard)."""
+    lo, hi = _hz(standard.XOVER_LOW_HZ), _hz(standard.XOVER_HIGH_HZ)
+    return [
+        ["Multiband compressor", f"Splits the song into three bands, at {lo} and {hi}. "
+                                 "Each band is turned down a little while it is louder than "
+                                 "usual for this song, then given back its usual level. So "
+                                 "the tone stays put and only the loud moments are held in."],
+        ["Glue compressor", f"One gentle compressor on the whole mix "
+                            f"({_num(standard.GLUE.ratio)}:1, "
+                            f"{_num(standard.GLUE.attack_s * 1000, 0)} ms attack, "
+                            f"{_num(standard.GLUE.release_s * 1000, 0)} ms release). It turns "
+                            "the loud parts down by 1-2 dB, so the parts sit together."],
+        ["Saturation", f"A soft tape-style curve, mixed in at "
+                       f"{round(standard.SAT_MIX * 100)}%. It adds warmth and rounds the "
+                       "peaks a little. It works at 2× the sample rate, so it adds no "
+                       "off-key tones."],
+        ["Mono bass and width", f"Below {_hz(standard.MONO_BASS_HZ)} the song is made "
+                                "mono, so the low end stays solid on any speaker. A narrow "
+                                f"mix gets up to {_num(standard.WIDTH_MAX_DB)} dB more side "
+                                "above that. A wide one is left alone."],
+    ]
+
+
 def _master(s: Settings, fmt: catalog.Format, changed: bool,
-            gain_db: Optional[float] = None, gain_checked: bool = True) -> Dict[str, Any]:
+            gain_db: Optional[float] = None, gain_checked: bool = True,
+            standard_on: bool = False) -> Dict[str, Any]:
     act = _action("Open Mastering", "mastering")
     gain = None if gain_db is None else f"{_signed(gain_db)} dB"
     if s.mastering:
         t = catalog.loudness_target(s.loudness_target)
         lufs, ceil, cut = _num(t.lufs), _db1(fmt.ceiling_dbtp), _num(LOW_CUT_HZ)
+        std = standard_on
         return _stage(
-            "master", "Loudness and limiter",
-            "Sets the release level and keeps peaks under the ceiling.", on=True,
+            "master", "Compression, loudness and limiter" if std else "Loudness and limiter",
+            ("Holds the mix together, sets the release level and keeps peaks under the "
+             "ceiling.") if std else "Sets the release level and keeps peaks under the ceiling.",
+            on=True,
             verdict=(f"On · {t.label}, {lufs} LUFS"
                      + ((f", {gain} gain" if gain_checked else f", about {gain} gain")
                         if gain else "") + f", ceiling {ceil} dBTP"),
             badges=([f"{gain} gain" if gain_checked else f"about {gain} gain"] if gain else [])
+            + (["multiband", "glue", "mono bass"] if std else [])
             + [f"{lufs} LUFS", f"{ceil} dBTP", f"{cut} Hz low-cut", "one static gain"],
             band={"whole": True, "from": LOW_CUT_HZ, "tick": LOW_CUT_HZ},
             band_text=f"Works on the whole signal. The mark is the low-cut at {cut} Hz.",
             steps=[[f"Low-cut at {cut} Hz", f"Removes rumble below {cut} Hz: 12 dB per "
                                             f"octave, 3 dB down at {cut} Hz. It runs one way, "
-                                            "so it adds no pre-echo."],
-                   [f"Gain to {lufs} LUFS",
+                                            "so it adds no pre-echo."]]
+            + (_standard_steps() if std else [])
+            + [[f"Gain to {lufs} LUFS",
                     ("One static gain for the whole song"
                      + (f": {gain}." if gain and gain_checked
                         else f": about {gain} so far." if gain else ".")
@@ -805,7 +855,8 @@ def describe_chain(settings: Optional[Settings] = None, *,
         _tone(s, reference),
         eq,
         _master(s, fmt, changed=fixes["on"] or eq["on"], gain_db=gain_db,
-                gain_checked=gain_checked),
+                gain_checked=gain_checked,
+                standard_on=reference is None and s.tone_target != "builtin"),
         _export(s, fmt, out_sr, tags, save_folder, fades),
         _report(s),
     ]

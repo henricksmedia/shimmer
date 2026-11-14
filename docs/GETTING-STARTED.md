@@ -422,10 +422,14 @@ by default.
 
 If you are not sure, leave it on **Commercial**.
 
-**2. Pick a Tone target.** This is the tone your song moves toward.
+**2. Pick a Tone target.** This is how Shimmer masters your song.
 
-- **Built-in** (the default) is a tone shape measured from finished
-  masters. Two menus control it:
+- **Standard** (the default) masters the way online mastering services
+  do: a gentle tone EQ, compression that holds the loud parts in, soft tape
+  saturation, and mono bass. **Tone match** and **Tilt** (below) set its
+  tone EQ. If you are not sure, leave it on **Standard**.
+- **Built-in** is Shimmer's own tone shape, measured from finished
+  masters, with no compression. Two menus control it:
   - **Tone match:** how far to move toward the target. **Low — gentle
     EQ**, **Medium** (the default) or **High — more correction**. It
     changes tone only, not loudness.
@@ -439,7 +443,7 @@ If you are not sure, leave it on **Commercial**.
      50 %. The screen advises 50 % or lower, since more can sound forced.
   3. Read the chart: **Your song**, the **Reference**, and the **EQ
      Shimmer applies**.
-  4. To go back to the built-in target, click **Remove**.
+  4. To go back to Standard or Built-in, click **Remove**.
 
   Both songs are matched in level before they are compared, so only the
   tone is matched. Loudness still follows your Loudness target.

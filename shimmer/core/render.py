@@ -16,15 +16,21 @@ The order, each stage at its place in the chain:
      and the dynamic EQ.
      A tool whose plan reads the whole song slowly (SLOW_PLAN) says how far
      it has got, once per song; prepare() does that work ahead of a preview.
-  2b. With mastering on, the tone curve (1.1.1's, ported bit-exact): worked
-     out once from the whole raw song, applied after the notch as 1.1.1 did.
-     With a reference track, the curve moves the song toward the reference
-     instead (tone.match_curve).
-  3. The user EQ.
-  4. Level: with mastering on, a 25 Hz low-cut, one static loudness gain,
-     the peak shaper and the true-peak limiter; with it off and "preserve
-     volume" on, one gain back to the song's own level. Either gain is
-     always worked out from the whole song.
+  2b. With mastering on, the tone curve, worked out once from the whole raw
+     song and applied after the fixes. Settings.tone_target picks it:
+     Standard (the default) makes a broad move toward a finished master's
+     tone (tone.standard_curve); Built-in is 1.1.1's curve, ported
+     bit-exact; with a reference track, the curve moves the song toward the
+     reference (tone.match_curve).
+  3. The user EQ, and with mastering on the 25 Hz low-cut.
+  3b. Standard only: the chain online mastering services run
+     (master.standard): multiband compressor, glue compressor, saturation,
+     mono bass and width. Its gains are worked out once from the whole
+     song.
+  4. Level: with mastering on, one static loudness gain, the peak shaper
+     and the true-peak limiter; with it off and "preserve volume" on, one
+     gain back to the song's own level. Either gain is always worked out
+     from the whole song.
 
 Around render(), the Master tab's export (shimmer/api/render.py) cuts the
 edges you placed in Trim before it, and adds your fades after it, so the
@@ -51,7 +57,7 @@ from .analyze.track import REF_FREQS
 from .analyze.tones import estimate_cutoff_hz, scan_fixed_lines
 from .audio import eq as user_eq
 from .audio import filters, io, meters
-from .master import limiter, loudness, tone
+from .master import limiter, loudness, standard, tone
 from .progress import Progress
 from .repair import declick, deesser, dynamic_eq, hash_remover, notch, vocal_grain
 from .settings import EqBand, Settings
@@ -333,10 +339,24 @@ def _reference(reference: Optional[Source]) -> Optional[Tuple[Tuple[float, ...],
     return reference._remember(("reference_shape",), make)
 
 
+def tone_mode(s: Settings, reference: Optional[Source] = None) -> str:
+    """How mastering shapes this song: "reference" when render() has a
+    reference track, else "builtin" or "standard" (Settings.tone_target;
+    "reference" with no track falls back to the default)."""
+    if reference is not None:
+        return "reference"
+    if s.tone_target == "builtin":
+        return "builtin"
+    return "standard"
+
+
 def _tone_key(s: Settings, reference: Optional[Source]) -> Tuple:
-    """What the tone curve depends on besides the song."""
+    """What the tone curve, and the chain after it, depend on besides the
+    song."""
     ref = _reference(reference)
     if ref is None:
+        if tone_mode(s) == "standard":
+            return ("standard", s.intensity, s.tilt)
         return (s.intensity, s.tilt)
     return ("match", s.match_amount, s.tilt, ref)
 
@@ -345,7 +365,8 @@ def _tone_curve(source: Source, sr: int, s: Settings,
                 reference: Optional[Source] = None) -> List[float]:
     """The mastering tone curve for this song, from the whole raw song, or
     [] when mastering is off or the curve is flat. With a reference track,
-    the curve moves toward it; without one, toward 1.1.1's target."""
+    the curve moves toward it; without one, toward 1.1.1's target (Built-in)
+    or the Standard tone EQ."""
     if not s.mastering:
         return []
     ref = _reference(reference)
@@ -356,6 +377,8 @@ def _tone_curve(source: Source, sr: int, s: Settings,
         if ref is not None:
             return tone.match_curve(x, sr, ref[0], amount=s.match_amount, tilt=s.tilt,
                                     cutoff_hz=cutoff, ref_cutoff_hz=ref[1])
+        if tone_mode(s) == "standard":
+            return tone.standard_curve(x, sr, s.intensity, tilt=s.tilt, cutoff_hz=cutoff)
         return tone.compute_tone_curve(
             x, sr, strength=tone.intensity_to_strength(s.intensity), tilt=s.tilt,
             cutoff_hz=cutoff)
@@ -407,6 +430,40 @@ def _whole_premaster(source: Source, sr: int, s: Settings, plan: List[notch.Notc
                              _cutoff(source, sr)), sr, s)
 
 
+def _standard_on(s: Settings, reference: Optional[Source]) -> bool:
+    return s.mastering and tone_mode(s, reference) == "standard"
+
+
+def _standard_key(s: Settings, sr: int, plan: List[notch.Notch],
+                  reference: Optional[Source] = None) -> Tuple:
+    return _whole_key(s, sr, plan, "standard_plan", reference)
+
+
+def _whole_prelevel(source: Source, sr: int, s: Settings, plan: List[notch.Notch],
+                    reference: Optional[Source] = None) -> np.ndarray:
+    """The whole song just before mastering's gain: the premaster, and for
+    Standard its compressors, saturation and stereo. Standard's plan is
+    worked out on the way and kept, so render() does not work it out again."""
+    y = _whole_premaster(source, sr, s, plan, reference)
+    if not _standard_on(s, reference):
+        return y
+    key = _standard_key(s, sr, plan, reference)
+    p = source._cache.get(key)
+    if p is not None:
+        return standard.apply(y, sr, p)
+    p, out = standard.plan_and_run(y, sr)
+    source._remember(key, lambda: p)
+    return out
+
+
+def _standard_plan(source: Source, sr: int, s: Settings, plan: List[notch.Notch],
+                   reference: Optional[Source] = None) -> standard.Plan:
+    """Standard's whole-song plan, worked out once per song and settings."""
+    return source._remember(
+        _standard_key(s, sr, plan, reference),
+        lambda: standard.plan(_whole_premaster(source, sr, s, plan, reference), sr))
+
+
 # The gain is checked against the loudness after the shaper and limiter,
 # which take a little back (0.02-0.32 LU on real songs, docs/CHAIN-AUDIT.md
 # section 4), and corrected up to this many times, until within LOUDNESS_TOL.
@@ -432,7 +489,7 @@ def _whole_song_gain(source: Source, sr: int, s: Settings, plan: List[notch.Notc
     ceiling = catalog.output_format(s.format).ceiling_dbtp
 
     def make() -> Tuple[float, float]:
-        y = _whole_premaster(source, sr, s, plan, reference)
+        y = _whole_prelevel(source, sr, s, plan, reference)
         lufs = source._remember(_whole_key(s, sr, plan, "premaster_lufs", reference),
                                 lambda: meters.loudness(y, sr))
         gain = loudness.gain_to_target(lufs, target)
@@ -505,14 +562,15 @@ def known_gain(source: Source, settings: Optional[Settings] = None, *,
 def premaster_levels(source: Source, settings: Optional[Settings] = None, *,
                      reference: Optional[Source] = None) -> Dict[str, float]:
     """The song's loudness and true peak just before mastering's gain: after
-    the fixes, the tone curve, the EQ and the low-cut, at the output rate.
+    the fixes, the tone curve, the EQ, the low-cut and (Standard) the
+    compressors, saturation and stereo, at the output rate.
     This is what render() works its gain out from. Album mode picks one gain
     for a whole record from every song's level (master.loudness.album_gains).
     """
     s = settings if settings is not None else Settings()
     sr = catalog.output_format(s.format).rate_for(source.sr)
     plan = _tones_plan(source, sr, s, None)
-    y = _whole_premaster(source, sr, s, plan, reference)
+    y = _whole_prelevel(source, sr, s, plan, reference)
     lufs = meters.loudness(y, sr)
     source._remember(_whole_key(s, sr, plan, "premaster_lufs", reference), lambda: lufs)
     return {"lufs_i": lufs, "true_peak_dbtp": meters.true_peak_db(y, sr)}
@@ -664,13 +722,16 @@ def render(source: Source, settings: Optional[Settings] = None,
     # 2b. The mastering tone curve.
     curve = _tone_curve(source, sr, s, reference)
     matched = s.mastering and reference is not None
+    mode = tone_mode(s, reference)
     if s.mastering:
-        report["mastering"]["tone_target"] = "reference" if matched else "shimmer"
+        report["mastering"]["tone_target"] = {"reference": "reference", "builtin": "shimmer",
+                                              "standard": "standard"}[mode]
         if matched:
             report["mastering"]["match_amount"] = s.match_amount
     if curve:
         _stage(progress, "tone", "Tone",
                f"matching the reference, {s.match_amount:.0%}, {s.tilt}" if matched
+               else f"standard, {s.intensity}, {s.tilt}" if mode == "standard"
                else f"{s.intensity}, {s.tilt}")
         report["mastering"]["tone_curve_db"] = [round(v, 2) for v in curve]
     toned = _toned(fixed, sr, curve, _cutoff(source, sr) if curve else None)
@@ -680,7 +741,8 @@ def render(source: Source, settings: Optional[Settings] = None,
         _stage(progress, "eq", "EQ")
     y = _premaster(toned, sr, s)
 
-    # 4. Level.
+    # 4. Level. The whole-song gain comes first: working it out also works
+    # out Standard's plan (3b), which is then kept.
     if s.mastering:
         if gain_db is None:
             before, gain = _whole_song_gain(source, sr, s, plan, reference)
@@ -688,6 +750,13 @@ def render(source: Source, settings: Optional[Settings] = None,
         else:
             before, gain = None, float(gain_db)
             aim = f"the album's gain, {gain:+.1f} dB"
+        # 3b. Standard: compressors, saturation, stereo.
+        if _standard_on(s, reference):
+            sp = _standard_plan(source, sr, s, plan, reference)
+            _stage(progress, "master", "Compression, saturation, stereo",
+                   "multiband and glue compression, tape saturation, mono bass")
+            y = standard.apply(y, sr, sp, offset=a)
+            report["mastering"]["standard"] = dict(sp.summary)
         _stage(progress, "master", "Loudness and peaks",
                f"{aim}, {fmt.ceiling_dbtp:g} dBTP ceiling")
         y, shaper, lim = _level(y, sr, fmt.ceiling_dbtp, gain)
